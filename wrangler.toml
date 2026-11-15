@@ -31,6 +31,10 @@ VIS10_HOUSE_RULES_READY = "1"
 EST01_SEARCH_STATE_READY = "1"
 # ADM-11: the rest of the rental compliance calendar (no migration); keep equal in jobs/wrangler.toml.
 ADM11_CALENDAR_READY = "1"
+# VIS-08: Reminded and Feedback received in the viewing cycle (migration 0071, applied 15-nov-2026).
+VIS08_CYCLE_READY = "1"
+# BUS-10: one physical home per market listing, reviewed by a person (migrations 0050 and 0068, applied 15-nov-2026).
+BUS10_IDENTITY_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

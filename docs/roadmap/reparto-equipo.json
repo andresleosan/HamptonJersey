@@ -18,11 +18,11 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 24,
+      "openCount": 23,
       "states": {
-        "hecho": 29,
+        "hecho": 30,
         "parcial": 17,
-        "pendiente": 5,
+        "pendiente": 4,
         "replanteado": 6,
         "bloqueado": 2
       }
@@ -33,12 +33,12 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 61,
-      "openCount": 39,
+      "openCount": 38,
       "states": {
         "replanteado": 8,
         "pendiente": 16,
-        "hecho": 11,
-        "parcial": 19,
+        "hecho": 12,
+        "parcial": 18,
         "bloqueado": 4,
         "descartado": 3
       }
@@ -49,10 +49,10 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 26,
+      "openCount": 25,
       "states": {
-        "hecho": 36,
-        "parcial": 13,
+        "hecho": 37,
+        "parcial": 12,
         "pendiente": 7,
         "bloqueado": 6,
         "descartado": 3
@@ -64,11 +64,11 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 24,
+      "openCount": 23,
       "states": {
-        "hecho": 22,
+        "hecho": 23,
         "pendiente": 6,
-        "parcial": 18,
+        "parcial": 17,
         "descartado": 18,
         "replanteado": 1
       }
@@ -425,7 +425,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Cada aviso trae Done, Call con el número a la vista y el enlace a su ficha (Open applicant, Review matches, Open viewings o Add a search for this contact).",
-      "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19.",
+      "falta": "M13 · Reconciliación 7-nov: Approve sin salir del aviso, Reply y Snooze para posponerlo. Aprobar match debe autorizar la consulta definida, Call muestra todos los teléfonos y registra resultado, Abrir ficha muestra archivos parciales, y confirmar dictado enseña antes/después. Done no sustituye confirmación de disponibilidad ni cierre de búsqueda. Depende de: BUS-15, AGE-08, SPR-03, AUT-19. Traído de EST-13 (15-nov): aviso propio de Inbox al aprobar una consulta aclaratoria o ante un imprescindible desconocido; hoy solo queda el evento match.clarification en el Timeline.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/Inbox.jsx:19-21",
@@ -490,7 +490,7 @@
         "dictation-contract"
       ],
       "nextStep": "Añadir acciones contextuales sobre las gestiones ya construidas, sin convertir Done en cierre de búsqueda.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "NOT-10",
@@ -1233,7 +1233,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Construido el 6-nov-2026 (sin migración; spec docs/superpowers/specs/2026-11-05-hampton-app-listing-tracking-design.md). La lista de Listings tiene tres columnas nuevas: Checked («12 days ago», desde la última confirmación), Matched (aplicantes con match, los mismos que la ficha) e Interested (el interés activo, con la regla de la web). Filtros Min price y Max price en £ (venta y negocio por el precio total; alquiler por la renta al mes, pasando la semanal o anual a mensual) y la casilla Changed in the last 7 days (cualquier cambio guardado). La ficha sigue mostrando Active interest y Matched applicants.",
-      "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad.",
+      "falta": "M02 · Reconciliación 7-nov: La fuente (Hampton o agencia), en columna y en filtro: llegará con la búsqueda del mercado. Luis decidió el 6-nov-2026 que esa búsqueda la hará Hermes, un agente, sin atarse a ninguna página; queda por diseñar. «Cambió en los últimos 7 días» podrá afinarse a precio y disponibilidad cuando exista el historial de la ficha (SPR-02). Distinguir la última observación web de la confirmación comercial con evidencia: Checked/confirmed_at del catálogo se refresca también al publicar o cambiar precio y no acredita por sí solo disponibilidad del anunciante. Fuentes y filtros se completan con el inventario común. Depende de: BUS-10, EST-16. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-10 (15-nov): columna y filtro de fuente en el seguimiento de propiedades para las casas del inventario común, con estado, precio, parroquia, dormitorios, baños y disponibilidad.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx",
@@ -1272,7 +1272,7 @@
         "listings-schema"
       ],
       "nextStep": "Añadir procedencia y filtros distinguiendo observación web de confirmación comercial.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "SPR-08",
@@ -1403,7 +1403,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Crear la gestión compartida de disponibilidad por propiedad/operación y relacionar los matches aprobados. Revalidar búsqueda activa y datos vigentes antes de enviar. La consulta identifica el inmueble, expresa interés y pregunta disponibilidad y horarios; en vivienda solo puede incluir ocupantes de un caso concreto seleccionado, sin sumar familias ni divulgar nombres, contactos, presupuesto o documentos. Adaptar comercial sin inventar residentes. Reutilizar la disponibilidad general sin asumir aceptadas las condiciones de todos; vigencia por concretar. Si el canal no es utilizable, tarea manual con destinatario y contenido, sin marcar enviado. Consultas específicas desde la cola de MUST desconocido siguen como decisión abierta. Depende de: BUS-15, BUS-10, AGE-04, EST-09, AUT-11, EST-15. Aceptación: Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan. Antes de activar envíos debe estar operativa la exclusión por indisponibilidad confirmada EST-15; la construcción y las tareas manuales no esperan a un proveedor de correo. Traído de BUS-15 (14-nov): enviar solo desde coincidencias que cumplen APPROVED (server/routes/matches.js) y revalidarlo al salir; los Shortlisted anteriores al 14-nov no llevan versión revisada y necesitan nueva revisión. La consulta aclaratoria de un imprescindible desconocido es una acción humana aparte que no aprueba el match. Traído de AUT-11 (14-nov): antes de salir, el envío revalida aprobación (APPROVED), búsqueda activa, vigencia de la propiedad y permisos; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes; dos empleados y los reintentos comparten la misma acción sin doble correo; una propiedad invalidada no sale en una consulta pendiente. Traído de BUS-12 (14-nov): antes de consumir aprobaciones de búsquedas comerciales, ampliar los triggers de versión de 0037 para que search_operation, commercial_*, area_* y, en la ficha, premium e interior_area_sqft suban la versión; hoy un cambio en esos campos recalcula pero no invalida una aprobación anterior.",
+      "falta": "M06 · Reconciliación 7-nov: Crear la gestión compartida de disponibilidad por propiedad/operación y relacionar los matches aprobados. Revalidar búsqueda activa y datos vigentes antes de enviar. La consulta identifica el inmueble, expresa interés y pregunta disponibilidad y horarios; en vivienda solo puede incluir ocupantes de un caso concreto seleccionado, sin sumar familias ni divulgar nombres, contactos, presupuesto o documentos. Adaptar comercial sin inventar residentes. Reutilizar la disponibilidad general sin asumir aceptadas las condiciones de todos; vigencia por concretar. Si el canal no es utilizable, tarea manual con destinatario y contenido, sin marcar enviado. Consultas específicas desde la cola de MUST desconocido siguen como decisión abierta. Depende de: BUS-15, BUS-10, AGE-04, EST-09, AUT-11, EST-15. Aceptación: Cinco matches aprobados reutilizan una consulta general; un match sin aprobar no contacta y los datos de familias no se mezclan. Antes de activar envíos debe estar operativa la exclusión por indisponibilidad confirmada EST-15; la construcción y las tareas manuales no esperan a un proveedor de correo. Traído de BUS-15 (14-nov): enviar solo desde coincidencias que cumplen APPROVED (server/routes/matches.js) y revalidarlo al salir; los Shortlisted anteriores al 14-nov no llevan versión revisada y necesitan nueva revisión. La consulta aclaratoria de un imprescindible desconocido es una acción humana aparte que no aprueba el match. Traído de AUT-11 (14-nov): antes de salir, el envío revalida aprobación (APPROVED), búsqueda activa, vigencia de la propiedad y permisos; un cambio de precio, requisitos o disponibilidad después de aprobar revisa las acciones pendientes; dos empleados y los reintentos comparten la misma acción sin doble correo; una propiedad invalidada no sale en una consulta pendiente. Traído de BUS-12 (14-nov): antes de consumir aprobaciones de búsquedas comerciales, ampliar los triggers de versión de 0037 para que search_operation, commercial_*, area_* y, en la ficha, premium e interior_area_sqft suban la versión; hoy un cambio en esos campos recalcula pero no invalida una aprobación anterior. Traído de EST-13 (15-nov): enviar la consulta de disponibilidad solo desde APPROVED y la aclaratoria solo desde CLARIFICATION_APPROVED (server/routes/matches.js), revalidando al enviar; escribir en candidateState los valores de consulta enviada y respondida (hoy solo not_sent y clarification_approved); conservar la consulta compartida cuando una búsqueda se resuelve. Los triggers de versión ya cuentan los criterios comerciales (0069).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:10",
@@ -1483,7 +1483,7 @@
         "outbound-policy"
       ],
       "nextStep": "Diseñar consulta compartida aprobada por propiedad/operación, con canal manual si no existe integración.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "AGE-04",
@@ -2155,7 +2155,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El equipo cierra la visita en Viewings con Mark completed y elige Proceed, Need more information o Not interested con motivo opcional; el resultado se ve en el detalle de la visita (pestaña Past) y en el Owner report.",
-      "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado.",
+      "falta": "El formulario que recibe el aplicante una hora después de la visita para elegirlo él mismo (F3-B), que necesita enviarle un email. Sin dependencias: el Timeline del aplicante muestra la visita solo como Completed, sin el resultado. Traído de VIS-08 (15-nov): el formulario del aplicante tras la visita escribe outcome, outcome_note, feedback_at y feedback_by = applicant sobre una visita completada sin respuesta; el panel ya distingue Completed de Feedback received.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "admin/src/Viewings.jsx:249-270",
@@ -2185,7 +2185,8 @@
         "applicant-timeline",
         "email-pipeline"
       ],
-      "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo."
+      "nextStep": "Mostrar primero el resultado de la visita en Timeline; enviar el formulario posterior cuando el correo esté operativo.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "VIS-05",
@@ -2293,11 +2294,11 @@
       "titulo": "Ciclo de la visita: Requested, Confirmed, Reminded, Completed y Feedback received",
       "origen": "plan",
       "fase": "F3-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed).",
-      "falta": "M09 · Reconciliación 7-nov: Faltan los estados Reminded y Feedback received, que llegan con los recordatorios y el formulario al aplicante (F3-B). Extender el ciclo actual a propuestas de terceros y confirmaciones individuales: solicitada, por coordinar, propuesta, pendiente de confirmaciones, confirmada, realizada o cancelada. Mantener contactos e instrucciones juntos, actualizar reprogramaciones y no cerrar la búsqueda por ningún estado de visita. Depende de: VIS-17. Aceptación: Una propuesta incompleta no aparece confirmada ni provoca cierre de búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): al confirmar una solicitud (Requested → Confirmed) no se vuelve a comprobar el aviso de la casa; decidirlo al ampliar el ciclo.",
-      "bloqueo": "Correo (AUT-17)",
+      "hecho": "Viewings tiene las pestañas Requests, Upcoming, Needs outcome y Past, los botones Confirm, Reschedule, Mark completed, No-show y Cancel viewing, y New viewing para reservas por teléfono ya confirmadas. Las peticiones antiguas se migraron (new → Requested, contacted → Confirmed). Construido y apagado (14-nov, VIS08_CYCLE_READY y migración 0071): los dos estados que faltaban, anotados por el equipo. Reminded: en Upcoming, «Mark reminded» guarda cuándo, quién y por qué canal (Phone, Email, WhatsApp o In person); una visita confirmada a menos de 24 h sin recordatorio lleva «Reminder due» y un aviso en el detalle; cambiarla de hora borra el recordatorio. Feedback received: «Mark completed» admite «No answer yet» y después «Record feedback» guarda la respuesta del cliente en el resultado de VIS-04 (Proceed, Need more information o Not interested, con motivo), con la fecha y quién la anotó; un resultado guardado antes cuenta como Feedback received sin fecha inventada. Confirm vuelve a aplicar el aviso de la casa (VIS-10) con la misma casilla «Access is agreed with the tenant». Ningún estado de visita cambia la etapa ni el estado de la búsqueda del aplicante (probado). Apagado, o sin la migración 0071, todo funciona como antes. Cerrada el 15-nov-2026: migración 0071 aplicada y VIS08_CYCLE_READY=1. Los cinco estados los anota el equipo; el recordatorio automático llega con el correo (AUT-17), el formulario del aplicante con VIS-04 y las propuestas multiparte con VIS-17, que hereda la aceptación «una propuesta incompleta no aparece confirmada».",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "migrations/0010_viewings.sql:40",
         "migrations/0010_viewings.sql:50-59",
@@ -2305,7 +2306,19 @@
         "server/routes/inbox.js:78-80",
         "admin/src/Viewings.jsx:9",
         "admin/src/Viewings.jsx:292-353",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "migrations/0071_viewing_cycle.sql",
+        "server/viewing-cycle.js",
+        "server/routes/inbox.js (acciones remind y feedback, completar sin respuesta, aviso de la casa al confirmar)",
+        "admin/src/Viewings.jsx (Mark reminded, Reminder due, Record feedback, casilla del aviso en Confirm)",
+        "tests/server/vis-08-viewing-cycle.test.mjs: 9 pruebas pasan (14-nov). Incluye la aceptación posible hoy: confirmar, recordar, cambiar de hora, completar, anotar Not interested, cancelar y no-show dejan intactas las filas de applicants (stage y search_state).",
+        "tests/vis08-viewing-cycle.e2e.cjs pasa a 1280 y 390 en el contenedor aislado (14-nov); zoom 200 % comprobado a 1280.",
+        "Decisión 14-nov (encargo de la sesión; spec 2026-11-08-viewings-coordination-design §3: «Reminded y Feedback received son hitos separados»; CONTINUIDAD, migración aditiva): son fechas junto al estado, no valores nuevos del CHECK de 0010.",
+        "Decisión 14-nov (encargo de la sesión; VIS-04, migrations/0010_viewings.sql:45-46): Feedback received se deriva del resultado de VIS-04 (outcome y outcome_note) más feedback_at y feedback_by; no se duplican campos.",
+        "Decisión 14-nov (ficha, «Traído de VIS-10»; server/house-rules.js noticeCheck): Confirm aplica la misma regla y la misma confirmación expresa que la reserva, y la vuelve a leer dentro del UPDATE.",
+        "Decisión 14-nov (skill §4.5, lo más simple y reversible): el recordatorio no se admite con la visita ya pasada y se borra al cambiar de hora; el feedback se anota una sola vez; el texto del resumen queda en la fila de la visita, nunca en eventos.",
+        "Contrato para AUT-17 (migrations/0071_viewing_cycle.sql): el recordatorio automático escribe reminded_at, reminded_by = 'automation' y reminded_channel = 'email' en la misma fila; no se construyó ningún envío.",
+        "Cierre 15-nov-2026: publicada en 9fea898; 0071 (cinco ADD COLUMN, aditiva) aplicada en producción tras marcador Time Travel y comprobada (5 columnas); npm test 2546/2546; tests/vis08-viewing-cycle.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (ningún estado de visita toca la búsqueda; el aviso de la casa no se salta al confirmar)."
       ],
       "modulo": "M09",
       "deps": [
@@ -2332,15 +2345,15 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Correo (AUT-17)",
+      "externalBlocker": "",
       "resources": [
         "viewings-contract",
         "viewings-ui",
         "agency-consultations-contract",
         "notifications-schema"
       ],
-      "nextStep": "Extender las visitas a propuestas y confirmaciones multiparte; añadir recordatorio y feedback cuando sus canales existan.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "VIS-09",
@@ -2731,7 +2744,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): aplicar las reglas de la casa (aviso si hay inquilino, quién la enseña) a las visitas coordinadas con terceros; hoy solo cubren las reservas del panel y de la web (noticeCheck en server/house-rules.js).",
+      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): aplicar las reglas de la casa (aviso si hay inquilino, quién la enseña) a las visitas coordinadas con terceros; hoy solo cubren las reservas del panel y de la web (noticeCheck en server/house-rules.js). Traído de VIS-08 (15-nov): estados de coordinación multiparte (por coordinar, propuesta, pendiente de confirmaciones) y su aceptación: una propuesta incompleta no aparece confirmada ni cierra la búsqueda; una reprogramación retira confirmaciones incompatibles. Traído de EST-13 (15-nov): la visita confirmada es un estado propio del candidato: no cambia la decisión, la disponibilidad ni resuelve la búsqueda.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:57-59",
@@ -2790,7 +2803,7 @@
         "notifications-schema"
       ],
       "nextStep": "Coordinar franjas y aceptaciones de propiedad, cliente, anunciante y empleado sin cerrar la búsqueda.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "VIS-18",
@@ -3469,7 +3482,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Actualización 7-nov: código desplegado en aea7eb5 y migraciones remotas al día; activación del servicio pendiente. Evidencia de construcción: Construido y comprobado en local el 6-nov-2026, con diseño aprobado íntegramente por Luis y migración aditiva 0023_email.sql, sin aplicar en producción. Pages autentica preferencias y revisión; hampton-jobs envía con binding send_email restringido a hello@hamptonestatesjersey.com y recibe en replies@app.hamptonestatesjersey.com. Cola D1 con snapshot aprobado, idempotencia por plantilla/entidad/versión/destinatario, cuota atómica de 100 intentos por día de Jersey y comprobación de pausa, preferencias y baja antes de cada llamada. Solo rechazos explícitos de límite admiten hasta 3 intentos; timeouts y resultados inciertos esperan revisión, sin reenvío automático. Primer uso NOT-10: resumen de contadores a las 08:00 de Jersey, activado expresamente para las direcciones del equipo tras ver una muestra. Automations incluye Email y Daily team summary. Sección Email paginada con entrada/salida, texto literal, bajas, borrado y revisión de resultados desconocidos. MIME limitado a 1 MiB/50.000 caracteres, sin guardar adjuntos; huellas contra duplicados y referencias de hilo sin acciones de negocio. Contenido 30 días, metadatos 90; borrado diario y de contactos. Aviso de privacidad actualizado. Configuración de servicio false y preferencias apagadas por defecto; no se han enviado correos reales. Correcciones de revisión del 6-nov: contador global y filtro paginado Pending review de resultados inciertos sin revisar, visible después de medianoche y sin reenvío al reconocerlos. Asunto, In-Reply-To y References se resuelven conjuntamente; las contradicciones quedan sin hilo y References puede ser la única pista. El detalle conserva texto y ofrece reintento con aviso y foco si falla su refresco. Regresiones RED-GREEN; 622 pruebas Node y 14 Python, build, check:release, e2e de correo y Playwright MCP 1280/390 con zoom 200% aprobados; e2e general bloqueado por DNS de Turnstile.",
-      "falta": "Verificar Workers Paid y alta del dominio en Email Sending por el canal autenticado existente; el taller no pudo consultar la cuenta, no se afirma que falten. Configurar la recepción literal del subdominio sin alterar los MX del buzón habitual; confirmar sus registros de autenticación y las posibilidades de alta de la zona. Confirmar la preparación real en Pages y Worker con EMAIL_SERVICE_READY=true solo al completar ese montaje. El equipo elige destinatarios en Automations, revisa la muestra y activa el resumen. Falta una entrega real al equipo y una respuesta visible en Email; no se promete reintento automático del proveedor ante fallo de recepción. Consultas a agencias, correo a aplicantes/chats y los demás flujos dependientes se construyen aparte y conservan sus estados pendientes. Los menores restantes y bloqueos del taller están registrados en el ledger; H1/H2/H3 están corregidos. El código y las migraciones ya están publicados; la activación de correo y sus cambios DNS no se realizaron en esta entrega. Traído de VIS-10 (14-nov): aviso automático al inquilino antes de una visita (destinatario, canal, texto y evidencia por caso); hoy el empleado confirma el acceso a mano al reservar. Traído de ADM-11 (14-nov): ADM-11 solo registra que la copia de licencia, la del EICR y los datos prescritos del depósito se entregaron; el envío automático al inquilino llega con el correo (ADM-03).",
+      "falta": "Verificar Workers Paid y alta del dominio en Email Sending por el canal autenticado existente; el taller no pudo consultar la cuenta, no se afirma que falten. Configurar la recepción literal del subdominio sin alterar los MX del buzón habitual; confirmar sus registros de autenticación y las posibilidades de alta de la zona. Confirmar la preparación real en Pages y Worker con EMAIL_SERVICE_READY=true solo al completar ese montaje. El equipo elige destinatarios en Automations, revisa la muestra y activa el resumen. Falta una entrega real al equipo y una respuesta visible en Email; no se promete reintento automático del proveedor ante fallo de recepción. Consultas a agencias, correo a aplicantes/chats y los demás flujos dependientes se construyen aparte y conservan sus estados pendientes. Los menores restantes y bloqueos del taller están registrados en el ledger; H1/H2/H3 están corregidos. El código y las migraciones ya están publicados; la activación de correo y sus cambios DNS no se realizaron en esta entrega. Traído de VIS-10 (14-nov): aviso automático al inquilino antes de una visita (destinatario, canal, texto y evidencia por caso); hoy el empleado confirma el acceso a mano al reservar. Traído de ADM-11 (14-nov): ADM-11 solo registra que la copia de licencia, la del EICR y los datos prescritos del depósito se entregaron; el envío automático al inquilino llega con el correo (ADM-03). Traído de VIS-08 (15-nov): el recordatorio automático de visita escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato en la migración 0071); Viewings ya lo muestra como Reminded.",
       "bloqueo": "Activación y prueba real de Cloudflare Email Service",
       "evidencia": [
         "migrations/0023_email.sql",
@@ -3489,7 +3502,7 @@
         "docs/superpowers/plans/2026-11-06-hampton-app-email.md",
         "docs/superpowers/plans/2026-11-06-hampton-app-email-ledger.md"
       ],
-      "actualizado": "2026-11-14",
+      "actualizado": "2026-11-15",
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
@@ -3795,7 +3808,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox.",
-      "falta": "M03/M04 · Reconciliación 7-nov: Ampliar el cruce inicial al inventario común y activar la búsqueda con fecha y responsable. Separar candidatos con datos pendientes de coincidencias completas. El inventario funciona también sin clientes nuevos; no requiere exclusivamente Places.je. Depende de: BUS-06, BUS-12, EST-09. Aceptación: El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder. Traído de EST-01 (14-nov): al arrancar la búsqueda contra el inventario común de mercado, registrar su intento y resultado junto al de EST-01 (server/search-state.js); hoy la hora de última búsqueda cubre solo las fichas guardadas de Hampton, y falta de fuente o error no debe leerse como 0 anuncios.",
+      "falta": "M03/M04 · Reconciliación 7-nov: Ampliar el cruce inicial al inventario común y activar la búsqueda con fecha y responsable. Separar candidatos con datos pendientes de coincidencias completas. El inventario funciona también sin clientes nuevos; no requiere exclusivamente Places.je. Depende de: BUS-06, BUS-12, EST-09. Aceptación: El alta cruza la base disponible, informa del estado real y deja visibles los esenciales sin responder. Traído de EST-01 (14-nov): al arrancar la búsqueda contra el inventario común de mercado, registrar su intento y resultado junto al de EST-01 (server/search-state.js); hoy la hora de última búsqueda cubre solo las fichas guardadas de Hampton, y falta de fuente o error no debe leerse como 0 anuncios. Traído de BUS-10 (15-nov): ofrecer a evaluate() las casas del inventario común usando la lectura homes de GET /admin/market/identity (los anuncios sin unir son cada uno su casa); mostrar en la tarjeta de match la fuente, el canal y la fecha de observación. Un dato sin evidencia fechada entra como desconocido.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:120-122",
@@ -3848,7 +3861,7 @@
         "notifications-schema"
       ],
       "nextStep": "Ampliar el cruce inicial al inventario común y registrar activación y datos pendientes de la búsqueda.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-02",
@@ -4129,7 +4142,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Luis respondió el 23-oct (A4): se comercializan con la agencia que tiene el encargo. Las fichas HE-R028 a HE-R285 entraron archivadas, la migración 0009 las ofrece a los aplicantes y su tarjeta dice «Not on website».",
-      "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04.",
+      "falta": "M02 · Reconciliación 7-nov: Vincular las fichas importadas con su anunciante, publicaciones y procedencia, y someter las consultas al circuito aprobado AGE-03. Conservar las autorizaciones históricas documentadas sin extenderlas a nuevas capturas. El reparto de comisión es una gestión humana separada y no bloquea inventario, contacto o visita; nuevas fotos siguen AGE-10. Depende de: BUS-10, AGE-04. Traído de BUS-10 (15-nov): enlazar las fichas propias y las 264 co-listed con su casa de mercado (hoy solo se unen observaciones del inventario; ninguna ficha listings entra en él) y añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18).",
       "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
@@ -4169,7 +4182,8 @@
         "advertisers-contract",
         "listings-schema"
       ],
-      "nextStep": "Vincular las fichas importadas con anunciante y procedencia, conservando el alcance de permisos históricos."
+      "nextStep": "Vincular las fichas importadas con anunciante y procedencia, conservando el alcance de permisos históricos.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-08",
@@ -4180,7 +4194,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba. Traído de BUS-15 (14-nov): una bajada de precio material tras un rechazo abre un nuevo episodio Found para revisión humana (plan maestro); hoy un match rechazado no se vuelve a proponer. Traído de BUS-06 (14-nov): construir el recorrido automático reanudable (marketInventoryTick, TP-04 BUS-06 tarea 2) junto a la pasada diaria, cuando exista el primer lector automático; emitir desde ahí el aviso NOT-01 de fuente fallida.",
+      "falta": "M05 · Reconciliación 7-nov: Construir el barrido diario por tandas, independiente de clientes: nuevas publicaciones, cambios, anuncios no localizados y errores de fuente; guardar cada intento y la última revisión correcta. Un fallo o anuncio ausente genera revisión, nunca indisponibilidad confirmada. Reutilizar capturas sin descargar todas las fotos cada día, reintentar sin duplicados y emitir cambios hacia BUS-04. Una hora concreta o frecuencia superior a diaria queda por concretar. Depende de: BUS-06, BUS-09, BUS-10, EST-16, AUT-07, EST-15. Aceptación: Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas. La activación automática exige antes la exclusión por indisponibilidad y prioridad humana EST-15; el desarrollo puede avanzar con fuentes y datos de prueba. Traído de BUS-15 (14-nov): una bajada de precio material tras un rechazo abre un nuevo episodio Found para revisión humana (plan maestro); hoy un match rechazado no se vuelve a proponer. Traído de BUS-06 (14-nov): construir el recorrido automático reanudable (marketInventoryTick, TP-04 BUS-06 tarea 2) junto a la pasada diaria, cuando exista el primer lector automático; emitir desde ahí el aviso NOT-01 de fuente fallida. Traído de BUS-10 (15-nov): la pasada diaria debe mantener estable la referencia y la operación de cada anuncio; la casa se ancla a la primera lectura decidida.",
       "bloqueo": "",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
@@ -4253,7 +4267,7 @@
         "availability-contract"
       ],
       "nextStep": "Construir barrido reanudable con fixtures; activar solo cuando exclusión y prioridad humana de EST-15 estén verificadas.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-09",
@@ -4264,7 +4278,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
-      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo. Traído de BUS-06 (14-nov): ampliar el contrato de observación manual con tipo de inmueble, superficie, ocupación, descripción y referencia del anunciante. POST /admin/market/manual-pages ya conecta el puente manual con la sesión del admin; siguen pendientes el lector Hampton interno (own_pilot) y cada lector externo con su contrato. Todo lector automático revalida la decisión BUS-19, lee con baja frecuencia, respeta robots.txt y se identifica.",
+      "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo. Traído de BUS-06 (14-nov): ampliar el contrato de observación manual con tipo de inmueble, superficie, ocupación, descripción y referencia del anunciante. POST /admin/market/manual-pages ya conecta el puente manual con la sesión del admin; siguen pendientes el lector Hampton interno (own_pilot) y cada lector externo con su contrato. Todo lector automático revalida la decisión BUS-19, lee con baja frecuencia, respeta robots.txt y se identifica. Traído de BUS-10 (15-nov): los lectores automáticos deben mantener estable la referencia y la operación de cada anuncio; la casa se ancla a la primera lectura decidida.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -4319,7 +4333,7 @@
         "market-inventory"
       ],
       "nextStep": "Resolver identidad durable del actor antes de conectar el puente; definir lectores con permisos y evidencia.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-10",
@@ -4327,10 +4341,10 @@
       "titulo": "Casa física única (properties) con deduplicación entre fuentes",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Base interna de identidad física y publicaciones por fuente con observaciones preservadas, revisión humana versionada y reversible, reintentos idempotentes y rechazo de vínculos de operación incoherentes. Se prepararon candidaturas pendientes y un detector conservador de conflictos suministrados, sin autorizar fusiones ni consultar matches reales. La ficha Staff muestra grupos históricos solo como indicios. La fachada permanece bloqueada con 503 y el esquema nuevo es una propuesta local. El núcleo inactivo admite sustitución explícita y versionada de candidaturas, con CAS y guardas contra reemplazo silencioso; SQLite y D1 efímera verificaron carreras y rollback.",
-      "falta": "Integrar candidaturas BUS-06/BUS-09 con ciclo de revisión y vínculo fiable a matches; añadir decisiones y guardas de conflicto, retención y bajas EST-19, autorización duradera por fuente y sesión, rutas y pantalla. Los grupos históricos no acreditan una única vivienda ni sustituyen ese flujo. No se han utilizado fuentes reales ni acreditado la operación de extremo a extremo; el estado remoto de 0050 es desconocido. La sustitución no invalida automáticamente evidencia posterior ni constituye una decisión humana; requiere política de purga y autoridad de sesión y fuente antes de conectarse. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-15 (14-nov): cuando el inventario común alimente las coincidencias, mostrar en la tarjeta de revisión la fuente de la ficha (canal y fecha de observación). Traído de BUS-06 (14-nov): al enlazar observaciones con la propiedad, añadir «fuentes leídas» al historial de la ficha (SPR-02, contrato EST-18). Traído de BUS-12 (14-nov): ofrecer al motor evaluate() las casas del inventario común con identidad revisada; hoy solo se cruzan las fichas listings. Un dato sin evidencia fechada entra como desconocido, nunca como cumplimiento.",
+      "hecho": "Casa única conectada al inventario real, apagada tras BUS10_IDENTITY_READY. En Automations › Market inventory, «Possible duplicate homes» propone pares de anuncios con su evidencia: fuente, referencia, enlace, operación, parroquia, dormitorios, baños, precio y fecha. Regla sin IA: misma operación, parroquia y dormitorios conocidos, más mismo precio o mismo título. Un empleado elige «Same home» o «Different homes»; nada se une solo. Un anuncio visto en tres fuentes queda como una casa con tres publicaciones; una segunda unidad rechazada sigue aparte y no se vuelve a proponer ni se une por otro anuncio de esa casa. Cada decisión queda con autor y fecha y se revierte con «Undo last link» o «Reopen»; el historial se conserva. Las observaciones no se tocan y la unión no dice nada de disponibilidad. Rutas con sesión de equipo: GET /admin/market/identity (candidatas, casas unidas y pares separados), POST …/identity/decisions y POST …/identity/undo. La migración 0050 sirve tal cual para unir y deshacer; 0068 (aditiva) añade el registro de rechazos. La ficha Staff sigue mostrando los grupos históricos de investigación solo como indicios. Unir, rechazar, deshacer y reabrir siguen una sola regla: los canales de las dos casas están hoy permitidos, con revisión vigente y directorio actual aceptado; no depende de la revisión del directorio con la que se leyó el anuncio. Un anuncio no puede quedar con dos casas ni un par unido y rechazado a la vez: la base lo impide dentro de la misma operación. Cerrada el 15-nov-2026: migraciones 0050 y 0068 aplicadas y BUS10_IDENTITY_READY=1. Con el inventario aún vacío la lista sale vacía; las primeras uniones llegan con la carga de anuncios de Luis (BUS-06). Ofrecer las casas al matching (BUS-01), enlazar fichas propias (BUS-07), fuente en el seguimiento (SPR-07), purga (EST-19) y disponibilidad (EST-16) están en sus fichas.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:90-91",
@@ -4350,7 +4364,30 @@
         "docs/roadmap/work/BUS-10/revision-investigacion-2026-11-13.md",
         "docs/roadmap/work/BUS-10/candidaturas-internas-2026-11-13.md",
         "tests/server/bus-10-candidates-d1.test.mjs",
-        "docs/roadmap/work/BUS-10/candidate-schema-proposal.sql"
+        "docs/roadmap/work/BUS-10/candidate-schema-proposal.sql",
+        "migrations/0068_market_identity_separations.sql",
+        "server/routes/market-inventory.js",
+        "admin/src/MarketInventory.jsx",
+        "tests/server/bus-10-review.test.mjs",
+        "tests/bus10-identity.e2e.cjs",
+        "Decisión 14-nov: 0050 y el núcleo sirven tal cual para unir y deshacer; solo faltaba registrar el rechazo, que va en 0068 aditiva sin tocar 0050 · fuente: CONTINUIDAD «Qué es una migración aditiva».",
+        "Decisión 14-nov: las candidaturas se calculan al leer el inventario y no se guardan; candidate-schema-proposal.sql y proposePropertyIdentityCore quedan sin uso · fuente: skill §5 (mínimo código) y §4.5.",
+        "Decisión 14-nov: el detector que existía (inspectHumanMatchConflictsCore) compara revisiones de matches, que las observaciones de mercado no tienen; no genera candidaturas y no se conectó. La regla nueva es una función pura en server/market-identity.js · fuente: skill §4.5.",
+        "Decisión 14-nov: autoridad duradera por fuente y sesión, versiones esperadas enviadas por el cliente y purga son endurecimientos y van a MEJORAS; las rutas usan la sesión de equipo del resto del inventario y el núcleo revalida cuenta, acceso, vigencia y manifiesto de cada fuente en cada unión, deshacer y rechazo · fuente: skill §3.",
+        "Decisión 14-nov: alcance propio = casa única con sus publicaciones y la lectura «homes» de GET /admin/market/identity. Pasan a otras tareas: cruce con evaluate() y fuente en la tarjeta de match (BUS-01), columna y filtro de fuente en propiedades (SPR-07), enlace de las fichas propias y co-listed con «fuentes leídas» en su historial (BUS-07), retención y purga (EST-19) y disponibilidad (EST-16) · fuente: skill §3 y plan maestro «Búsqueda, visitas y publicación propias».",
+        "Decisión 14-nov: un anuncio conserva la casa de su primera lectura decidida; lecturas posteriores del mismo anuncio no abren otra casa y la ficha muestra los datos de la última · fuente: docs/roadmap/work/BUS-10/foundation-evidence.md (publicación por fuente, canal, referencia y operación).",
+        "Verificación 14-nov: tests/server/bus-10-review.test.mjs 7/7 (interruptor apagado 404, sesión y mismo origen, evidencia, tres fuentes una casa, segunda unidad aparte, deshacer y reabrir, lectura posterior, fuente cerrada 409 y recorrido con la ruta real de carga manual). Focales bus-10, bus-06 y bus-19: 127 pruebas; fallan de forma intermitente solo pruebas Miniflare anteriores con la máquina cargada (bus-06-tp04-1 pasa 18/18 sola; bus-10-identity y bus-06-tp04-1 pasan 48/48 en serie).",
+        "Verificación 14-nov: tests/bus10-identity.e2e.cjs en Chromium aislado, con rutas y D1 reales del fixture y 0050+0068 aplicadas: PASS a 1280 y 390, teclado y 200 %. A 200 % y 390 la página Automations ya desborda sin esta sección (anterior a este cambio). bus06-coverage y automations-market siguen en PASS.",
+        "No comprobado: D1 remoto, estado real de 0050/0068 en producción y el recorrido con anuncios reales (aún no hay datos cargados).",
+        "migrations/README.md",
+        "Corrección tras revisión independiente 14-nov (1): la autoridad de la fuente se comprueba contra el estado actual del canal y no contra la revisión del directorio de la tanda que leyó el anuncio; antes, aceptar una revisión nueva dejaba los enlaces sin poder deshacerse · server/internal/market-identity-core.js (guardas de resolve y groupAllowed).",
+        "Decisión 14-nov: deshacer y reabrir exigen el mismo acceso vigente que unir y rechazar; un canal vencido o denegado se desbloquea revisándolo de nuevo · fuente: docs/roadmap/work/BUS-10/foundation-evidence.md («cada lectura, decisión y reversión exige acceso vigente a todas las fuentes del grupo»).",
+        "Corrección tras revisión independiente 14-nov (2): un anuncio ya anclado a otra lectura se rechaza dentro del batch (sole_home), así dos peticiones cruzadas no abren dos casas; la segunda da 409 sin escribir.",
+        "Corrección tras revisión independiente 14-nov (3): la unión comprueba el rechazo vigente dentro de su batch y el rechazo se graba en una sola sentencia que falla si el par ya es una casa; «Same» y «Different» cruzados dejan solo la primera decisión.",
+        "Menores resueltos 14-nov: las candidaturas usan el acceso efectivo del canal (vencido o directorio revocado no se propone); un operation_id reutilizado con otro par u otra acción da 409; migrations/README.md actualizado. Queda sin resolver: una decisión rechazada con 409 puede dejar la casa provisional del primer anuncio (no es una decisión ni se muestra); el aviso dice ahora «No decision was recorded».",
+        "Verificación 14-nov tras las correcciones: tests/server/bus-10-review.test.mjs 11/11 (los cuatro nuevos fallaban antes: revisión nueva del directorio, dos casas por carrera, unión y rechazo cruzados, operation_id reutilizado). Regresiones de una en una: 13 archivos bus-10, bus-06 y bus-19, 131 pruebas, 0 fallos. tests/bus10-identity.e2e.cjs repetido en Chromium aislado: PASS a 1280 y 390. 0068 no cambió.",
+        "Cierre 15-nov-2026: publicada en 9fea898 (0cdcb75 y corrección da61598); 0050 y 0068 (tablas, índices y triggers nuevos, aditivas) aplicadas juntas en producción; npm test 2546/2546; tests/bus10-identity.e2e.cjs pasa a 1280 y 390; la revisión independiente halló tres defectos de reversibilidad (deshacer tras una revisión nueva del directorio y dos carreras), corregidos con prueba y verificados en una segunda pasada sin hallazgos graves, también sobre D1 local real.",
+        "Decisión 15-nov-2026 (skill §3): se cierra con el inventario vacío porque el recorrido está comprobado con datos sintéticos por la ruta real de carga manual; la carga real es dato de Luis y ya está en su cola por BUS-06."
       ],
       "modulo": "M02",
       "deps": [
@@ -4375,8 +4412,8 @@
         "market-inventory",
         "property-identity"
       ],
-      "nextStep": "Resolver retención EST-19 y autoridad duradera antes de conectar candidatos de mercado y decisiones de identidad.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-11",
@@ -5481,16 +5518,28 @@
       "titulo": "Estados independientes de evaluación, aprobación, disponibilidad y consulta",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Representar por separado evaluación completa/pendiente/incumple, decisión del empleado, disponibilidad con evidencia, consulta compartida y espera del cliente. Una aprobación no confirma disponibilidad; una disponibilidad confirmada no implica envío al cliente ni visita cerrada. Mantener consultas de otros clientes cuando uno resuelve su búsqueda. Depende de: BUS-12, BUS-15, BUS-10, EST-09. Aceptación: Aprobar, confirmar disponibilidad, confirmar visita y resolver búsqueda son acciones y estados distintos. Traído de BUS-15 (14-nov): mostrar en la tarjeta cuándo una aprobación quedó desfasada por un cambio material posterior y pedir nueva revisión; hoy sigue viéndose Shortlisted. Traído de BUS-12 (14-nov): consulta aclaratoria y aviso propio de Inbox ante un imprescindible desconocido, con aprobación expresa del empleado y sin aprobar el match; hoy el equipo lo ve en la tarjeta («Requirements to confirm»).",
+      "hecho": "14-nov-2026 (M06), construida en rama, sin publicar: cada match expone y muestra cuatro estados separados, cada uno con su valor y su acción (campo states de la tarjeta, server/candidate-state.js). Evaluación: completa, por confirmar o incumple; se calcula con los requisitos aunque la ficha haya dejado de ofrecerse. Decisión del empleado: sin decidir, aprobada vigente, aprobada desfasada o rechazada con motivo. La aprobación desfasada se dice en la tarjeta («Approval out of date») y su acción «Review again» devuelve el match a Found para decidir con los datos de hoy. Disponibilidad: siempre «Not confirmed» junto al estado publicado de la ficha («Listed as…»); el valor confirmado existe en el contrato y nada lo escribe todavía. Consulta: «Not sent». Con un imprescindible desconocido el empleado puede aprobar una consulta aclaratoria («Approve clarification») o retirarla: queda registrada con quién, cuándo, sobre qué y qué versiones (evento match.clarification), no aprueba el match, no envía nada y deja de valer con un cambio material. El servidor exporta CLARIFICATION_APPROVED, separado de APPROVED, para el envío futuro. Aprobar no cambia la ficha, su disponibilidad ni la etapa; rechazar no toca la ficha; resolver o archivar una búsqueda no toca los matches, decisiones ni aclaraciones de otras búsquedas. Migración 0069 (aditiva, solo sustituye los dos disparadores de versión de 0037, sin interruptor): cambiar la etapa de una búsqueda ya no retira sus aprobaciones; cambiar un criterio de una búsqueda comercial, o la prima, la superficie o el tipo de una ficha comercial, sí las retira. Cerrada el 15-nov-2026: sin interruptor; migración 0069 aplicada (un cambio de etapa ya no desfasa aprobaciones y los criterios comerciales sí). La aclaración solo se aprueba con la ficha ofrecida. Envío de consultas (AGE-03), disponibilidad con evidencia (EST-16/EST-15), visita (VIS-17) e interés del cliente (EST-14) están en sus fichas.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0009_matches.sql:33",
         "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:36",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:147-148",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "Decisión: los estados se derivan al leer y no se guarda un estado único nuevo; sin tabla ni columna nueva. Fuente: plan EST-13 del 8-nov (servicio de lectura compuesto, no otro status que sobrescriba hechos).",
+        "Decisión: la disponibilidad confirmada no se deduce del estado de la ficha, de una aprobación ni de la petición; hoy siempre es «not_confirmed». Fuente: reconciliación 7-nov M06 (no convertir confirmed_at ni una lectura web en confirmación comercial).",
+        "Decisión: la consulta aclaratoria se guarda como decisión propia del empleado en un evento, sin aprobar el match ni enviar nada. Fuente: plan maestro 10-nov (requiere empleado, sin aprobar match ni presentación); el envío es de AGE-03.",
+        "Decisión: «Review again» devuelve el match a Found en vez de reaprobar en un paso, para que el motor vuelva a comprobar la ficha antes de decidir. Fuente: reconciliación 7-nov M04 (un cambio posterior exige nueva revisión).",
+        "Decisión: la evaluación de una ficha que ya no se ofrece se calcula con sus requisitos y la retirada se muestra en disponibilidad. Fuente: criterio de aceptación (estados distintos).",
+        "Decisión: una búsqueda resuelta o archivada no aprueba nada y al reabrirla sus aprobaciones piden nueva revisión. Fuente: BUS-15 (APPROVED exige búsqueda activa y versiones vigentes).",
+        "Comprobado en rama el 14-nov-2026, antes de integrar: tests/server/candidate-state.test.mjs 6/6; pruebas focales de matches, requisitos, búsqueda e historial 268/268; tests/est13-match-states.e2e.cjs pasa a 1280 y 390 en el contenedor aislado; siguen pasando bus15-review, bus12-matching, bus-12-currency y bus14-e2e. Sin ejecutar: npm test completo, revisión independiente y producción.",
+        "Decisión: la etapa deja de subir la versión de la búsqueda. Fuente: server/applicants.js:38-39 (una búsqueda está activa por archived_at y search_state, no por etapa, también en el commit de 0037), server/matching.js (evaluate no lee la etapa) y sus consumidores (match-store y search-progress comparan además updated_at); encargo del orquestador del 14-nov.",
+        "Decisión: suben la versión los once criterios comerciales de la búsqueda y, solo en fichas comerciales, premium, interior_area_sqft y property_type. Fuente: rama comercial de evaluate en server/matching.js (BUS-12); en una vivienda no se leen y no deben desfasar nada.",
+        "Decisión: 0069 es aditiva y va sin interruptor. Fuente: CONTINUIDAD-AVANZAR (sustituir un trigger por su versión nueva); un disparador no se puede apagar, por eso tests/server/est-13-versions.test.mjs prueba que no escribe ninguna fila y que solo cambian esos dos objetos.",
+        "Comprobado en rama, segunda parte: tests/server/est-13-versions.test.mjs 5/5 (falló antes de 0069 por las causas esperadas); regresiones focales de servidor 509/509 (applicants, matches, match-*, candidate-state, commercial-evaluation, bus-12-*, est-01, est01-search-state, schema, pub06, search-criteria) y 234/234 del resto de pruebas que leen migrations/; wrangler aplica 0069 en D1 local dentro del contenedor aislado y tests/est13-match-states.e2e.cjs vuelve a pasar a 1280 y 390. Sin ejecutar: npm test completo, D1 remoto y producción.",
+        "Cierre 15-nov-2026: publicada en 9fea898 (6f70310, 0f28ce9 y corrección 9fea898); 0069 aplicada en producción y comprobada en sqlite_master (búsqueda sin stage y con criterios comerciales; ficha con NEW.use=commercial); columnas verificadas antes en producción; npm test 2546/2546; tests/est13-match-states.e2e.cjs pasa a 1280 y 390; la revisión independiente comparó los triggers byte a byte y 6.962 UPDATE diferenciales, y halló que una aclaración podía aprobarse con la ficha ya no ofrecida: corregido con prueba."
       ],
       "modulo": "M06",
       "deps": [
@@ -5540,8 +5589,8 @@
         "outreach-contract",
         "availability-contract"
       ],
-      "nextStep": "Separar evaluación, decisión humana, disponibilidad acreditada y consulta compartida con historial por búsqueda.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "EST-14",
@@ -5552,7 +5601,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17.",
+      "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17. Traído de EST-13 (15-nov): añadir interés y espera del cliente como dimensión propia en candidateState (quinta dimensión de M06, no construida en EST-13).",
       "bloqueo": "",
       "evidencia": [
         "migrations/0009_matches.sql:33-35",
@@ -5600,7 +5649,8 @@
         "viewings-contract",
         "sales-contract"
       ],
-      "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial."
+      "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "EST-15",
@@ -5611,7 +5661,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Poner la ficha en Withdrawn, Sold o Under offer, archivarla o apagar Offer to applicants borra sus matches Found de todos los aplicantes, y los Shortlisted muestran la insignia de su disponibilidad. Se preparó un cálculo interno y revisado de bajas humanas por jerarquía de alcance y contradicciones, sin persistencia ni ruta activa.",
-      "falta": "M12 · Reconciliación 7-nov: Registrar indisponibilidad confirmada con motivo, fecha, origen, evidencia, responsable y alcance (inmueble, operación, anunciante o publicación). Excluir solo lo afectado de propuestas, actualizar también los Shortlisted y avisar sobre visitas/gestiones en curso, preservando historial. Mover a papelera EST-19; un anuncio viejo no revoca la confirmación ni reabre la propiedad, y evidencia nueva genera revisión. Depende de: BUS-10, EST-16, EST-18. Aceptación: Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación. La papelera de no disponibles es distinta del archivado editorial: hoy una ficha archivada puede seguir ofrecida a aplicantes. Esta exclusión confirmada y su prioridad humana deben funcionar antes de activar el barrido o contacto automáticos. El cálculo no acredita identidad, autorización, evidencia ni procedencia; faltan persistencia atómica, reactivación humana con CAS, propagación, avisos e integración.",
+      "falta": "M12 · Reconciliación 7-nov: Registrar indisponibilidad confirmada con motivo, fecha, origen, evidencia, responsable y alcance (inmueble, operación, anunciante o publicación). Excluir solo lo afectado de propuestas, actualizar también los Shortlisted y avisar sobre visitas/gestiones en curso, preservando historial. Mover a papelera EST-19; un anuncio viejo no revoca la confirmación ni reabre la propiedad, y evidencia nueva genera revisión. Depende de: BUS-10, EST-16, EST-18. Aceptación: Confirmar baja de una operación retira sus propuestas y avisa las visitas; una publicación antigua no reactiva ni afecta sin fundamento a otra operación. La papelera de no disponibles es distinta del archivado editorial: hoy una ficha archivada puede seguir ofrecida a aplicantes. Esta exclusión confirmada y su prioridad humana deben funcionar antes de activar el barrido o contacto automáticos. El cálculo no acredita identidad, autorización, evidencia ni procedencia; faltan persistencia atómica, reactivación humana con CAS, propagación, avisos e integración. Traído de EST-13 (15-nov): una indisponibilidad confirmada debe reflejarse en la dimensión Availability de candidateState y bloquear la propuesta.",
       "bloqueo": "",
       "evidencia": [
         "server/match-store.js:9-11",
@@ -5673,7 +5723,8 @@
         "events-contract",
         "notifications-schema"
       ],
-      "nextStep": "Aplicar indisponibilidad confirmada por alcance con prioridad humana y propagación antes de activar automatizaciones."
+      "nextStep": "Aplicar indisponibilidad confirmada por alcance con prioridad humana y propagación antes de activar automatizaciones.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "EST-16",
@@ -5684,7 +5735,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos. Se precisaron las guardas y dependencias para persistencia sin habilitar datos ni rutas reales.",
-      "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-12 (14-nov): la disponibilidad confirmada con evidencia es dimensión propia; el matching solo excluye por el estado de la ficha y una fuente caída o ausente no cuenta como indisponible.",
+      "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-12 (14-nov): la disponibilidad confirmada con evidencia es dimensión propia; el matching solo excluye por el estado de la ficha y una fuente caída o ausente no cuenta como indisponible. Traído de BUS-10 (15-nov): una casa unida no acredita disponibilidad; la disponibilidad por casa se lee de las observaciones de cada publicación. Traído de EST-13 (15-nov): escribir availability: confirmed en candidateState (server/candidate-state.js) solo con fecha, persona o canal, evidencia y alcance; hoy es siempre not_confirmed. Una indisponibilidad conocida debe bloquear la propuesta.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
@@ -5721,7 +5772,7 @@
         "availability-contract"
       ],
       "nextStep": "La disponibilidad general se reutiliza hasta nueva información con fecha y las condiciones del cliente van separadas (sin plazos fijos de 7 o 30 días). Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "EST-17",
@@ -5811,7 +5862,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Se preparó y revisó un cálculo puro de elegibilidad para fotos y derivados con plazo de seis meses en hora Jersey, referencias explícitas y rechazo de datos incompletos. No tiene consumidor ni ejecuta borrados.",
-      "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad. El cálculo solo recibe declaraciones sintéticas: faltan productores y reloj fiables, autorización, reserva y control de concurrencia, preview, almacenamiento y reintentos antes de cualquier purga real.",
+      "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad. El cálculo solo recibe declaraciones sintéticas: faltan productores y reloj fiables, autorización, reserva y control de concurrencia, preview, almacenamiento y reintentos antes de cualquier purga real. Traído de BUS-10 (15-nov): la purga o baja de observaciones debe retirar antes sus vínculos de identidad (0050/0068 las referencian por clave foránea y sus filas son inmutables); definir qué se conserva del historial de decisiones.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
@@ -5885,7 +5936,7 @@
         "jobs-clock"
       ],
       "nextStep": "Papelera de 6 meses que purga solo fotos y derivados; nunca documentos, planos, historia ni recursos compartidos activos, y sin ampliar el borrado de personas. Acreditar productores, reloj y referencias, y diseñar preview y reserva transaccional sin habilitar borrados hasta revisar retención.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "REG-01",
@@ -7772,26 +7823,41 @@
       "titulo": "Alta guiada que recoge todos los datos de una propiedad nueva",
       "origen": "texto",
       "fase": "F4",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar.",
-      "falta": "Falta integrar el alta nueva con recibo recuperable ante respuesta perdida y completar las familias de datos PUB-04 a PUB-09. La importación no convierte HEIC, no sube PDFs ni documentos (PUB-11) y no lee filas de especificación. Traído de PUB-07 (14-nov): el paso Legal de la guía (admin/src/listing-guide.js) aún dice que no hay campos legales: apuntarlo a la sección s-compliance cuando la ficha traiga compliance_tracking. El alta nueva y property.txt no recogen ocupación, licencia ni certificado.",
+      "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar. Construido el 14-nov-2026 (pendiente de integrar en main): la creación lleva un recibo. Si la respuesta se pierde, el formulario bloquea los datos y «Try again» recupera el mismo borrador sin crear otro; un borrador borrado después no se vuelve a crear. Al crear, el editor abre con la guía, que recorre todas las familias: Details e Internal property details, Physical details, Price, Legal and compliance con Private documents, Description, Website content, Photos y Tour, y termina en «Missing from this listing» e History, sin publicar. property.txt recoge ocupación, licencia y certificado: la referencia se guarda como Provided (nunca Verified) o Not applicable, con su caducidad, y el resumen lo enseña antes de crear. Cerrada el 15-nov-2026: sin migración ni interruptor. Convertir HEIC, subir PDFs desde la carpeta y recuperar el recibo tras recargar quedan como mejoras; las líneas legales de property.txt en Properties Queue están en PUB-21.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "admin/src/Listings.jsx:68-69",
-        "admin/src/NewProperty.jsx:29-89",
-        "server/listing-import.js:63-147",
-        "server/listing-import.js:181-229",
+        "admin/src/NewProperty.jsx:63-86",
+        "admin/src/NewProperty.jsx:117-158",
+        "admin/src/createDraft.js:9-18",
+        "server/routes/listings.js:119-140",
+        "server/routes/listings.js:169-181",
+        "server/listing-import.js:8-17",
+        "server/listing-import.js:112-135",
+        "server/listing-import.js:177-178",
         "admin/public/property.txt",
+        "admin/src/listing-guide.js",
+        "admin/src/ListingEditor.jsx:315-317",
         "admin/src/image.js:19-27",
-        "admin/src/ListingEditor.jsx:182-241",
-        "server/routes/listings.js:80-99",
-        "tests/server/listing-import.test.mjs",
-        "tests/e2e.cjs:816",
         "docs/superpowers/specs/2026-11-03-hampton-app-folder-import-design.md",
         "docs/superpowers/plans/2026-11-10-tp02-pub-01-plan.md",
-        "admin/src/listing-guide.js",
-        "tests/pub01-guide.e2e.cjs"
+        "tests/server/pub-01-guided-intake.test.mjs (10 pruebas, pasan)",
+        "tests/pub01-draft.test.js (3 pruebas, pasan)",
+        "tests/listing-guide.test.js y tests/server/listing-import.test.mjs (pasan)",
+        "tests/pub01-guided-intake.e2e.cjs (Chromium aislado, 1280 y 390, pasa): respuesta perdida, un solo borrador, guía por todas las familias, líneas legales, teclado y zoom 200 %",
+        "tests/pub01-guide.e2e.cjs y tests/pub11-photo-quality.e2e.cjs (Chromium aislado, pasan tras el cambio)",
+        "Decisión (fuente: encargo del lote, skill §5 «ponytail» y patrón de server/listing-editorial.js): el recibo reutiliza listing_event_operations (0029, ya en producción) con clave create.<uuid> por cuenta, en el mismo batch que la ficha; sin migración ni interruptor. Sustituye a las cinco rutas, la caducidad y la purga del plan TP02.",
+        "Decisión (fuente: plan PUB-01, tarea 2 «congelar payload mientras pendiente»): con la respuesta perdida los datos quedan bloqueados y Try again repite la misma operación; un 4xx la descarta.",
+        "Decisión (fuente: plan PUB-01, tarea 3, ?guide=1 y «la guía solo navega por secciones del editor»): el alta abre el editor con la guía existente; no hay asistente nuevo ni campos duplicados.",
+        "Decisión (fuente: PUB-07 «verified solo lo pone el equipo en el editor» y server/listing.js:37-38): property.txt nunca marca Verified y sus datos legales se guardan con el PUT del editor tras crear, no en la creación.",
+        "Decisión (fuente: plan maestro, publicación con mínimos, y PUB-07): los datos legales siguen sin contar en «Missing from this listing».",
+        "Decisión (fuente: plan PUB-01 «Dependencias y límites»): HEIC, PDFs desde carpeta (PUB-11) y filas de especificación quedan fuera del alcance; propuestos para MEJORAS.",
+        "Decisión (opción más simple): tras recargar la página no se consulta el recibo; el borrador aparece en Listings y el formulario avisa del título repetido. Propuesto para MEJORAS.",
+        "Cierre 15-nov-2026: publicada en 9fea898; npm test 2546/2546; tests/pub01-guided-intake.e2e.cjs y pub01-guide.e2e.cjs pasan a 1280 y 390; revisión independiente sin hallazgos graves (un reintento no duplica ni devuelve la ficha de otra cuenta; sin operation_id todo sigue igual).",
+        "Decisión 15-nov-2026 (ponytail): el protocolo de cinco rutas con caducidad y purga del plan TP02 se sustituye por un recibo en listing_event_operations (tabla de 0029); queda en MEJORAS la recuperación tras recargar."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -7846,8 +7912,8 @@
         "listings-schema",
         "listing-editor"
       ],
-      "nextStep": "Integrar el alta recuperable por recibo y coordinar las familias pendientes; la guía disponible solo cubre el editor de fichas existentes.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Hecha.",
+      "actualizado": "2026-11-15"
     },
     {
       "id": "PUB-02",
@@ -8681,7 +8747,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. En producción desde el 5-nov-2026 (migración 0020): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave.",
-      "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes». Pausada el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): sin PUB21_DRIVE_READY=1 ninguna carpeta va a Hermes; las importaciones ya recibidas se pueden revisar y publicar. Antes de reactivarla: PRE-32 verificada y una barrera por clase de dato, porque hoy solo se filtra por nombre («Records» y fotos).",
+      "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes». Pausada el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): sin PUB21_DRIVE_READY=1 ninguna carpeta va a Hermes; las importaciones ya recibidas se pueden revisar y publicar. Antes de reactivarla: PRE-32 verificada y una barrera por clase de dato, porque hoy solo se filtra por nombre («Records» y fotos). Traído de PUB-01 (15-nov): Properties Queue lee las líneas legales de property.txt (ocupación, licencia, certificado) pero no las guarda ni avisa; pasar legal: legalFields(fields) a createDraft en admin/src/Queue.jsx y mostrar legalFailed. Sin efecto mientras PUB21_DRIVE_READY siga apagado.",
       "bloqueo": "PRE-32 para que Hermes lea las carpetas",
       "evidencia": [
         "server/drive.js",
@@ -8724,7 +8790,7 @@
         "listing-editor"
       ],
       "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "PUB-22",

@@ -4,10 +4,10 @@
   "titulo": "Alta guiada que recoge todos los datos de una propiedad nueva",
   "origen": "texto",
   "fase": "F4",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar. Construido el 14-nov-2026 (pendiente de integrar en main): la creación lleva un recibo. Si la respuesta se pierde, el formulario bloquea los datos y «Try again» recupera el mismo borrador sin crear otro; un borrador borrado después no se vuelve a crear. Al crear, el editor abre con la guía, que recorre todas las familias: Details e Internal property details, Physical details, Price, Legal and compliance con Private documents, Description, Website content, Photos y Tour, y termina en «Missing from this listing» e History, sin publicar. property.txt recoge ocupación, licencia y certificado: la referencia se guarda como Provided (nunca Verified) o Not applicable, con su caducidad, y el resumen lo enseña antes de crear.",
-  "falta": "Integrar en main y comprobar el recorrido tras el despliegue. No lleva migración ni interruptor.",
+  "hecho": "«Add new property» (Listings) crea un borrador con título, uso, operación, disponibilidad y país, a mano o, desde el 3-nov-2026, desde una carpeta del ordenador: lee su property.txt (plantilla descargable en el mismo formulario) y sube las fotos sueltas de la carpeta en orden de nombre, reducidas en el navegador y sin GPS, con portada, planos y vista aérea según el nombre. Antes de crear enseña un resumen con lo que no se importa (líneas que no son campos, valores no válidos, HEIC, PDF, vídeos y subcarpetas, que no se leen) y avisa si el título ya existe o si el texto parece llevar un email o un teléfono. En el móvil se eligen fotos sueltas. El editor (#/p/<id>) reúne Details, Price, Description, Photos y Tour and specification con la caja «Missing from this listing». El editor de una ficha existente ofrece guía de seis pasos con el mismo formulario, guardado y descarte, sin publicar al terminar. Construido el 14-nov-2026 (pendiente de integrar en main): la creación lleva un recibo. Si la respuesta se pierde, el formulario bloquea los datos y «Try again» recupera el mismo borrador sin crear otro; un borrador borrado después no se vuelve a crear. Al crear, el editor abre con la guía, que recorre todas las familias: Details e Internal property details, Physical details, Price, Legal and compliance con Private documents, Description, Website content, Photos y Tour, y termina en «Missing from this listing» e History, sin publicar. property.txt recoge ocupación, licencia y certificado: la referencia se guarda como Provided (nunca Verified) o Not applicable, con su caducidad, y el resumen lo enseña antes de crear. Cerrada el 15-nov-2026: sin migración ni interruptor. Convertir HEIC, subir PDFs desde la carpeta y recuperar el recibo tras recargar quedan como mejoras; las líneas legales de property.txt en Properties Queue están en PUB-21.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Listings.jsx:68-69",
@@ -36,7 +36,9 @@
     "Decisión (fuente: PUB-07 «verified solo lo pone el equipo en el editor» y server/listing.js:37-38): property.txt nunca marca Verified y sus datos legales se guardan con el PUT del editor tras crear, no en la creación.",
     "Decisión (fuente: plan maestro, publicación con mínimos, y PUB-07): los datos legales siguen sin contar en «Missing from this listing».",
     "Decisión (fuente: plan PUB-01 «Dependencias y límites»): HEIC, PDFs desde carpeta (PUB-11) y filas de especificación quedan fuera del alcance; propuestos para MEJORAS.",
-    "Decisión (opción más simple): tras recargar la página no se consulta el recibo; el borrador aparece en Listings y el formulario avisa del título repetido. Propuesto para MEJORAS."
+    "Decisión (opción más simple): tras recargar la página no se consulta el recibo; el borrador aparece en Listings y el formulario avisa del título repetido. Propuesto para MEJORAS.",
+    "Cierre 15-nov-2026: publicada en 9fea898; npm test 2546/2546; tests/pub01-guided-intake.e2e.cjs y pub01-guide.e2e.cjs pasan a 1280 y 390; revisión independiente sin hallazgos graves (un reintento no duplica ni devuelve la ficha de otra cuenta; sin operation_id todo sigue igual).",
+    "Decisión 15-nov-2026 (ponytail): el protocolo de cinco rutas con caducidad y purga del plan TP02 se sustituye por un recibo en listing_event_operations (tabla de 0029); queda en MEJORAS la recuperación tras recargar."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -91,6 +93,6 @@
     "listings-schema",
     "listing-editor"
   ],
-  "nextStep": "Integrar el commit en main, desplegar y comprobar con lecturas que el alta abre la guía; entonces cerrar.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Hecha.",
+  "actualizado": "2026-11-15"
 }
