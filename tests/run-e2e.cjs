@@ -55,6 +55,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm-20-warnings.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm11-compliance.e2e.cjs" ? { ADM11_CALENDAR_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/bus10-identity.e2e.cjs" ? { BUS10_IDENTITY_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/bus01-market-matching.e2e.cjs"
+        ? { BUS01_MARKET_MATCHING_READY: "1", BUS10_IDENTITY_READY: "1", EST01_SEARCH_STATE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/aut19-criteria-proposal.e2e.cjs" ? { AUT19_CRITERIA_PROPOSALS_READY: "1" } : {}),
       // EST-16 on its own: EST-15 (on in wrangler.toml) would ask for a reason and withdraw proposals; its own check covers both.
       ...(process.env.E2E_SCRIPT === "tests/est16-availability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "0" } : {}),

@@ -1,5 +1,5 @@
 import ApplicantMatches from "./ApplicantMatches.jsx";
-import SearchRun from "./SearchRun.jsx";
+import SearchRun, { searchScope } from "./SearchRun.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate, fmtDay, fmtDayMonth, firstSentence, blank, show, AVAILABILITY, VIEWING_STATUS, OUTCOME } from "./format.js";
@@ -551,7 +551,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     </div>
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       {data.search_run && <p className="search-run"><SearchRun run={data.search_run} none={!Object.values(data.matchCounts).some(Boolean)} />
-        <span className="muted"> · Hampton's saved listings only</span></p>}
+        <span className="muted"> · {searchScope(data.search_run)}</span></p>}
       {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
       <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} />
     </div>
