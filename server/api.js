@@ -41,16 +41,19 @@ import { documentsReady } from "./listing-documents.js";
 import missingPaymentRoutes from "./routes/missing-payments.js";
 import { missingPaymentsReady } from "./missing-payments.js";
 import legalRoutes, { legalTermsReady } from "./legal-terms.js";
+import presentationRoutes from "./presentation-access.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes];
+const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
   const res = await route(request, env, segments, waitUntil);
   // Admin, session and chat answers carry personal data: never cache them anywhere.
-  if (/^(admin|me|session|hermes|chat|qa)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  if (/^(admin|me|session|hermes|chat|qa|presentation)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
+  // AGE-12: a client's private presentation is never indexed and never says where it was opened from.
+  if (segments[0] === "presentation") { res.headers.set("x-robots-tag", "noindex"); res.headers.set("referrer-policy", "no-referrer"); }
   return res;
 }
 

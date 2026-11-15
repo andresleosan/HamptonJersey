@@ -20,26 +20,36 @@ const IN_FORCE=`(SELECT CASE WHEN COUNT(DISTINCT c.status)=1 THEN MIN(c.status) 
 // Still proposable: approved on the search and the property as they are now, of an active search, and still offered.
 // The gate a first enquiry starts from (BUS-15, AGE-03), so a shortlist alone is never read as available.
 const PROPOSABLE=`${APPROVED} AND l.archived_at IS NULL AND l.availability IN ('for_sale','to_let','lease')`;
+// Available: approved, still offered and confirmed available now. AGE-12 presents only these.
+export const AVAILABLE=`${IN_FORCE}='available' AND ${PROPOSABLE}`;
 // EST-04, waiting for the agency: the match still counts for an enquiry that is open (prepared or recorded as sent,
-// no answer recorded). AGE-06 writes the answers. "Waiting for the applicant" gets its own rule here once AGE-12
-// records what a client was sent and answered: In process is either.
+// no answer recorded). AGE-06 writes the answers. Waiting for the client is AGE-12's rule below: In process is either.
 const WAITING=`EXISTS (SELECT 1 FROM consultation_matches cm JOIN consultations c ON c.id=cm.consultation_id WHERE cm.match_id=m.id
   AND c.status NOT IN ('answered','cancelled') AND CASE c.kind WHEN 'general' THEN (${PROPOSABLE}) ELSE (${CLARIFICATION_APPROVED}) END)`;
 const OPEN_ENQUIRY_MATCHES=`SELECT cm.match_id FROM consultation_matches cm JOIN consultations c ON c.id=cm.consultation_id
   WHERE c.status NOT IN ('answered','cancelled')`;
 const FROM=`FROM matches m JOIN listings l ON l.id=m.listing_id JOIN applicants a ON a.id=m.applicant_id`;
+// EST-04, waiting for the client (AGE-12, migration 0086): on a link a person recorded as sent, not revoked, with no
+// answer yet on that home. A dormant link waits for nobody.
+const presentationsReady=env=>env?.AGE12_PRESENTATIONS_READY==='1';
+const WAITING_CLIENT=`m.status<>'rejected' AND m.id IN (SELECT o.match_id FROM presentation_options o JOIN presentation_grants g ON g.id=o.grant_id
+  WHERE o.choice IS NULL AND g.sent_at IS NOT NULL AND g.revoked_at IS NULL
+   AND (g.expires_at IS NULL OR g.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')))`;
 // Confirmed: a person's confirmation in force says available. Available: confirmed and still proposable. Confirmed
 // not available is neither, and is counted apart. A rejected match counts nowhere. Each with the switch of its facts.
 const ONLY={
  confirmed:[availabilityReady,`m.status<>'rejected' AND ${IN_FORCE}='available'`],
- available:[availabilityReady,`${IN_FORCE}='available' AND ${PROPOSABLE}`],
+ available:[availabilityReady,AVAILABLE],
  unavailable:[availabilityReady,`m.status<>'rejected' AND ${IN_FORCE}='unavailable'`],
  waiting_agent:[enquiriesReady,WAITING],
+ waiting_applicant:[presentationsReady,WAITING_CLIENT],
 };
-// The searches with a home waiting for the agency, for the list's own query: read once, from the open enquiries.
-// null: enquiries are switched off.
-export const waitingSearches=env=>enquiriesReady(env)?`SELECT m.applicant_id ${FROM} WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`:null;
-// counts(id) => { confirmed, available, unavailable } and, for one search, waiting_agent while enquiries are on. One
+// The searches with a home waiting for the agency or for the client, for the list's own query: read once, from the
+// open enquiries and the links sent. null: both are switched off.
+export const waitingSearches=env=>[enquiriesReady(env)&&`SELECT m.applicant_id ${FROM} WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`,
+ presentationsReady(env)&&`SELECT m.applicant_id FROM matches m WHERE ${WAITING_CLIENT}`].filter(Boolean).join(' UNION ')||null;
+// counts(id) => { confirmed, available, unavailable } and, for one search, waiting_agent while enquiries are on and
+// waiting_applicant while AGE-12 is. One
 // read of each for every search (or the one given), from the listings with a confirmation and the open enquiries;
 // zeros while EST-16 is off or before its migration.
 export async function candidateCounts(env,applicantId=null){
@@ -49,14 +59,16 @@ export async function candidateCounts(env,applicantId=null){
   try{return (await env.DB.prepare(`${sql}${one} GROUP BY m.applicant_id`).bind(...(applicantId===null?[]:[applicantId])).all()).results;}
   catch(e){if(missing(e))return null;throw e;}
  };
- const [confirmed,waiting]=await Promise.all([
+ const [confirmed,waiting,client]=await Promise.all([
   read(availabilityReady(env),`SELECT m.applicant_id AS id,${['confirmed','available','unavailable']
    .map(k=>`COUNT(CASE WHEN ${ONLY[k][1]} THEN 1 END) AS ${k}`)} ${FROM} WHERE m.listing_id IN (SELECT listing_id FROM availability_confirmations)`),
   read(applicantId!==null&&enquiriesReady(env),`SELECT m.applicant_id AS id,COUNT(*) AS waiting_agent ${FROM}
-   WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`)]);
+   WHERE m.id IN (${OPEN_ENQUIRY_MATCHES}) AND ${WAITING}`),
+  read(applicantId!==null&&presentationsReady(env),`SELECT m.applicant_id AS id,COUNT(*) AS waiting_applicant FROM matches m WHERE ${WAITING_CLIENT}`)]);
  return id=>{
   const {confirmed:c=0,available=0,unavailable=0}=confirmed?.find(r=>r.id===id)??{};
-  return {confirmed:c,available,unavailable,...(waiting&&{waiting_agent:waiting.find(r=>r.id===id)?.waiting_agent??0})};
+  return {confirmed:c,available,unavailable,...(waiting&&{waiting_agent:waiting.find(r=>r.id===id)?.waiting_agent??0}),
+   ...(client&&{waiting_applicant:client.find(r=>r.id===id)?.waiting_applicant??0})};
  };
 }
 const encode=c=>btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(c)))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
