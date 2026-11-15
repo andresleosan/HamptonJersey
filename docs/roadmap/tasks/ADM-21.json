@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "Codificador CSV puro ensayado con datos ficticios: tipos cerrados, importes en peniques, escape y protección ante fórmulas. No hay descarga ni acceso a datos reales.",
-  "falta": "Integrar autoridad financiera ADM-09 y snapshot cerrado ADM-10, validar los límites de importes y tamaño total, construir descarga protegida y comprobar compatibilidad con programas contables.",
+  "falta": "Integrar autoridad financiera ADM-09 y snapshot cerrado ADM-10, validar los límites de importes y tamaño total, construir descarga protegida y comprobar compatibilidad con programas contables. Traído de ADM-10 (15-nov): exportar las liquidaciones desde statement_runs (solo revisiones cerradas; líneas rent/fee/gst/repair/net en la instantánea JSON).",
   "bloqueo": "",
   "evidencia": [
     "admin/src/Statement.jsx:9-11",
@@ -47,5 +47,6 @@
     "statement-ui",
     "rentals-export"
   ],
-  "nextStep": "Integrar ADM-09 y ADM-10; validar límites de importes y tamaño antes de conectar una descarga protegida y verificar su compatibilidad contable."
+  "nextStep": "Integrar ADM-09 y ADM-10; validar límites de importes y tamaño antes de conectar una descarga protegida y verificar su compatibilidad contable.",
+  "actualizado": "2026-11-15"
 }
