@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18. Traído de AGE-03 (15-nov): la evidencia de consultas está en consultations (texto, versión, quién y cuándo, sent_evidence_ref) y en consultation_matches (quién unió cada match); los eventos consultation.prepared y consultation.sent_manually llevan solo identificadores.",
+  "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18. Traído de AGE-03 (15-nov): la evidencia de consultas está en consultations (texto, versión, quién y cuándo, sent_evidence_ref) y en consultation_matches (quién unió cada match); los eventos consultation.prepared y consultation.sent_manually llevan solo identificadores. Traído de AGE-06 (15-nov): mostrar en el historial los eventos consultation.response_recorded y consultation.cancelled (solo ids, resultado, canal, alcance); la fila guarda solo la última respuesta.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",

@@ -146,3 +146,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [EST-15] Confirmar la disponibilidad de casas de mercado sin ficha y aplicar su alcance por anunciante o publicación (hoy Homes found dice «Availability not confirmed» siempre) · traído de BUS-01; EST-15 ya está cerrada · 15-nov-2026
 - [AGE-03] Consultas sobre casas de mercado sin ficha a partir de `market_matches` (hoy no hay Shortlist ni Reject para ellas) · traído de BUS-01; AGE-03 ya está cerrada · 15-nov-2026
 - [BUS-12] Cruzar las búsquedas comerciales con el inventario cuando las observaciones digan su uso · traído de BUS-01; BUS-12 ya está cerrada · 15-nov-2026
+- [AGE-14] Al suprimir datos de un anunciante, vaciar también `consultations.response_from` (nombre de quien atendió, texto libre) · traído de AGE-06; AGE-14 ya está cerrada · 15-nov-2026
+- [NOT-01] Aviso de Inbox «respuesta útil recibida» cuando llegue sin persona (AUT-17); la registrada a mano en AGE-06 ya cierra las tareas · traído de AGE-06 · 15-nov-2026
+- [AGE-06] Exportar `REASON` de ConfirmedAvailability.jsx y quitar la copia en Enquiries.jsx; refrescar la tarjeta Availability de la ficha tras registrar una respuesta; mostrar la respuesta anterior del match junto al formulario de la nueva consulta; guardar `response_confirmation_id` · 15-nov-2026
