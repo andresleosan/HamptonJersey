@@ -64,12 +64,12 @@
       "area": "Propiedades, publicación, tours y analítica",
       "capacity": 2,
       "count": 65,
-      "openCount": 20,
+      "openCount": 19,
       "states": {
-        "hecho": 26,
-        "pendiente": 6,
+        "hecho": 27,
         "descartado": 18,
         "parcial": 14,
+        "pendiente": 5,
         "replanteado": 1
       }
     }
@@ -1105,17 +1105,28 @@
       "titulo": "Captura tras disponibilidad confirmada, ficha compartida y descargas",
       "origen": "texto",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M07 · Reconciliación 7-nov: Al confirmar disponibilidad por correo útil o llamada registrada, enriquecer una ficha común con datos completos y fotos originales, URL, fecha y evidencia. Captura completa/parcial/fallida visible y reintentos sin duplicados; no afirmar éxito si falta algún archivo. Crear tarea Abrir ficha para revisar, corregir, ver incumplimientos/datos pendientes, abrir origen y descargar fotos individuales, selección o ZIP y datos en formato a concretar. La misma ficha sirve a varios clientes; las versiones aptas para el cliente se gestionan en AGE-10. Depende de: AGE-06, BUS-10, EST-13. Aceptación: Una confirmación dispara una captura compartida y tarea Abrir ficha; fallo de una foto queda visible y ZIP/export no se declaran completos. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: captura completa o parcial. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): captura. Traído de BUS-06 (14-nov): la descarga de fotos de anuncios de mercado espera a la disponibilidad confirmada; BUS-06 no guarda fotos. Traído de SPR-08 (15-nov): mostrar en la ficha el estado de la captura (completa o parcial) y las descargas privadas de los archivos capturados, junto a Adverts. Traído de BUS-07 (15-nov): la captura de una ficha co-listed parte de su casa enlazada (BUS-07), si la tiene. Traído de AGE-06 (15-nov): la captura puede partir de una consulta answered con response_outcome available (la confirmación EST-16 ya existe).",
+      "hecho": "Construida apagada (SPR03_CAPTURE_READY, migración 0084): una confirmación EST-16 «available», directa o desde la respuesta de AGE-06, captura una sola ficha compartida por confirmación con los datos de la propiedad, la evidencia, sus anuncios (research y anuncio enlazado BUS-07) y una fila por foto o plano con su estado (stored, failed, blocked). Captura complete o partial visible en la ficha (tarjeta Captured record junto a Adverts), con datos por completar, «Check files again» sin duplicados, descargas privadas individuales, selección o ZIP armado en el navegador (solo fotos, 25/50 MB) y datos JSON/CSV que se marcan incompletos si falta un archivo. Tarea única «Open property record» en el Inbox (contrato NOT-01, work capture) y evento listing.captured en el historial (EST-18). Cerrada el 15-nov-2026: migración 0084 aplicada y SPR03_CAPTURE_READY=1. Por la regla de dependencias por componente, bajar las fotos de anuncios de mercado confirmados es de BUS-06 (adaptador con URLs) y BUS-19 (permiso por fuente), ambas en la cola de Luis: hasta entonces esas fotos quedan «solo enlace» y la captura parcial, sin presentarse como completa.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:159",
         "admin/src/ListingEditor.jsx:25-26",
         "migrations/0001–0015: ninguna crea availability_snapshots",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "tests/spr03-capture.e2e.cjs a 1280 y 390 px",
+        "Decisión (plan SPR-03, tarea 3): datos en JSON y CSV separados; ZIP solo fotos, sin documentos.",
+        "Decisión (spec captura §4, ponytail): los archivos son los que la propiedad ya tiene guardados; una foto solo enlace queda blocked sin descarga externa.",
+        "Decisión (plan tarea 4 y AGE-10): corregir se hace en el editor; la captura conserva lo capturado; la aptitud para clientes es de AGE-10.",
+        "Revisión 15-nov: una foto borrada tras una captura complete ya no da complete en ficha, JSON, CSV ni ZIP; «Check files again» revisa también las stored y baja a partial (prueba spr-03).",
+        "server/property-captures.js, migrations/0084_property_captures.sql, admin/src/PropertyCapture.jsx, admin/src/capture-zip.js",
+        "tests/server/spr-03-captures.test.mjs (12/12), tests/spr03-capture-zip.test.js (2/2) y tests/server/age-06-responses.test.mjs (13/13)",
+        "Revisión 15-nov: la captura sale de la confirmación vigente (regla EST-16) y una no disponible posterior cierra sus tareas abiertas.",
+        "Decisión del coordinador (15-nov, plan gratuito de Workers): el servidor no calcula CRC ni arma ZIP; el panel descarga cada archivo y arma el ZIP con CRC-32 en el navegador; la comprobación es solo HEAD (etag y tamaño), 40 como máximo por petición; la ficha no consulta R2 y muestra «checked …»; JSON y CSV solo dicen complete tras comprobar en esa petición (más de 40: complete false con motivo).",
+        "CPU por petición medida en Node con D1 en memoria (cota superior, 15-nov): ficha 0,95 ms; data.json con 25 archivos 0,72 ms; «Check files again» con 40 HEAD 3,4 ms de mediana (máx. 8,1).",
+        "Cierre 15-nov-2026: publicada en 69c25e4 (771f659, 5d68cf2, 464a097); 0084 (dos tablas nuevas y un índice, aditiva) aplicada tras marcador Time Travel; npm test 2737/2737; tests/spr03-capture.e2e.cjs pasa a 1280 y 390 (ZIP armado en el navegador, CRC validado contra los bytes); dos pasadas de revisión independiente: con el interruptor apagado, trazas SQL idénticas en EST-15, EST-16 y AGE-06; la primera halló que la captura seguía «completa» tras borrar una foto y que el ZIP no cabía en 10 ms de CPU del plan gratuito: corregido (descargas comprueban con head, ZIP en el navegador, como mucho 40 head por petición); la segunda, sin graves. El paso del reloj para capturas pendientes se retiró: el Worker hampton-jobs no tiene binding al bucket de fotos (mínimo privilegio; anotado en MEJORAS)."
       ],
       "modulo": "M07",
       "deps": [
@@ -1157,7 +1168,7 @@
         "media-pipeline",
         "notifications-schema"
       ],
-      "nextStep": "Construir captura común tras confirmación, con estados parciales y descargas verificables.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -1945,7 +1956,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura. Traído de SPR-08 (15-nov): Adverts enlaza a cada anuncio pero no muestra ni guarda sus fotografías; el permiso y la captura de imágenes de anuncios ajenos siguen aquí. Traído de BUS-07 (15-nov): las fotos nuevas de una ficha co-listed no heredan el rights_status de la importación del 8-oct, que BUS-07 muestra tal cual.",
+      "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura. Traído de SPR-08 (15-nov): Adverts enlaza a cada anuncio pero no muestra ni guarda sus fotografías; el permiso y la captura de imágenes de anuncios ajenos siguen aquí. Traído de BUS-07 (15-nov): las fotos nuevas de una ficha co-listed no heredan el rights_status de la importación del 8-oct, que BUS-07 muestra tal cual. Traído de SPR-03 (15-nov): partir de la captura SPR-03 (property_capture_assets en stored) para decidir qué fotos son aptas para un cliente; SPR-03 no concede permiso de presentación.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
@@ -4217,7 +4228,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
-      "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias.",
+      "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias. Traído de SPR-03 (15-nov): cuando un anuncio confirmado tenga URLs de fotos de una fuente permitida, entregarlas como filas «link-only» de la captura SPR-03 para que se descarguen (hoy quedan blocked y la captura partial).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:9",
@@ -4299,7 +4310,7 @@
         "advertisers-contract"
       ],
       "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-07",
@@ -5082,7 +5093,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
-      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06.",
+      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06. Traído de SPR-03 (15-nov): permiso de descarga de fotos por fuente; sin él, las fotos solo enlace de la captura SPR-03 siguen blocked.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -5127,7 +5138,7 @@
         "source-access-policy"
       ],
       "nextStep": "Tras la revisión real de los primeros canales, comprobar que cada fuente indica método o tarea manual y cerrar.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "BUS-20",
@@ -6077,7 +6088,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Se preparó y revisó un cálculo puro de elegibilidad para fotos y derivados con plazo de seis meses en hora Jersey, referencias explícitas y rechazo de datos incompletos. No tiene consumidor ni ejecuta borrados.",
-      "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad. El cálculo solo recibe declaraciones sintéticas: faltan productores y reloj fiables, autorización, reserva y control de concurrencia, preview, almacenamiento y reintentos antes de cualquier purga real. Traído de BUS-10 (15-nov): la purga o baja de observaciones debe retirar antes sus vínculos de identidad (0050/0068 las referencian por clave foránea y sus filas son inmutables); definir qué se conserva del historial de decisiones. Traído de EST-16 (15-nov): decidir la retención de availability_confirmations al mover una ficha a la papelera; hoy se borran en cascada al borrar la ficha. Traído de EST-15 (15-nov): la papelera parte de la confirmación «unavailable» vigente de availability_confirmations (entrada = confirmed_at); EST-15 no archiva ni cambia el estado publicado. Traído de BUS-07 (15-nov): antes de purgar market_properties, retirar también los enlaces BUS-07 (listing_market_links.property_id).",
+      "falta": "M12 · Reconciliación 7-nov: Mover la propiedad/operación confirmada como no disponible a papelera con fecha de entrada, motivo, alcance y evidencia. A los seis meses purgar automáticamente los archivos definidos en la política, registrando resultado y reintentos sin duplicados. Concretar antes qué archivos y mínimos de identidad quedan; preservar referencias, historial de clientes, criterios, consultas y visitas. Mantener una huella o referencia que impida reimportar como nueva una propiedad purgada; nueva evidencia exige revisión antes de reactivar. No extender esta regla a la retención de personas PRE-12. Depende de: EST-15, SPR-03, BUS-10, EST-18, AUT-07. Aceptación: Al cumplir seis meses se borran solo archivos acordados; historial y referencias siguen legibles y un anuncio viejo no recrea ni reactiva la propiedad. El cálculo solo recibe declaraciones sintéticas: faltan productores y reloj fiables, autorización, reserva y control de concurrencia, preview, almacenamiento y reintentos antes de cualquier purga real. Traído de BUS-10 (15-nov): la purga o baja de observaciones debe retirar antes sus vínculos de identidad (0050/0068 las referencian por clave foránea y sus filas son inmutables); definir qué se conserva del historial de decisiones. Traído de EST-16 (15-nov): decidir la retención de availability_confirmations al mover una ficha a la papelera; hoy se borran en cascada al borrar la ficha. Traído de EST-15 (15-nov): la papelera parte de la confirmación «unavailable» vigente de availability_confirmations (entrada = confirmed_at); EST-15 no archiva ni cambia el estado publicado. Traído de BUS-07 (15-nov): antes de purgar market_properties, retirar también los enlaces BUS-07 (listing_market_links.property_id). Traído de SPR-03 (15-nov): la purga de seis meses no debe borrar blobs propios de Hampton referenciados por property_capture_assets (la captura los referencia, no los copia).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",

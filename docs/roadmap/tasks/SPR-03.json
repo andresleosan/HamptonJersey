@@ -4,10 +4,10 @@
   "titulo": "Captura tras disponibilidad confirmada, ficha compartida y descargas",
   "origen": "texto",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Construida apagada (SPR03_CAPTURE_READY, migración 0084): una confirmación EST-16 «available», directa o desde la respuesta de AGE-06, captura una sola ficha compartida por confirmación con los datos de la propiedad, la evidencia, sus anuncios (research y anuncio enlazado BUS-07) y una fila por foto o plano con su estado (stored, failed, blocked). Captura complete o partial visible en la ficha (tarjeta Captured record junto a Adverts), con datos por completar, «Check files again» sin duplicados, descargas privadas individuales, selección o ZIP armado en el navegador (solo fotos, 25/50 MB) y datos JSON/CSV que se marcan incompletos si falta un archivo. Tarea única «Open property record» en el Inbox (contrato NOT-01, work capture) y evento listing.captured en el historial (EST-18).",
-  "falta": "Integrar en main, aplicar 0084 y encender SPR03_CAPTURE_READY (aditiva, sin envíos: autorizado por CONTINUIDAD); comprobar el recorrido en producción. Criterio que queda abierto: descargar las fotos de un anuncio de mercado confirmado; BUS-06 no guarda fotos y descargar de una fuente exige su permiso (BUS-19) y un adaptador que dé las URLs. Hasta entonces una foto que es solo un enlace queda «blocked» y la captura, partial.",
+  "hecho": "Construida apagada (SPR03_CAPTURE_READY, migración 0084): una confirmación EST-16 «available», directa o desde la respuesta de AGE-06, captura una sola ficha compartida por confirmación con los datos de la propiedad, la evidencia, sus anuncios (research y anuncio enlazado BUS-07) y una fila por foto o plano con su estado (stored, failed, blocked). Captura complete o partial visible en la ficha (tarjeta Captured record junto a Adverts), con datos por completar, «Check files again» sin duplicados, descargas privadas individuales, selección o ZIP armado en el navegador (solo fotos, 25/50 MB) y datos JSON/CSV que se marcan incompletos si falta un archivo. Tarea única «Open property record» en el Inbox (contrato NOT-01, work capture) y evento listing.captured en el historial (EST-18). Cerrada el 15-nov-2026: migración 0084 aplicada y SPR03_CAPTURE_READY=1. Por la regla de dependencias por componente, bajar las fotos de anuncios de mercado confirmados es de BUS-06 (adaptador con URLs) y BUS-19 (permiso por fuente), ambas en la cola de Luis: hasta entonces esas fotos quedan «solo enlace» y la captura parcial, sin presentarse como completa.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:96",
@@ -24,7 +24,8 @@
     "tests/server/spr-03-captures.test.mjs (12/12), tests/spr03-capture-zip.test.js (2/2) y tests/server/age-06-responses.test.mjs (13/13)",
     "Revisión 15-nov: la captura sale de la confirmación vigente (regla EST-16) y una no disponible posterior cierra sus tareas abiertas.",
     "Decisión del coordinador (15-nov, plan gratuito de Workers): el servidor no calcula CRC ni arma ZIP; el panel descarga cada archivo y arma el ZIP con CRC-32 en el navegador; la comprobación es solo HEAD (etag y tamaño), 40 como máximo por petición; la ficha no consulta R2 y muestra «checked …»; JSON y CSV solo dicen complete tras comprobar en esa petición (más de 40: complete false con motivo).",
-    "CPU por petición medida en Node con D1 en memoria (cota superior, 15-nov): ficha 0,95 ms; data.json con 25 archivos 0,72 ms; «Check files again» con 40 HEAD 3,4 ms de mediana (máx. 8,1)."
+    "CPU por petición medida en Node con D1 en memoria (cota superior, 15-nov): ficha 0,95 ms; data.json con 25 archivos 0,72 ms; «Check files again» con 40 HEAD 3,4 ms de mediana (máx. 8,1).",
+    "Cierre 15-nov-2026: publicada en 69c25e4 (771f659, 5d68cf2, 464a097); 0084 (dos tablas nuevas y un índice, aditiva) aplicada tras marcador Time Travel; npm test 2737/2737; tests/spr03-capture.e2e.cjs pasa a 1280 y 390 (ZIP armado en el navegador, CRC validado contra los bytes); dos pasadas de revisión independiente: con el interruptor apagado, trazas SQL idénticas en EST-15, EST-16 y AGE-06; la primera halló que la captura seguía «completa» tras borrar una foto y que el ZIP no cabía en 10 ms de CPU del plan gratuito: corregido (descargas comprueban con head, ZIP en el navegador, como mucho 40 head por petición); la segunda, sin graves. El paso del reloj para capturas pendientes se retiró: el Worker hampton-jobs no tiene binding al bucket de fotos (mínimo privilegio; anotado en MEJORAS)."
   ],
   "modulo": "M07",
   "deps": [
@@ -66,6 +67,6 @@
     "media-pipeline",
     "notifications-schema"
   ],
-  "nextStep": "Integrar el commit, aplicar 0084, encender SPR03_CAPTURE_READY y verificar una captura real.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

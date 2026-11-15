@@ -66,8 +66,8 @@ AGE06_RESPONSES_READY = "1"
 BUS01_MARKET_MATCHING_READY = "1"
 # AGE-08: one Inbox task to call the advertiser two working days after an enquiry was sent with no useful answer (no migration; sends nothing). Must match the other wrangler.toml.
 AGE08_CALL_TASKS_READY = "1"
-# SPR-03: a confirmation that says available captures one shared property record, its files and downloads (migration 0084; needs EST16_AVAILABILITY_READY).
-SPR03_CAPTURE_READY = "0"
+# SPR-03: a confirmation that says available captures one shared property record, its files and downloads (migration 0084, applied 15-nov-2026; needs EST16_AVAILABILITY_READY). Sends nothing.
+SPR03_CAPTURE_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
