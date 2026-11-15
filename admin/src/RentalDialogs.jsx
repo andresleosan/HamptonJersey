@@ -395,13 +395,18 @@ export function UpdateCheck({ rental, item: c, legal, onClose, onDone, onRefused
 const REPAIR = ["title", "detail", "urgency", "contractor", "quote", "charge_landlord", "status", "cost", "done_on"];
 export const needsApproval = (p, limit) => limit != null && Math.max(p.quote ?? 0, p.cost ?? 0) > limit && !p.approved_at;
 // ADM-12 (suppliers: the directory, only with its switch): the supplier chosen fills the contractor, and the landlord's
-// approval is recorded with its amount, where it is on record and the day, on Awaiting approval → Approved.
+// approval is recorded with its amount, where it is on record and the day, on Awaiting approval → Approved, and again
+// in the same step when the final cost goes above what they approved (as the server's repairRules).
+const sums = (f, p) => ({ quote: Number(pounds(f.quote)) || 0, cost: f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost ?? 0 });
 export function RepairDialog({ rental, repair: p, suppliers, onClose, onDone, onRefused }) {
   const init = { title: p?.title ?? "", detail: p?.detail ?? "", urgency: p?.urgency ?? "routine", contractor: p?.contractor ?? "",
     quote: p?.quote?.toLocaleString("en-GB") ?? "", cost: p?.cost?.toLocaleString("en-GB") ?? "", charge_landlord: p ? p.charge_landlord === 1 : true,
     status: p?.status ?? "reported", done_on: p?.done_on ?? jerseyToday(), supplier_id: p?.supplier_id != null ? String(p.supplier_id) : "",
     approved_amount: p?.quote?.toLocaleString("en-GB") ?? "", approval_ref: "", approved_on: jerseyToday() };
-  const recording = f => suppliers && p?.status === "awaiting_approval" && f.status === "approved";
+  const limit = rental.approval_limit;
+  const overrun = f => { const { quote, cost } = sums(f, p); return suppliers && p?.approved_at && p.approved_amount != null
+    && ["approved", "in_progress", "done"].includes(f.status) && cost > p.approved_amount && limit != null && Math.max(quote, cost) > limit; };
+  const recording = f => suppliers && ((p?.status === "awaiting_approval" && f.status === "approved") || overrun(f));
   const a = useForm("rd", init, async f => {
     const body = { title: f.title.trim() || null, detail: f.detail.trim() || null, urgency: f.urgency, contractor: f.contractor.trim() || null,
       quote: pounds(f.quote), charge_landlord: f.charge_landlord, ...(suppliers ? { supplier_id: f.supplier_id ? Number(f.supplier_id) : null } : {}),
@@ -410,12 +415,12 @@ export function RepairDialog({ rental, repair: p, suppliers, onClose, onDone, on
     await api(p ? `/admin/repairs/${p.id}` : `/admin/rentals/${rental.id}/repairs`, { method: p ? "PUT" : "POST", body });
     return p ? "Repair saved." : `Repair added: ${body.title}.`;
   }, onDone, onRefused);
-  // A quote or cost above what was approved, or another contractor or supplier, asks the landlord again (the server drops
-  // the approval on save).
-  const f = a.f, quote = Number(pounds(f.quote)) || 0, cost = f.status === "done" ? Number(pounds(f.cost)) || 0 : p?.cost ?? 0;
-  const same = p && (f.contractor.trim() || null) === p.contractor && (!suppliers || (f.supplier_id ? Number(f.supplier_id) : null) === p.supplier_id);
-  const approved = same && Math.max(quote, cost) <= (p.approved_amount ?? Math.max(p.quote ?? 0, p.cost ?? 0)) && p.approved_at;
-  const above = needsApproval({ quote, cost, approved_at: approved }, rental.approval_limit);
+  // A higher quote asks the landlord again (the server drops the approval on save); with ADM-12's switch, only above the
+  // amount they approved, and another supplier from the directory too.
+  const f = a.f, { quote, cost } = sums(f, p);
+  const approved = p?.approved_at && !(quote > (suppliers ? p.approved_amount ?? p.quote ?? 0 : p.quote ?? 0))
+    && (!suppliers || (f.supplier_id ? Number(f.supplier_id) : null) === p.supplier_id);
+  const above = needsApproval({ quote, cost, approved_at: approved }, limit);
   const chosen = suppliers?.find(s => String(s.id) === f.supplier_id);
   const pick = e => { const s = suppliers.find(x => String(x.id) === e.target.value);
     a.setF(x => ({ ...x, supplier_id: e.target.value, contractor: s ? s.name : x.contractor })); };
@@ -436,9 +441,10 @@ export function RepairDialog({ rental, repair: p, suppliers, onClose, onDone, on
       {[p.status, ...REPAIR_NEXT[p.status]].map(s => <option key={s} value={s}>{REPAIR_STATUS[s]}</option>)}</select>{a.error("status")}</label>}
     {f.status === "done" && <div className="grid2">{a.field("cost", "Final cost (£)", { inputMode: "numeric" })}
       {a.field("done_on", "Done on", { type: "date", max: jerseyToday() })}</div>}
-    {above && f.status !== "awaiting_approval" && p?.status !== "awaiting_approval" && <p className="warn" role="note">Above {rental.landlord_name}'s approval limit of {money(rental.approval_limit)}. Mark it
+    {above && f.status !== "awaiting_approval" && !recording(f) && <p className="warn" role="note">Above {rental.landlord_name}'s approval limit of {money(rental.approval_limit)}. Mark it
       Awaiting approval and ask them; once they agree, mark it Approved.</p>}
     {recording(f) && <fieldset className="choices-set"><legend>The landlord's approval</legend>
+      {overrun(f) && <p className="warn" role="note">The final cost is above the {money(p.approved_amount)} they approved: record their new approval.</p>}
       <div className="grid2">{a.field("approved_amount", "Amount approved (£)", { inputMode: "numeric" })}
         {a.field("approved_on", "Approved on", { type: "date", max: jerseyToday() })}</div>
       {a.field("approval_ref", "Where it is on record", { maxLength: 200, placeholder: "e.g. Landlord's email of 3 Nov" })}</fieldset>}

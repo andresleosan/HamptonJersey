@@ -319,34 +319,40 @@ const loadRepair = async (env, id) =>
 
 // R14, on the merged row (never the database's CHECK): done needs its date and cost (400); the status moves only as
 // REPAIR_NEXT allows, and a quote or cost (the larger) above the landlord's approval_limit goes ahead only once they
-// approved it (409). The approval is stamped on awaiting_approval → approved, and dropped when asked again, when the
-// quote or cost goes above what was approved, or when the contractor or supplier changes (ADM-12). suppliers (its
-// switch): the approval also records the amount agreed, where it is on record and the day, given only on that step.
-// An emergency skips none of this.
+// approved it (409). The approval is stamped on awaiting_approval → approved, and dropped when asked again or when the
+// quote goes up; it goes with all its details, also those left by ADM-12's switch.
+// ADM-12, only with its switch (suppliers): the approval records the amount agreed, where it is on record and the day,
+// given on that step; a quote within that amount keeps it, another supplier from the directory drops it (the
+// contractor's free text does not), and a final cost above it, when it needs approval, records the landlord's new
+// approval in the same step. An emergency skips none of this.
 const APPROVAL = { approved_amount: "Enter the amount the landlord approved", approval_ref: "Say where their approval is on record",
   approved_on: "Enter the date they approved it" };
 const top = p => Math.max(p.quote ?? 0, p.cost ?? 0);
+const GOING = ["approved", "in_progress", "done"];
 function repairRules(cur, next, limit, ts, suppliers) {
   const errors = {};
   if (next.status === "done" && !next.done_on) errors.done_on = "Enter the date it was done";
   if (next.status === "done" && next.cost == null) errors.cost = "Enter the final cost";
-  const from = cur?.status ?? "reported", approving = from === "awaiting_approval" && next.status === "approved";
+  const from = cur?.status ?? "reported", amount = suppliers && cur?.approved_at ? cur.approved_amount : null;
+  const approving = from === "awaiting_approval" && next.status === "approved";
+  const recording = suppliers && (approving || (amount != null
+    && GOING.includes(next.status) && (next.cost ?? 0) > amount && limit != null && top(next) > limit));
   if (suppliers) for (const [k, msg] of Object.entries(APPROVAL)) {
-    if (!approving) next[k] = cur?.[k] ?? null;
+    if (!recording) next[k] = cur?.[k] ?? null;
     else if (next[k] == null) errors[k] ??= msg;
   }
-  if (suppliers && approving && next.approved_amount != null && top(next) > next.approved_amount)
+  if (recording && next.approved_amount != null && top(next) > next.approved_amount)
     errors.approved_amount ??= "The landlord approved less than the quote or cost";
   if (Object.keys(errors).length) return fieldErrors(errors);
   if (next.status !== from && !REPAIR_NEXT[from].includes(next.status))
     fail(409, `A repair can't go from ${from.replace("_", " ")} to ${next.status.replace("_", " ")}`);
-  if (next.status === "awaiting_approval" || (cur?.approved_at && (top(next) > (cur.approved_amount ?? top(cur))
-    || next.contractor !== cur.contractor || next.supplier_id !== cur.supplier_id))) {
+  if (!recording && (next.status === "awaiting_approval" || (cur && next.quote > (amount ?? cur.quote))
+    || (suppliers && cur?.approved_at && next.supplier_id !== cur.supplier_id))) {
     next.approved_at = null;
-    if (suppliers) for (const k in APPROVAL) next[k] = null;
+    for (const k in APPROVAL) if (cur ? k in cur : suppliers) next[k] = null;
   }
-  if (approving) next.approved_at = ts;
-  if (["approved", "in_progress", "done"].includes(next.status) && limit != null && top(next) > limit && !next.approved_at)
+  if (approving || recording) next.approved_at = ts;
+  if (GOING.includes(next.status) && limit != null && top(next) > limit && !next.approved_at)
     fail(409, `The quote or cost is above the landlord's approval limit of £${limit}: mark it Awaiting approval first`);
   return null;
 }
@@ -354,6 +360,19 @@ function repairRules(cur, next, limit, ts, suppliers) {
 const badSupplier = async (env, value, cur) => value.supplier_id != null && value.supplier_id !== cur?.supplier_id
   && !(await env.DB.prepare("SELECT 1 FROM suppliers WHERE id = ? AND archived_at IS NULL").bind(value.supplier_id).first())
   && fieldErrors({ supplier_id: "Choose a supplier from the list" });
+// Inside the batch: fails it unless the supplier newly chosen is still in the directory, not archived.
+const supplierGuard = (env, value, cur) => value.supplier_id != null && value.supplier_id !== cur?.supplier_id
+  ? [env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL WHERE NOT EXISTS (SELECT 1 FROM suppliers
+    WHERE id = ? AND archived_at IS NULL)`).bind(value.supplier_id)] : [];
+// ADM-12 switched on before migration 0089: the request runs again as switched off (nothing was written, every
+// statement that names the new columns or table runs in one batch or before it).
+const until0089 = handler => async ctx => {
+  const copy = ctx.request.clone();
+  try { return await handler(ctx); } catch (e) {
+    if (!suppliersReady(ctx.env) || !/no such (column|table)/i.test(String(e?.message))) throw e;
+    return handler({ ...ctx, request: copy, env: { ...ctx.env, ADM12_SUPPLIERS_READY: "0" } });
+  }
+};
 
 // R14: a repair on a property not archived, on its running tenancy if it has one.
 async function createRepair({ request, env, admin, params: [id] }) {
@@ -376,11 +395,13 @@ async function createRepair({ request, env, admin, params: [id] }) {
       env.DB.prepare(`INSERT INTO repairs (${Object.keys(row).join(", ")}) SELECT ${Object.keys(row).map(() => "?").join(", ")}
         FROM rentals WHERE id = ? AND archived_at IS NULL`).bind(...Object.values(row), s.id),
       ensureChanged(env),
+      ...supplierGuard(env, value),
       rentalEvent(env, { rental_id: s.id, tenancy_id: s.tenancy_id, actor: admin, type: "repair.created", data: value },
         { repair_id: "repairs" }),
     ]);
   } catch (e) {
     archived(await state());
+    if (suppliers) { const gone = await badSupplier(env, value); if (gone) return gone; }
     throw e;
   }
   return json({ repair: await loadRepair(env, res.meta.last_row_id) }, 201);
@@ -388,19 +409,33 @@ async function createRepair({ request, env, admin, params: [id] }) {
 
 // R14: a form save (lock), so a status change meanwhile is a 409; each change is one repair.updated event.
 async function updateRepair({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request)), suppliers = suppliersReady(env);
+  const body = asObject(await readJson(request));
+  let suppliers = suppliersReady(env);
   const r = validateRepair(body, { partial: true, suppliers });
   if (r.errors) return fieldErrors(r.errors);
   const cur = await env.DB.prepare(`SELECT p.*, l.approval_limit FROM repairs p JOIN rentals r ON r.id = p.rental_id
     JOIN landlords l ON l.id = r.landlord_id WHERE p.id = ?`).bind(Number(id)).first() ?? fail(404, "Repair not found");
-  const { approval_limit, ...stored } = cur, next = { ...stored, ...r.value };
+  const { approval_limit, ...stored } = cur;
+  if (suppliers && !("approved_amount" in stored)) { // switched on before 0089: as switched off
+    suppliers = false;
+    for (const k of ["supplier_id", ...Object.keys(APPROVAL)]) delete r.value[k];
+  }
+  // A new approval's details come only from this request, never from the one before.
+  const next = { ...stored, ...(suppliers ? Object.fromEntries(Object.keys(APPROVAL).map(k => [k, null])) : {}), ...r.value };
   const bad = repairRules(stored, next, approval_limit, now(), suppliers) || await badSupplier(env, r.value, stored);
   if (bad) return bad;
+  // The approval's details go wherever their columns are (0089), so dropping it never leaves an old amount behind.
   const value = { ...r.value, approved_at: next.approved_at,
-    ...(suppliers ? Object.fromEntries(Object.keys(APPROVAL).map(k => [k, next[k]])) : {}) };
-  await save(env, admin, "repairs", stored, body, value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
-    tenancy_id: cur.tenancy_id, actor: admin, type: "repair.updated", data: { repair_id: cur.id, before: of(stored),
-      after: of(value) } })]);
+    ...Object.fromEntries(Object.keys(APPROVAL).filter(k => k in stored).map(k => [k, next[k]])) };
+  try {
+    await save(env, admin, "repairs", stored, body, value, (keys, of) => [...supplierGuard(env, r.value, stored),
+      rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.tenancy_id, actor: admin, type: "repair.updated",
+        data: { repair_id: cur.id, before: of(stored), after: of(value) } })]);
+  } catch (e) {
+    const gone = suppliers && await badSupplier(env, r.value, stored);
+    if (gone) return gone;
+    throw e;
+  }
   return json({ repair: await loadRepair(env, cur.id) });
 }
 
@@ -497,15 +532,15 @@ export default [
   ["PUT", /^\/admin\/landlords\/(\d+)$/, updateLandlord, true],
   ["POST", /^\/admin\/landlords\/(\d+)\/(archive|restore)$/, landlordState, true],
   ["POST", /^\/admin\/rentals$/, createRental, true],
-  ["GET", /^\/admin\/rentals\/(\d+)$/, getRental, true],
+  ["GET", /^\/admin\/rentals\/(\d+)$/, until0089(getRental), true],
   ["PUT", /^\/admin\/rentals\/(\d+)$/, updateRental, true],
   ["POST", /^\/admin\/rentals\/(\d+)\/(archive|restore)$/, rentalState, true],
   ["PUT", /^\/admin\/rentals\/(\d+)\/compliance\/([a-z_]+)$/, updateCompliance, true],
-  ["POST", /^\/admin\/rentals\/(\d+)\/repairs$/, createRepair, true],
-  ["PUT", /^\/admin\/repairs\/(\d+)$/, updateRepair, true],
-  ["GET", /^\/admin\/suppliers$/, supplierOn(listSuppliers), true],
-  ["POST", /^\/admin\/suppliers$/, supplierOn(createSupplier), true],
-  ["PUT", /^\/admin\/suppliers\/(\d+)$/, supplierOn(updateSupplier), true],
+  ["POST", /^\/admin\/rentals\/(\d+)\/repairs$/, until0089(createRepair), true],
+  ["PUT", /^\/admin\/repairs\/(\d+)$/, until0089(updateRepair), true],
+  ["GET", /^\/admin\/suppliers$/, until0089(supplierOn(listSuppliers)), true],
+  ["POST", /^\/admin\/suppliers$/, until0089(supplierOn(createSupplier)), true],
+  ["PUT", /^\/admin\/suppliers\/(\d+)$/, until0089(supplierOn(updateSupplier)), true],
   ["GET", /^\/admin\/settings\/(rpi|gst|csv-map)$/, getSetting, true],
   ["PUT", /^\/admin\/settings\/(rpi|gst|csv-map)$/, putSetting, true],
 ];

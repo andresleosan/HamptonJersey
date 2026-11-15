@@ -64,14 +64,27 @@ test("approval: recorded with amount, evidence and date; a higher quote or cost,
   r = ok(await put(env, r, { quote: 900 })).repair;
   assert.equal(r.approved_amount, 900);
   assert.equal((await put(env, r, { quote: 950 })).status, 409);
-  // wrong_supplier_approval_not_reusable: another supplier (or another contractor text) is another approval.
+  // wrong_supplier_approval_not_reusable: another supplier from the directory is another approval; correcting the
+  // contractor's free text is not.
   assert.equal((await put(env, r, { supplier_id: b.id })).status, 409);
-  assert.equal((await put(env, r, { contractor: "Someone else" })).status, 409);
-  // cost_above_approved_amount_needs_review
+  r = ok(await put(env, r, { contractor: "Jersey Heat Ltd" })).repair;
+  assert.deepEqual([!!r.approved_at, r.approved_amount], [true, 900]);
+  // cost_above_approved_amount_needs_review: the real cost is recorded with the landlord's new approval in the same step.
   r = ok(await put(env, r, { status: "in_progress" })).repair;
-  assert.equal((await put(env, r, { status: "done", done_on: T, cost: 901 })).status, 409);
-  r = ok(await put(env, r, { status: "done", done_on: T, cost: 880 })).repair;
-  assert.deepEqual([r.status, r.approved_amount], ["done", 900]);
+  assert.deepEqual(Object.keys(ok(await put(env, r, { status: "done", done_on: T, cost: 950 }), 400).fields).sort(),
+    ["approval_ref", "approved_amount", "approved_on"]);
+  assert.equal(ok(await put(env, r, { status: "done", done_on: T, cost: 950, ...APPROVAL }), 400).fields.approved_amount,
+    "The landlord approved less than the quote or cost");
+  r = ok(await put(env, r, { status: "done", done_on: T, cost: 950, ...APPROVAL, approved_amount: 950,
+    approval_ref: "Landlord text about the extra" })).repair;
+  assert.deepEqual([r.status, r.cost, r.approved_amount, r.approval_ref], ["done", 950, 950, "Landlord text about the extra"]);
+
+  // Within what was approved the cost needs nothing more, and details sent outside an approval are ignored.
+  let w = await repair(env, id, { title: "Valve", urgency: "urgent", quote: 800 });
+  w = ok(await put(env, w, { status: "awaiting_approval" })).repair;
+  w = ok(await put(env, w, { status: "approved", ...APPROVAL })).repair;
+  w = ok(await put(env, w, { status: "done", done_on: T, cost: 880, approved_amount: 5000 })).repair;
+  assert.deepEqual([w.status, w.approved_amount], ["done", 900]);
 
   // Asked again: the old approval goes with it.
   let s = await repair(env, id, { title: "Roof", urgency: "routine", quote: 600 });
@@ -96,4 +109,45 @@ test("approval: switched off, the approval needs no details and the new fields a
   r = ok(await put(env, r, { status: "awaiting_approval" })).repair;
   r = ok(await put(env, r, { status: "approved", approved_amount: 100 })).repair;
   assert.deepEqual([!!r.approved_at, r.approved_amount], [true, null]);
+});
+
+// Switched off, the rules are the ones before ADM-12 (762d5f3): only asking again or a higher quote drops the approval.
+test("approval: switched off, a final cost above the quote and a contractor correction keep the approval", async () => {
+  const env = makeEnv(), id = await rental(env);
+  let r = await repair(env, id, { title: "Boiler", urgency: "urgent", quote: 800, contractor: "Jersey Heat" });
+  r = ok(await put(env, r, { status: "awaiting_approval" })).repair;
+  r = ok(await put(env, r, { status: "approved" })).repair;
+  const at = r.approved_at;
+  r = ok(await put(env, r, { contractor: "Jersey Heat Ltd" })).repair;
+  r = ok(await put(env, r, { quote: 700 })).repair;
+  r = ok(await put(env, r, { status: "in_progress" })).repair;
+  r = ok(await put(env, r, { status: "done", done_on: T, cost: 850 })).repair;
+  assert.deepEqual([r.status, r.cost, r.approved_at], ["done", 850, at]);
+  let s = await repair(env, id, { title: "Roof", urgency: "urgent", quote: 800 });
+  s = ok(await put(env, s, { status: "awaiting_approval" })).repair;
+  s = ok(await put(env, s, { status: "approved" })).repair;
+  assert.equal((await put(env, s, { quote: 801 })).status, 409, "a higher quote above the limit asks again");
+});
+
+test("approval: switched on then off, asking again clears every detail and nothing compares with an old amount", async () => {
+  const env = on(), off = { ...env, ADM12_SUPPLIERS_READY: "0" }, id = await rental(env);
+  let r = await repair(env, id, { title: "Boiler", urgency: "urgent", quote: 800 });
+  r = ok(await put(env, r, { status: "awaiting_approval" })).repair;
+  r = ok(await put(env, r, { status: "approved", ...APPROVAL })).repair;
+  r = ok(await put(off, r, { status: "awaiting_approval" })).repair;
+  assert.deepEqual([r.approved_at, r.approved_amount, r.approval_ref, r.approved_on], [null, null, null, null]);
+  r = ok(await put(off, r, { status: "approved" })).repair;
+  assert.equal((await put(env, r, { quote: 850 })).status, 409, "the approval of 800 does not stretch to an old 900");
+  r = ok(await put(env, r, { status: "in_progress" })).repair;
+  r = ok(await put(env, r, { status: "done", done_on: T, cost: 850 })).repair;
+  assert.equal(r.status, "done", "an approval given while switched off is not stuck on a missing amount");
+});
+
+test("approval: switched on before migration 0089, repairs work as switched off", async () => {
+  const env = { ...makeEnv({ through: 88 }), ADM12_SUPPLIERS_READY: "1" }, id = await rental(env);
+  let r = await repair(env, id, { title: "Boiler", urgency: "urgent", quote: 800, supplier_id: 1 });
+  r = ok(await put(env, r, { status: "awaiting_approval" })).repair;
+  r = ok(await put(env, r, { status: "approved" })).repair;
+  assert.ok(r.approved_at);
+  assert.equal(ok(await req(env, "GET", `/admin/rentals/${id}`)).suppliers, undefined);
 });

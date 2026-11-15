@@ -92,6 +92,22 @@ const focused = locator => locator.evaluate(el => el === document.activeElement)
       await item.getByText(/^The landlord approved up to £900 on /).waitFor();
       await item.getByText('Approved', { exact: true }).waitFor();
       assert.equal(await item.getByText("Needs the landlord's approval").count(), 0);
+
+      // Correcting the contractor's text keeps the approval; a final cost above it records their new approval in the same step.
+      dialog = await update();
+      await dialog.getByLabel('Contractor (optional)').fill(`${name} Ltd`);
+      await dialog.getByRole('button', { name: 'Save repair' }).click();
+      await item.getByText(/^The landlord approved up to £900 on /).waitFor();
+      dialog = await update();
+      await dialog.getByLabel('Status').selectOption('done');
+      await dialog.getByLabel('Final cost (£)').fill('950');
+      const again = dialog.getByRole('group', { name: "The landlord's approval" });
+      await again.getByText('The final cost is above the £900 they approved: record their new approval.').waitFor();
+      await again.getByLabel('Amount approved (£)').fill('950');
+      await again.getByLabel('Where it is on record').fill('Synthetic landlord text about the extra');
+      await dialog.getByRole('button', { name: 'Save repair' }).click();
+      await item.getByText(/^The landlord approved up to £950 on /).waitFor();
+      await item.getByText('Done', { exact: true }).waitFor();
       assert.ok(await fits(page), 'repairs fit');
       if (process.env.E2E_SHOTS) await repairs.screenshot({ path: join(process.env.E2E_SHOTS, `adm12-repairs-${width}.png`) }).catch(() => {});
       // ponytail: at 390 px and 200% the Checks card's "Estimated · not validated by a lawyer" badge (ADM-17, not wrapping)
