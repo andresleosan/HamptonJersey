@@ -7,7 +7,7 @@ import { fields, blank, obj, result } from "./sales.js";
 // is saved; ADM-17 (server/legal-terms.js) puts the saved ones over them and passes the result as `legal`.
 export const LEGAL = { depositDays: 30, reportDays: 7, licenceYears: 2, eicrYears: 5, gasYears: 1, alarmsYears: 1,
   warnDays: [60, 30, 7], renewalDays: 90, rentNoticeMonths: 2, rentIntervalMonths: 12, regime2025From: "2026-04-15",
-  tenantNoticeMonths: 1, landlordNoticeMonths: 12 };
+  initialTermYears: 3, tenantNoticeMonths: 1, landlordNoticeMonths: 12 };
 // R8: [days after the oldest unpaid charge fell due, arrears_steps.step, label].
 export const ARREARS_STEPS = [[1, "reminder", "Friendly reminder"], [5, "firm", "Firm reminder"],
   [7, "call", "Call the tenant"], [10, "landlord", "Tell the landlord"], [14, "letter", "Formal letter"]];
@@ -42,11 +42,49 @@ export function addMonths(date, n) {
 
 // A date-only prompt for staff review, never a determination that a law applies.
 // Invalid or unrepresentable dates remain for the normal form validator.
-export function initialTermBeyondThreeYears(start, end) {
+export function initialTermBeyondThreeYears(start, end, years = LEGAL.initialTermYears) {
   if (!realDate(start) || !realDate(end)) return false;
   const year = Number(start.slice(0, 4));
   if (year < 100 || year > 9996) return false;
-  return end > addMonths(start, 36);
+  return end > addMonths(start, 12 * years);
+}
+
+// ADM-20 (with ADM20_TENANCY_LAW_READY and migration 0073): the 2025 rules. policy: {status, regime2025From,
+// initialTermYears}, the legal parameters in force and whether a lawyer validated them (server/legal-terms.js).
+export const SCOPES = ["yes", "no", "unknown"];
+// The rules an agreement falls under, from the date it was made; never from the start date or the recorded label.
+export const regimeOf = (agreement_on, policy) => (!realDate(agreement_on) ? "unknown"
+  : agreement_on >= policy.regime2025From ? "2025" : "2011");
+// Whether the 2025 rules cover a tenancy: yes only for a 2025 agreement over accommodation recorded as in scope, no
+// for an earlier agreement or accommodation recorded as out of scope. Anything else is unknown, which is neither.
+export function lawApplies(tenancy, policy) {
+  const regime = regimeOf(tenancy.agreement_on, policy);
+  return regime === "2011" || tenancy.law_scope === "no" ? "no" : regime === "2025" && tenancy.law_scope === "yes" ? "yes" : "unknown";
+}
+const LAW_RULES = {
+  long_term: p => `the initial fixed term may run up to ${p.initialTermYears} years, and this one runs longer.`,
+  second_term: () => "a tenancy has one initial fixed term and then runs on as periodic: this would be a further fixed term.",
+  premium: () => "a tenant must not be asked for a premium or key money: confirm this sum is neither.",
+};
+// One initial fixed term of up to initialTermYears and no premium or key money, for a save that sets the term (create,
+// update, renew; before: the tenancy as stored) or raises what is owed beyond the rent series (the opening balance, or
+// charge: {before, after} in pence). An issue blocks only when the tenancy is covered and the rules are validated; a
+// further term entered through an edit is a correction of the record, so it is confirmed, never blocked. Every other
+// issue needs its code in `confirmed`: the employee's express confirmation.
+export function validateTenancyOperation({ operation, tenancy, before = null, charge = null, policy, confirmed = [] }) {
+  const applies = lawApplies(tenancy, policy);
+  if (applies === "no") return { allowed: true, applies, issues: [] };
+  const found = [], term = operation !== "charge" && tenancy.kind === "fixed"
+    && (!before || before.kind !== "fixed" || before.end_on !== tenancy.end_on);
+  if (term && initialTermBeyondThreeYears(tenancy.start_on, tenancy.end_on, policy.initialTermYears)) found.push(["long_term", "end_on", true]);
+  if (term && before && (before.kind !== "fixed" || tenancy.end_on > before.end_on)) found.push(["second_term", "end_on", operation === "renew"]);
+  if (charge ? charge.after > charge.before : (tenancy.opening_balance ?? 0) > (before?.opening_balance ?? 0))
+    found.push(["premium", charge ? "amount" : "opening_balance", false]);
+  const strict = applies === "yes" && policy.status === "validated";
+  const issues = found.map(([code, field, canBlock]) => ({ code, field, blocks: strict && canBlock,
+    message: `${applies === "yes" ? "Under the 2025 rules " : "It is not recorded whether the 2025 rules apply to this tenancy. If they do, "}${
+      LAW_RULES[code](policy)}${policy.status === "validated" ? "" : " This rule is not yet validated by a lawyer."}` }));
+  return { allowed: issues.every(i => !i.blocks && confirmed.includes(i.code)), applies, issues };
 }
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
 
@@ -156,7 +194,8 @@ const TENANCY_DATES = ["deposit_received_on", "deposit_protected_on", "inventory
 
 // R4, R20, R22, R23: rent and deposit in whole pounds, opening_balance in pence; due_day defaults to the start day,
 // capped at 28. Notice and the end have their own actions.
-export function validateTenancy(body, { partial = false } = {}) {
+// law (ADM-20): truthy with its switch on and its columns in place; only then are agreement_on and law_scope read.
+export function validateTenancy(body, { partial = false, law = null } = {}) {
   const c = check(body, partial), { b, value, has } = c;
   if (has("tenant_name")) value.tenant_name = c.required("tenant_name", c.text("tenant_name", 120), "Enter the tenant's name");
   if (has("tenant_email")) value.tenant_email = c.email("tenant_email");
@@ -166,6 +205,9 @@ export function validateTenancy(body, { partial = false } = {}) {
     "Choose fixed term or periodic");
   if (has("regime")) value.regime = c.required("regime", c.one("regime", REGIMES, "Choose the 2011 or 2025 law"),
     "Choose the 2011 or 2025 law");
+  if (law && has("agreement_on")) value.agreement_on = c.date("agreement_on");
+  if (law && has("law_scope")) value.law_scope = !partial && blank(b.law_scope) ? "unknown"
+    : c.required("law_scope", c.one("law_scope", SCOPES, "Choose yes, no or not known"), "Choose yes, no or not known");
   if (has("start_on")) value.start_on = c.required("start_on", c.date("start_on"), "Enter the start date");
   if (has("end_on")) value.end_on = c.date("end_on");
   if (has("rent")) value.rent = c.money("rent", true, MAX_POUNDS);

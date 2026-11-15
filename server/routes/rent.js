@@ -1,12 +1,13 @@
 import { json, fail, readJson, now, sha256 } from "../http.js";
 import { validateTenancy, validatePayment, rentAssistant, earliestMoveOut, complianceStatus, addMonths, LEGAL,
-  ARREARS_STEPS, COMPLIANCE, CALENDAR, TENANT, REF_RE, importKey, cleanDescription } from "../rentals.js";
+  ARREARS_STEPS, COMPLIANCE, CALENDAR, TENANT, REF_RE, importKey, cleanDescription, regimeOf,
+  validateTenancyOperation } from "../rentals.js";
 import { fields } from "../sales.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { rentalEvent, save, ensureChanged, fieldErrors, asObject, ACTIVE, syncTenantChecks } from "./rentals.js";
 import { exitReady } from "../tenancy-exits.js";
 import { NEXT_INSPECTION, inspectionDue, inspectionsReady } from "../rental-inspections.js";
-import { readLegal, legalLabel, calendarReady } from "../legal-terms.js";
+import { readLegal, legalLabel, calendarReady, tenancyLaw } from "../legal-terms.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -151,7 +152,7 @@ const loadTenancy = async (env, id) =>
 // the oldest unpaid charge, R27), the rent assistant with the saved RPI (R12) and the deadlines.
 export async function detail(env, id) {
   id = Number(id);
-  const legal = await readLegal(env), { periods } = legal;
+  const legal = await readLegal(env), { periods } = legal, law = await tenancyLaw(env, legal);
   const today = jerseyToday(), since = addMonths(today, -24), q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
   const [, [tenancy], charges, payments, [{ balance }], [setting], [late], steps, [now_]] = (await env.DB.batch([
     ensureCharges(env, today, id),
@@ -175,7 +176,7 @@ export async function detail(env, id) {
   // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
   return { tenancy, current_rent: now_.rent, charges, payments, balance, arrears, assistant: { ...rentAssistant(tenancy, rpi, today, periods), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
-    ...legalLabel(legal) };
+    ...legalLabel(legal), ...(law ? { law } : {}) };
 }
 
 const getTenancy = async ({ env, params: [id] }) => json(await detail(env, id));
@@ -195,13 +196,27 @@ async function act(env, id, stmts, check) {
   }
 }
 
+// ADM-20 (law: tenancyLaw's answer, null while off): the recorded label follows the agreement date whenever one is sent.
+const withRegime = (law, body) => (law && realDate(body.agreement_on) ? { ...body, regime: regimeOf(body.agreement_on, law) } : body);
+// ADM-20: what the 2025 rules say about a save (validateTenancyOperation's input; the body carries law_confirmed, the
+// codes the employee confirmed). errors: the fields to answer with, a refused one under its own field, otherwise the
+// confirmation still missing. note: what the event keeps of a confirmation given. Without law, neither.
+function lawCheck(law, input, body) {
+  if (!law) return { note: {} };
+  const r = validateTenancyOperation({ ...input, policy: law, confirmed: Array.isArray(body.law_confirmed) ? body.law_confirmed : [] });
+  if (r.allowed) return { note: r.issues.length ? { law: { status: law.status, applies: r.applies, confirmed: r.issues.map(i => i.code) } } : {} };
+  const refused = r.issues.filter(i => i.blocks);
+  return { errors: refused.length ? Object.fromEntries(refused.map(i => [i.field, i.message]))
+    : { law_confirmed: "Confirm you have checked this against the agreement" } };
+}
+
 // R4, R5, R22: one tenancy without ended_on per property, not overlapping the last one, with its payment reference set
 // from the new id, its starting rent, and its charges (full service only: collect_from defaults to the start, but a
 // tenancy that started before this Jersey month must say from when Hampton collects, P22, or its past months would be
 // charged). tenancyPlan checks `input` for property `rid` and returns {errors} or the batch's statements, and recheck()
 // to answer a failed batch (409 when the property moved on); ADM-06's commit runs the same statements in its own batch.
 export async function tenancyPlan(env, admin, rid, input) {
-  const r = validateTenancy(input);
+  const law = await tenancyLaw(env), r = validateTenancy(withRegime(law, input), { law });
   if (r.errors) return { errors: r.errors };
   const state = () => env.DB.prepare(`SELECT id, service, archived_at,
     EXISTS (SELECT 1 FROM tenancies WHERE rental_id = r.id AND ended_on IS NULL) AS open,
@@ -217,6 +232,8 @@ export async function tenancyPlan(env, admin, rid, input) {
   if (s.service === "full" && !r.value.collect_from && r.value.start_on < `${jerseyToday().slice(0, 8)}01`)
     return { errors: { collect_from: COLLECT } };
   const ts = now(), value = { ...r.value, collect_from: s.service === "full" ? r.value.collect_from ?? r.value.start_on : null };
+  const checked = lawCheck(law, { operation: "create", tenancy: value }, input);
+  if (checked.errors) return { errors: checked.errors };
   const row = { ...value, rental_id: s.id, created_at: ts, created_by: admin, updated_at: ts, updated_by: admin };
   const periods = calendarReady(env) && (await readLegal(env)).periods;
   const stmts = [
@@ -230,7 +247,7 @@ export async function tenancyPlan(env, admin, rid, input) {
       .bind(row.start_on, row.rent, ts, admin),
     ensureCharges(env, jerseyToday(), "newest"),
     bump(env, admin, s.id, ts),
-    rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: value }, { tenancy_id: "tenancies" }),
+    rentalEvent(env, { rental_id: s.id, actor: admin, type: "tenancy.created", data: { ...value, ...checked.note } }, { tenancy_id: "tenancies" }),
     // ADM-11: with nobody else in, the copies and the deposit's prescribed information are dated for this tenant at
     // once (otherwise when they take over); an electrical checklist done before them is brought forward to the start.
     ...(periods ? [syncTenantChecks(env, periods, jerseyToday(), s.id),
@@ -287,10 +304,11 @@ const firstCharge = (env, today, id) => env.DB.prepare(`INSERT INTO charges (ten
 // opening_balance (full service) may be set while there is no opening charge, which is then made on collect_from in
 // the same batch (not left to ensureCharges, which skips it for a move-out before the first rent charge).
 async function updateTenancy({ request, env, admin, params: [id] }) {
-  const body = asObject(await readJson(request)), cur = await loadTenancy(env, id), today = jerseyToday();
+  const law = await tenancyLaw(env), body = withRegime(law, asObject(await readJson(request)));
+  const cur = await loadTenancy(env, id), today = jerseyToday();
   const locked = { ...LOCKED, ...(cur.has_opening ? { opening_balance: OPENING } : {}) };
   const kept = Object.fromEntries(Object.keys(locked).map(k => [k, cur[k]]));
-  const sent = validateTenancy(body, { partial: true }), r = validateTenancy({ ...cur, ...body, ...kept });
+  const sent = validateTenancy(body, { partial: true, law }), r = validateTenancy({ ...cur, ...body, ...kept }, { law });
   const errors = { ...r.errors, ...sent.errors }, changed = k => !!sent.value && k in sent.value && sent.value[k] !== cur[k];
   for (const [k, msg] of Object.entries(locked)) if (changed(k)) errors[k] = msg;
   const collects = cur.service === "full" && !!cur.collect_from, NOT_COLLECTED = "Only full management tenancies collect rent";
@@ -302,12 +320,14 @@ async function updateTenancy({ request, env, admin, params: [id] }) {
   if (why) errors.collect_from ??= why;
   if (opening && !collects) errors.opening_balance ??= NOT_COLLECTED;
   if (Object.keys(errors).length) return fieldErrors(errors);
+  const checked = lawCheck(law, { operation: "update", tenancy: { ...cur, ...r.value }, before: cur }, body);
+  if (checked.errors) return fieldErrors(checked.errors);
   // ADM-11: a deposit received (or its date corrected) dates its prescribed information, unless already given.
   const info = calendarReady(env) && changed("deposit_received_on")
     ? [syncTenantChecks(env, (await readLegal(env)).periods, today, cur.rental_id)] : [];
   const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
   await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
-    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value) } }), ...info,
+    tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value), ...checked.note } }), ...info,
   ...(moved ? [removed(env, before, cur.id, to), env.DB.prepare(`DELETE FROM charges WHERE ${before}`).bind(cur.id, to),
     firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : []),
   ...(opening ? [env.DB.prepare(`INSERT INTO charges (tenancy_id, due_on, amount, kind) SELECT id, collect_from, opening_balance,
@@ -318,21 +338,29 @@ async function updateTenancy({ request, env, admin, params: [id] }) {
 
 // R23: a charge corrected by hand (pence), marked edited so a rent change leaves it alone (R28).
 async function updateCharge({ request, env, admin, params: [id] }) {
-  const { amount } = asObject(await readJson(request));
+  const body = asObject(await readJson(request)), { amount } = body;
   if (!Number.isInteger(amount) || amount < 1 || amount > MAX_PENCE)
     return fieldErrors({ amount: `Enter an amount in pence from 1 to ${MAX_PENCE}` });
   const load = () => env.DB.prepare("SELECT c.*, t.rental_id FROM charges c JOIN tenancies t ON t.id = c.tenancy_id WHERE c.id = ?")
     .bind(Number(id)).first();
   const c = (await load()) ?? fail(404, "Charge not found");
+  // ADM-20: a charge raised by hand on a tenancy the 2025 rules cover (or may cover) is declared as no premium; the
+  // write holds only while the tenancy is still as it was checked.
+  const law = await tenancyLaw(env), t = law && await loadTenancy(env, c.tenancy_id);
+  const checked = lawCheck(law, { operation: "charge", tenancy: t, charge: { before: c.amount, after: amount } }, body);
+  if (checked.errors) return fieldErrors(checked.errors);
   try {
     await env.DB.batch([
-      env.DB.prepare("UPDATE charges SET amount = ?, edited = 1 WHERE id = ?").bind(amount, c.id),
+      env.DB.prepare(`UPDATE charges SET amount = ?, edited = 1 WHERE id = ?${law ? `
+        AND EXISTS (SELECT 1 FROM tenancies WHERE id = charges.tenancy_id AND updated_at = ?)` : ""}`)
+        .bind(amount, c.id, ...(law ? [t.updated_at] : [])),
       ensureChanged(env),
       rentalEvent(env, { rental_id: c.rental_id, tenancy_id: c.tenancy_id, actor: admin, type: "charge.edited",
-        data: { charge_id: c.id, due_on: c.due_on, kind: c.kind, before: c.amount, after: amount } }),
+        data: { charge_id: c.id, due_on: c.due_on, kind: c.kind, before: c.amount, after: amount, ...checked.note } }),
     ]);
   } catch (e) {
     if (!(await load())) fail(404, "Charge not found"); // the tenancy ended meanwhile and took it
+    if (law && (await loadTenancy(env, c.tenancy_id)).updated_at !== t.updated_at) fail(409, "This tenancy changed meanwhile. Reload to see it");
     throw e;
   }
   return json(await detail(env, c.tenancy_id));
@@ -388,19 +416,25 @@ async function renew({ request, env, admin, params: [id] }) {
   if (kind === "fixed" && !errors.end_on && !(end_on > after)) f.err("end_on", `Enter an end date after ${after}`);
   const rent = f.money("rent", false, MAX_POUNDS), effective_on = rent ? effectiveOn(f, today, cur) : null;
   if (Object.keys(errors).length) return fieldErrors(errors);
+  // ADM-20: a further fixed term is confirmed or refused, on the agreement date and scope the write then holds to.
+  const law = await tenancyLaw(env), checked = lawCheck(law, { operation: "renew", tenancy: { ...cur, kind, end_on }, before: cur }, b);
+  if (checked.errors) return fieldErrors(checked.errors);
+  const same = t => !law || (t.agreement_on === cur.agreement_on && t.law_scope === cur.law_scope);
   const ts = now();
   await act(env, cur.id, [
     env.DB.prepare(`UPDATE tenancies SET kind = ?, end_on = ?, updated_at = ?, updated_by = ?
-      WHERE id = ? AND ended_on IS NULL AND regime = ?`).bind(kind, end_on, ts, admin, cur.id, cur.regime),
+      WHERE id = ? AND ended_on IS NULL AND regime = ?${law ? " AND agreement_on IS ? AND law_scope = ?" : ""}`)
+      .bind(kind, end_on, ts, admin, cur.id, cur.regime, ...(law ? [cur.agreement_on, cur.law_scope] : [])),
     ensureChanged(env),
     ...(rent ? rentChange(env, admin, cur, rent, effective_on, today, ts) : []),
     bump(env, admin, cur.rental_id, ts),
     rentalEvent(env, { rental_id: cur.rental_id, tenancy_id: cur.id, actor: admin, type: "tenancy.renewed", data: {
       before: { kind: cur.kind, end_on: cur.end_on, regime: cur.regime, rent: cur.rent },
-      after: { kind, end_on, regime: cur.regime, ...(rent ? { rent, effective_on } : {}) } } }),
+      after: { kind, end_on, regime: cur.regime, ...(rent ? { rent, effective_on } : {}) }, ...checked.note } }),
   ], current => {
     notEnded(current);
     if (current.regime !== cur.regime) fail(409, "The recorded law label changed meanwhile. Reload the tenancy.");
+    if (!same(current)) fail(409, "The tenancy's agreement date or scope changed meanwhile. Reload the tenancy.");
   });
   return json(await detail(env, cur.id));
 }

@@ -4,7 +4,7 @@ import { validateLandlord, validateRental, validateRepair, COMPLIANCE, CALENDAR,
 import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
-import { readLegal, legalLabel, calendarReady } from "../legal-terms.js";
+import { readLegal, legalLabel, calendarReady, tenancyLaw } from "../legal-terms.js";
 
 export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
@@ -187,8 +187,10 @@ async function getRental({ env, params: [id] }) {
       .bind(Number(id), today)] : []),
   ])).map(r => r.results);
   if (!rental) fail(404, "Property not found");
+  const law = await tenancyLaw(env, legal); // ADM-20: what New tenancy checks its dates and sums against
   return json({ rental, compliance: checks(env, rental, rows, today, legal.periods, running), repairs, tenancies,
-    events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal) });
+    events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal),
+    ...(law ? { law } : {}) });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.

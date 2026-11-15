@@ -11,7 +11,7 @@ import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
-import { ARREARS_STEPS, COMPLIANCE, CALENDAR, LEGAL } from "../../server/rentals.js";
+import { ARREARS_STEPS, COMPLIANCE, CALENDAR, LEGAL, lawApplies, regimeOf } from "../../server/rentals.js";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 
 // Spec §4 property page (#/rentals/<id>): the work first (its tenancy with the payment reference, balance, arrears and
@@ -138,9 +138,9 @@ export default function RentalDetail({ id, selection='', onChange }) {
           refresh={refresh} next={data.tenancies.some(x => x.id > t.id)} requestedDeadline={!linked.error&&linked.tenancy===t.id?linked.deadline:null} />)}
         {!running.some(t => !t.ended_on) && <section className="card" aria-labelledby="h-new-tenancy">
           <h2 id="h-new-tenancy">{running.length ? "Next tenancy" : "No tenancy"}</h2>
-          {adding ? <NewTenancy rental={r} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
+          {adding ? <NewTenancy rental={r} law={data.law} onClose={() => setAdding(false)} onDirty={setAddDirty} onRefused={reload}
             onDone={t => { setAdding(false); finish(t.id)(`Tenancy added for ${t.tenant_name}. Payment reference ${t.payment_ref}.`); }} />
-            : fromAgreed ? <FromLetAgreed rental={r} onClose={() => setFromAgreed(false)} onDirty={setAddDirty} onRefused={reload}
+            : fromAgreed ? <FromLetAgreed rental={r} law={data.law} onClose={() => setFromAgreed(false)} onDirty={setAddDirty} onRefused={reload}
               onDone={t => { setFromAgreed(false); finish(t.id)(`Tenancy added for ${t.tenant_name} from the Let agreed listing. Payment reference ${t.payment_ref}.`); }} />
             : archived ? <p className="muted">Restore the property to add a tenancy.</p>
             : <div className="inline"><p className="muted">{running.length ? `The tenant moves out ${fmtDay(running[0].ended_on)}. Enter the next tenancy once it's agreed.`
@@ -214,7 +214,7 @@ export default function RentalDetail({ id, selection='', onChange }) {
     <section className="block" aria-labelledby="h-history"><details className="closed">
       <summary><h2 id="h-history">History <span className="muted">({data.events.length})</span></h2></summary>
       {data.events.length ? <ol className="timeline card">{data.events.map(e => <li key={e.id}>
-        <p>{EVENT[e.type]?.(e.data ?? {}, data) ?? e.type}</p><p className="muted"><Received at={e.at} /> · {e.actor}</p></li>)}</ol>
+        <p>{EVENT[e.type]?.(e.data ?? {}, data) ?? e.type}{e.data?.law && "; 2025 rules checked and confirmed"}</p><p className="muted"><Received at={e.at} /> · {e.actor}</p></li>)}</ol>
         : <p className="muted">Nothing recorded yet.</p>}
       {data.events.length === 100 && <p className="muted">The latest 100 changes.</p>}
     </details></section>
@@ -240,6 +240,11 @@ export default function RentalDetail({ id, selection='', onChange }) {
 const DONE = { deposit: ["deposit_protected_on", "Deposit protection"], inventory_in: ["inventory_in_on", "Check-in report"],
   inventory_out: ["inventory_out_on", "Check-out report"] };
 const SHORT = 6;
+// ADM-20 (d.law, with its switch): the rules the tenancy falls under, from its agreement date and the date the 2025
+// rules start; without the date, the label as recorded. Then whether the accommodation is within the law.
+const SCOPE = { yes: "within the tenancy law", no: "outside the tenancy law", unknown: "scope not recorded" };
+const lawLine = (t, law) => <>{t.agreement_on ? `Agreed ${fmtDay(t.agreement_on)}: ${regimeOf(t.agreement_on, law)} rules`
+  : `Agreement date not recorded (label ${t.regime}, not verified)`}, {SCOPE[t.law_scope]} {t.agreement_on && <Estimated legal={law} />}</>;
 function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [all, setAll] = useState(false);
   const load = () => api(`/admin/tenancies/${id}`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
@@ -261,10 +266,12 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline }) {
     <div className="head">
       <div><h2 id={h}>{ended ? "Past tenancy" : "Tenancy"}: {t.tenant_name}</h2>
         <p className="meta">{[t.kind === "fixed" ? `Fixed term ${fmtDay(t.start_on)} to ${fmtDay(t.end_on)}` : `Periodic from ${fmtDay(t.start_on)}`,
-          `Recorded law label: ${t.regime} (not verified)`, t.tenant_email, t.tenant_phone].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p></div>
+          d.law ? lawLine(t, d.law) : `Recorded law label: ${t.regime} (not verified)`, t.tenant_email, t.tenant_phone].filter(Boolean).map((fact, i) => <span key={i}>{fact}</span>)}</p></div>
       <p className="ref"><span className="muted">Payment reference</span> <strong>{t.payment_ref}</strong></p>
     </div>
     {note}
+    {d.law && !ended && lawApplies(t, d.law) === "unknown" && <p className="warn" role="note">It is not recorded whether the 2025 rules
+      apply to this tenancy. Add its agreement date and scope under Edit details.</p>}
     {t.ended_on ? <p className="warn" role="note">{ended ? `Ended ${fmtDay(t.ended_on)}.` : `Moves out ${fmtDay(t.ended_on)}.`}</p>
       : t.kind === "fixed" && !t.notice_given_on && t.end_on <= plusDays(today, LEGAL.renewalDays) ? <p className="warn" role="note">
         {t.end_on < today ? `Fixed term ended ${fmtDay(t.end_on)}: renew it, or record notice.` : `Renewal due: the fixed term ends ${fmtDay(t.end_on)}.`}</p>

@@ -23,7 +23,10 @@ const ALL_PERIODS = [["depositDays", "Deposit protected within (days)"], ["repor
   ["rentNoticeMonths", "Notice before a rent change (months)"], ["rentIntervalMonths", "Between rent changes (months)"],
   // ADM-11: sent by the server only with its switch.
   ["copyDays", "Licence and EICR copy to the tenant within (days)"], ["changeDays", "Licence changes notified within (days)"],
-  ["checklistYears", "Electrical checklist lasts (years)"]];
+  ["checklistYears", "Electrical checklist lasts (years)"],
+  // ADM-20: sent by the server only with its switch. The third value: a date, not a whole number.
+  ["initialTermYears", "Longest initial fixed term, 2025 tenancy rules (years)"],
+  ["regime2025From", "2025 tenancy rules cover agreements made from", "date"]];
 const BODIES = [["jfsc", "JFSC registration (collecting rent into Hampton's account)"], ["gst", "GST registration"]];
 const ANSWERS = [["yes", "Registered"], ["no", "Not registered"], ["unknown", "Not confirmed"]];
 const saved = x => (x.revision ? `Version ${x.revision}, saved by ${x.updated_by} on ${fmtDate(x.updated_at)}.` : null);
@@ -71,7 +74,7 @@ function Periods({ terms, onSaved, onDirty, reload }) {
   const PERIODS = ALL_PERIODS.filter(([k]) => k in terms.values);
   const a = useSave("lt", { ...Object.fromEntries(PERIODS.map(([k]) => [k, String(terms.values[k])])), status: terms.status,
     validated_ref: terms.validated_ref ?? "", validated_on: terms.validated_on ?? "" },
-  f => api("/admin/legal-terms", { method: "PUT", body: { values: Object.fromEntries(PERIODS.map(([k]) => [k, Number(f[k])])),
+  f => api("/admin/legal-terms", { method: "PUT", body: { values: Object.fromEntries(PERIODS.map(([k, , date]) => [k, date ? f[k] : Number(f[k])])),
     status: f.status, validated_ref: f.validated_ref, validated_on: f.validated_on || null, revision: terms.revision } }), onSaved, onDirty);
   const validated = a.f.status === "validated";
   return <form className="card" onSubmit={a.submit} noValidate aria-labelledby="h-periods">
@@ -80,8 +83,9 @@ function Periods({ terms, onSaved, onDirty, reload }) {
       : <Estimated legal={terms} />}</p>
     <p className="muted">{saved(terms) ?? "Not saved yet: these are the values the app has used so far."} Saving a
       period does not validate it. While they are estimated, every date worked out with them says so.</p>
-    <div className="grid2">{PERIODS.map(([k, label]) => <label key={k}>{label}
-      <input type="number" inputMode="numeric" min={1} step={1} value={a.f[k]} onChange={a.set(k)} {...a.invalid(k)} />{a.error(k)}</label>)}</div>
+    <div className="grid2">{PERIODS.map(([k, label, date]) => <label key={k}>{label}
+      <input {...(date ? { type: "date" } : { type: "number", inputMode: "numeric", min: 1, step: 1 })} value={a.f[k]} onChange={a.set(k)}
+        {...a.invalid(k)} />{a.error(k)}</label>)}</div>
     <fieldset className="choices-set"><legend>Status</legend>
       <div className="choices">{[["estimated", "Estimated · not validated by a lawyer"], ["validated", "Validated by a Jersey lawyer"]].map(([v, t]) =>
         <label key={v} className="check"><input type="radio" name="lt-status" value={v} checked={a.f.status === v} onChange={a.set("status")} />{t}</label>)}</div>

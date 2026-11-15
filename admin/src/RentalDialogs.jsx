@@ -4,7 +4,8 @@ import { fmtDate, fmtDay } from "./format.js";
 import { Modal, money, pounds, useFieldErrors } from "./Sales.jsx";
 import { KIND, REPAIR_STATUS, URGENCY, pence } from "./Rentals.jsx";
 import { Estimated } from "./LegalTerms.jsx";
-import { LEGAL, ONE_OFF, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, rentAssistant } from "../../server/rentals.js";
+import { LEGAL, ONE_OFF, REPAIR_NEXT, earliestMoveOut, initialTermBeyondThreeYears, parseMoney, regimeOf, rentAssistant,
+  validateTenancyOperation } from "../../server/rentals.js";
 import { jerseyToday } from "../../server/viewings.js";
 
 // The property page's dialogs (#/rentals/<id>) and the New tenancy form. Rent, deposits, quotes and costs in whole
@@ -68,6 +69,26 @@ const Sheet = ({ title, a, button, danger, lead, back = "Cancel", onClose, child
   </form>
 </Modal>;
 const Who = ({ t }) => <p>{t.tenant_name} · {t.payment_ref}</p>;
+
+// ADM-20: what the 2025 rules say about the save being typed, worked out as the server will (validateTenancyOperation)
+// with law, the parameters in force (d.law; absent while its switch is off, and then nothing shows). A refused issue
+// reads as an error; the others need the box ticked, and the tick lapses when the issues change.
+const lawOf = (law, input) => (law ? validateTenancyOperation({ ...input, policy: law }) : { issues: [] });
+const lawKey = check => check.issues.filter(i => !i.blocks).map(i => i.code).join();
+// The request's share: the codes confirmed, when the box is ticked for the issues as they stand.
+const lawBody = (f, check) => (lawKey(check) && f.law_confirmed === lawKey(check) ? { law_confirmed: lawKey(check).split(",") } : {});
+// The form's term, agreement and opening sum over the stored tenancy (t), as the rules read them.
+const lawDraft = (f, t = {}) => ({ ...t, ...Object.fromEntries(["kind", "start_on", "end_on", "agreement_on", "law_scope"].filter(k => k in f)
+  .map(k => [k, f[k] || null])), ...("opening_balance" in f ? { opening_balance: parseMoney(f.opening_balance) } : {}) });
+function LawCheck({ a, check }) {
+  const key = lawKey(check);
+  return <>{check.issues.map(i => <p key={i.code} className={i.blocks ? "err" : "warn"} role="note">{i.message}</p>)}
+    {key && <div className="field"><label className="check"><input type="checkbox" checked={a.f.law_confirmed === key}
+      onChange={e => a.setF(x => ({ ...x, law_confirmed: e.target.checked ? key : "" }))} {...a.invalid("law_confirmed")} />
+      I have checked this against the agreement and confirm it</label>{a.error("law_confirmed")}</div>}</>;
+}
+const SCOPE_CHOICES = [["yes", "Yes"], ["no", "No"], ["unknown", "Not known"]];
+const SCOPE_HINT = "Whether the tenancy law covers this accommodation. Not known is neither yes nor no: check with a Jersey lawyer if unsure.";
 
 // R7, R26: rent counts towards the balance; a let-only tenancy takes deposits and other money only (P10).
 export function RecordPayment({ d: { tenancy: t }, onClose, onDone, onRefused }) {
@@ -135,20 +156,23 @@ export function ChangeRent({ d: { tenancy: t, assistant, current_rent, legal }, 
 }
 
 // R24: the same tenancy and payment reference, a new fixed term or periodic, optionally a new rent.
-export function Renew({ d: { tenancy: t }, onClose, onDone, onRefused }) {
+export function Renew({ d: { tenancy: t, law }, onClose, onDone, onRefused }) {
+  const check = f => lawOf(law, { operation: "renew", tenancy: { ...t, kind: f.kind, end_on: f.kind === "fixed" ? f.end_on || null : null }, before: t });
   const a = useForm("rn", { kind: "fixed", end_on: "", rent: "", effective_on: "" }, async f => {
     const rent = pounds(f.rent);
     await api(`/admin/tenancies/${t.id}/renew`, { method: "POST", body: { kind: f.kind, end_on: f.kind === "fixed" ? f.end_on || null : null,
-      rent, effective_on: rent ? f.effective_on || null : null } });
+      rent, effective_on: rent ? f.effective_on || null : null, ...lawBody(f, check(f)) } });
     return f.kind === "fixed" ? `Tenancy renewed until ${fmtDay(f.end_on)}.` : "Tenancy renewed as periodic.";
   }, onDone, onRefused);
   return <Sheet title="Renew tenancy" a={a} button="Renew" onClose={onClose}>
     <Who t={t} />
-    <p>It keeps its payment reference. The previously recorded law label stays on the record; it does not confirm which rules apply to this renewal.</p>
-    <p className="warn" role="note">Check the agreement date, accommodation and tenancy history with a Jersey lawyer. Under the amended law a continuing initial term may become periodic.</p>
+    {law ? <p>It keeps its payment reference, and its agreement date and scope stay as recorded.</p> : <>
+      <p>It keeps its payment reference. The previously recorded law label stays on the record; it does not confirm which rules apply to this renewal.</p>
+      <p className="warn" role="note">Check the agreement date, accommodation and tenancy history with a Jersey lawyer. Under the amended law a continuing initial term may become periodic.</p></>}
     {a.radios("kind", "Renew as", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}
-    {a.f.kind === "fixed" && <p className="warn" role="note">A further fixed term or extension may be restricted, depending on the tenancy and its history. Check with a Jersey lawyer.</p>}
+    {!law && a.f.kind === "fixed" && <p className="warn" role="note">A further fixed term or extension may be restricted, depending on the tenancy and its history. Check with a Jersey lawyer.</p>}
     {a.f.kind === "fixed" && a.field("end_on", "New end date", { type: "date" })}
+    <LawCheck a={a} check={check(a.f)} />
     <div className="grid2">{a.field("rent", "New rent (£ pcm, optional)", { inputMode: "numeric" })}
       {a.f.rent.trim() && a.field("effective_on", "New rent starts on", { type: "date", min: jerseyToday() })}</div>
     <p className="muted">Change rent can show an estimate based on the recorded law label; it does not verify the applicable rules.</p>
@@ -235,16 +259,18 @@ export function UnassignPayment({ d: { tenancy: t }, p, onClose, onDone, onRefus
 }
 
 // R23: a charge corrected by hand (e.g. a short first month); a rent change then leaves it alone (R28).
-export function CorrectCharge({ d: { tenancy: t }, c, onClose, onDone, onRefused }) {
+export function CorrectCharge({ d: { tenancy: t, law }, c, onClose, onDone, onRefused }) {
+  const check = f => lawOf(law, { operation: "charge", tenancy: t, charge: { before: c.amount, after: parseMoney(f.amount) ?? 0 } });
   const a = useForm("cc", { amount: asPounds(c.amount) }, async f => {
     const amount = toPence(f.amount, "amount") ?? (() => { throw fieldError("amount", "Enter an amount"); })();
-    await api(`/admin/charges/${c.id}`, { method: "PUT", body: { amount } });
+    await api(`/admin/charges/${c.id}`, { method: "PUT", body: { amount, ...lawBody(f, check(f)) } });
     return `Charge of ${fmtDay(c.due_on)} corrected to ${pence(amount)}.`;
   }, onDone, onRefused);
   return <Sheet title="Correct charge" a={a} button="Save charge" onClose={onClose}>
     <Who t={t} />
     <p>{c.kind === "opening" ? "Opening balance" : "Rent"} due {fmtDay(c.due_on)}, now {pence(c.amount)}.</p>
     {a.field("amount", "Amount (£)", { inputMode: "decimal", hint: "A corrected charge keeps its amount when the rent changes." })}
+    <LawCheck a={a} check={check(a.f)} />
   </Sheet>;
 }
 
@@ -260,6 +286,7 @@ const TENANCY_FIELDS = { tenant_name: ["Tenant's name", { maxLength: 120 }], ten
   inventory_in_on: ["Check-in report done on", DATE], inventory_out_on: ["Check-out report done on", DATE],
   collect_from: ["Collect rent from", { ...DATE, hint: `${NEXT_DAY} and enter what is owed today.` }],
   opening_balance: ["Owed today (£, optional)", { inputMode: "decimal", hint: "Rent already owed when Hampton starts collecting. One charge, due on that date." }],
+  agreement_on: ["Agreement date (optional)", { ...DATE, hint: "The date the tenancy agreement was made: it decides which rules apply. Blank: not recorded." }],
   notes: ["Notes (optional)", { textarea: true, maxLength: 2000 }] };
 const POUNDS = ["rent", "deposit"];
 // opening_balance is in pence; none (or 0) shows blank.
@@ -268,22 +295,28 @@ const toTenancyForm = (t, keys) => Object.fromEntries(keys.map(k => [k, t?.[k] =
 const toTenancyBody = (f, keys) => Object.fromEntries(keys.map(k => [k, POUNDS.includes(k) ? pounds(f[k])
   : k === "opening_balance" ? toPence(f[k], k) : f[k].trim() || null]));
 // over: [label, props] by key, in place of TENANCY_FIELDS.
-const fieldsOf = (a, keys, over = {}) => keys.map(k => <Fragment key={k}>{a.field(k, ...(over[k] ?? TENANCY_FIELDS[k]))}</Fragment>);
+const fieldsOf = (a, keys, over = {}) => keys.map(k => <Fragment key={k}>{k === "law_scope"
+  ? <div className="field">{a.radios(k, "Accommodation within the tenancy law", SCOPE_CHOICES)}<small className="muted">{SCOPE_HINT}</small></div>
+  : a.field(k, ...(over[k] ?? TENANCY_FIELDS[k]))}</Fragment>);
 
 // The tenancy's details (locked by updated_at), or one deadline's date (keys of one), or collect_from (P22). note: a line
 // under the tenant; over: [label, props] by key in place of the usual ones.
 export const DETAILS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "deposit", "deposit_received_on", "deposit_ref", "notes"];
-export function EditTenancy({ d: { tenancy: t }, keys, title, note, over, onClose, onDone, onRefused }) {
-  const shown = t.kind === "fixed" && keys === DETAILS ? [...keys.slice(0, 4), "end_on", ...keys.slice(4)] : keys;
+export function EditTenancy({ d: { tenancy: t, law }, keys, title, note, over, onClose, onDone, onRefused }) {
+  // ADM-20: the details also hold what decides the tenancy's rules.
+  const shown = keys !== DETAILS ? keys : [...keys.slice(0, 4), ...(t.kind === "fixed" ? ["end_on"] : []),
+    ...(law ? ["agreement_on", "law_scope"] : []), ...keys.slice(4)];
+  const check = f => lawOf(law, { operation: "update", tenancy: lawDraft(f, t), before: t });
   const a = useForm("tf", toTenancyForm(t, shown), async f => {
     const body = toTenancyBody(f, shown), saved = toTenancyBody(toTenancyForm(t, shown), shown);
     const changed = shown.filter(k => body[k] !== saved[k]);
     if (changed.length) await api(`/admin/tenancies/${t.id}`, { method: "PUT",
-      body: { ...Object.fromEntries(changed.map(k => [k, body[k]])), updated_at: t.updated_at } });
+      body: { ...Object.fromEntries(changed.map(k => [k, body[k]])), updated_at: t.updated_at, ...lawBody(f, check(f)) } });
     return changed.length ? `${title} saved.` : "Nothing changed.";
   }, onDone, onRefused);
   return <Sheet title={title} a={a} button="Save" onClose={onClose}>
     <Who t={t} />{note && <p>{note}</p>}<div className="grid2">{fieldsOf(a, shown, over)}</div>
+    <LawCheck a={a} check={check(a.f)} />
   </Sheet>;
 }
 
@@ -355,11 +388,16 @@ export function RepairDialog({ rental, repair: p, onClose, onDone, onRefused }) 
 const NEW_KEYS = ["tenant_name", "tenant_email", "tenant_phone", "occupants", "start_on", "end_on", "rent", "due_day", "deposit",
   "deposit_received_on", "deposit_protected_on", "deposit_ref", "inventory_in_on", "collect_from", "opening_balance", "notes"];
 // ADM-06: initial prefills the form, send(body) replaces the POST (it returns the tenancy), lead goes above the fields.
-export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused, initial = null, send, lead, button = "Add tenancy" }) {
-  const blank = { ...toTenancyForm(initial, NEW_KEYS), kind: "", regime: "" }, full = rental.service === "full";
+// ADM-20: law (the property page's answer, with its switch) adds the agreement date and the scope, and checks the term
+// and the opening sum against the 2025 rules.
+export function NewTenancy({ rental, law, onClose, onDone, onDirty, onRefused, initial = null, send, lead, button = "Add tenancy" }) {
+  const blank = { ...toTenancyForm(initial, NEW_KEYS), kind: "", regime: "", ...(law ? { agreement_on: "", law_scope: "unknown" } : {}) };
+  const full = rental.service === "full";
+  const check = f => lawOf(law, { operation: "create", tenancy: lawDraft(full ? f : { ...f, opening_balance: "" }) });
   const a = useForm("nt", blank, async f => {
     const keys = NEW_KEYS.filter(k => (f.kind === "fixed" || k !== "end_on") && (full || !["collect_from", "opening_balance"].includes(k)));
-    const body = { ...toTenancyBody(f, keys), kind: f.kind || null, regime: f.regime || null };
+    const body = { ...toTenancyBody(f, keys), kind: f.kind || null, regime: f.regime || null,
+      ...(law ? { agreement_on: f.agreement_on || null, law_scope: f.law_scope, ...lawBody(f, check(f)) } : {}) };
     if (send) return send(body);
     const d = await api(`/admin/rentals/${rental.id}/tenancies`, { method: "POST", body });
     return d.tenancy;
@@ -375,15 +413,23 @@ export function NewTenancy({ rental, onClose, onDone, onDirty, onRefused, initia
     {lead}
     {group("Tenant", ["tenant_name", "tenant_email", "tenant_phone", "occupants"])}
     {a.radios("kind", "Kind", [["fixed", "Fixed term"], ["periodic", "Periodic"]])}
-    <div className="field">{a.radios("regime", "Recorded law label", [["2011", "2011 law"], ["2025", "2025 law"]])}
-      <small className="muted">The amended law took effect on {fmtDay(LEGAL.regime2025From)}. Its application depends on the agreement, accommodation and tenancy history; this selection does not verify it. Check with a Jersey lawyer.</small></div>
-    {a.f.kind === "fixed" && <p className="muted">For a tenancy covered by the amended law, the initial fixed term may be up to three years; check the agreement and any transition with a Jersey lawyer.</p>}
-    {a.f.kind === "fixed" && initialTermBeyondThreeYears(a.f.start_on, a.f.end_on) && <p className="warn" role="note">The dates entered extend beyond three calendar years from the start. Check the applicable rule and dates with a Jersey lawyer.</p>}
+    {law ? <fieldset className="choices-set"><legend>Rules that apply</legend>
+      <div className="grid2">{fieldsOf(a, ["agreement_on", "law_scope"])}</div>
+      {a.f.agreement_on ? <p className="muted">Recorded under the {regimeOf(a.f.agreement_on, law)} rules: the 2025 rules cover agreements made
+        from {fmtDay(law.regime2025From)}. <Estimated legal={law} /></p>
+        : <div className="field">{a.radios("regime", "Recorded law label", [["2011", "2011 law"], ["2025", "2025 law"]])}
+          <small className="muted">Without the agreement date the label is kept as an unverified note and the tenancy is marked for review.</small></div>}
+    </fieldset> : <>
+      <div className="field">{a.radios("regime", "Recorded law label", [["2011", "2011 law"], ["2025", "2025 law"]])}
+        <small className="muted">The amended law took effect on {fmtDay(LEGAL.regime2025From)}. Its application depends on the agreement, accommodation and tenancy history; this selection does not verify it. Check with a Jersey lawyer.</small></div>
+      {a.f.kind === "fixed" && <p className="muted">For a tenancy covered by the amended law, the initial fixed term may be up to three years; check the agreement and any transition with a Jersey lawyer.</p>}
+      {a.f.kind === "fixed" && initialTermBeyondThreeYears(a.f.start_on, a.f.end_on) && <p className="warn" role="note">The dates entered extend beyond three calendar years from the start. Check the applicable rule and dates with a Jersey lawyer.</p>}</>}
     {group("Terms", ["start_on", ...(a.f.kind === "fixed" ? ["end_on"] : []), "rent", "due_day"])}
     {group("Deposit and check-in", ["deposit", "deposit_received_on", "deposit_protected_on", "deposit_ref", "inventory_in_on"])}
     <p className="muted">For agreements covered by the amended law, tenants must not be required to pay premium or key money. Check proposed charges with a Jersey lawyer.</p>
     {full && group("Rent collection", ["collect_from", "opening_balance"])}
     {a.field("notes", ...TENANCY_FIELDS.notes)}
+    <LawCheck a={a} check={check(a.f)} />
     {a.err && <p role="alert" className="err">{a.err}</p>}
     <div className="inline"><button className="btn sm">{a.busy ? "Adding…" : button}</button>
       <button type="button" className="btn ghost sm" onClick={onClose}>Cancel</button></div>

@@ -24,7 +24,7 @@ const REF_HINT = "A folder or file name you checked. The app does not receive, s
 // A control's aria-describedby: its hint and, when there is one, its error.
 export const described = (fe, k, hint) => [hint, fe.invalid(k)["aria-describedby"]].filter(Boolean).join(" ") || undefined;
 
-export function FromLetAgreed({ rental, onClose, onDone, onDirty, onRefused }) {
+export function FromLetAgreed({ rental, law, onClose, onDone, onDirty, onRefused }) {
   const [lists, setLists] = useState(null), [loadErr, setLoadErr] = useState(null), [preview, setPreview] = useState(null);
   const [pick, setPick] = useState({ listing_id: "", applicant_id: "", ref: "" }), [busy, setBusy] = useState(false), [err, setErr] = useState(null);
   const op = useRef(null), form = useRef(null), fe = useFieldErrors("lo");
@@ -69,7 +69,7 @@ export function FromLetAgreed({ rental, onClose, onDone, onDirty, onRefused }) {
       <div className="inline"><button type="button" className="btn ghost sm" onClick={() => setPreview(null)}>Change the selection</button></div>
     </div>;
     if (!preview.eligible) return <div className="view-form">{lead}<p role="alert" className="err">{preview.reasons.join(". ")}.</p></div>;
-    return <NewTenancy rental={rental} initial={v.draft} lead={lead} button="Confirm tenancy" onClose={onClose} onDirty={onDirty}
+    return <NewTenancy rental={rental} law={law} initial={v.draft} lead={lead} button="Confirm tenancy" onClose={onClose} onDirty={onDirty}
       onRefused={onRefused} onDone={onDone} send={async tenancy_draft => (await api("/admin/tenancy-origins/commit", { method: "POST",
         body: { rental_id: rental.id, source_versions: preview.source_versions, tenancy_draft, operation_id: op.current,
           signed_contract_ref: v.signed_contract_ref } })).tenancy} />;

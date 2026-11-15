@@ -7,7 +7,7 @@ import { LEGAL, ARREARS_STEPS, COMPLIANCE, paymentRef, REF_RE, addMonths, nextSt
 test("constants and the payment reference", () => {
   assert.deepEqual(LEGAL, { depositDays: 30, reportDays: 7, licenceYears: 2, eicrYears: 5, gasYears: 1, alarmsYears: 1,
     warnDays: [60, 30, 7], renewalDays: 90, rentNoticeMonths: 2, rentIntervalMonths: 12, regime2025From: "2026-04-15",
-    tenantNoticeMonths: 1, landlordNoticeMonths: 12 });
+    initialTermYears: 3, tenantNoticeMonths: 1, landlordNoticeMonths: 12 });
   assert.deepEqual(ARREARS_STEPS, [[1, "reminder", "Friendly reminder"], [5, "firm", "Firm reminder"],
     [7, "call", "Call the tenant"], [10, "landlord", "Tell the landlord"], [14, "letter", "Formal letter"]]);
   assert.deepEqual(COMPLIANCE, [["licence", "Rental dwelling licence", 2], ["eicr", "Electrical safety (EICR)", 5],

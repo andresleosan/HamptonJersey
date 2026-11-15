@@ -18,7 +18,11 @@ const PERIODS = [["depositDays", 365], ["reportDays", 365], ["licenceYears", 20]
   ["rentIntervalMonths", 60]];
 // ADM-11: the calendar's own periods (§7.3), versioned with the rest only while its switch is on.
 const CALENDAR_PERIODS = [["copyDays", 365], ["changeDays", 365], ["checklistYears", 20]];
-const periodsOf = env => (calendarReady(env) ? [...PERIODS, ...CALENDAR_PERIODS] : PERIODS);
+// ADM-20: the 2025 tenancy rules' own parameters (the longest initial fixed term and the date those rules start),
+// versioned with the rest only while its switch is on. Only the website reads them; the clock works out no tenancy rule.
+export const tenancyLawReady = env => env?.ADM20_TENANCY_LAW_READY === "1";
+const LAW_PERIODS = [["initialTermYears", 20], ["regime2025From", "date"]];
+const periodsOf = env => [...PERIODS, ...(calendarReady(env) ? CALENDAR_PERIODS : []), ...(tenancyLawReady(env) ? LAW_PERIODS : [])];
 const codeOf = env => (calendarReady(env) ? { ...LEGAL, ...CALENDAR_LEGAL } : LEGAL);
 const ANSWERS = ["yes", "no", "unknown"];
 const defaults = (periods, code) => ({
@@ -43,8 +47,8 @@ const checked = (b, errors, value) => {
 export function validTerms(body, periods = PERIODS) {
   const b = obj(body), src = obj(b.values), errors = {}, values = {};
   for (const [k, max] of periods) {
-    if (Number.isSafeInteger(src[k]) && src[k] >= 1 && src[k] <= max) values[k] = src[k];
-    else errors[k] = `Enter a whole number from 1 to ${max}`;
+    if (max === "date" ? realDate(src[k]) : Number.isSafeInteger(src[k]) && src[k] >= 1 && src[k] <= max) values[k] = src[k];
+    else errors[k] = max === "date" ? "Enter a date" : `Enter a whole number from 1 to ${max}`;
   }
   if (!["estimated", "validated"].includes(b.status)) errors.status = "Choose estimated or validated";
   // An estimate carries no reference: only a validation says who and when.
@@ -97,6 +101,17 @@ export async function readLegal(env) {
 // What a screen needs to label its dates and work them out; nothing while the switch is off.
 export const legalLabel = ({ terms, registration }) => (terms ? { legal: { status: terms.status, periods: terms.values,
   jfsc: registration.jfsc, gst: registration.gst } } : {});
+
+// ADM-20: the 2025 rules' parameters in force and whether a lawyer validated them, for validateTenancyOperation
+// (server/rentals.js) and the panel; null while its switch is off or migration 0073 (the tenancy's agreement date and
+// scope) is pending, and then every tenancy save works as it did before. legal: readLegal's answer, when already read.
+export async function tenancyLaw(env, legal) {
+  if (!tenancyLawReady(env)) return null;
+  try { await env.DB.prepare("SELECT agreement_on, law_scope FROM tenancies LIMIT 0").all(); }
+  catch (e) { if (!/no such column/i.test(String(e?.message))) throw e; return null; }
+  const { periods, terms } = legal ?? await readLegal(env);
+  return { status: terms?.status ?? "estimated", regime2025From: periods.regime2025From, initialTermYears: periods.initialTermYears };
+}
 
 // A save made meanwhile by someone else is refused, never overwritten. Each save is a new version (the triggers of 0063).
 async function save(env, admin, key, request) {
