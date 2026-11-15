@@ -2,7 +2,7 @@ import { json, fail, sha256 } from "../http.js";
 import { activeSql } from "../applicants.js";
 import { DEMAND_AVAILABLE, demandMatchIn, DEMAND_MATCHED, INSIGHTS_DEMAND_SQL } from "../demand-query.js";
 import { jerseyToday, plusDays, realDate, weekday } from "../viewings.js";
-import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, earliest, healthCursor, makeHealthCursor } from "../insights.js";
+import { jerseyDayStart, groupDemand, topUnmet, funnel, responseTime, workingResponseTime, earliest, healthCursor, makeHealthCursor } from "../insights.js";
 import { getWebVolumes, webVolumesFromRow, WEB_VOLUME_COLUMNS } from "../measurement.js";
 import { getSearchMilestones } from "../measurement-funnel.js";
 import { PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
@@ -48,6 +48,12 @@ const WEB_VIEWINGS = `SELECT v.created_at, (SELECT MIN(e.at) FROM events e WHERE
     AND e.type IN ('viewing.confirmed', 'viewing.cancelled', 'viewing.rescheduled')) AS replied_at
   FROM viewing_requests v WHERE v.created_at >= ?
     AND EXISTS (SELECT 1 FROM events e WHERE ${OF_VIEWING} AND e.type = 'viewing.requested' AND e.actor = 'public')`;
+// ANA-06 (ANA06_AGENCY_TIMES_READY; needs AGE-06's migration 0082, read by 0092's index): enquiries sent in the period
+// (AGE-03 by hand, AGE-05 once the provider took the email) and their first useful answer (AGE-06: only one makes it
+// answered, and none can be recorded after it). Cancelled ones are not counted.
+const ENQUIRIES = `SELECT sent_at, CASE WHEN status = 'answered' THEN response_at END AS answered_at FROM consultations
+  WHERE sent_at >= ? AND status IN ('sent', 'awaiting_response', 'answered')`;
+const agencyTimes = env => env.ANA06_AGENCY_TIMES_READY === "1";
 
 // I5: 7, 30 or 90 days (30 by default) that end today in Jersey and include it. Shared with the owner report (O2).
 export function period(request) {
@@ -67,15 +73,18 @@ async function milestones({request, env}) {
 // I12: one batch, counts and medians only.
 async function insights({ request, env }) {
   const { days, from, to } = period(request), since = jerseyDayStart(from);
-  const [[totals], active, available, viewed, cohort, webViewings, qr] = await env.DB.batch([
+  const qrOn = posterQrEnabled(env);
+  const [[totals], active, available, viewed, cohort, webViewings, ...more] = await env.DB.batch([
     env.DB.prepare(TOTALS).bind(from, to, since, from, to),
     env.DB.prepare(DEMAND),
     env.DB.prepare(LISTINGS),
     env.DB.prepare(VIEWED).bind(since, from, to),
     env.DB.prepare(COHORT).bind(since),
     env.DB.prepare(WEB_VIEWINGS).bind(since),
-    ...(posterQrEnabled(env) ? [qrOpensTotal(env, from, to)] : []), // ANA-10: needs migration 0091
+    ...(qrOn ? [qrOpensTotal(env, from, to)] : []), // ANA-10: needs migration 0091
+    ...(agencyTimes(env) ? [env.DB.prepare(ENQUIRIES).bind(since)] : []),
   ]).then(r => r.map(x => x.results));
+  const qr = qrOn ? more.shift() : undefined, [enquiries] = more;
   const counts = funnel(cohort);
   return json({
     period: { days, from, to },
@@ -93,6 +102,7 @@ async function insights({ request, env }) {
       // R7: an unreviewed applicant waits only while there is something to review.
       first_review: responseTime(cohort.filter(a => a.first_reviewed_at || a.to_review)
         .map(a => [a.created_at, a.first_reviewed_at])),
+      ...(enquiries ? { agency_reply: workingResponseTime(enquiries.map(c => [c.sent_at, c.answered_at])) } : {}),
     },
   });
 }

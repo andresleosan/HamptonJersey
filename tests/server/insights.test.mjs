@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, seedListing, call, adminCookie } from "./helpers.mjs";
+import { makeEnv, seedListing, call, adminCookie, captured, plan } from "./helpers.mjs";
+import { workingSeconds } from "../../server/working-time.js";
 import { median, reachedStages, groupDemand, topUnmet, jerseyDayStart } from "../../server/insights.js";
 
 const ADMIN = "admin@example.test";
@@ -281,4 +282,71 @@ test("insights: an empty database answers with empty blocks", async () => {
   assert.deepEqual(d.funnel, { registered: 0, viewing: 0, offer: 0, agreed: 0, completed: 0, lost: 0 });
   for (const k of ["attend", "viewing_reply", "first_review"])
     assert.deepEqual(d.times[k], { median_hours: null, cases: 0, waiting: 0 });
+});
+
+// ANA-06: working time and the agency response time.
+test("workingSeconds: Monday to Friday 09:00-17:00 in Jersey, without its bank holidays", () => {
+  const h = (a, b) => { const s = workingSeconds(a, b); return typeof s === "number" ? s / 3600 : s; };
+  assert.equal(h("2026-11-13T16:00:00.000Z", "2026-11-16T10:00:00.000Z"), 2); // Friday 16:00 to Monday 10:00 (GMT)
+  assert.equal(h("2026-12-24T16:00:00.000Z", "2026-12-29T10:00:00.000Z"), 2); // Christmas Day and Boxing Day's Monday off
+  assert.equal(h("2026-05-08T15:00:00.000Z", "2026-05-11T09:00:00.000Z"), 2); // Liberation Day on Saturday: no substitute
+  assert.equal(h("2026-07-01T07:00:00.000Z", "2026-07-01T17:00:00.000Z"), 8); // 08:00 to 18:00 BST
+  assert.equal(h("2026-03-27T16:00:00.000Z", "2026-03-30T08:30:00.000Z"), 1.5); // GMT Friday to BST Monday
+  assert.equal(h("2026-10-23T15:00:00.000Z", "2026-10-26T10:00:00.000Z"), 2); // BST Friday to GMT Monday
+  assert.equal(h("2026-11-14T10:00:00.000Z", "2026-11-14T12:00:00.000Z"), 0); // Saturday
+  assert.equal(h("2026-11-16T10:00:00.000Z", "2026-11-16T10:00:00.000Z"), 0);
+  assert.equal(h("2027-12-31T16:00:00.000Z", "2028-01-04T10:00:00.000Z"), "calendar"); // 2028 not published yet
+  for (const [a, b] of [["2026-11-16T10:00:00.000Z", "2026-11-16T09:59:00.000Z"], ["not a date", "2026-11-16T10:00:00.000Z"]])
+    assert.equal(workingSeconds(a, b), null);
+  // Against Intl's Jersey midnight: every working day of 2026 has eight hours from its 09:00 to its 17:00.
+  const off = ["2026-01-01", "2026-04-03", "2026-04-06", "2026-05-04", "2026-05-25", "2026-08-31", "2026-12-25", "2026-12-28"];
+  for (let d = Date.parse("2026-01-01"); d < Date.parse("2027-01-01"); d += 864e5) {
+    const day = new Date(d).toISOString().slice(0, 10), start = Date.parse(jerseyDayStart(day));
+    const s = workingSeconds(new Date(start + 9 * 36e5).toISOString(), new Date(start + 17 * 36e5).toISOString());
+    assert.equal(s, new Date(d).getUTCDay() % 6 && !off.includes(day) ? 8 * 3600 : 0, day);
+  }
+});
+
+function enquiry(env, { status, sent_at, response_at = null, outcome = null, scope }) {
+  return run(env, `INSERT INTO consultations (kind, listing_id, operation, scope_key, status, advertiser_id, body, asks_availability,
+    prepared_by, prepared_at, operation_id, sent_at, response_outcome, response_at) VALUES ('general', 'HE-R101', 'rent', ?, ?, 1,
+    'Is it free?', 1, ?, '2026-09-01T10:00:00.000Z', ?, ?, ?, ?)`, scope, status, ADMIN, `op-${scope}`, sent_at, outcome, response_at);
+}
+function agencyWorld(on) {
+  const env = { ...makeEnv(), ...(on ? { ANA06_AGENCY_TIMES_READY: "1" } : {}) };
+  seedListing(env, { id: "HE-R101", operation: "rent", availability: "to_let" });
+  run(env, `INSERT INTO advertisers (name, kind, details, activity_on, created_at, updated_at, updated_by)
+    VALUES ('Private Seller Name', 'individual', '{}', '2026-09-01', ?, ?, 'x')`, OLD, OLD);
+  // Friday 16:00 BST to Monday 10:00 BST: 2 working hours. Tuesday 09:00 to 13:00 BST: 4.
+  enquiry(env, { scope: "a", status: "answered", sent_at: "2026-10-16T15:00:00.000Z", response_at: "2026-10-19T09:00:00.000Z",
+    outcome: "available" });
+  enquiry(env, { scope: "b", status: "answered", sent_at: "2026-10-20T08:00:00.000Z", response_at: "2026-10-20T12:00:00.000Z",
+    outcome: "unavailable" });
+  // Waiting: an answer that said nothing useful, and none yet.
+  enquiry(env, { scope: "c", status: "awaiting_response", sent_at: "2026-10-21T09:00:00.000Z", response_at: "2026-10-21T10:00:00.000Z",
+    outcome: "no_answer" });
+  enquiry(env, { scope: "d", status: "sent", sent_at: "2026-10-22T09:00:00.000Z" });
+  // Not counted: cancelled, never sent; before the 30 days (6 working hours, in the 90); an answer recorded before the send.
+  enquiry(env, { scope: "e", status: "cancelled", sent_at: "2026-10-22T09:00:00.000Z" });
+  enquiry(env, { scope: "f", status: "manual_pending", sent_at: null });
+  enquiry(env, { scope: "g", status: "answered", sent_at: "2026-09-21T08:00:00.000Z", response_at: "2026-09-21T14:00:00.000Z",
+    outcome: "available" });
+  enquiry(env, { scope: "h", status: "answered", sent_at: "2026-10-23T09:00:30.000Z", response_at: "2026-10-23T09:00:00.000Z",
+    outcome: "available" });
+  return env;
+}
+
+test("insights: the agency response time, in working hours, only with ANA06_AGENCY_TIMES_READY", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: Date.parse(NOW) });
+  assert.equal((await get(agencyWorld(false))).data.times.agency_reply, undefined);
+  const env = agencyWorld(true), seen = captured(env, /FROM consultations/);
+  const r = await get(env);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.deepEqual(r.data.times.agency_reply, { median_hours: 3, cases: 2, waiting: 2, invalid: 1, calendar_pending: 0 });
+  assert.ok(!r.text.includes("Private Seller Name") && !r.text.includes("HE-R101"));
+  assert.match(plan(env, seen[0]), /USING INDEX consultations_sent/);
+  env.ANA10_QR_OPENS_READY = "1"; // with ANA-10's count in the same batch, each answer keeps its own
+  const quarter = (await get(env, "?days=90")).data;
+  assert.deepEqual(quarter.times.agency_reply, { median_hours: 4, cases: 3, waiting: 2, invalid: 1, calendar_pending: 0 });
+  assert.equal(quarter.totals.qr_opens, 0);
 });

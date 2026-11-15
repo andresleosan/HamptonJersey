@@ -39,6 +39,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/vis04-after-viewing.e2e.cjs" ? { VIS04_OUTCOME_READY: "1", VIS08_CYCLE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana10-poster-qr.e2e.cjs" ? { ANA10_QR_OPENS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/ana06-agency-times.e2e.cjs" ? { ANA06_AGENCY_TIMES_READY: "1" } : {}),
       PUB21_DRIVE_READY: "1", // Properties Queue's Drive imports: tested switched on, off in production (master plan)
       ...(process.env.E2E_SCRIPT === "tests/adm-06-tenancy-origin.e2e.cjs" ? { ADM06_TENANCY_ORIGIN_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-16-tenancy-exit.e2e.cjs" ? { ADM16_TENANCY_EXIT_READY: "1" } : {}),

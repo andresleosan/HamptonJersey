@@ -194,7 +194,27 @@ function Report({ d }) {
           <dd className="muted">{what}</dd></div>;
       })}</dl>
     </section>
+    {times.agency_reply && <AgencyReply x={times.agency_reply} these={these} />}
   </>;
+}
+
+// ANA-06: one median for every advertiser, in working hours; never which agency.
+function AgencyReply({ x, these }) {
+  return <section className="block" aria-labelledby="h-agency-times">
+    <h2 id="h-agency-times">Agency response times</h2>
+    <p className="muted">Median working time (Monday to Friday, 09:00 to 17:00 Jersey time, without Jersey bank holidays) of the
+      enquiries sent in the period. Waiting: sent in the period with no useful answer yet; they are not in the median.</p>
+    <dl className="figures times"><div className="card"><dt>Enquiry sent to the advertiser's first useful answer</dt>
+      <dd className="num">{x.median_hours == null ? "—" : plural(x.median_hours, "working hour")}</dd>
+      <dd className="muted">{x.cases ? `Median of ${plural(x.cases, "case")}` : `No cases in ${these}`}
+        {x.waiting > 0 && ` · ${n(x.waiting)} waiting`}</dd>
+      <dd className="muted">Available, not available, or a clarification answered, as recorded on the property.</dd>
+      {x.calendar_pending > 0 && <dd className="muted">{plural(x.calendar_pending, "case")} not counted: the bank holiday
+        calendar for that year is not verified yet.</dd>}
+      {x.invalid > 0 && <dd className="muted">{plural(x.invalid, "case")} not counted: the answer was recorded as before the
+        enquiry was sent.</dd>}
+    </div></dl>
+  </section>;
 }
 
 // A funnel row: the bar's length is its share of Registered, set through the CSSOM rather than a style attribute

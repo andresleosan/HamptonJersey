@@ -1,6 +1,7 @@
 // The Insights figures (spec F7-A §2, I6–I11) from rows already read: pure, no database.
 import { OPTIONS } from "./applicants.js";
 import { jerseyNow } from "./viewings.js";
+import { workingSeconds } from "./working-time.js";
 
 const PARISHES = OPTIONS.parishes.map(([p]) => p);
 const ANYWHERE = "Anywhere", EXCLUSIONS = "Anywhere, with exclusions", TO_CONFIRM = "Area to confirm", UNKNOWN = "Parish unknown";
@@ -94,6 +95,21 @@ export function responseTime(pairs) {
   const hours = pairs.filter(([, end]) => end).map(([start, end]) => (Date.parse(end) - Date.parse(start)) / 36e5);
   const m = median(hours);
   return { median_hours: m == null ? null : Math.round(m * 10) / 10, cases: hours.length, waiting: pairs.length - hours.length };
+}
+
+// ANA-06: [sent, first useful answer] ISO pairs; the median in working hours (server/working-time.js). Waiting: no useful
+// answer yet. Answers recorded before the send, or over a year without a verified bank-holiday calendar, are left out.
+export function workingResponseTime(pairs) {
+  const out = { median_hours: null, cases: 0, waiting: 0, invalid: 0, calendar_pending: 0 }, hours = [];
+  for (const [start, end] of pairs) {
+    const s = end ? workingSeconds(start, end) : undefined;
+    if (s === undefined) out.waiting++;
+    else if (s === null) out.invalid++;
+    else if (s === "calendar") out.calendar_pending++;
+    else hours.push(s / 3600);
+  }
+  const m = median(hours);
+  return { ...out, median_hours: m == null ? null : Math.round(m * 10) / 10, cases: hours.length };
 }
 
 // The earlier of two ISO times, either may be NULL.
