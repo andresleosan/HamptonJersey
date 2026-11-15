@@ -69,7 +69,9 @@ export async function prepareSummary(env, ts) {
 
 // This SQL is evaluated afresh on the claim and immediately before the provider call. No network transaction.
 // An approved external row can be introduced only by a future authenticated workflow, never a public send route.
-const AUTHORIZED = `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
+// AGE-05: an enquiry email is claimed only while its own check (SQL from outbound, given by the clock) holds; without
+// one, never. Other templates are unaffected.
+const AUTHORIZED = (enquiry = "0") => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
   AND json_extract(es.value,'$.enabled') = 1
   AND (outbound.template <> 'team_summary' OR (json_extract(es.value,'$.summary') = 1
     AND json_extract(es.value,'$.revision') = outbound.config_revision
@@ -77,7 +79,8 @@ const AUTHORIZED = `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
   AND NOT EXISTS (SELECT 1 FROM app_settings WHERE key = 'outbound' AND json_extract(value,'$.paused') = 1)
   AND NOT EXISTS (SELECT 1 FROM email_suppressions WHERE address_hash = outbound.recipient_hash)
   AND outbound.approved_at IS NOT NULL AND outbound.approved_by IS NOT NULL
-  AND outbound.recipient IS NOT NULL AND outbound.text IS NOT NULL AND outbound.subject IS NOT NULL`;
+  AND outbound.recipient IS NOT NULL AND outbound.text IS NOT NULL AND outbound.subject IS NOT NULL
+  AND (outbound.template <> 'enquiry' OR (${enquiry}))`;
 const RETRY = new Set(["E_RATE_LIMIT_EXCEEDED", "E_DAILY_LIMIT_EXCEEDED"]);
 const REJECTED = new Set(["E_VALIDATION_ERROR", "E_FIELD_MISSING", "E_TOO_MANY_RECIPIENTS", "E_TOO_MANY_ATTACHMENTS",
   "E_SENDER_NOT_VERIFIED", "E_RECIPIENT_NOT_ALLOWED", "E_RECIPIENT_SUPPRESSED", "E_ACCOUNT_SUSPENDED",
@@ -85,7 +88,7 @@ const REJECTED = new Set(["E_VALIDATION_ERROR", "E_FIELD_MISSING", "E_TOO_MANY_R
   "E_HEADER_USE_API_FIELD", "E_HEADER_VALUE_INVALID", "E_HEADER_VALUE_TOO_LONG", "E_HEADER_NAME_INVALID",
   "E_HEADERS_TOO_LARGE", "E_HEADERS_TOO_MANY"]);
 
-export async function dispatchEmail(env, clock = now) {
+export async function dispatchEmail(env, clock = now, enquiry) {
   const ts = clock();
   const cutoff = new Date(Date.parse(ts) - 5 * 60e3).toISOString(), day = emailDay(ts);
   await env.DB.prepare(`UPDATE outbound SET status='unknown', error_code='CLAIM_EXPIRED', claim_token=NULL, updated_at=?
@@ -95,7 +98,7 @@ export async function dispatchEmail(env, clock = now) {
   if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
   // ponytail: 20 candidates per tick is the current team maximum; move to a larger bounded batch if volume needs it.
   const { results } = await env.DB.prepare(`SELECT id FROM outbound WHERE status='queued' AND attempts < 3
-    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${AUTHORIZED} ORDER BY id LIMIT 20`).bind(ts).all();
+    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${AUTHORIZED(enquiry)} ORDER BY id LIMIT 20`).bind(ts).all();
   for (const { id } of results) {
     // Network calls can cross midnight. Read the current day for every claim, not once for the entire batch.
     const ts=clock(),day=emailDay(ts);
@@ -106,13 +109,13 @@ export async function dispatchEmail(env, clock = now) {
       env.DB.prepare(`UPDATE outbound SET status='sending', claim_token=?, claimed_at=?, attempts=attempts+1, updated_at=?
         WHERE id=? AND status='queued' AND attempts < 3 AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
         AND (template<>'team_summary' OR entity_id=?)
-        AND ${AUTHORIZED} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
+        AND ${AUTHORIZED(enquiry)} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
         .bind(token, ts, ts, id, ts, day,day),
       env.DB.prepare(`INSERT INTO email_attempts(token,outbound_id,day,at)
         SELECT ?,id,?,? FROM outbound WHERE id=? AND claim_token=? AND status='sending'`).bind(token, day, ts, id, token),
     ]);
     const row = await env.DB.prepare(`SELECT * FROM outbound WHERE id=? AND claim_token=? AND status='sending'
-      AND ${AUTHORIZED}`).bind(id, token).first();
+      AND ${AUTHORIZED(enquiry)}`).bind(id, token).first();
     if (!row) {
       // A setting changed after the claim. The reservation stays used; a pause leaves the same snapshot queued.
       await env.DB.prepare(`UPDATE outbound SET status=CASE WHEN attempts < 3 THEN 'queued' ELSE 'failed' END,
@@ -153,12 +156,12 @@ export async function dispatchEmail(env, clock = now) {
 
 export { cleanEmail } from "./email-retention.js";
 
-export async function emailPass(env, ts = now(), clock = now) {
+export async function emailPass(env, ts = now(), clock = now, enquiry) {
   try {
     await env.DB.prepare(`INSERT INTO app_settings VALUES ('email_worker',?,?, 'system') ON CONFLICT(key)
       DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`).bind(JSON.stringify({at:ts,
         ready:serviceReady(env) && typeof env.EMAIL?.send === "function"}),ts).run();
-    await prepareSummary(env, ts); await dispatchEmail(env, clock);
+    await prepareSummary(env, ts); await dispatchEmail(env, clock, enquiry);
   }
   catch { console.error("Email pass failed"); } // logs never include provider payloads, addresses or bodies
 }

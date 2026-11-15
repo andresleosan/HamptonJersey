@@ -12,7 +12,7 @@
 // stands leaves without a write, and the enquiry stays open for the others.
 // Off (AGE03_ENQUIRIES_READY) or before the migration, nothing is read and every card says Not sent.
 import { json, fail, readJson, now, sha256 } from "./http.js";
-import { instant, unavailabilityReady } from "./property-facts.js";
+import { instant, unavailabilityReady, notConfirmedUnavailable } from "./property-facts.js";
 import { serviceReady, readEmailSettings, emailAddress } from "./email.js";
 import { confirmationReader } from "./availability-confirmations.js";
 import { taskStatements } from "./notification-tasks.js";
@@ -24,6 +24,8 @@ export const sendReady = env => env?.AGE05_SEND_READY === "1" && enquiriesReady(
 // On only with migration 0080 as well; before it every answer and every write is as AGE-03 left them.
 const sending = async env => sendReady(env) && env.DB.prepare("SELECT contact_key FROM consultations LIMIT 0").all().then(() => true, () => false);
 const missing = e => /no such table/.test(e?.message ?? "");
+// The clock checks an enquiry email with EST-15's facts, as the panel that queued it had them (sendReady).
+const EST15_ON = { EST15_UNAVAILABILITY_READY: "1", EST16_AVAILABILITY_READY: "1" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VIA = ["phone", "email", "in_person", "message"];
 const OPEN = "status NOT IN ('answered','cancelled')";
@@ -102,8 +104,9 @@ export function enquiries(gates) {
   const confirmed = async (env, listing_id, operation) => (await confirmationReader(env, [listing_id]))({ id: listing_id, operation });
   // The advertisers of a property in the directory (AGE-04) whose personal data is still there (AGE-14).
   // OF_PROPERTY: advertisers a advertises that property, itself or through one of its sources. Bind: the property, twice.
-  const OF_PROPERTY = `(EXISTS (SELECT 1 FROM json_each(a.details, '$.listing_ids') j WHERE j.value = ?) OR EXISTS
-    (SELECT 1 FROM json_each(a.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ?))`;
+  const ofProperty = (a, listing) => `(EXISTS (SELECT 1 FROM json_each(${a}.details, '$.listing_ids') j WHERE j.value = ${listing}) OR EXISTS
+    (SELECT 1 FROM json_each(${a}.details, '$.source_ids') j JOIN research_sources s ON s.source_id = j.value WHERE s.property_id = ${listing}))`;
+  const OF_PROPERTY = ofProperty("a", "?");
   // keys (AGE-05): each contact that can be reached carries the reference it is chosen by.
   const recipient = async ({ id, name, kind, details }, keys) => { const { contacts, channels } = JSON.parse(details);
     return { id, name, kind, contacts: keys ? await keyed(contacts) : contacts, channels }; };
@@ -117,6 +120,29 @@ export function enquiries(gates) {
   };
   // Matches of this enquiry (the consultations row an UPDATE is on) that still count, or the one named.
   const counts = match => `EXISTS (SELECT 1 FROM ${LINKS} WHERE cm.consultation_id = consultations.id AND ${match} AND ${live})`;
+  // AGE-05: whether the email of an enquiry may be claimed now, in SQL from its outbound row. server/email.js asks it in
+  // the same statement that claims the email and again just before the provider call, so nothing can change between
+  // this check and the claim. It asks what blocked asks: queued with the approval of this very version by a member of
+  // the team, a match that counts, the household stated, no confirmed unavailability, the recipient still there and
+  // still advertising the property, and the address still one of its contacts'. What SQL cannot work out (whether the
+  // text is out of date, whether the contact's reference still answers) holds as long as nothing it is made from changed
+  // after the email was queued, when it was checked: else the email is not claimed and settle gives it back.
+  const claimable = `EXISTS (SELECT 1 FROM consultations JOIN listings l ON l.id = consultations.listing_id
+      JOIN advertisers ad ON ad.id = consultations.advertiser_id
+    WHERE consultations.email_ref = outbound.ref AND consultations.status = 'queued' AND consultations.revision = outbound.version
+      AND consultations.approved_revision = consultations.revision AND EXISTS (SELECT 1 FROM admins WHERE email = consultations.approved_by)
+      AND ${counts("1")} AND (consultations.occupants_match_id IS NULL OR ${counts("cm.match_id = consultations.occupants_match_id")})
+      ${notConfirmedUnavailable(EST15_ON, "consultations.listing_id", "consultations.operation")}
+      AND ad.suppressed_at IS NULL AND ${ofProperty("ad", "consultations.listing_id")}
+      AND EXISTS (SELECT 1 FROM json_each(ad.details, '$.contacts') j WHERE lower(trim(json_extract(j.value, '$.email'))) = outbound.recipient)
+      AND ad.updated_at <= outbound.created_at AND l.updated_at <= outbound.created_at
+      AND NOT EXISTS (SELECT 1 FROM availability_confirmations ac WHERE ac.listing_id = consultations.listing_id AND ac.recorded_at > outbound.created_at)
+      AND NOT EXISTS (SELECT 1 FROM matches om JOIN applicants oa ON oa.id = om.applicant_id WHERE om.id = consultations.occupants_match_id
+        AND oa.updated_at > outbound.created_at)
+      AND NOT EXISTS (SELECT 1 FROM consultation_matches qm JOIN matches qx ON qx.id = qm.match_id JOIN events e ON e.entity_type = 'applicant'
+        AND e.entity_id = CAST(qx.applicant_id AS TEXT) AND json_extract(e.data, '$.listing_id') = qx.listing_id
+        WHERE qm.consultation_id = consultations.id AND consultations.kind = 'clarification' AND e.type = 'match.clarification'
+          AND e.at > outbound.created_at))`;
   // The household of a match that still counts for this enquiry, as it is now. undefined: the match does not count.
   const caseOf = (env, c, matchId) => env.DB.prepare(`SELECT CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total,
     a.household_adults + a.household_children) END AS occupants FROM ${LINKS} WHERE cm.consultation_id = ? AND cm.match_id = ? AND ${live}`)
@@ -373,20 +399,21 @@ export function enquiries(gates) {
     return json({ consultation: await detail(env, after) });
   }
 
-  // The clock's part, before and after each email dispatch (server/consultation-email.js), for every enquiry whose
-  // email waits or was tried. Still queued: checked again and, if blocked, taken out of the queue unsent. Accepted by
-  // the provider: sent, at that time. Uncertain: it waits for a person and is never sent again. Rejected, cancelled
-  // or gone: back to a person. An email being sent right now is left for the next pass.
-  // ponytail: 50 a pass, in the pipeline's own order: more than the 20 emails it dispatches on one tick.
+  // The clock's part, after each email dispatch (server/consultation-email.js), for every enquiry whose email waits or
+  // was tried. Still queued but no longer claimable, or blocked: taken out of the queue unsent. Accepted by the provider:
+  // sent, at that time. Uncertain: it waits for a person and is never sent again. Rejected, cancelled or gone: back to
+  // a person. An email being sent right now is left for the next pass. Safety does not rest on this pass: the claim
+  // asks claimable itself. ponytail: 50 a pass, the rest on the next tick.
   async function settle(env) {
-    const { results } = await env.DB.prepare(`SELECT c.*, o.status AS email_status, o.updated_at AS email_at, o.error_code AS email_error
-      FROM consultations c LEFT JOIN outbound o ON o.ref = c.email_ref WHERE c.status = 'queued' ORDER BY o.id LIMIT 50`).all();
-    for (const { email_status: status, email_at, email_error, ...c } of results) {
+    const { results } = await env.DB.prepare(`SELECT c.*, outbound.status AS email_status, outbound.updated_at AS email_at,
+      outbound.error_code AS email_error, ${claimable} AS claimable FROM consultations c LEFT JOIN outbound ON outbound.ref = c.email_ref
+      WHERE c.status = 'queued' ORDER BY outbound.id LIMIT 50`).all();
+    for (const { email_status: status, email_at, email_error, claimable: may, ...c } of results) {
       if (status === "sending") continue;
       if (status !== "queued") await env.DB.batch(status === "accepted" ? emailed(env, c, "system", "sent_by_email", email_at)
         : status === "unknown" ? step(env, c, "system", "email_unknown", "status = 'needs_review'", [], { data: { email_ref: c.email_ref }, task: { ...CHECK_TASK, reopen: true } })
         : back(env, c, "system", email_error ?? status ?? "missing"));
-      else if ((await detail(env, c)).blocked) await env.DB.batch([
+      else if (!may || (await detail(env, c)).blocked) await env.DB.batch([
         env.DB.prepare("UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE ref = ? AND status = 'queued'").bind(now(), c.email_ref),
         ...back(env, c, "system", "blocked", " AND changes() = 1")]);
     }
@@ -400,7 +427,7 @@ export function enquiries(gates) {
   };
   // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are.
   const sends = handler => guarded(async ctx => (await sending(ctx.env) ? handler(ctx) : fail(404, "Not found")));
-  return { settle, routes: [
+  return { settle, claimable, routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
     ["GET", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/consultations$/, guarded(forListing, true), true],

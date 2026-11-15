@@ -9,6 +9,7 @@ import { configure } from "./email-helpers.mjs";
 import { recomputeForApplicant } from "../../server/match-store.js";
 import { extractFeatures } from "../../server/listing-features.js";
 import worker from "../../server/jobs.js";
+import { emailPass as liveEmailPass } from "../../server/email.js";
 
 const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const HOME = "HE-R001", DESK = "desk@agency.example.test";
@@ -63,11 +64,13 @@ const task = env => row(env, "SELECT title, resolved_at FROM notifications WHERE
 const tick = env => worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.now() },
   { DB: env.DB, MEDIA: env.MEDIA, EMAIL: env.EMAIL, EMAIL_SERVICE_READY: env.EMAIL_SERVICE_READY }, { waitUntil() {} });
 // An enquiry prepared for one approved match, to the desk's email, and approved to be sent as it is.
-async function approved(env, { approve = true } = {}) {
+// household: the text states this search's household size. by: who approves it.
+async function approved(env, { approve = true, household = false, by = ADMIN } = {}) {
   const agency = await advertiser(env), ana = await searching(env, "Ana Le Gros"), m = await shortlist(env, ana);
   const desk = (await offer(env, m)).advertisers[0].contacts.find(c => c.email).key;
-  const c = ok(await req(env, "POST", `/admin/matches/${m}/consultation`, { operation_id: randomUUID(), kind: "general", advertiser_id: agency, contact_key: desk }), 201).consultation;
-  if (approve) ok(await post(env, c.id, "approve-sending", { revision: 1 }));
+  const c = ok(await req(env, "POST", `/admin/matches/${m}/consultation`, { operation_id: randomUUID(), kind: "general", advertiser_id: agency,
+    contact_key: desk, ...(household && { include_occupants: true }) }), 201).consultation;
+  if (approve) ok(await post(env, c.id, "approve-sending", { revision: 1 }, by));
   return { id: c.id, agency, desk, ana, m };
 }
 
@@ -364,4 +367,79 @@ test("an address on the email suppression list is not queued", async () => {
   assert.equal(refused.status, 409, JSON.stringify(refused.data));
   assert.match(refused.data.error, /suppression/i);
   assert.equal(rows(env, "SELECT 1 FROM outbound").length, 0);
+});
+
+// The pass before each dispatch is not what keeps an enquiry from going out: the claim itself asks again. Each change
+// lands after that pass and just before the dispatcher picks its emails, inside one tick.
+test("an enquiry email is claimed only if it is authorised at that moment, whatever the pass before saw", async () => {
+  const later = () => new Date(Date.now() + 1000).toISOString();
+  const changes = {
+    "the price changes after the approval": env => run(env, "UPDATE listings SET rent = 1700 WHERE id = ?", HOME),
+    "the search is resolved": (env, { ana }) => run(env, `UPDATE applicants SET search_state = 'resolved', resolved_at = ?, resolved_by = ?,
+      resolution_reason = 'Found a home elsewhere' WHERE id = ?`, later(), ADMIN, ana),
+    "the property is confirmed as not available": env => run(env, `INSERT INTO availability_confirmations (listing_id, status, reason,
+      confirmed_at, source, channel, evidence_ref, recorded_at, recorded_by) VALUES (?, 'unavailable', 'let', ?, 'agency', 'phone', 'Call note FIXTURE', ?, ?)`,
+      HOME, new Date().toISOString(), later(), ADMIN),
+    "the property leaves the offer": env => run(env, "UPDATE listings SET availability = 'withdrawn' WHERE id = ?", HOME),
+    "the recipient's personal data is removed": (env, { agency }) => run(env,
+      "UPDATE advertisers SET suppressed_at = ?, details = json_set(details, '$.contacts', json('[]')) WHERE id = ?", T0, agency),
+    "the recipient stops advertising the property": (env, { agency }) => run(env,
+      "UPDATE advertisers SET details = json_set(details, '$.listing_ids', json('[]')) WHERE id = ?", agency),
+    "the contact's address changes": (env, { agency }) => run(env,
+      "UPDATE advertisers SET details = json_set(details, '$.contacts[0].email', 'new-desk@agency.example.test') WHERE id = ?", agency),
+    "the contact is renamed (its reference no longer answers)": (env, { agency }) => run(env,
+      "UPDATE advertisers SET details = json_set(details, '$.contacts[0].name', 'Front Desk'), updated_at = ? WHERE id = ?", later(), agency),
+    "the property's title changes (the text is out of date)": env => run(env, "UPDATE listings SET title = 'Renamed home', updated_at = ? WHERE id = ?", later(), HOME),
+    "the household stated changes": (env, { ana }) => run(env, "UPDATE applicants SET household_total = 5, updated_at = ? WHERE id = ?", later(), ana),
+    "the approval is withdrawn": (env, { id }) => run(env, "UPDATE consultations SET approved_revision = NULL WHERE id = ?", id),
+    "the approver is no longer a member of the team": env => run(env, "DELETE FROM admins WHERE email = ?", OTHER),
+  };
+  for (const [label, change] of Object.entries(changes)) {
+    const env = world({ service: true }), made = await approved(env, { household: label.includes("household"), by: OTHER });
+    ok(await post(env, made.id, "send-email", { revision: 1 }));
+    const real = env.DB.prepare.bind(env.DB);
+    let done = false;
+    env.DB.prepare = sql => {
+      if (!done && /SELECT id FROM outbound WHERE status='queued'/.test(sql)) { done = true; change(env, made); }
+      return real(sql);
+    };
+    // A failing pass would also send nothing: it must not be what holds the email back.
+    const failed = [], log = console.error;
+    console.error = (...args) => failed.push(args.join(" "));
+    try { await tick(env); } finally { console.error = log; env.DB.prepare = real; }
+    assert.deepEqual(failed, [], `${label}: no pass failed`);
+    assert.equal(done, true, `${label}: the change landed before the claim`);
+    assert.equal(env.sent.length, 0, label);
+    assert.equal(rows(env, "SELECT 1 FROM email_attempts").length, 0, `${label}: not even claimed`);
+    // The pass after the dispatch finds it unsendable and gives it back to a person, unsent.
+    const c = row(env, "SELECT status, sent_at, email_ref FROM consultations");
+    assert.deepEqual([c.status, c.sent_at, c.email_ref], ["manual_pending", null, null], label);
+    assert.equal(row(env, "SELECT status FROM outbound").status, "cancelled", label);
+    await tick(env);
+    assert.equal(env.sent.length, 0, label);
+  }
+});
+
+test("the email pipeline claims no enquiry email unless it is given the enquiry check: other emails are as before", async () => {
+  const env = world({ service: true }), { id } = await approved(env);
+  ok(await post(env, id, "send-email", { revision: 1 }));
+  configure(env, { summary: true, recipients: ["team@example.test"] });
+  const ts = new Date().toISOString().slice(0, 10) + "T12:00:00.000Z";
+  await liveEmailPass(env, ts, () => ts);
+  assert.deepEqual(env.sent.map(m => m.to), ["team@example.test"], "the team summary goes, the enquiry does not");
+  assert.equal(row(env, "SELECT status FROM outbound WHERE template = 'enquiry'").status, "queued");
+  await tick(env);
+  assert.deepEqual(env.sent.map(m => m.to), ["team@example.test", DESK], "with the check, the enquiry goes once");
+});
+
+test("before migration 0080, as production is today, the clock sends the team's email as before", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-16T12:00:00.000Z") });
+  const env = world({ service: true, schema: { through: 79 } });
+  configure(env, { summary: true, recipients: ["team@example.test"] });
+  const failed = [], log = console.error;
+  console.error = (...args) => failed.push(args.join(" "));
+  try { await worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.now() }, { DB: env.DB, MEDIA: env.MEDIA, EMAIL: env.EMAIL,
+    EMAIL_SERVICE_READY: "true" }, { waitUntil() {} }); } finally { console.error = log; }
+  assert.deepEqual(failed, []);
+  assert.deepEqual(env.sent.map(m => m.to), ["team@example.test"], "the daily summary, at noon in Jersey");
 });
