@@ -2,7 +2,7 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
-15-nov-2026 · **ANA-06 hecha:** Insights muestra la mediana del tiempo que tardan las agencias en dar una respuesta útil a una consulta, en horas laborables de Jersey (lunes a viernes, 9 a 17, sin festivos), sin nombres de agencias; las que siguen esperando se cuentan aparte. Settings › Automations muestra además cada pasada del reloj con su última vuelta (AUT-01, en vivo). Migración 0092. Progreso 129 → 130 de 211.
+15-nov-2026 · **ANA-06 hecha:** Insights muestra la mediana del tiempo que tardan las agencias en dar una respuesta útil a una consulta, en horas laborables de Jersey (lunes a viernes, 9 a 17, sin festivos), sin nombres de agencias; las que siguen esperando se cuentan aparte. Migración 0092. **AUT-01 hecha:** Settings › Automations muestra además cada pasada del reloj (Inbox, resumen semanal, llamadas, retirada de alquileres, poda de demanda, correos de consulta) con si está encendida y su última vuelta. Progreso 129 → 131 de 211.
 
 15-nov-2026 · **ADM-14 hecha:** a 90 días del fin de un plazo fijo, la tarjeta del contrato deja anotar lo que responden el propietario y el inquilino (con fecha y dónde consta), ofrece el mensaje para copiar y rellena Renew (con la revisión de renta de ADM-15) o End. Si el inquilino se va o el propietario no renueva, «Prepare listing draft» copia la ficha de origen y sus fotos en un borrador sin publicar, disponible desde el fin del plazo. Progreso 128 → 129 de 211.
 
