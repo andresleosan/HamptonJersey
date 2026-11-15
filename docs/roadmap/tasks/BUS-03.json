@@ -4,10 +4,10 @@
   "titulo": "Base de datos y pantalla de casas encontradas (valor, habitaciones, lo que no cumple)",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): market_matches (0083) guarda por búsqueda y casa del inventario común su resultado si cumple, falta confirmar o es alternativa, con sus comprobaciones, sin tocar matches. Automations › Market inventory › Homes found (GET /admin/market/homes, 25 por página calculadas en SQL) muestra cada casa sin ficha propia con operación, parroquia, dormitorios, baños, precio, fecha en que se vio anunciada y «Availability not confirmed», sus publicaciones con fuente, canal, referencia, URL y fecha, la ficha a la que está enlazada (BUS-07) y cada búsqueda activa residencial con su resultado y lo que no cumple o falta confirmar.",
-  "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY; comprobar la pantalla con la primera carga real de Luis. Las casas excluidas para una búsqueda no se guardan (decisión de coste): la pantalla las lista sin esa búsqueda. Los resultados de mercado aún no salen en la pestaña Matches ni en Review del aplicante (MatchCard, de AGE-03/AGE-06). El anunciante es la fuente del anuncio; el anunciante dentro de un portal no se normaliza todavía (BUS-09).",
+  "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): market_matches (0083) guarda por búsqueda y casa del inventario común su resultado si cumple, falta confirmar o es alternativa, con sus comprobaciones, sin tocar matches. Automations › Market inventory › Homes found (GET /admin/market/homes, 25 por página calculadas en SQL) muestra cada casa sin ficha propia con operación, parroquia, dormitorios, baños, precio, fecha en que se vio anunciada y «Availability not confirmed», sus publicaciones con fuente, canal, referencia, URL y fecha, la ficha a la que está enlazada (BUS-07) y cada búsqueda activa residencial con su resultado y lo que no cumple o falta confirmar. Cerrada el 15-nov-2026: migración 0083 aplicada y BUS01_MARKET_MATCHING_READY=1. El inventario de mercado en producción está vacío: la carga real del directorio privado es de Luis (BUS-06, en su cola) y el cruce empezará a dar resultados con esa carga.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0009_matches.sql:27-38",
@@ -22,7 +22,8 @@
     "15-nov lecturas (revisión de coste): 0083 añade market_latest_observations, que un trigger mantiene al llegar cada lectura con la regla de LATEST (source_at y sequence más nuevos; retirado desde la primera lectura que lo retira), y copia las lecturas ya guardadas con la misma regla. Solo escribe en la tabla nueva; ninguna fila existente cambia. Una búsqueda y una página leen cada anuncio una vez, sin recorrer el historial. Prueba: el plan de consulta no recorre market_observations.",
     "15-nov medida (tercera ronda) con 2.000 anuncios: con 1 lectura por anuncio y con 10 (20.000 lecturas acumuladas) da lo mismo. Por búsqueda 0,9-3,8 ms de Worker (tests/server/bus-01-measure.mjs; un primer recálculo dio 13,4 ms una vez, que no se repitió en dos tandas más: recolección de memoria) y 32-48 ms de SQL; a evaluate() llegan 33 casas o el tope de 50; la primera vez 1 sentencia y ≤ 50 filas de market_matches, al repetir 0 y 0; «Recalculate all» (5 búsquedas) 4,5-4,7 ms de Worker. En D1 local (tests/server/bus-01-d1-rows.mjs, wrangler --local): leer las últimas lecturas cuesta 2 ms con 2.000 o con 20.000 lecturas, contra 11 y 108 ms del recorrido del historial anterior; la búsqueda completa tarda 39 ms con 2.000 y 47 ms con 20.000. D1 local no informa rows_read: según el plan (SCAN de market_latest_observations y búsqueda por clave en market_sources y market_observations) son unas 3 filas por anuncio, unas 6.000 por búsqueda con 2.000 anuncios, sin depender del historial. Antes: unas 3 por lectura guardada, unas 60.000 con 20.000 lecturas.",
     "15-nov pruebas: tests/server/bus-01-market-matching.test.mjs 18/18 (pantalla: 401 sin sesión, 404 antes de 0083, sin correos ni teléfonos, páginas de 25 con cursor validado, casa enlazada sin resultados aparte, búsqueda cerrada o comercial oculta, cada anuncio en su última lectura).",
-    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390 sin desplazamiento lateral, PASS."
+    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390 sin desplazamiento lateral, PASS.",
+    "Cierre 15-nov-2026: publicada en 01e9416 (10a8c32, 520a2e6); 0083 (tablas nuevas market_matches y market_latest_observations, dos ADD COLUMN y un trigger AFTER INSERT que solo escribe en la tabla nueva; copia de 0 observaciones) aplicada tras marcador Time Travel; npm test 2718/2718; tests/bus01-market-matching.e2e.cjs pasa a 1280 y 390; tres pasadas de revisión independiente: los fallos graves (matches propios revertidos si fallaba la parte de mercado, coste, tope que dejaba fuera las casas que mejor encajan, lecturas que crecían con el historial) corregidos con pruebas; la tercera sin graves; con el interruptor apagado, 142 sentencias idénticas. Coste estimado ~4 filas por anuncio vivo y búsqueda, CPU del Worker < 4 ms; hoy 7 solicitantes."
   ],
   "modulo": "M02/M04",
   "deps": [
@@ -63,6 +64,6 @@
     "matching-contract",
     "research-ui"
   ],
-  "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y revisar Homes found con la primera carga real.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }

@@ -3058,7 +3058,7 @@
       "preferredSlot": "hermes",
       "priority": 180,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -3135,7 +3135,7 @@
       "preferredSlot": "hermes",
       "priority": 182,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -10649,14 +10649,23 @@
       "fase": "F2",
       "estado": "pendiente",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Tras dos días desde el envío real sin respuesta útil, crear una única tarea de llamada con propiedad, anunciante, mensaje, historial, clientes y todos los teléfonos identificados. Una respuesta que llega antes de llamar actualiza o resuelve la tarea según lo confirmado. Registrar disponible, no disponible o inconcluso; una llamada sin contestar no prueba indisponibilidad. Sustituye el antiguo encadenamiento de recordatorios por correo. Naturales/laborables, hora y fines de semana siguen pendientes de decisión; conservar estadísticas de respuesta como mejora separada. Depende de: AGE-05, AGE-06, AGE-04, AUT-07, NOT-11. Aceptación: Al vencer dos días aparece Call con todos los teléfonos, sin un segundo correo automático; una respuesta útil recibida antes de llamar actualiza la tarea. Emitir su aviso en el Inbox con el contrato de productor de NOT-01: llamada a los dos días sin respuesta. Añadir su actividad al historial de la ficha de SPR-02 (contrato de eventos EST-18): llamadas. Traído de BUS-06 (14-nov): la tarea de llamada lee anunciantes y teléfonos del directorio AGE-04 (GET /admin/advertisers?property_id=); el inventario de mercado no guarda contactos. Traído de AGE-03 (15-nov): la llamada a los dos días parte de consultations.sent_at, que hoy solo existe con envío anotado; los teléfonos se leen del directorio por advertiser_id. Traído de AGE-05 (15-nov): el plazo de dos días laborables cuenta desde consultations.sent_at, que en correo es la hora en que el proveedor aceptó (o la del intento, si una persona confirmó un resultado incierto); queued, needs_review y manual_pending no lo inician. La consulta guarda solo la referencia del contacto (contact_key). Traído de AGE-06 (15-nov): crear la llamada a dos fechas laborables lunes-viernes desde sent_at de consultas en sent/awaiting_response; su resultado se registra con POST /admin/consultations/:id/response (AGE-06) y una respuesta útil la invalida.",
+      "hecho": "Construida tras AGE08_CALL_TASKS_READY (sin migración): el reloj crea una sola tarea «Call <anunciante> about <propiedad>» a las dos fechas laborables (lunes-viernes, misma hora de Jersey) desde sent_at de consultas sent/awaiting_response; dice cuántos teléfonos hay y lleva a la sección Enquiries de la propiedad, que los lista todos del directorio con el texto enviado y el formulario de respuesta de AGE-06. Una respuesta útil (available/unavailable/answered) o la cancelación la cierran; no_answer y more_info la dejan abierta. Nada se envía.",
+      "falta": "Integrar en main, añadir AGE08_CALL_TASKS_READY = \"1\" en wrangler.toml y jobs/wrangler.toml (no envía nada: autorizado) y comprobar en producción que una consulta vencida genera una sola tarea. Historial en la ficha SPR-02 (EST-18): el evento consultation.call_due ya existe con ids; su presentación es de SPR-02/EST-18.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:295",
         "docs/roadmap/ESTADO.md:10",
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): cómputo de la llamada ya decidido."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): cómputo de la llamada ya decidido.",
+        "Decisión: se construye sobre el envío manual de AGE-03 (sent_at anotado), que ya existe; el correo AGE-05 apagado no hace falta (regla de componentes, SKILL §2).",
+        "Decisión: plazo = segunda fecha lunes-viernes posterior a la fecha de Jersey del envío, a la misma hora de Jersey (plan maestro vigente, «Búsqueda, visitas y publicación propias»); envío en fin de semana cuenta desde el lunes.",
+        "Decisión: sin festivos de Jersey; ni el plan maestro ni la arquitectura los definen (SKILL §4.5).",
+        "Decisión: una sola tarea por consulta; no_answer o more_info no la cierran ni reprograman otra (arquitectura §M06: «no cadena de recordatorios»; una llamada sin contestar no prueba indisponibilidad).",
+        "Decisión: los teléfonos no se copian en la tarea, eventos ni logs; la tarea dice cuántos hay y la sección Enquiries los lee en vivo del directorio, así una supresión AGE-14 no deja copias. Un anunciante particular no se nombra en el Inbox (\"the advertiser\").",
+        "Decisión: la pausa general (outbound) no aplica: la tarea no envía nada.",
+        "Decisión: cálculo en JS (server/consultations.js callPass, desde server/jobs.js) con taskStatements de NOT-01, no en el SQL de notification-reconcile, porque la hora de Jersey con cambio de horario no cabe en SQLite.",
+        "Pruebas 15-nov: tests/server/age-08-call-tasks.test.mjs 9/9 (viernes 16:00 → martes 16:00, cambios de hora de octubre y marzo, sábado, domingo, antes del plazo, dos ticks, Done humano, respuesta útil antes/después, no_answer/more_info, cancelación, sin teléfonos, particular, suprimido, reloj, interruptor igual en ambos wrangler.toml); age-03, age-05, age-06, jobs, advertisers, notification*, age-14-* en verde.",
+        "Navegador 15-nov: tests/age08-call-tasks.e2e.cjs en contenedor aislado a 1280 y 390: tarea en Inbox → Open property → tres teléfonos con enlaces tel:, respuesta útil cierra la tarea, anunciante sin teléfonos lo dice, nada enviado."
       ],
       "modulo": "M06",
       "deps": [
@@ -10714,7 +10723,7 @@
         "jobs-clock",
         "notifications-schema"
       ],
-      "nextStep": "Crear una única llamada pendiente a los dos días laborables (lunes a viernes, misma hora de Jersey) contados desde el envío real y sin respuesta útil.",
+      "nextStep": "Integrar, encender AGE08_CALL_TASKS_READY en web y reloj, y verificar la primera tarea de llamada en el Inbox.",
       "actualizado": "2026-11-15"
     },
     {
@@ -10726,7 +10735,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18. Traído de AGE-03 (15-nov): la evidencia de consultas está en consultations (texto, versión, quién y cuándo, sent_evidence_ref) y en consultation_matches (quién unió cada match); los eventos consultation.prepared y consultation.sent_manually llevan solo identificadores. Traído de AGE-06 (15-nov): mostrar en el historial los eventos consultation.response_recorded y consultation.cancelled (solo ids, resultado, canal, alcance); la fila guarda solo la última respuesta.",
+      "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18. Traído de AGE-03 (15-nov): la evidencia de consultas está en consultations (texto, versión, quién y cuándo, sent_evidence_ref) y en consultation_matches (quién unió cada match); los eventos consultation.prepared y consultation.sent_manually llevan solo identificadores. Traído de AGE-06 (15-nov): mostrar en el historial los eventos consultation.response_recorded y consultation.cancelled (solo ids, resultado, canal, alcance); la fila guarda solo la última respuesta. Traído de AGE-08 (15-nov): la evidencia agregada puede contar las llamadas a partir de consultation.call_due y del cierre de la tarea consultation:<operation_id>:call; AGE-08 no agrega nada.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",
@@ -12788,10 +12797,10 @@
       "titulo": "Búsqueda de casas que arranca sola al registrarse el aplicante",
       "origen": "texto",
       "fase": "F1-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): después de guardar los matches de fichas y en un lote aparte, la búsqueda completa cruza las casas del inventario común (una por casa y operación, anuncios sin unir como su propia casa, nunca las enlazadas a una ficha por BUS-07). SQL agrega las casas y descarta lo que evaluate() excluiría de todos modos; a evaluate() llegan como mucho 50, las que mejor encajan primero. market_matches (0083) guarda solo cumple, por confirmar y alternativa, y solo lo que cambia. EST-01 registra aparte el estado del mercado (searched, incomplete, no_source, failed) y las casas evaluadas; la ficha dice «Hampton's listings and the market inventory» o, apagado, «Hampton's saved listings only».",
-      "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY (necesita BUS10_IDENTITY_READY, ya encendido); comprobar el recorrido con la primera carga real de Luis. La consulta SQL del inventario lee del orden de varias veces el número de anuncios en filas de D1 por búsqueda (sin medir en D1 real): vigilar el límite diario de lecturas del plan gratuito. Las búsquedas comerciales (BUS-12) no cruzan aún el mercado: las observaciones no dicen su uso.",
+      "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): después de guardar los matches de fichas y en un lote aparte, la búsqueda completa cruza las casas del inventario común (una por casa y operación, anuncios sin unir como su propia casa, nunca las enlazadas a una ficha por BUS-07). SQL agrega las casas y descarta lo que evaluate() excluiría de todos modos; a evaluate() llegan como mucho 50, las que mejor encajan primero. market_matches (0083) guarda solo cumple, por confirmar y alternativa, y solo lo que cambia. EST-01 registra aparte el estado del mercado (searched, incomplete, no_source, failed) y las casas evaluadas; la ficha dice «Hampton's listings and the market inventory» o, apagado, «Hampton's saved listings only». Cerrada el 15-nov-2026: migración 0083 aplicada y BUS01_MARKET_MATCHING_READY=1. El inventario de mercado en producción está vacío: la carga real del directorio privado es de Luis (BUS-06, en su cola) y el cruce empezará a dar resultados con esa carga.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:120-122",
@@ -12807,9 +12816,13 @@
         "15-nov regla (coste, plan gratuito de Workers): SQL descarta otra operación, casas enlazadas y parroquias excluidas y, en búsquedas sin prioridades (donde son filtros duros), precio sobre el tope con su extra y dormitorios o baños fuera de rango; en búsquedas con prioridades eso es alternativa y no se descarta, solo se ordena después. Se guardan solo los resultados distintos de excluded y solo los que cambian; tope de 50 casas evaluadas por búsqueda, con market_state=incomplete si se alcanza; «Recalculate all» no relee el inventario entero: cada búsqueda hace una consulta ya filtrada.",
         "15-nov decisión: un dato que los anuncios de una misma casa contradicen queda unknown con evidencia «The adverts disagree»; una parroquia fuera de las doce cuenta como contradicción. Fuente: plan BUS-01 (unknown nunca cumple) y revisión.",
         "15-nov decisión: sin episodios ni runs paginados del plan; no hay revisión humana de casas de mercado todavía. Fuente: skill sección 4 punto 5 y modo ponytail del encargo.",
-        "15-nov medida con 2.000 anuncios (tests/server/bus-01-measure.mjs, node:sqlite en proceso; «Worker» = tiempo fuera de la base): por búsqueda 1,1-3,8 ms de Worker y 37-70 ms de consulta SQL; a evaluate() llegan 33 casas (búsqueda sin prioridades, 1.200 £ y 4 dormitorios) o el tope de 50 (marcada incomplete); el lote de mercado es 1 sentencia la primera vez (≤ 50 filas escritas) y 0 sentencias y 0 filas al repetir sin cambios; «Recalculate all» (5 búsquedas) 6,3 ms de Worker y 196 ms de SQL; GET /admin/market/homes 2,3 ms de Worker y 62 ms de SQL; apagado 0,1 ms. Antes del arreglo: 80-150 ms por búsqueda y ~2.000 filas reescritas.",
-        "15-nov pruebas: bus-01-market-matching 13/13 (regresión apagado/encendido idéntica, encendido sin 0083, coste con 2.000 anuncios); match-store 14, matches 16, est01-search-state 11, sap02-match-counts 6, bus-07-provenance 11, applicants-public 16, match-pages 6, bus-10-identity 30, bus-10-review 11, est-13-versions 5, candidate-state 7, bus-12-matching 4, todas en verde.",
-        "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado (D1 local), 1280 y 390, PASS."
+        "15-nov regla de orden (revisión): antes del tope de 50, SQL ordena por encaje con datos conocidos: primero menos imprescindibles que se sabe que fallan; luego más imprescindibles que se sabe que se cumplen (presupuesto, dormitorios, baños, parroquia deseada, aparcamiento y, si el hogar tiene mascotas, mascotas); luego parroquia conocida; luego más criterios cumplidos; y solo al final la lectura más reciente. Una casa que cumple todo va siempre antes que una que falla o deja sin dato un imprescindible. Lo que el SQL no puede saber (tipo, exterior, amueblado, vivienda, fechas) es igual para todas las casas de mercado. Los resultados fuera de las 50 mejores se retiran. Pruebas: 60 casas recientes casi buenas no desplazan a una antigua que cumple todo; con 12 que cumplen todo entre 92, se guardan las 12.",
+        "15-nov lecturas (revisión de coste): 0083 añade market_latest_observations, que un trigger mantiene al llegar cada lectura con la regla de LATEST (source_at y sequence más nuevos; retirado desde la primera lectura que lo retira), y copia las lecturas ya guardadas con la misma regla. Solo escribe en la tabla nueva; ninguna fila existente cambia. Una búsqueda y una página leen cada anuncio una vez, sin recorrer el historial. Prueba: el plan de consulta no recorre market_observations.",
+        "15-nov medida (tercera ronda) con 2.000 anuncios: con 1 lectura por anuncio y con 10 (20.000 lecturas acumuladas) da lo mismo. Por búsqueda 0,9-3,8 ms de Worker (tests/server/bus-01-measure.mjs; un primer recálculo dio 13,4 ms una vez, que no se repitió en dos tandas más: recolección de memoria) y 32-48 ms de SQL; a evaluate() llegan 33 casas o el tope de 50; la primera vez 1 sentencia y ≤ 50 filas de market_matches, al repetir 0 y 0; «Recalculate all» (5 búsquedas) 4,5-4,7 ms de Worker. En D1 local (tests/server/bus-01-d1-rows.mjs, wrangler --local): leer las últimas lecturas cuesta 2 ms con 2.000 o con 20.000 lecturas, contra 11 y 108 ms del recorrido del historial anterior; la búsqueda completa tarda 39 ms con 2.000 y 47 ms con 20.000. D1 local no informa rows_read: según el plan (SCAN de market_latest_observations y búsqueda por clave en market_sources y market_observations) son unas 3 filas por anuncio, unas 6.000 por búsqueda con 2.000 anuncios, sin depender del historial. Antes: unas 3 por lectura guardada, unas 60.000 con 20.000 lecturas.",
+        "15-nov menores: GET /admin/market/homes responde 404 si está encendido antes de 0083; la parroquia se normaliza en SQL como plain() (puntuación, espacios, «saint»); las parroquias deseadas y excluidas inválidas cuentan como lista vacía en la parte de mercado (evaluate() sigue fallando con parishes_excluded inválido en las fichas, como antes); se excluyen en SQL las casas que niegan mascotas a un hogar con mascotas, como hace evaluate().",
+        "15-nov pruebas: bus-01-market-matching 18/18; match-store 14, matches 16, est01-search-state 11, sap02-match-counts 6, bus-07-provenance 11, applicants-public 16, bus-10-identity 30, bus-10-review 11, bus-10-candidates 24, bus-10-candidates-d1 1, bus-06-intake-d1 1, bus-06-routes 3, bus-06-tp04-1 18, bus-09-ingestion 16, bus-09-ingestion-d1 1, todas en verde.",
+        "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado (D1 local, trigger y copia de 0083 incluidos), 1280 y 390, PASS.",
+        "Cierre 15-nov-2026: publicada en 01e9416 (10a8c32, 520a2e6); 0083 (tablas nuevas market_matches y market_latest_observations, dos ADD COLUMN y un trigger AFTER INSERT que solo escribe en la tabla nueva; copia de 0 observaciones) aplicada tras marcador Time Travel; npm test 2718/2718; tests/bus01-market-matching.e2e.cjs pasa a 1280 y 390; tres pasadas de revisión independiente: los fallos graves (matches propios revertidos si fallaba la parte de mercado, coste, tope que dejaba fuera las casas que mejor encajan, lecturas que crecían con el historial) corregidos con pruebas; la tercera sin graves; con el interruptor apagado, 142 sentencias idénticas. Coste estimado ~4 filas por anuncio vivo y búsqueda, CPU del Worker < 4 ms; hoy 7 solicitantes."
       ],
       "modulo": "M03/M04",
       "deps": [
@@ -12852,7 +12865,7 @@
         "market-inventory",
         "notifications-schema"
       ],
-      "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y comprobar con la primera carga real del inventario.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -12888,10 +12901,10 @@
       "titulo": "Base de datos y pantalla de casas encontradas (valor, habitaciones, lo que no cumple)",
       "origen": "texto",
       "fase": "F1-A",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): market_matches (0083) guarda por búsqueda y casa del inventario común su resultado si cumple, falta confirmar o es alternativa, con sus comprobaciones, sin tocar matches. Automations › Market inventory › Homes found (GET /admin/market/homes, 25 por página calculadas en SQL) muestra cada casa sin ficha propia con operación, parroquia, dormitorios, baños, precio, fecha en que se vio anunciada y «Availability not confirmed», sus publicaciones con fuente, canal, referencia, URL y fecha, la ficha a la que está enlazada (BUS-07) y cada búsqueda activa residencial con su resultado y lo que no cumple o falta confirmar.",
-      "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY; comprobar la pantalla con la primera carga real de Luis. Las casas excluidas para una búsqueda no se guardan (decisión de coste): la pantalla las lista sin esa búsqueda. Los resultados de mercado aún no salen en la pestaña Matches ni en Review del aplicante (MatchCard, de AGE-03/AGE-06). El anunciante es la fuente del anuncio; el anunciante dentro de un portal no se normaliza todavía (BUS-09).",
+      "hecho": "La tabla matches guarda, por aplicante, cada casa encontrada con su puntuación, sus comprobaciones y su estado. La pestaña Matches (Found, Shortlisted, Rejected) y Review la muestran con foto, precio, parroquia, dormitorios, baños y cada requisito como Meets, Fails o Unknown, con su evidencia. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): market_matches (0083) guarda por búsqueda y casa del inventario común su resultado si cumple, falta confirmar o es alternativa, con sus comprobaciones, sin tocar matches. Automations › Market inventory › Homes found (GET /admin/market/homes, 25 por página calculadas en SQL) muestra cada casa sin ficha propia con operación, parroquia, dormitorios, baños, precio, fecha en que se vio anunciada y «Availability not confirmed», sus publicaciones con fuente, canal, referencia, URL y fecha, la ficha a la que está enlazada (BUS-07) y cada búsqueda activa residencial con su resultado y lo que no cumple o falta confirmar. Cerrada el 15-nov-2026: migración 0083 aplicada y BUS01_MARKET_MATCHING_READY=1. El inventario de mercado en producción está vacío: la carga real del directorio privado es de Luis (BUS-06, en su cola) y el cruce empezará a dar resultados con esa carga.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0009_matches.sql:27-38",
@@ -12903,9 +12916,11 @@
         "15-nov: migrations/0083_market_matches.sql, server/routes/market-inventory.js (marketHomes), server/market-identity.js (readMarketHomesPage), admin/src/MarketInventory.jsx (Homes, Home), interruptor BUS01_MARKET_MATCHING_READY.",
         "15-nov decisión: la pantalla va en Automations › Market inventory junto a la revisión de duplicados, en vez del navegador #/market del plan, y reutiliza Listing y los estilos existentes. Fuente: encargo del lote y DESIGN.md (usar clases existentes).",
         "15-nov decisión: solo se guardan y muestran cumple, por confirmar y alternativa, cada uno con su badge (positive, attention, neutral), y por búsqueda solo las comprobaciones no cumplidas o por confirmar; las búsquedas cerradas o comerciales no se muestran. Fuente: plan BUS-03 tarea 3, DESIGN.md «Badges de estado» y revisión de coste del lote.",
-        "15-nov medida con 2.000 anuncios (tests/server/bus-01-measure.mjs, node:sqlite en proceso; «Worker» = tiempo fuera de la base): por búsqueda 1,1-3,8 ms de Worker y 37-70 ms de consulta SQL; a evaluate() llegan 33 casas (búsqueda sin prioridades, 1.200 £ y 4 dormitorios) o el tope de 50 (marcada incomplete); el lote de mercado es 1 sentencia la primera vez (≤ 50 filas escritas) y 0 sentencias y 0 filas al repetir sin cambios; «Recalculate all» (5 búsquedas) 6,3 ms de Worker y 196 ms de SQL; GET /admin/market/homes 2,3 ms de Worker y 62 ms de SQL; apagado 0,1 ms. Antes del arreglo: 80-150 ms por búsqueda y ~2.000 filas reescritas.",
-        "15-nov pruebas: tests/server/bus-01-market-matching.test.mjs 13/13 (pantalla: 401 sin sesión, sin correos ni teléfonos, páginas de 25 con cursor validado, casa enlazada sin resultados aparte, búsqueda cerrada o comercial oculta).",
-        "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390 sin desplazamiento lateral, PASS."
+        "15-nov lecturas (revisión de coste): 0083 añade market_latest_observations, que un trigger mantiene al llegar cada lectura con la regla de LATEST (source_at y sequence más nuevos; retirado desde la primera lectura que lo retira), y copia las lecturas ya guardadas con la misma regla. Solo escribe en la tabla nueva; ninguna fila existente cambia. Una búsqueda y una página leen cada anuncio una vez, sin recorrer el historial. Prueba: el plan de consulta no recorre market_observations.",
+        "15-nov medida (tercera ronda) con 2.000 anuncios: con 1 lectura por anuncio y con 10 (20.000 lecturas acumuladas) da lo mismo. Por búsqueda 0,9-3,8 ms de Worker (tests/server/bus-01-measure.mjs; un primer recálculo dio 13,4 ms una vez, que no se repitió en dos tandas más: recolección de memoria) y 32-48 ms de SQL; a evaluate() llegan 33 casas o el tope de 50; la primera vez 1 sentencia y ≤ 50 filas de market_matches, al repetir 0 y 0; «Recalculate all» (5 búsquedas) 4,5-4,7 ms de Worker. En D1 local (tests/server/bus-01-d1-rows.mjs, wrangler --local): leer las últimas lecturas cuesta 2 ms con 2.000 o con 20.000 lecturas, contra 11 y 108 ms del recorrido del historial anterior; la búsqueda completa tarda 39 ms con 2.000 y 47 ms con 20.000. D1 local no informa rows_read: según el plan (SCAN de market_latest_observations y búsqueda por clave en market_sources y market_observations) son unas 3 filas por anuncio, unas 6.000 por búsqueda con 2.000 anuncios, sin depender del historial. Antes: unas 3 por lectura guardada, unas 60.000 con 20.000 lecturas.",
+        "15-nov pruebas: tests/server/bus-01-market-matching.test.mjs 18/18 (pantalla: 401 sin sesión, 404 antes de 0083, sin correos ni teléfonos, páginas de 25 con cursor validado, casa enlazada sin resultados aparte, búsqueda cerrada o comercial oculta, cada anuncio en su última lectura).",
+        "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado, 1280 y 390 sin desplazamiento lateral, PASS.",
+        "Cierre 15-nov-2026: publicada en 01e9416 (10a8c32, 520a2e6); 0083 (tablas nuevas market_matches y market_latest_observations, dos ADD COLUMN y un trigger AFTER INSERT que solo escribe en la tabla nueva; copia de 0 observaciones) aplicada tras marcador Time Travel; npm test 2718/2718; tests/bus01-market-matching.e2e.cjs pasa a 1280 y 390; tres pasadas de revisión independiente: los fallos graves (matches propios revertidos si fallaba la parte de mercado, coste, tope que dejaba fuera las casas que mejor encajan, lecturas que crecían con el historial) corregidos con pruebas; la tercera sin graves; con el interruptor apagado, 142 sentencias idénticas. Coste estimado ~4 filas por anuncio vivo y búsqueda, CPU del Worker < 4 ms; hoy 7 solicitantes."
       ],
       "modulo": "M02/M04",
       "deps": [
@@ -12946,7 +12961,7 @@
         "matching-contract",
         "research-ui"
       ],
-      "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y revisar Homes found con la primera carga real.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {

@@ -4,10 +4,10 @@
   "titulo": "Búsqueda de casas que arranca sola al registrarse el aplicante",
   "origen": "texto",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): después de guardar los matches de fichas y en un lote aparte, la búsqueda completa cruza las casas del inventario común (una por casa y operación, anuncios sin unir como su propia casa, nunca las enlazadas a una ficha por BUS-07). SQL agrega las casas y descarta lo que evaluate() excluiría de todos modos; a evaluate() llegan como mucho 50, las que mejor encajan primero. market_matches (0083) guarda solo cumple, por confirmar y alternativa, y solo lo que cambia. EST-01 registra aparte el estado del mercado (searched, incomplete, no_source, failed) y las casas evaluadas; la ficha dice «Hampton's listings and the market inventory» o, apagado, «Hampton's saved listings only».",
-  "falta": "Aplicar 0083 en producción y encender BUS01_MARKET_MATCHING_READY (necesita BUS10_IDENTITY_READY, ya encendido); comprobar el recorrido con la primera carga real de Luis. Una búsqueda lee del orden de 3 filas de D1 por anuncio vigente (estimado por el plan; sin medir en D1 real). Las búsquedas comerciales (BUS-12) no cruzan aún el mercado: las observaciones no dicen su uso.",
+  "hecho": "Cada alta (web o panel), cada cambio de requisitos y cada restauración cruza al aplicante al momento con las fichas de Hampton ofrecidas a aplicantes. Lo encontrado sale en su pestaña Matches, en Review y como aviso Matched en Inbox. Construido (15-nov, tras BUS01_MARKET_MATCHING_READY, apagado): después de guardar los matches de fichas y en un lote aparte, la búsqueda completa cruza las casas del inventario común (una por casa y operación, anuncios sin unir como su propia casa, nunca las enlazadas a una ficha por BUS-07). SQL agrega las casas y descarta lo que evaluate() excluiría de todos modos; a evaluate() llegan como mucho 50, las que mejor encajan primero. market_matches (0083) guarda solo cumple, por confirmar y alternativa, y solo lo que cambia. EST-01 registra aparte el estado del mercado (searched, incomplete, no_source, failed) y las casas evaluadas; la ficha dice «Hampton's listings and the market inventory» o, apagado, «Hampton's saved listings only». Cerrada el 15-nov-2026: migración 0083 aplicada y BUS01_MARKET_MATCHING_READY=1. El inventario de mercado en producción está vacío: la carga real del directorio privado es de Luis (BUS-06, en su cola) y el cruce empezará a dar resultados con esa carga.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js:120-122",
@@ -28,7 +28,8 @@
     "15-nov medida (tercera ronda) con 2.000 anuncios: con 1 lectura por anuncio y con 10 (20.000 lecturas acumuladas) da lo mismo. Por búsqueda 0,9-3,8 ms de Worker (tests/server/bus-01-measure.mjs; un primer recálculo dio 13,4 ms una vez, que no se repitió en dos tandas más: recolección de memoria) y 32-48 ms de SQL; a evaluate() llegan 33 casas o el tope de 50; la primera vez 1 sentencia y ≤ 50 filas de market_matches, al repetir 0 y 0; «Recalculate all» (5 búsquedas) 4,5-4,7 ms de Worker. En D1 local (tests/server/bus-01-d1-rows.mjs, wrangler --local): leer las últimas lecturas cuesta 2 ms con 2.000 o con 20.000 lecturas, contra 11 y 108 ms del recorrido del historial anterior; la búsqueda completa tarda 39 ms con 2.000 y 47 ms con 20.000. D1 local no informa rows_read: según el plan (SCAN de market_latest_observations y búsqueda por clave en market_sources y market_observations) son unas 3 filas por anuncio, unas 6.000 por búsqueda con 2.000 anuncios, sin depender del historial. Antes: unas 3 por lectura guardada, unas 60.000 con 20.000 lecturas.",
     "15-nov menores: GET /admin/market/homes responde 404 si está encendido antes de 0083; la parroquia se normaliza en SQL como plain() (puntuación, espacios, «saint»); las parroquias deseadas y excluidas inválidas cuentan como lista vacía en la parte de mercado (evaluate() sigue fallando con parishes_excluded inválido en las fichas, como antes); se excluyen en SQL las casas que niegan mascotas a un hogar con mascotas, como hace evaluate().",
     "15-nov pruebas: bus-01-market-matching 18/18; match-store 14, matches 16, est01-search-state 11, sap02-match-counts 6, bus-07-provenance 11, applicants-public 16, bus-10-identity 30, bus-10-review 11, bus-10-candidates 24, bus-10-candidates-d1 1, bus-06-intake-d1 1, bus-06-routes 3, bus-06-tp04-1 18, bus-09-ingestion 16, bus-09-ingestion-d1 1, todas en verde.",
-    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado (D1 local, trigger y copia de 0083 incluidos), 1280 y 390, PASS."
+    "15-nov navegador: tests/bus01-market-matching.e2e.cjs en el contenedor aislado (D1 local, trigger y copia de 0083 incluidos), 1280 y 390, PASS.",
+    "Cierre 15-nov-2026: publicada en 01e9416 (10a8c32, 520a2e6); 0083 (tablas nuevas market_matches y market_latest_observations, dos ADD COLUMN y un trigger AFTER INSERT que solo escribe en la tabla nueva; copia de 0 observaciones) aplicada tras marcador Time Travel; npm test 2718/2718; tests/bus01-market-matching.e2e.cjs pasa a 1280 y 390; tres pasadas de revisión independiente: los fallos graves (matches propios revertidos si fallaba la parte de mercado, coste, tope que dejaba fuera las casas que mejor encajan, lecturas que crecían con el historial) corregidos con pruebas; la tercera sin graves; con el interruptor apagado, 142 sentencias idénticas. Coste estimado ~4 filas por anuncio vivo y búsqueda, CPU del Worker < 4 ms; hoy 7 solicitantes."
   ],
   "modulo": "M03/M04",
   "deps": [
@@ -71,6 +72,6 @@
     "market-inventory",
     "notifications-schema"
   ],
-  "nextStep": "Aplicar 0083, encender BUS01_MARKET_MATCHING_READY y comprobar con la primera carga real del inventario.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }
