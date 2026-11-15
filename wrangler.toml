@@ -70,6 +70,8 @@ AGE08_CALL_TASKS_READY = "1"
 SPR03_CAPTURE_READY = "1"
 # AGE-10: the team marks which captured photos are fit for a private presentation, with their provenance (migration 0085, applied 15-nov-2026; needs SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Publishes and sends nothing.
 AGE10_PHOTOS_READY = "1"
+# AGE-12: a client's private link to the homes presented, with their answer on each (migration 0086; needs AGE10_PHOTOS_READY, SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Public route that collects client answers: only Luis switches it on.
+AGE12_PRESENTATIONS_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
