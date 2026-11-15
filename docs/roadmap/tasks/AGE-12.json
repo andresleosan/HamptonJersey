@@ -6,14 +6,27 @@
   "fase": "F2",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada. Traído de VIS-04 (15-nov): el portal privado incluye el formulario del aplicante tras la visita (Proceed, Need more information o Not interested; motivo obligatorio para Not interested; nota de 500 caracteres como máximo). Sobre una visita completada sin respuesta escribe outcome, outcome_note, feedback_at y feedback_by = applicant; si el equipo ya anotó un resultado, se guarda aparte y la discrepancia queda visible, sin sobrescribir. Interruptor propio apagado: recoge datos del público y solo lo enciende Luis. Traído de REG-12 (15-nov): el estado y el resultado de la búsqueda visibles para el cliente van en el portal; el formulario público solo muestra el acuse genérico. Traído de EST-04 (15-nov): al registrar qué se presentó al cliente y su respuesta, añadir la rama «espera al aplicante» de In process en server/match-pages.js (junto a WAITING) y su filtro en la ficha; hoy In process solo cuenta la espera a la agencia. Traído de AGE-10 (15-nov): servir al cliente solo las fotos aptas de files() en server/private-media.js (decisión private_approved sobre el mismo etag y tamaño), con concesión y revocación por foto y sin usar la ruta pública /media; la revocación de AGE-10 debe bloquear lecturas futuras. Revisión de AGE-10 (15-nov): files() compara con el etag y tamaño de la última comprobación de SPR-03, no con R2; comprobar el archivo al presentarlo.",
+  "hecho": "15-nov (rama avanzar-age12, apagado): enlace privado por cliente con las casas elegidas por el equipo entre sus matches aprobados, todavía ofrecidos y con disponibilidad confirmada (server/presentation-access.js, migración aditiva 0086_presentation_access.sql, interruptor AGE12_PRESENTATIONS_READY). Token de 256 bits en el fragmento de la URL, solo su SHA-256 en D1, latente hasta que una persona registra el envío («I have sent it»), válido hasta revocación (expires_at null) y canje POST a cookie __Host-hp HttpOnly/Secure/SameSite=Strict de 7 días firmada con HMAC y renovable con el mismo enlace; cada lectura vuelve a comprobar el enlace, así que revocar bloquea las lecturas futuras. Página site/presentation.html sin terceros ni almacenamiento, no-store/noindex/no-referrer; el cliente ve solo sus casas y las fotos aptas de files() de AGE-10, comprobadas en R2 (etag y tamaño) al servirlas por /api/presentation/photos, nunca /media. Responde una vez por casa con POST explícito (interested, request_viewing, not_for_me, call_me, nota opcional ≤500): escribe su fila, un evento y una tarea del Inbox; no cambia matches, criterios, disponibilidad ni visitas. Tarjeta «Private presentation» en la ficha del aplicante para crear, copiar, marcar enviado y revocar. EST-04: filtro «Waiting for client» e In process incluyen casas enviadas sin respuesta.",
+  "falta": "Integrar avanzar-age12 en main y aplicar 0086 en producción (aditiva). Encender AGE12_PRESENTATIONS_READY: ruta pública que recoge respuestas y notas de clientes, solo la enciende Luis (CONTINUIDAD, «No autorizado»; ya lo decía el traslado de VIS-04). Tras encenderlo, comprobar el recorrido en producción con un enlace real y anotarlo. Trasladado fuera (15-nov): formulario del aplicante tras la visita (VIS-04) a VIS-17/VIS-04, porque los accesos de visita son de VIS-17 (plan AGE-12, «Precisión de integración»); estado y resultado de la búsqueda visibles al cliente (REG-12) a PRE-12, porque un portal general no se construye sin PRE-12 (spec lista2 de agencias, párrafo de PRE-12); envío del enlace por correo y marca de envío tras el acuse a AGE-11/AUT-17.",
   "bloqueo": "",
   "evidencia": [
     "server/routes/public.js:178-186",
     "docs/roadmap/ESTADO.md:10",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:304",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/presentation-access.js:24-63 (enlace latente hasta envío, válido hasta revocación; canje POST a cookie de 7 días; cada lectura comprueba el enlace)",
+    "server/presentation-access.js:77-91 (fotos solo de files() de AGE-10 con decisión private_approved y mismo etag/tamaño en R2; nunca /media)",
+    "server/presentation-access.js:103-128 (una respuesta por casa; solo su fila, evento y tarea)",
+    "migrations/0086_presentation_access.sql (aditiva: CREATE TABLE/INDEX)",
+    "server/match-pages.js WAITING_CLIENT (EST-04, In process y filtro waiting_applicant)",
+    "tests/server/presentation-access.test.mjs: 6/6 (apagado y antes de 0086, hash y latencia, aislamiento y fotos, respuestas sin efectos laterales, revocación, EST-04)",
+    "tests/presentation-page.test.js: 2/2; regresiones spr-03-captures 12/12, age-10-private-media 7/7, match-pages 6/6, sap02-match-counts 6/6, age-06-responses 13/13, matches 16/16, applicants 37/37",
+    "tests/age12-private-presentation.e2e.cjs en contenedor aislado sin red, Chromium, 1280 y 390: crear, copiar, latente, enviado, foto apta sí y con marca no, respuesta única, sin visita creada, revocado; sin peticiones a terceros",
+    "Decisión: sin caducidad por defecto (expires_at null) y sesión técnica de 7 días renovable · fuente: docs/roadmap/2026-11-09-list2-published-scope.md:25 y plan AGE-12; la columna expires_at queda para quien la pida",
+    "Decisión: el envío lo registra una persona («I have sent it») porque el equipo copia el enlace · fuente: encargo del 15-nov y spec lista2 (grant dormant, activación por evidencia manual)",
+    "Decisión: una respuesta por casa, motivo opcional ≤500 caracteres, sin versión de presentación porque no hay AGE-11 todavía · fuente: plan AGE-12 tarea 2 y sección 4.5 de la skill (lo más simple y reversible)",
+    "Decisión: solo casas con disponibilidad confirmada (AVAILABLE de match-pages) · fuente: reconciliación M08 (match aprobado y disponibilidad vigente)",
+    "Decisión: sin límite de peticiones propio porque la app no tiene mecanismo; el token de 256 bits impide adivinarlo · fuente: encargo del 15-nov; WAF a MEJORAS"
   ],
   "modulo": "M08",
   "deps": [
@@ -54,6 +67,6 @@
     "private-presentation",
     "applicants-schema"
   ],
-  "nextStep": "Construir respuesta privada del cliente reutilizando su solicitud y franjas, sin alterar requisitos ni disponibilidad general.",
+  "nextStep": "Integrar la rama, aplicar 0086 y dejar a Luis encender AGE12_PRESENTATIONS_READY; después, verificar en producción con un enlace creado, enviado, respondido y revocado.",
   "actualizado": "2026-11-15"
 }
