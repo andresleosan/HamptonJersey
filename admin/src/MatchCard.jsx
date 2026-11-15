@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { AVAILABILITY, fmtDate, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 import { unknownMusts } from "../../server/candidate-state.js";
+import { DISAGREE, provenance } from "./ConfirmedAvailability.jsx";
 
 // The checks of server/matching.js evaluate(), by key.
 const CHECK_LABEL = { ...Object.fromEntries(Object.entries(CRITERIA).map(([k,[label]])=>[k,label])), budget: "Budget", bedrooms: "Bedrooms", bathrooms: "Bathrooms", area: "Area", housing: "Housing",
@@ -21,7 +22,9 @@ const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}
 // EST-13 (M06): the candidate's states (server/candidate-state.js), each on its own row with its own words and action.
 const EVALUATION = { meets: "Stated must-haves met", pending: "Requirements to confirm", alternative: "Alternative · requirements not met",
   excluded: "Outside search criteria" };
-const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirmed: ["positive", "Confirmed"] };
+// EST-16: confirmed only by a recorded confirmation, shown with its date and provenance (match.availability).
+const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirmed: ["positive", "Confirmed"],
+  confirmed_unavailable: ["neutral", "Confirmed not available"] };
 
 // One match as spec §5 shows it: the listing, its score, each check with what the listing says, and the reviews its
 // status allows. onReview({ status, reject_reason }) gets the review chosen. busy: input is ignored, never disabled,
@@ -34,6 +37,7 @@ export default function MatchCard({ match, onReview, onClarify, busy, disabled =
   children, legacy = false }) {
   const l = match.listing, title = l.title;
   const states = match.states, asked = match.clarification, outdated = states.decision === "approved_outdated";
+  const confirmation = match.availability;
   const labels = keys => keys.map(k => CHECK_LABEL[k] ?? k).join(", "), unknown = labels(unknownMusts(match.checks));
   const by = `${match.reviewed_by ? ` by ${match.reviewed_by}` : ""}${match.reviewed_at ? ` · ${fmtDate(match.reviewed_at)}` : ""}`;
   const [own, setOwn] = useState(false);
@@ -70,6 +74,8 @@ export default function MatchCard({ match, onReview, onClarify, busy, disabled =
               <span className={`badge ${outdated ? "neutral" : "active"}`}>Shortlisted</span>{by}</>}</dd></div>
         <div><dt>Availability</dt>
           <dd><span className={`badge ${CONFIRMED[states.availability][0]}`}>{CONFIRMED[states.availability][1]}</span>
+            {confirmation?.needs_review ? <span className="muted"> · {DISAGREE}: record a new one on the property</span>
+              : confirmation && ` · ${provenance(confirmation)}`}
             <span className="muted"> · {l.archived_at ? "Listing archived" : `Listed as ${AVAILABILITY[l.availability] ?? l.availability ?? "not stated"}`}</span></dd></div>
         <div><dt>Enquiry</dt>
           <dd>{asked ? <><span className="badge attention">Clarification approved</span>{` · ${labels(asked.keys ?? [])} by ${asked.by} · ${fmtDate(asked.at)}`}

@@ -6,8 +6,8 @@
   "fase": "F1-B",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Cálculo puro y desconectado que separa observaciones de publicación y confirmaciones humanas por ámbito; rechaza entradas incompletas y conserva contradicciones para revisión. Las pruebas son sintéticas; no hay rutas, datos reales ni almacenamiento nuevos. Se precisaron las guardas y dependencias para persistencia sin habilitar datos ni rutas reales.",
-  "falta": "Construir persistencia versionada y autorización con evidencia, resolver ámbitos generales y específicos, condiciones por hogar, eventos y consumidores de BUS-06/BUS-09/BUS-10. Verificar el recorrido real sin confundir fallo o ausencia de fuente con indisponibilidad ni introducir caducidad no acordada. Mostrar en la tarjeta SPR-01 las fichas externas que incorpore, con estado, precio, dirección, dormitorios, baños y disponibilidad. Traído de BUS-12 (14-nov): la disponibilidad confirmada con evidencia es dimensión propia; el matching solo excluye por el estado de la ficha y una fuente caída o ausente no cuenta como indisponible. Traído de BUS-10 (15-nov): una casa unida no acredita disponibilidad; la disponibilidad por casa se lee de las observaciones de cada publicación. Traído de EST-13 (15-nov): escribir availability: confirmed en candidateState (server/candidate-state.js) solo con fecha, persona o canal, evidencia y alcance; hoy es siempre not_confirmed. Una indisponibilidad conocida debe bloquear la propuesta.",
+  "hecho": "15-nov-2026, construida en rama y apagada (migración 0072 y EST16_AVAILABILITY_READY): tres dimensiones separadas, guardadas y visibles para las fichas propias. Estado publicado: lo que dice la ficha (listings.availability), rotulado «Published status» y «Listed as…». Disponibilidad confirmada: un hecho que registra una persona del equipo con resultado (available, not available, unknown), fecha y hora, quién lo dijo (owner, agency, other), canal (phone, email, in person, message), referencia de evidencia en texto corto y alcance (toda la propiedad o solo su operación). Procedencia: cada confirmación muestra fecha, quién, canal y quién la registró. Historial versionado en availability_confirmations: cada confirmación se añade y ninguna se reescribe (trigger); la vigente es la última por su propia fecha (server/property-facts.js); nada caduca; una antigua registrada tarde no pisa una más nueva; dos contradictorias del mismo instante quedan para revisión y ninguna rige. Rutas con sesión de equipo GET y POST /admin/listings/<id>/availability. La tarjeta de match escribe availability: confirmed o confirmed_unavailable con fecha y procedencia, y sigue en not_confirmed si no hay confirmación vigente. El editor de la ficha tiene la sección «Confirmed availability» con el formulario «Confirm availability» y el historial. Registrar una confirmación, también «Not available», no cambia la ficha, sus matches, eventos ni avisos. Apagado o sin migrar todo funciona como antes.",
+  "falta": "Aplicar la migración 0072, encender EST16_AVAILABILITY_READY y comprobar el recorrido real. Lo demás es de otras tareas: excluir de propuestas y avisar gestiones ante una indisponibilidad confirmada (EST-15); consulta y respuestas de agencia con condiciones por hogar (AGE-03, AGE-06); confirmación y tarjeta de casas del inventario de mercado (SPR-07); evento del hecho (EST-18); retención en papelera (EST-19).",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:152-159",
@@ -18,7 +18,18 @@
     "tests/server/property-facts.test.mjs",
     "docs/roadmap/work/EST-16/foundation-evidence.md",
     "docs/roadmap/work/EST-16/persistence-readiness.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vigencia de la disponibilidad ya decidida."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vigencia de la disponibilidad ya decidida.",
+    "migrations/0072_availability_confirmations.sql (aditiva: una tabla, un índice y un trigger)",
+    "server/availability-confirmations.js, server/candidate-state.js, server/routes/matches.js, server/match-pages.js",
+    "admin/src/ConfirmedAvailability.jsx, admin/src/MatchCard.jsx, admin/src/ListingEditor.jsx (un import y un montaje)",
+    "tests/server/est-16-availability.test.mjs: 9 pruebas en verde (apagado y sin migrar, sesión, validación, una confirmación general en las tarjetas de dos búsquedas, historial, sin caducidad, antigua tardía, alcance por operación, conflicto, repetición)",
+    "Navegador aislado tests/est16-availability.e2e.cjs en verde a 1280 y 390; est13-match-states y vis10-house-rules en verde con el interruptor apagado",
+    "Decisión: una sola tabla de hechos con historial y sin versión esperada; la repetición idéntica no duplica. Fuente: skill sección 5 (ponytail) y plan docs/superpowers/plans/2026-11-08-est-16-commercial-facts-authority.md tarea 1.",
+    "Decisión: las condiciones por hogar no se guardan aquí; EST-16 guarda hechos generales de propiedad u operación y una confirmación se lee igual en todas las búsquedas. Fuente: plan EST-16 tarea 2 (reutilizar AGE-06) y ficha AGE-06 (el empleado registra alcance y condiciones).",
+    "Decisión: la confirmación de casas del inventario de mercado no entra; su identidad cambia con uniones y deshacer y una casa unida no acredita disponibilidad. Su estado publicado y procedencia ya se guardan como observaciones. Fuente: ficha EST-16 (traído de BUS-10) y work/EST-16/persistence-readiness.md.",
+    "Decisión: «Not available» no cambia el estado publicado, no archiva ni retira matches. Fuente: ficha EST-15 (propagación) y plan maestro (dimensiones separadas).",
+    "Decisión: sin plazo de caducidad; rige la última con fecha. Fuente: plan maestro, sección Búsqueda, visitas y publicación propias.",
+    "Decisión: el texto de evidencia solo sale en la ruta de la ficha con sesión; no va en tarjetas, eventos ni logs. Fuente: work/EST-16/persistence-readiness.md (lecturas y escrituras)."
   ],
   "modulo": "M02",
   "deps": [
@@ -43,6 +54,6 @@
     "market-inventory",
     "availability-contract"
   ],
-  "nextStep": "La disponibilidad general se reutiliza hasta nueva información con fecha y las condiciones del cliente van separadas (sin plazos fijos de 7 o 30 días). Construir almacenamiento y autoridad verificables para conectar hechos a inventario y consultas, conservando revisión ante conflictos.",
+  "nextStep": "Aplicar 0072 (aditiva), encender EST16_AVAILABILITY_READY y verificar con lecturas; después cerrar por aceptación propia.",
   "actualizado": "2026-11-15"
 }

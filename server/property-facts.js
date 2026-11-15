@@ -1,4 +1,5 @@
-// EST-16, pure and disconnected: callers must authenticate and verify provenance before supplying facts.
+// EST-16, pure: its caller (server/availability-confirmations.js, behind a staff session) authenticates and records
+// provenance before supplying facts.
 // This calculation does not authorize a booking, contact, capture or change to a property.
 const OPERATIONS = new Set(['sale', 'rent', 'business']);
 const ID = /^[A-Za-z0-9_-]{1,100}$/;
@@ -11,7 +12,7 @@ function object(value, allowed, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)
       || Object.keys(value).some(key => !allowed.has(key))) throw new TypeError(`Invalid ${label}`);
 }
-function instant(value) {
+export function instant(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value))
     throw new TypeError('Invalid UTC instant');
   const date = new Date(value);

@@ -10,6 +10,7 @@ import { afterSave, closeMatchedNoticeIfEmpty } from "../match-store.js";
 import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { COVER_ID, HAS_PUBLIC_PHOTO } from "./listings.js";
 import { candidateState, unknownMusts } from "../candidate-state.js";
+import availabilityRoutes, { confirmationReader } from "../availability-confirmations.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -40,17 +41,20 @@ const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listi
   "operation", "availability", "price_text", "sale_price", "rent", "rent_period", "premium", "currency", "parish", "bedrooms", "bathrooms",
   "published", "archived_at", "updated_at"], [`'cover_id', ${COVER_ID}`, `'has_public_photo', ${HAS_PUBLIC_PHOTO}`])} AS listing`;
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
-export const matchCard = m => {
+// confirmationOf (EST-16): the confirmed availability in force for a listing, if any; matchCards supplies it.
+export const matchCard = (m, confirmationOf = () => undefined) => {
   const {eval_applicant,eval_listing,area_preference_rank,decision_current,clarification:asked,...card} = m;
   const a = JSON.parse(eval_applicant), listing = JSON.parse(eval_listing), r = evaluate(a,listing);
   card.ranking_version=a.match_ranking_version;
+  card.listing=JSON.parse(card.listing);
   // EST-13: the candidate's four states, each from its own facts; the clarification still standing, if any.
-  const clarification = asked ? JSON.parse(asked) : undefined;
-  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification}),
-    ...(clarification ? {clarification} : {})});
+  // EST-16: availability comes from the confirmation's own record (date, source, channel, scope), shown with it.
+  const clarification = asked ? JSON.parse(asked) : undefined, confirmation = confirmationOf(card.listing);
+  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification,confirmation}),
+    ...(clarification ? {clarification} : {}), ...(confirmation ? {availability:confirmation} : {})});
   if(card.status==='rejected'){
     const requirements_status=['meets','pending','alternative','excluded'][card.requirements_rank];
-    return {...card,checks:JSON.parse(card.checks),requirements_status,...states(requirements_status),listing:JSON.parse(card.listing)};
+    return {...card,checks:JSON.parse(card.checks),requirements_status,...states(requirements_status)};
   }
   const current = a.search_category === 'commercial' || !!parsePriorities(a.requirement_priorities);
   const petsRefused = hasAnswer('pets',a) && hasHouseholdPets(a) && petPolicy(listing) === 'no';
@@ -65,8 +69,14 @@ export const matchCard = m => {
     : evaluate(a,{...listing,archived_at:null,availability:null}).requirements_status;
   return {...card, ...(petsRefused ? {pets_refused:true} : {}), score:card.score, checks:current ? r.checks : legacyChecks(),
     requirements_status, requirements_rank:r.requirements_rank, ...states(requirements_status),
-    ...(refresh ? {requirements_refresh_needed:true} : {}), listing:JSON.parse(card.listing)};
+    ...(refresh ? {requirements_refresh_needed:true} : {})};
 };
+// The cards of these rows, each with the confirmation in force for its listing: one read for all of them, and none
+// while EST-16 is off.
+export async function matchCards(env, rows) {
+  const confirmationOf = await confirmationReader(env, rows.map(row => JSON.parse(row.listing).id));
+  return rows.map(row => matchCard(row, confirmationOf));
+}
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
 const QUEUED = `m.status = 'found' AND ${activeSql("a")}`;
@@ -178,7 +188,7 @@ async function review({ request, env, admin, params: [id] }) {
   // match null: the match is no longer proposed.
   // Undo may race with a search edit during recomputation: return its summary and revision from the same snapshot as the card.
   const row = await env.DB.prepare(`${QUEUE_ROW} WHERE m.id = ?`).bind(m.id).first();
-  const { applicant: applicantJson, ...card } = row ? matchCard(row) : {};
+  const { applicant: applicantJson, ...card } = row ? (await matchCards(env, [row]))[0] : {};
   const applicant = applicantJson ? JSON.parse(applicantJson) : null;
   const finalRevision = reviewed ? results.at(-1).results[0].matches_revision
     : applicant?.matches_revision ?? (await env.DB.prepare("SELECT matches_revision FROM applicants WHERE id = ?").bind(m.applicant_id).first())?.matches_revision;
@@ -194,7 +204,8 @@ async function clarification({ request, env, admin, params: [id] }) {
   const read = () => env.DB.prepare(`SELECT ${CARD}, m.listing_id, a.archived_at, a.stage, a.search_state, a.match_inputs_revision AS search_version,
     ${LISTING_VERSION} AS listing_version FROM matches m JOIN listings l ON l.id = m.listing_id
     JOIN applicants a ON a.id = m.applicant_id WHERE m.id = ?`).bind(Number(id)).first();
-  const card = ({ listing_id, archived_at, stage, search_state, search_version, listing_version, ...row }) => matchCard(row);
+  const own = ({ listing_id, archived_at, stage, search_state, search_version, listing_version, ...row }) => row;
+  const card = row => matchCard(own(row));
   const m = await read();
   if (!m) fail(404, "Match not found");
   if (m.archived_at) fail(409, "Restore this search to review its matches");
@@ -215,7 +226,7 @@ async function clarification({ request, env, admin, params: [id] }) {
       search_version: m.search_version, listing_version: m.listing_version }), m.id, m.search_version, m.listing_version).run();
   if (!meta.changes) fail(409, "The search or the property changed. Reload to see it.");
   const after = await read();
-  return json({ match: after ? card(after) : null });
+  return json({ match: after ? (await matchCards(env, [own(after)]))[0] : null });
 }
 
 // The next found match of the queue after `after` (a match id), with its search and listing. remaining (the whole queue)
@@ -239,7 +250,7 @@ async function next({ request, env }) {
   let remaining = count?.[0].n;
   if (!row && remaining === undefined) remaining = (await env.DB.prepare(QUEUE_COUNT_SQL).first()).n;
   if (!row) return json({ match: null, remaining });
-  const { listing, applicant, ...match } = matchCard(row);
+  const { listing, applicant, ...match } = (await matchCards(env, [row]))[0];
   return json({ match, applicant: JSON.parse(applicant), listing, remaining });
 }
 
@@ -294,4 +305,5 @@ export default [
   ["PUT", /^\/admin\/matches\/(\d+)\/clarification$/, clarification, true],
   ["POST", /^\/admin\/matches\/recalculate$/, recalculate, true],
   ["GET", /^\/admin\/review$/, next, true],
+  ...availabilityRoutes, // EST-16: they answer { enabled: false } or 404 until EST16_AVAILABILITY_READY and migration 0072
 ];

@@ -1,6 +1,6 @@
 // Authenticated keyset pages. The cursor describes a position and never grants access.
 import {fail} from './http.js';
-import {MATCHES_SQL,matchCard,MATCH_ORDER} from './routes/matches.js';
+import {MATCHES_SQL,matchCards,MATCH_ORDER} from './routes/matches.js';
 export const MATCH_COUNTS_SQL=`SELECT status,COUNT(*) AS n FROM matches WHERE applicant_id=? GROUP BY status`;
 export const matchCounts=rows=>Object.fromEntries(['found','shortlisted','rejected'].map(s=>[s,rows.find(r=>r.status===s)?.n??0]));
 const encode=c=>btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(c)))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
@@ -36,7 +36,7 @@ export async function pageMatches(env,applicantId,{status,after=null}){
  const a=meta.results[0];if(!a)fail(404,'Search not found');
  if(c&&c.revision!==a.matches_revision)fail(409,'Matches changed. Start again from the first page.');
  const rows=page.results.slice(0,25),last=rows.at(-1);
- return {matches:rows.map(matchCard),counts:matchCounts(totals.results),revision:a.matches_revision,rankingVersion:a.match_ranking_version,
+ return {matches:await matchCards(env,rows),counts:matchCounts(totals.results),revision:a.matches_revision,rankingVersion:a.match_ranking_version,
   next:page.results.length>25?encode({v:2,applicantId,status,revision:a.matches_revision,rank:last.requirements_rank,score:last.score,
    areaRank:last.area_preference_rank,listingId:JSON.parse(last.listing).id,id:last.id}):null};
 }
