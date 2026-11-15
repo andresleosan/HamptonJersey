@@ -7,11 +7,12 @@ const TEL = "01534 727582";
 const STORE = "hampton-apply";
 
 // The receipt is intentionally independent of the person's answers and of any matching result. REG-12: a new search
-// is active as soon as it is saved, but the same words must stay true for a repeat, which only goes to the team.
+// is active as soon as it is saved, but the same words must stay true for a repeat and for someone whose phone or
+// email is already on another contact: both only go to the team.
 export function showRegistrationConfirmation(body) {
   body.innerHTML = `<div class="confirm" role="status" tabindex="-1">
     <h2>Thank you. We have received your search request.</h2>
-    <p>New searches are active straight away: we look for suitable properties while our team checks any missing details. If you have registered before, the team will review this request alongside your existing searches.</p>
+    <p>A new search is active straight away: we look for suitable properties while our team checks any missing details. If any of your contact details are already registered with us, the team will review this request alongside the earlier searches first.</p>
     <p>We'll be in touch within one working day and will ask about any details we need to confirm. We cannot promise that a suitable property is available now.</p>
     <div class="actions"><a class="btn ghost" href="#portfolio">See our properties</a></div></div>`;
   body.querySelector(".confirm").focus();

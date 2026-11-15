@@ -50,8 +50,8 @@ const BASE=process.env.BASE, shots=process.env.E2E_SHOTS || '/tmp/reg08-captures
       assert.equal(await receipt.evaluate(el=>document.activeElement===el),true);
       assert.equal(await receipt.getByRole('heading',{level:2}).textContent(),'Thank you. We have received your search request.');
       const text=await receipt.innerText();
-      assert.match(text,/New searches are active straight away: we look for suitable properties while our team checks any missing details\./);
-      assert.match(text,/If you have registered before, the team will review this request alongside your existing searches\./);
+      assert.match(text,/A new search is active straight away: we look for suitable properties while our team checks any missing details\./);
+      assert.match(text,/If any of your contact details are already registered with us, the team will review this request alongside the earlier searches first\./);
       assert.match(text,/We'll be in touch within one working day and will ask about any details we need to confirm\./);
       assert.match(text,/We cannot promise that a suitable property is available now\./);
       assert.doesNotMatch(text,/Synthetic REG12|\d|match|found|already|on file|viewing/i);
