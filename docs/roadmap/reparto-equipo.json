@@ -33,11 +33,11 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 61,
-      "openCount": 32,
+      "openCount": 31,
       "states": {
         "replanteado": 8,
-        "hecho": 18,
-        "pendiente": 13,
+        "hecho": 19,
+        "pendiente": 12,
         "parcial": 15,
         "bloqueado": 4,
         "descartado": 3
@@ -1953,15 +1953,22 @@
       "titulo": "Fotografías aptas para presentación privada y originales con procedencia",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "M07 · Reconciliación 7-nov: Preparar fotos aptas para presentación privada: propias o versiones sin marca facilitadas o autorizadas para compartir. Conservar originales, procedencia, permiso y fecha en la ficha interna; si solo hay fotos con marca, tarea para obtener versión adecuada. No eliminar marcas automáticamente ni republicar anuncios ajenos en la web pública por este flujo. Sustituye la condición histórica de ocultar hasta acordar comisión; esta no bloquea la visita. Depende de: SPR-03, AGE-04. Aceptación: Una foto solo marcada permanece interna y pendiente de versión apta; ningún automatismo borra marcas ni publica la captura. Traído de SPR-08 (15-nov): Adverts enlaza a cada anuncio pero no muestra ni guarda sus fotografías; el permiso y la captura de imágenes de anuncios ajenos siguen aquí. Traído de BUS-07 (15-nov): las fotos nuevas de una ficha co-listed no heredan el rights_status de la importación del 8-oct, que BUS-07 muestra tal cual. Traído de SPR-03 (15-nov): partir de la captura SPR-03 (property_capture_assets en stored) para decidir qué fotos son aptas para un cliente; SPR-03 no concede permiso de presentación.",
+      "hecho": "Construida apagada (AGE10_PHOTOS_READY, migración 0085 image_permissions): tarjeta «Photos for clients» en la ficha que, sobre la última captura SPR-03, deja decidir archivo por archivo si es apto para presentación privada (foto propia o versión sin marca facilitada o autorizada, con evidencia), con marca (queda interna) o no autorizado, y retirar un permiso. Cada decisión se guarda sin reescribirse, con la procedencia del original, su huella (etag y tamaño de SPR-03), quién y cuándo, y un evento en el historial. Si solo hay fotos con marca se abre una tarea en el Inbox para conseguir una versión apta y se cierra al aprobar una. No modifica archivos, no quita marcas, no publica ni envía. Cerrada el 15-nov-2026: migración 0085 aplicada y AGE10_PHOTOS_READY=1. La lectura protegida para el cliente es de AGE-12 y la presentación de AGE-11 (ya trasladado a su falta).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
         "server/routes/public.js:178-186",
-        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+        "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+        "server/private-media.js · migrations/0085_image_permissions.sql · admin/src/PrivateMediaReview.jsx",
+        "tests/server/age-10-private-media.test.mjs (7/7) y tests/age10-photo-permissions.e2e.cjs a 1280 y 390 en contenedor aislado, 15-nov",
+        "Decisión: apta = foto propia o versión sin marca facilitada o autorizada, con evidencia salvo la propia; fuente: esta ficha (M07) y spec 2026-11-08-list2-agency-batch-design.md §E",
+        "Decisión: la huella del original es el etag y tamaño que guardó SPR-03, sin leer bytes (límites de Workers); un archivo cambiado vuelve a revisión; fuente: SPR-03 y skill §4.5",
+        "Decisión: la versión apta es otro archivo con su propia decisión y el original con marca se conserva intacto, sin enlace explícito entre ambos; fuente: spec §E y skill §4.5",
+        "Decisión: ni el rights_status de la importación del 8-oct ni la comisión o notas del directorio hacen apta una foto; fuente: plan AGE-10 tarea 1 y ficha",
+        "Cierre 15-nov-2026: publicada en 3de97ac (aa586b4); 0085 (una tabla nueva, aditiva) aplicada tras marcador Time Travel; npm test en verde; tests/age10-photo-permissions.e2e.cjs pasa a 1280 y 390; revisión independiente sin graves (apagado: un GET que responde enabled:false sin tocar D1; sesión, mismo origen, SQL parametrizado, versiones con 409, solo archivos stored con el mismo etag y tamaño); sus menores van a MEJORAS y a AGE-11/AGE-12."
       ],
       "modulo": "M07",
       "deps": [
@@ -1989,13 +1996,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Propietario/anunciante debe facilitar o autorizar imágenes aptas cuando falten permisos.",
+      "externalBlocker": "",
       "resources": [
         "media-pipeline",
         "advertisers-directory",
         "private-presentation"
       ],
-      "nextStep": "Gestionar originales, permiso e imágenes aptas para presentación privada sin quitar marcas automáticamente.",
+      "nextStep": "Hecha.",
       "actualizado": "2026-11-15"
     },
     {
@@ -2007,7 +2014,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático.",
+      "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático. Traído de AGE-10 (15-nov): una presentación solo puede incluir fotos aptas de AGE-10 y debe quedar bloqueada si la captura no tiene ninguna. Revisión de AGE-10 (15-nov): files() compara con el etag y tamaño de la última comprobación de SPR-03, no con R2; comprobar el archivo al presentarlo.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:279-281",
@@ -2079,7 +2086,7 @@
         "outbound-policy"
       ],
       "nextStep": "Preparar la presentación privada con revisión humana adicional antes de cada envío y enlace válido hasta su revocación; la envía un empleado, nunca sola.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-15"
     },
     {
       "id": "AGE-12",
@@ -2090,7 +2097,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada. Traído de VIS-04 (15-nov): el portal privado incluye el formulario del aplicante tras la visita (Proceed, Need more information o Not interested; motivo obligatorio para Not interested; nota de 500 caracteres como máximo). Sobre una visita completada sin respuesta escribe outcome, outcome_note, feedback_at y feedback_by = applicant; si el equipo ya anotó un resultado, se guarda aparte y la discrepancia queda visible, sin sobrescribir. Interruptor propio apagado: recoge datos del público y solo lo enciende Luis. Traído de REG-12 (15-nov): el estado y el resultado de la búsqueda visibles para el cliente van en el portal; el formulario público solo muestra el acuse genérico. Traído de EST-04 (15-nov): al registrar qué se presentó al cliente y su respuesta, añadir la rama «espera al aplicante» de In process en server/match-pages.js (junto a WAITING) y su filtro en la ficha; hoy In process solo cuenta la espera a la agencia.",
+      "falta": "M08 · Reconciliación 7-nov: Construir acceso privado a las opciones presentadas con respuesta interesado, quiere visitarla, no encaja con motivo o necesita llamada. Reutilizar la solicitud y franjas previas; no repetir el formulario completo. El motivo de descarte no modifica MUST ni disponibilidad general. Cualquier cambio de criterios pasa por confirmación del empleado; pausa/retirada son decisiones adicionales abiertas. Conservar revocación y protección del enlace, y tratar descarga/borrado de datos según PRE-12. Depende de: AGE-10, REG-17, EST-13. Aceptación: Not for me solo afecta al match de ese cliente; pedir visita inicia coordinación, no una cita confirmada. Traído de VIS-04 (15-nov): el portal privado incluye el formulario del aplicante tras la visita (Proceed, Need more information o Not interested; motivo obligatorio para Not interested; nota de 500 caracteres como máximo). Sobre una visita completada sin respuesta escribe outcome, outcome_note, feedback_at y feedback_by = applicant; si el equipo ya anotó un resultado, se guarda aparte y la discrepancia queda visible, sin sobrescribir. Interruptor propio apagado: recoge datos del público y solo lo enciende Luis. Traído de REG-12 (15-nov): el estado y el resultado de la búsqueda visibles para el cliente van en el portal; el formulario público solo muestra el acuse genérico. Traído de EST-04 (15-nov): al registrar qué se presentó al cliente y su respuesta, añadir la rama «espera al aplicante» de In process en server/match-pages.js (junto a WAITING) y su filtro en la ficha; hoy In process solo cuenta la espera a la agencia. Traído de AGE-10 (15-nov): servir al cliente solo las fotos aptas de files() en server/private-media.js (decisión private_approved sobre el mismo etag y tamaño), con concesión y revocación por foto y sin usar la ruta pública /media; la revocación de AGE-10 debe bloquear lecturas futuras. Revisión de AGE-10 (15-nov): files() compara con el etag y tamaño de la última comprobación de SPR-03, no con R2; comprobar el archivo al presentarlo.",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:178-186",

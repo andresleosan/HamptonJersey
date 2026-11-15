@@ -4,10 +4,10 @@
   "titulo": "Fotografías aptas para presentación privada y originales con procedencia",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "hecho",
   "responsable": "desarrollo",
-  "hecho": "Construida apagada (AGE10_PHOTOS_READY, migración 0085 image_permissions): tarjeta «Photos for clients» en la ficha que, sobre la última captura SPR-03, deja decidir archivo por archivo si es apto para presentación privada (foto propia o versión sin marca facilitada o autorizada, con evidencia), con marca (queda interna) o no autorizado, y retirar un permiso. Cada decisión se guarda sin reescribirse, con la procedencia del original, su huella (etag y tamaño de SPR-03), quién y cuándo, y un evento en el historial. Si solo hay fotos con marca se abre una tarea en el Inbox para conseguir una versión apta y se cierra al aprobar una. No modifica archivos, no quita marcas, no publica ni envía.",
-  "falta": "Integrar en main, aplicar 0085 en producción, encender AGE10_PHOTOS_READY y comprobar el recorrido con una captura real. Fuera de esta tarea: la lectura protegida de fotos aptas para el cliente (concesión y revocación) es de AGE-12 y el envío de la presentación de AGE-11.",
+  "hecho": "Construida apagada (AGE10_PHOTOS_READY, migración 0085 image_permissions): tarjeta «Photos for clients» en la ficha que, sobre la última captura SPR-03, deja decidir archivo por archivo si es apto para presentación privada (foto propia o versión sin marca facilitada o autorizada, con evidencia), con marca (queda interna) o no autorizado, y retirar un permiso. Cada decisión se guarda sin reescribirse, con la procedencia del original, su huella (etag y tamaño de SPR-03), quién y cuándo, y un evento en el historial. Si solo hay fotos con marca se abre una tarea en el Inbox para conseguir una versión apta y se cierra al aprobar una. No modifica archivos, no quita marcas, no publica ni envía. Cerrada el 15-nov-2026: migración 0085 aplicada y AGE10_PHOTOS_READY=1. La lectura protegida para el cliente es de AGE-12 y la presentación de AGE-11 (ya trasladado a su falta).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:297",
@@ -18,7 +18,8 @@
     "Decisión: apta = foto propia o versión sin marca facilitada o autorizada, con evidencia salvo la propia; fuente: esta ficha (M07) y spec 2026-11-08-list2-agency-batch-design.md §E",
     "Decisión: la huella del original es el etag y tamaño que guardó SPR-03, sin leer bytes (límites de Workers); un archivo cambiado vuelve a revisión; fuente: SPR-03 y skill §4.5",
     "Decisión: la versión apta es otro archivo con su propia decisión y el original con marca se conserva intacto, sin enlace explícito entre ambos; fuente: spec §E y skill §4.5",
-    "Decisión: ni el rights_status de la importación del 8-oct ni la comisión o notas del directorio hacen apta una foto; fuente: plan AGE-10 tarea 1 y ficha"
+    "Decisión: ni el rights_status de la importación del 8-oct ni la comisión o notas del directorio hacen apta una foto; fuente: plan AGE-10 tarea 1 y ficha",
+    "Cierre 15-nov-2026: publicada en 3de97ac (aa586b4); 0085 (una tabla nueva, aditiva) aplicada tras marcador Time Travel; npm test en verde; tests/age10-photo-permissions.e2e.cjs pasa a 1280 y 390; revisión independiente sin graves (apagado: un GET que responde enabled:false sin tocar D1; sesión, mismo origen, SQL parametrizado, versiones con 409, solo archivos stored con el mismo etag y tamaño); sus menores van a MEJORAS y a AGE-11/AGE-12."
   ],
   "modulo": "M07",
   "deps": [
@@ -46,12 +47,12 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Propietario/anunciante debe facilitar o autorizar imágenes aptas cuando falten permisos.",
+  "externalBlocker": "",
   "resources": [
     "media-pipeline",
     "advertisers-directory",
     "private-presentation"
   ],
-  "nextStep": "Integrar el commit, aplicar 0085 con su ensayo y marcador, encender AGE10_PHOTOS_READY y revisar una foto de una captura real.",
+  "nextStep": "Hecha.",
   "actualizado": "2026-11-15"
 }
