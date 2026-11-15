@@ -21,8 +21,10 @@ export function passesExtra(l, f, today = new Date()) {
   if ((from != null || to != null) && (l.bedrooms == null || (from != null && l.bedrooms < from) || (to != null && l.bedrooms > to))) return false;
   const [min, max] = [num(f.min), num(f.max)], price = monthlyPrice(l);
   if ((min != null || max != null) && (price == null || (min != null && price < min) || (max != null && price > max))) return false;
-  // ponytail: "changed" = last saved edit (updated_at); price/availability only once SPR-02 keeps a history.
-  return !f.recent || today - new Date(l.updated_at) <= 7 * DAY;
+  // "Changed" = the last saved edit (updated_at); with BUS07_PROVENANCE_READY the server sends material_change_at, the
+  // latest change of price or availability in the listing's history over the last 7 days (null: none).
+  const changed = l.material_change_at !== undefined ? l.material_change_at : l.updated_at;
+  return !f.recent || (changed != null && today - new Date(changed) <= 7 * DAY);
 }
 
 export const bedsLabel = n => (n == null ? "" : n === 0 ? "Studio" : `${n} bed`);

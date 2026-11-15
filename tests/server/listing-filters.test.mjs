@@ -61,6 +61,9 @@ test("no price leaves once min or max is set", () => {
 test("recent means the last 7 days", () => {
   assert.equal(keeps(L({ updated_at: "2026-11-01T12:00:00.000Z" }), { recent: true }), true);
   assert.equal(keeps(L({ updated_at: "2026-10-29T11:59:00.000Z" }), { recent: true }), false);
+  // SPR-07 with BUS07_PROVENANCE_READY: a recent cosmetic save is not a change; only price or availability counts.
+  assert.equal(keeps(L({ updated_at: "2026-11-01T12:00:00.000Z", material_change_at: null }), { recent: true }), false);
+  assert.equal(keeps(L({ updated_at: "2026-10-01T12:00:00.000Z", material_change_at: "2026-11-01T12:00:00.000Z" }), { recent: true }), true);
 });
 
 test("bedsLabel and daysAgo wording", () => {

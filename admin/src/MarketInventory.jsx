@@ -115,7 +115,7 @@ const money = p => p ? new Intl.NumberFormat("en-GB", { style: "currency", curre
 const both = new Intl.ListFormat("en-GB", { type: "conjunction" });
 // Two listings side by side when there is room, one under the other on a phone or at 200% zoom.
 const sideBySide = { gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))" };
-function Listing({ p }) {
+export function Listing({ p }) {
   const title = p.title || "Untitled listing";
   return <div><dt>{p.source_ref} · Channel {p.channel_id} · Ref {p.external_key}</dt>
     <dd>{safeHref(p.listing_url) ? <a href={p.listing_url} target="_blank" rel="noreferrer">{title}</a> : title}

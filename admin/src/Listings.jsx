@@ -17,15 +17,23 @@ const regionOf = c => (c === "Jersey" ? "jersey" : c === "United Kingdom" ? "uk"
 // SPR-06 / SPR-07: the filters beyond Use, Region, Availability and Parish ("" = Any; see listing-filters.js).
 const NO_EXTRA = { op: "", bedsFrom: "", bedsTo: "", min: "", max: "", recent: false };
 const BEDS = [["0", "Studio"], ...[1, 2, 3, 4, 5, 6].map(n => [String(n), String(n)])];
+// BUS-07 / SPR-07 (BUS07_PROVENANCE_READY): who markets each listing, from the server's provenance. Source filter values:
+// "hampton", "co_listed", or "agency:<name>" for one advertiser or imported agency.
+const agenciesOf = l => l.provenance?.labels ?? [];
+const passesSource = (l, source) => !source || (source.startsWith("agency:") ? agenciesOf(l).includes(source.slice(7))
+  : l.provenance?.kind === source);
+const CONFIRMED_BY = { owner: "owner", agency: "agency", other: "other source" };
 
 export default function Listings({ onChange }) {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
   const [withdrawalTracking,setWithdrawalTracking]=useState(false),[withdrawal,setWithdrawal]=useState(null);
+  const [tracking, setTracking] = useState(false), [source, setSource] = useState("");
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
     [region, setRegion] = useState(""), [avail, setAvail] = useState(""), [parish, setParish] = useState("");
   const [extra, setExtra] = useState(NO_EXTRA), [msg, setMsg] = useState(null);
   const setX = patch => setExtra(x => ({ ...x, ...patch }));
-  const load = () => api("/admin/listings").then(d => {setRows(d.listings);setWithdrawalTracking(d.withdrawal_tracking===true);}, e => setError(e.message));
+  const load = () => api("/admin/listings").then(d => {setRows(d.listings);setWithdrawalTracking(d.withdrawal_tracking===true);
+    setTracking(d.provenance_tracking === true);}, e => setError(e.message));
   useEffect(() => { load(); }, []);
   const act = async (e, l, action, done) => {
     e.currentTarget.closest("details")?.removeAttribute("open");
@@ -55,13 +63,14 @@ export default function Listings({ onChange }) {
   const shown = rows.filter(l => inTab(l, tab) && (!use || l.use === use)
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
     && (!parish || (parish === UNKNOWN ? l.parish == null : l.parish === parish))
-    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)) && passesExtra(l, extra))
+    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)) && passesExtra(l, extra) && passesSource(l, source))
     .sort((a, b) => a.id.localeCompare(b.id));
   // Position of each starred listing in the home page's Featured section: published ones with a public photo, in star order.
   const featNo = Object.fromEntries((rows || []).filter(l => stateOf(l) === "published" && l.has_public_photo && l.featured_rank != null)
     .sort((a, b) => a.featured_rank - b.featured_rank).map((l, i) => [l.id, i + 1]));
-  const filtered = needle || use || region || avail || parish || Object.entries(extra).some(([k, v]) => v !== NO_EXTRA[k]);
-  const clear = () => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); setExtra(NO_EXTRA); };
+  const filtered = needle || use || region || avail || parish || source || Object.entries(extra).some(([k, v]) => v !== NO_EXTRA[k]);
+  const clear = () => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); setSource(""); setExtra(NO_EXTRA); };
+  const agencies = [...new Set(rows.flatMap(agenciesOf))].sort((a, b) => a.localeCompare(b));
 
   return <section className="listings-screen" aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
@@ -82,6 +91,9 @@ export default function Listings({ onChange }) {
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
         {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}<option value={UNKNOWN}>Unknown</option></select></label>
+      {tracking && <label>Source<select value={source} onChange={e => setSource(e.target.value)}><option value="">All</option>
+        <option value="hampton">Hampton</option><option value="co_listed">Co-listed</option>
+        {agencies.map(a => <option key={a} value={`agency:${a}`}>Co-listed · {a}</option>)}</select></label>}
       <fieldset className="range"><legend>Bedrooms</legend><div>
         <label>From<select value={extra.bedsFrom} onChange={e => { const r = bedsRange(e.target.value, extra.bedsTo); setX({ bedsFrom: r.from, bedsTo: r.to }); }}>
           <option value="">Any</option>{BEDS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -90,13 +102,14 @@ export default function Listings({ onChange }) {
       <fieldset className="range"><legend>Price £ <span className="muted">(rent per month)</span></legend><div>
         <label>Min<input type="number" min="0" step="1" inputMode="numeric" value={extra.min} onChange={e => setX({ min: e.target.value })} /></label>
         <label>Max<input type="number" min="0" step="1" inputMode="numeric" value={extra.max} onChange={e => setX({ max: e.target.value })} /></label></div></fieldset>
-      <label className="check"><input type="checkbox" checked={extra.recent} onChange={e => setX({ recent: e.target.checked })} />Changed in the last 7 days</label>
+      <label className="check"><input type="checkbox" checked={extra.recent} onChange={e => setX({ recent: e.target.checked })} />
+        {tracking ? "Price or availability changed in the last 7 days" : "Changed in the last 7 days"}</label>
     </div>
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}</p>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {shown.length ? <table className="list listings">
       <thead><tr><th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
-        <th scope="col">Parish</th><th scope="col">Price</th><th scope="col">Availability</th>
+        <th scope="col">Parish</th>{tracking && <th scope="col">Source</th>}<th scope="col">Price</th><th scope="col">Availability</th>
         <th scope="col">Checked</th><th scope="col">Matched</th><th scope="col">Interested</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
       <tbody>{shown.map(l => <tr key={l.id}>
@@ -108,10 +121,15 @@ export default function Listings({ onChange }) {
           <div><a href={`#/p/${l.id}`}>{l.title}</a>{stateOf(l)==='ready_for_review'&&<span className="badge attention">Ready for review</span>}<div className="meta"><span>{l.id}</span><span>{OPERATION[l.operation]}</span>{bedsLabel(l.bedrooms) && <span>{bedsLabel(l.bedrooms)}</span>}{bathsLabel(l.bathrooms) && <span>{bathsLabel(l.bathrooms)}</span>}</div></div></div></td>
         <td>{l.location || l.country || "—"}</td>
         <td className="parish" data-label="Parish">{l.parish ?? "—"}</td>
+        {tracking && <td className="stat" data-label="Source">{l.provenance.kind === "hampton" ? "Hampton" : <>Co-listed
+          <div className="muted">{agenciesOf(l).join(", ") || "Agency not recorded"}</div></>}</td>}
         <td className="num">{priceText(l)}</td>
         <td>{AVAILABILITY[l.availability]}{l.to_confirm === 1 && <> <span className="badge attention">To confirm</span></>}
           {l.available_on && l.archived_at == null && ON_MARKET.includes(l.availability) && <div className="muted">Available from {fmtDayMonth(l.available_on)}</div>}</td>
-        <td className="stat" data-label="Checked">{daysAgo(l.confirmed_at)}</td>
+        <td className="stat" data-label="Checked">{daysAgo(l.confirmed_at)}
+          {tracking && "confirmed" in l && <div className="muted">{!l.confirmed ? "Not confirmed" : l.confirmed.needs_review ? "Confirmation needs review"
+            : `Confirmed ${fmtDayMonth(l.confirmed.confirmed_at.slice(0, 10))} · ${CONFIRMED_BY[l.confirmed.source] ?? l.confirmed.source}`}</div>}
+          {tracking && l.seen_at && <div className="muted">Seen on the web {fmtDayMonth(l.seen_at)}</div>}</td>
         <td className="stat num" data-label="Matched">{l.matched}</td>
         <td className="stat num" data-label="Interested">{l.interested}</td>
         <td>{stateOf(l) === "archived" ? <span className="badge archived">{STATUS_LABEL.archived}</span>

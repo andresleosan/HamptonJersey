@@ -19,6 +19,7 @@ import { validateListingContent,readListingContent,listingContentUpdateStatement
 import { researchDuplicateReviewStatement, researchDuplicateReview } from '../research-duplicate-review.js';
 import { documentsReady, reconcileDocuments } from '../listing-documents.js';
 import noteRoutes, { sectionsOn } from '../property-notes.js';
+import provenanceRoutes, { provenanceReady, listProvenance } from '../listing-provenance.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -58,7 +59,10 @@ async function list({ request, env }) {
   if (parish && !ENUMS.parish.includes(parish)) fail(400, "Invalid parish");
   const { results } = await env.DB.prepare(`${LIST_SQL} ${parish ? "WHERE l.parish = ?" : ""} ORDER BY l.id`)
     .bind(now(), ...interestDates(), ...(parish ? [parish] : [])).all();
-  return json({ listings: results, ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}) });
+  // BUS-07 / SPR-07: source, web sighting, confirmation and material change, read once for the page.
+  const tracked = provenanceReady(env);
+  return json({ listings: tracked ? await listProvenance(env, results) : results, ...(tracked ? { provenance_tracking: true } : {}),
+    ...(env.PUB09_WITHDRAWALS_READY === '1' ? { withdrawal_tracking: true } : {}) });
 }
 
 async function detail({ env, admin, params: [id] }) {
@@ -565,4 +569,5 @@ export default [
   ["POST", new RegExp(`^/admin/listings/${ID}/confirm$`), confirm, true],
   ["PUT", new RegExp(`^/admin/listings/${ID}/featured$`), setFeatured, true],
   ...noteRoutes, // SPR-08: they answer 404 until SPR08_SECTIONS_READY and migration 0079
+  ...provenanceRoutes, // BUS-07: 404 until BUS07_PROVENANCE_READY; linking also needs migration 0081 and BUS-10
 ];

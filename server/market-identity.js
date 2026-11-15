@@ -38,6 +38,16 @@ function publication(row) {
     bathrooms: f.bathrooms ?? null, price: price(n), location: n.territory_evidence ?? null, observed_at: n.observed_at ?? null };
 }
 const pair = (a, b) => a < b ? `${a}|${b}` : `${b}|${a}`;
+// The latest reading of each listing of a source open now; a listing its source withdrew is left out.
+const LATEST = `SELECT id,source_ref,channel_id,external_key,normalized_json,json_extract(raw_json,'$.listing_url') AS listing_url FROM (
+    SELECT o.id,o.source_ref,o.channel_id,o.external_key,o.normalized_json,o.raw_json,
+      ROW_NUMBER() OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key ORDER BY o.source_at DESC,o.sequence DESC) AS n,
+      MAX(o.deleted_tombstone) OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key) AS gone
+    FROM market_observations o JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
+      AND s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR EXISTS (SELECT 1
+        FROM market_directory_manifests m WHERE m.revision=s.directory_revision AND m.status='accepted')))
+  WHERE n=1 AND gone=0`;
 
 // The review a person works from: possible duplicates, homes already linked and pairs kept apart.
 // Reading it writes nothing. A pair is proposed only when operation, parish and bedrooms are known and equal
@@ -45,15 +55,7 @@ const pair = (a, b) => a < b ? `${a}|${b}` : `${b}|${a}`;
 export const readIdentityReview = gated(async env => {
   const db = primary(env.DB);
   const [latest, linked, aliases, apart] = await db.batch([
-    db.prepare(`SELECT id,source_ref,channel_id,external_key,normalized_json,json_extract(raw_json,'$.listing_url') AS listing_url FROM (
-        SELECT o.id,o.source_ref,o.channel_id,o.external_key,o.normalized_json,o.raw_json,
-          ROW_NUMBER() OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key ORDER BY o.source_at DESC,o.sequence DESC) AS n,
-          MAX(o.deleted_tombstone) OVER (PARTITION BY o.source_ref,o.channel_id,o.external_key) AS gone
-        FROM market_observations o JOIN market_sources s ON s.source_ref=o.source_ref AND s.channel_id=o.channel_id
-          AND s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-          AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR EXISTS (SELECT 1
-            FROM market_directory_manifests m WHERE m.revision=s.directory_revision AND m.status='accepted')))
-      WHERE n=1 AND gone=0 ORDER BY source_ref,channel_id,external_key LIMIT ?`).bind(READ + 1),
+    db.prepare(`${LATEST} ORDER BY source_ref,channel_id,external_key LIMIT ?`).bind(READ + 1),
     db.prepare(`SELECT a.source_ref,a.channel_id,a.external_key,l.operation,io.property_id
       FROM market_listings l JOIN market_observations a ON a.id=l.anchor_observation_id
       JOIN market_identity_observations io ON io.observation_id=a.id`),
@@ -186,4 +188,40 @@ export const undoIdentityDecision = gated(async (env, input, actor) => {
     .bind(id, input.operation_id, actor, new Date().toISOString(), input.decision_id).run();
   if (!done.meta.changes) conflict('That decision had already changed');
   return { decision_id: id, action: 'reopen' };
+});
+
+// BUS-07: the home of the advert a person chose to link a Hampton listing to (a provisional one is opened for an
+// advert nobody has decided on yet, as above). The source must be open now; nothing else is written.
+export const homeOfObservation = gated(async (env, observationId, actor) => {
+  if (!uuid(observationId)) bad();
+  const { property, root } = await listingHome(env, primary(env.DB), observationId, actor);
+  return { property_id: property, root_property_id: root };
+});
+
+// BUS-07: the adverts a person may link a listing of this operation to, newest reading first. Reading writes nothing.
+export const readMarketPublications = gated(async (env, operation) => {
+  const { results } = await primary(env.DB).prepare(`SELECT * FROM (${LATEST}) WHERE json_extract(normalized_json,'$.operation')=?
+    ORDER BY json_extract(normalized_json,'$.observed_at') DESC,id LIMIT ?`).bind(operation, READ).all();
+  return results.map(publication);
+});
+
+// BUS-07: for each [listing_id, property_id] linked by a person, the adverts of that home as BUS-10's same-home
+// decisions stand now (its root and every home joined to it), each at its latest reading from a source open now.
+export const readLinkedPublications = gated(async (env, links) => {
+  if (!links.length) return new Map();
+  const { results } = await primary(env.DB).prepare(`WITH RECURSIVE
+      links(listing_id,id) AS (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?)),
+      up(listing_id,id) AS (SELECT listing_id,id FROM links
+        UNION SELECT up.listing_id,a.target_property_id FROM market_identity_aliases a JOIN up ON a.source_property_id=up.id),
+      members(listing_id,id) AS (SELECT listing_id,id FROM up
+          WHERE NOT EXISTS (SELECT 1 FROM market_identity_aliases a WHERE a.source_property_id=up.id)
+        UNION SELECT m.listing_id,a.source_property_id FROM market_identity_aliases a JOIN members m ON a.target_property_id=m.id)
+    SELECT DISTINCT m.listing_id,latest.* FROM members m JOIN market_identity_observations io ON io.property_id=m.id
+      JOIN market_observations anchor ON anchor.id=io.observation_id
+      JOIN (${LATEST}) latest ON latest.source_ref=anchor.source_ref AND latest.channel_id=anchor.channel_id
+        AND latest.external_key=anchor.external_key`).bind(JSON.stringify(links)).all();
+  const out = new Map();
+  for (const row of results) out.set(row.listing_id, [...(out.get(row.listing_id) ?? []), publication(row)]);
+  for (const pubs of out.values()) pubs.sort((a, b) => (b.observed_at ?? '').localeCompare(a.observed_at ?? ''));
+  return out;
 });

@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDate, fmtDay, fmtDayMonth, firstSentence, safeHref, VIEWING_STATUS, OUTCOME } from "./format.js";
 import { stageOf } from "../../server/viewing-cycle.js";
 import { CONFIRMATION } from "./ConfirmedAvailability.jsx";
+import { Listing } from "./MarketInventory.jsx";
 
 // SPR-08: the property's viewings, the team's notes about it and its adverts, for staff only. The editor shows these
 // cards only once the server reports sections_enabled (SPR08_SECTIONS_READY and migration 0079). Viewings and adverts
@@ -127,27 +128,79 @@ function PropertyNotes({ listingId }) {
 // A date the research wrote: "5 Oct 2026" when it starts with a day (YYYY-MM-DD), else its own words ("Undated").
 const day = d => (/^\d{4}-\d{2}-\d{2}/.test(d) ? fmtDayMonth(d.slice(0, 10)) : d);
 
+const BASIS = { directory: "from the Advertisers directory", import: "from the agency import of 8 Oct 2026" };
+
+// BUS-07 (BUS07_PROVENANCE_READY): who markets the property, the photo permission recorded with it, and its optional
+// link to a home of the market inventory, made and undone by a person. The link says only that those adverts are this
+// property: it confirms nothing about availability (EST-16 does) and changes nothing else.
+function Provenance({ listingId, data, onData }) {
+  const [picks, setPicks] = useState(null), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  const path = `/admin/listings/${encodeURIComponent(listingId)}`;
+  useEffect(() => { setPicks(null); setMsg(null); }, [listingId]);
+  const send = async (url, body, done) => {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    try { onData(await api(url, { method: "POST", body: { ...body, operation_id: crypto.randomUUID() } })); setPicks(null); setMsg({ ok: true, text: done }); }
+    catch (e) { setMsg({ text: e.message }); if (e.status === 409) onData(await api(`${path}/provenance`)); }
+    finally { setBusy(false); }
+  };
+  const choose = () => api(`${path}/market-candidates`).then(setPicks, e => setMsg({ text: e.message }));
+  const p = data.provenance;
+  return <>
+    <h3 id="h-provenance">Source</h3>
+    <p><strong>{p.kind === "hampton" ? "Hampton" : `Co-listed · ${p.labels.join(", ") || "agency not recorded"}`}</strong>
+      <span className="muted"> · {BASIS[p.basis] ?? "no advertiser in the directory"}</span></p>
+    <p className="muted">Correct it in <a href="#/advertisers">Advertisers</a> by linking or removing this property there.
+      {p.kind === "co_listed" && " The agency is asked about this property only through Enquiries, from an approved match."}</p>
+    {data.authorizations.length > 0 && <>
+      <p className="muted">Photo permission on record, as it was recorded. It covers those photos only: new photos need their own permission.</p>
+      <ul className="confirmations" aria-label="Photo permission on record">{data.authorizations.map((a, i) => <li key={i}>
+        {a.by}: {a.permission}<span className="muted">{a.photos ? ` · ${a.photos} imported ${a.photos === 1 ? "photo" : "photos"}` : " · Advertisers directory"}</span></li>)}</ul></>}
+    <h3 id="h-market-home">Market home</h3>
+    {data.link ? <>
+      <p>Linked by {data.link.linked_by} · {fmtDate(data.link.linked_at)}{" "}
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => confirm("Unlink this property from its market home? The link stays in the history.")
+          && send(`${path}/market-link/undo`, { link_id: data.link.id }, "Unlinked from the market home.")}>Unlink</button></p>
+      <p className="muted">The adverts of that home, as the market inventory last read each one. Seen on the web is not a confirmation.</p>
+      {data.publications.length ? <dl className="kv" aria-label="Market adverts">{data.publications.map(m => <Listing key={m.observation_id} p={m} />)}</dl>
+        : <p className="muted">The market inventory has no current advert of this home.</p>}
+    </> : data.linking ? <>
+      <p className="muted">Not linked. Choose the advert of the market inventory that is this property. Linking confirms nothing about its availability.</p>
+      {!picks ? <button type="button" className="btn ghost sm" onClick={choose}>Choose a market advert</button>
+        : picks.publications.length ? <ul className="confirmations" aria-label="Market adverts to choose from">{picks.publications.map(m => <li key={m.observation_id}>
+          <dl className="kv"><Listing p={m} /></dl>
+          <button type="button" className="btn sm" disabled={busy} aria-label={`This property: ${m.source_ref} ${m.external_key}`}
+            onClick={() => send(`${path}/market-link`, { observation_id: m.observation_id }, "Linked to its market home.")}>This property</button></li>)}</ul>
+        : <p className="muted">The market inventory has no advert of this operation yet.</p>}
+    </> : <p className="muted">Linking to the market inventory is not available yet.</p>}
+    {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+    <h3 id="h-research-adverts">Imported research</h3>
+  </>;
+}
+
 // Read only: where the property is advertised, as the imported research saw it (sources: research_sources rows), newest
 // sighting first, with the price each one showed. Beside each, what was last confirmed about the property (EST-16).
-// The research is frozen; the market inventory's live adverts join this list once a listing is linked to its market
-// home (BUS-07), which nothing does yet.
+// The research is frozen; with BUS-07 on, a market home linked by a person adds its live adverts above.
 function PropertyAdverts({ listingId, listing, sources }) {
-  const [confirmed, setConfirmed] = useState(null);
+  const [confirmed, setConfirmed] = useState(null), [provenance, setProvenance] = useState(null);
   useEffect(() => {
     let live = true;
-    setConfirmed(null);
+    setConfirmed(null); setProvenance(null);
     api(`/admin/listings/${encodeURIComponent(listingId)}/availability`).then(d => {
       if (live) setConfirmed(d.enabled && d.current && !d.current.needs_review ? d.current : null);
     }, () => {});
+    // 404 while BUS07_PROVENANCE_READY is off: the card stays as it was.
+    api(`/admin/listings/${encodeURIComponent(listingId)}/provenance`).then(d => { if (live) setProvenance(d); }, () => {});
     return () => { live = false; };
   }, [listingId, listing.operation]);
   const rows = [...sources].sort((a, b) => (b.accessed_on ?? "").localeCompare(a.accessed_on ?? "")
     || (a.agent_or_site ?? "").localeCompare(b.agent_or_site ?? "") || a.source_id.localeCompare(b.source_id));
   const prices = [...new Set(rows.map(s => s.price_text?.trim()).filter(Boolean))];
   return <section id="s-adverts" className="card fields-group" aria-labelledby="h-adverts">
-    <h2 id="h-adverts">Adverts <span className="muted">({rows.length} · read only)</span></h2>
+    <h2 id="h-adverts">Adverts <span className="muted">({rows.length}{provenance ? " from the research" : " · read only"})</span></h2>
+    {provenance && <Provenance listingId={listingId} data={provenance} onData={setProvenance} />}
     <p className="muted">Where this property is advertised, as the imported research saw each advert on the date shown. They are not
-      refreshed. Adverts read by the market inventory will be listed here once this property is linked to its market record.</p>
+      refreshed.{!provenance && " Adverts read by the market inventory will be listed here once this property is linked to its market record."}</p>
     {prices.length > 1 && <p><strong>Different prices seen:</strong> {prices.join(" · ")}</p>}
     {rows.length ? <ul className="confirmations" aria-label="Adverts">{rows.map(s => <li key={s.source_id}>
       {safeHref(s.url) ? <a href={safeHref(s.url)} target="_blank" rel="noopener noreferrer">{s.title || s.url}</a> : s.title || "Untitled source"}
