@@ -132,6 +132,7 @@ test("create from the panel, then list filtered and sorted", async () => {
     task_key: `legacy:${notices[0].id}`, source_version: notices[0].event_id, revision: 1,
     assigned_to: null, due_at: null, task_reason: null, urgency: 'normal', closed_by_source: 0, task_actor: null, task_action: null,
     target_kind:null,target_id:null,target_context:null,target_deleted:0,
+    snoozed_until: null, snoozed_revision: null, // NOT-09 migration 0088
     data: JSON.stringify({ operation: "rent", source: "phone" }), actor: ADMIN });
   assert.equal(notices[2].title, "New applicant: Ann Renouf · To Buy");
 
