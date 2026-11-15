@@ -163,6 +163,38 @@ test("a written-off charge is never deleted nor corrected below what was written
   assert.equal((await req(e, "POST", `/admin/tenancies/${id}/end`, { ended_on: ago(1) })).status, 200, "a later move-out still works");
 });
 
+// 0045's foreign key and guards hold whatever the switch: switched off after write-offs, the same field errors, no 500.
+test("switched off after write-offs, a written-off charge is still protected with a field error", async () => {
+  const e = env(), id = await tenancy(e);
+  await writeOff(e, id, { amount: 160000 });
+  e.ADM09_ARREARS_READY = "0";
+  const recent = rows(e, "SELECT id FROM charges WHERE due_on = ?", ago(6))[0].id;
+  let r = await req(e, "PUT", `/admin/charges/${recent}`, { amount: 5000 });
+  assert.equal(r.status, 400, JSON.stringify(r.data));
+  assert.match(r.data.fields.amount, /£100\.00/);
+  r = await req(e, "POST", `/admin/tenancies/${id}/end`, { ended_on: ago(6) });
+  assert.equal(r.status, 400, JSON.stringify(r.data));
+  assert.match(r.data.fields.ended_on, /written off/);
+  const t = (await detail(e, id)).tenancy;
+  r = await req(e, "PUT", `/admin/tenancies/${id}`, { updated_at: t.updated_at, collect_from: ago(3) });
+  assert.equal(r.status, 400, JSON.stringify(r.data));
+  assert.match(r.data.fields.collect_from, /written off/);
+  assert.equal(count(e, "charge_adjustments"), 2);
+});
+
+test("with a write-off, lowering an earlier charge cannot turn the written-off rent into credit", async () => {
+  for (const flag of ["1", "0"]) {
+    const e = env(), id = await tenancy(e), older = rows(e, "SELECT id FROM charges WHERE due_on = ?", ago(20))[0].id;
+    await req(e, "POST", "/admin/payments", { tenancy_id: id, received_on: T, amount: 150000 }); // the older charge paid
+    await writeOff(e, id, { amount: 150000 }); // the recent one written off: nothing owed
+    e.ADM09_ARREARS_READY = flag;
+    const r = await req(e, "PUT", `/admin/charges/${older}`, { amount: 100000 });
+    assert.equal(r.status, 400, JSON.stringify(r.data));
+    assert.match(r.data.fields.amount, /£500\.00/);
+    assert.equal((await req(e, "PUT", `/admin/charges/${older}`, { amount: 160000 })).status, 200, "raising it still works");
+  }
+});
+
 test("the website and the clock share the switch, so the Inbox follows the same balance as the panel", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^ADM09_ARREARS_READY = "([01])"$/m)?.[1] ?? "0";
   assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));

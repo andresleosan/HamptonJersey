@@ -384,10 +384,17 @@ async function updateCharge({ request, env, admin, params: [id] }) {
   const load = () => env.DB.prepare("SELECT c.*, t.rental_id FROM charges c JOIN tenancies t ON t.id = c.tenancy_id WHERE c.id = ?")
     .bind(Number(id)).first();
   const c = (await load()) ?? fail(404, "Charge not found");
-  // ADM-09: never below the most ever written off on it (0045's guard, which keeps each write-off valid).
-  const { peak } = arrearsReady(env) ? await env.DB.prepare(`SELECT MAX(run) AS peak FROM (SELECT ${NET("")}
-    OVER (ORDER BY effective_on, id ROWS UNBOUNDED PRECEDING) AS run FROM charge_adjustments WHERE charge_id = ?)`).bind(c.id).first() : {};
-  if (amount < peak) return fieldErrors({ amount: `${gbp(peak)} of this charge was written off: enter at least that` });
+  // ADM-09 (whatever its switch, once 0045 holds write-offs): never below the most ever written off on it (0045's
+  // guard), and on a tenancy with write-offs a lower charge may not leave the written-off rent as credit.
+  const w = await adjustments(env.DB.prepare(`SELECT (SELECT MAX(run) FROM (SELECT ${NET("")} OVER (ORDER BY effective_on, id
+      ROWS UNBOUNDED PRECEDING) AS run FROM charge_adjustments WHERE charge_id = ?1)) AS peak,
+    EXISTS (SELECT 1 FROM charge_adjustments x JOIN charges c ON c.id = x.charge_id WHERE c.tenancy_id = ?2) AS adjusted,
+    (SELECT COALESCE(SUM(${amountOf(true, "c", "?3")}), 0) FROM charges c WHERE c.tenancy_id = ?2 AND c.due_on <= ?3)
+    - (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE tenancy_id = ?2 AND kind = 'rent') AS balance`)
+    .bind(c.id, c.tenancy_id, jerseyToday()));
+  if (w && amount < w.peak) return fieldErrors({ amount: `${gbp(w.peak)} of this charge was written off: enter at least that` });
+  const left = w?.adjusted && c.due_on <= jerseyToday() ? w.balance - (c.amount - amount) : 0;
+  if (left < 0) return fieldErrors({ amount: `This leaves ${gbp(-left)} more written off than owed: reverse the write-off first` });
   // ADM-20: a charge raised by hand on a tenancy the 2025 rules cover (or may cover) is declared as no premium; the
   // write holds only while the tenancy is still as it was checked.
   const law = await tenancyLaw(env), t = law && await loadTenancy(env, c.tenancy_id);
@@ -689,9 +696,15 @@ const reverseWriteOff = req => adjust(req, "reversal",
     return { type: "charge.writeoff_reversed", rows: found.map(x => ({ charge_id: x.charge_id, amount: x.amount_pence, original: x.id })) };
   });
 
-// With ADM-09's switch: the field error when a change would delete a charge with a write-off (`where` over charges c).
-const writtenOff = async (env, field, msg, where, ...b) => arrearsReady(env) && await env.DB.prepare(`SELECT 1 FROM charges c
-  WHERE ${where} AND EXISTS (SELECT 1 FROM charge_adjustments x WHERE x.charge_id = c.id)`).bind(...b).first() ? { [field]: msg } : {};
+// 0045's foreign key and guards hold whatever ADM-09's switch says, so these checks read its write-offs whenever they
+// exist: the row, or null before 0045 (no such table: no write-offs).
+const adjustments = async stmt => {
+  try { return await stmt.first(); }
+  catch (e) { if (/no such table: charge_adjustments/.test(e?.message)) return null; throw e; }
+};
+// The field error when a change would delete a charge with a write-off (`where` over charges c).
+const writtenOff = async (env, field, msg, where, ...b) => await adjustments(env.DB.prepare(`SELECT 1 FROM charges c
+  WHERE ${where} AND EXISTS (SELECT 1 FROM charge_adjustments x WHERE x.charge_id = c.id)`).bind(...b)) ? { [field]: msg } : {};
 
 const NOT_FULL = "Only full management tenancies take rent payments";
 // A full-service tenancy's id (SQL) or NULL: the guard of every write that gives a payment a tenancy.
