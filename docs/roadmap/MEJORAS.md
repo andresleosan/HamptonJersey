@@ -143,3 +143,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-07] `OPEN_ADVERT` no repite la comprobación de formato canónico de `reviewed_at`/`review_due_at` que hace el núcleo de BUS-10 · solo importaría con una fecha guardada en formato no canónico · segunda revisión 15-nov · 15-nov-2026
 - [BUS-01] Leer el inventario una sola vez por lote en «Recalculate all» (hoy se relee entero por cada búsqueda); proteger la escritura de mercado frente a anuncios leídos a mitad de la búsqueda; volver a cruzar las búsquedas al enlazar o separar casas (BUS-07/BUS-10) · 15-nov-2026
 - [BUS-03] Filtros por resultado y por fuente en Homes found (25 por página sin filtros); mostrar los resultados de mercado en la pestaña Matches y Review del aplicante · 15-nov-2026
+- [EST-15] Confirmar la disponibilidad de casas de mercado sin ficha y aplicar su alcance por anunciante o publicación (hoy Homes found dice «Availability not confirmed» siempre) · traído de BUS-01; EST-15 ya está cerrada · 15-nov-2026
+- [AGE-03] Consultas sobre casas de mercado sin ficha a partir de `market_matches` (hoy no hay Shortlist ni Reject para ellas) · traído de BUS-01; AGE-03 ya está cerrada · 15-nov-2026
+- [BUS-12] Cruzar las búsquedas comerciales con el inventario cuando las observaciones digan su uso · traído de BUS-01; BUS-12 ya está cerrada · 15-nov-2026
