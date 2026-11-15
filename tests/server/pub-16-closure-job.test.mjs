@@ -134,10 +134,11 @@ test('a bounded page of repeated failures does not starve a later due closure',a
   assert.equal(get(env,"SELECT COUNT(*) AS n FROM notifications WHERE task_key LIKE 'pub16:withdrawal:%' AND urgency='urgent' AND resolved_at IS NULL").n,25);
   const plan=raw.prepare(`EXPLAIN QUERY PLAN ${queries[1]}`)
     .all(due,String(26).padStart(64,'0')).map(row=>row.detail).join(' ');
-  assert.match(plan,/rental_closure_due/);assert.ok(plan.includes('(due_at,closure_id)>(?,?)'));
+  // One row per letting ever recorded: the windows are scanned, each listing is read by its key.
+  assert.match(plan,/SEARCH l USING INDEX sqlite_autoindex_listings_1/);assert.doesNotMatch(plan,/SCAN l/);
   const visibility=raw.prepare(`EXPLAIN QUERY PLAN SELECT closure_id FROM rental_closure_windows
     WHERE listing_id=? AND COALESCE(state,'') NOT IN ('corrected','withdrawn')`).all('HE-R027').map(row=>row.detail).join(' ');
-  assert.match(visibility,/rental_closure_listing/);
+  assert.match(visibility,/SEARCH rental_closure_windows USING PRIMARY KEY \(listing_id=\?\)/);
 });
 
 // After the 24 hours: the other viewings of the property, booked before it was let or sold, each get one Inbox task.
@@ -186,4 +187,17 @@ test('a completed sale gives the same tasks only 24 hours after it closed',async
   changeClock('2026-10-09T10:00:00.000Z');await jobs.processExpiredRentalClosures(env);
   assert.deepEqual(tasks(env),[task(v,'Property sold, cancel the viewing: Cal Synthetic')]);
   assert.equal(untouched(env),before);
+});
+
+test('the viewing tasks read only the closed listings\' viewings to come, by index',async()=>{
+  const env=await setup(),w=get(env,"SELECT * FROM rental_closure_windows WHERE state='open'");viewing(env);
+  dbClock(env,w.due_at);const queries=[],prepare=env.DB.prepare.bind(env.DB);
+  env.DB.prepare=sql=>{const s=prepare(sql);if(sql.includes('up AS MATERIALIZED')){const bind=s.bind.bind(s);
+    s.bind=(...args)=>{queries.push({sql:s.sql??sql,args});return bind(...args);};}return s;};
+  await jobs.processExpiredRentalClosures(env);assert.equal(queries.length,2);
+  for(const q of queries){
+    const plan=env.DB.raw.prepare(`EXPLAIN QUERY PLAN ${q.sql}`).all(...q.args).map(r=>r.detail).join(' | ');
+    assert.match(plan,/viewing_listing/);assert.match(plan,/events_entity/);
+    assert.doesNotMatch(plan,/SCAN (v|e|events|viewing_requests)\b/,plan);
+  }
 });

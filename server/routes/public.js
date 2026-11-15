@@ -15,7 +15,7 @@ import { touchByViewing } from "../retention.js";
 import { chatOn } from "../chat.js";
 import { confirmedViewingSql, confirmedViewingWindow } from "../public-viewing-summary.js";
 import { contentFromStored } from '../listing-content.js';
-import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql } from '../rental-closure.js';
+import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql, closureOrOff } from '../rental-closure.js';
 import { readHouseRules, noticeShort, noticeCheck } from '../house-rules.js';
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
@@ -43,8 +43,9 @@ export async function reviewPublicListing(env, l, publicMedia) {
 }
 
 // The live listings, all or the one with that id, each as its row (with its active interest, C10) and its public
-// shape: one D1 round trip (S2).
-export async function readLive(env, id, { viewingClock } = {}) {
+// shape: one D1 round trip (S2). Switched on before migration 0087, PUB-16 reads as off.
+export const readLive = (env, id, options = {}) => closureOrOff(env, env => readLiveOnce(env, id, options));
+async function readLiveOnce(env, id, { viewingClock } = {}) {
   const window = viewingClock ? confirmedViewingWindow(viewingClock) : null;
   const one = id ? " AND l.id = ?" : "", args = id ? [id] : [], interest = interestDates();
   const contentEnabled=env.PUB08_CONTENT_READY === '1', timed=rentalClosureEnabled(env);
@@ -57,22 +58,26 @@ export async function readLive(env, id, { viewingClock } = {}) {
       FROM listings l LEFT JOIN listing_details d ON d.listing_id=l.id
       ${contentEnabled ? 'LEFT JOIN listing_content c ON c.listing_id=l.id' : ''} WHERE ${live}${one} ORDER BY l.id`)
       .bind(...interest, ...(window?.binds ?? []), ...args),
-    env.DB.prepare(`SELECT m.* FROM media m JOIN listings l ON l.id = m.listing_id
+    // CROSS JOIN keeps the live listings first and reads their photos by media_listing, not the whole media table.
+    env.DB.prepare(`SELECT m.* FROM listings l CROSS JOIN media m ON m.listing_id = l.id
      WHERE ${live} AND m.public = 1${one} ORDER BY m.position, m.id`).bind(...args),
   ];
-  const [{ results: listings }, { results: media }] = await env.DB.batch(queries());
-  const by = groupBy(media, "listing_id");
-  const reviewed = await Promise.all(listings.map(l => reviewPublicListing(env, l, by[l.id] || [])));
-  if (window || timed) {
-    // Address review hashes asynchronously. Fail closed if any public input or count changed while it ran.
-    const [currentListings, currentMedia] = await env.DB.batch(queries());
-    const currentClock = window ? jerseyNow() : null;
-    if (JSON.stringify(currentListings.results) !== JSON.stringify(listings) ||
-        JSON.stringify(currentMedia.results) !== JSON.stringify(media) ||
-        (window && (currentClock.date !== viewingClock.date || currentClock.time !== viewingClock.time)))
-      fail(503, "Availability changed. Please try again.");
-  }
-  return reviewed.filter(Boolean);
+  const attempt = async () => {
+    const [{ results: listings }, { results: media }] = await env.DB.batch(queries());
+    const by = groupBy(media, "listing_id");
+    const reviewed = await Promise.all(listings.map(l => reviewPublicListing(env, l, by[l.id] || [])));
+    if (window || timed) {
+      // Address review hashes asynchronously. Fail closed if any public input or count changed while it ran.
+      const [currentListings, currentMedia] = await env.DB.batch(queries());
+      const currentClock = window ? jerseyNow() : null;
+      if (JSON.stringify(currentListings.results) !== JSON.stringify(listings) ||
+          JSON.stringify(currentMedia.results) !== JSON.stringify(media) ||
+          (window && (currentClock.date !== viewingClock.date || currentClock.time !== viewingClock.time))) return null;
+    }
+    return reviewed.filter(Boolean);
+  };
+  // A write between the two readings is read once more before answering 503.
+  return (await attempt()) ?? (await attempt()) ?? fail(503, "Availability changed. Please try again.");
 }
 const listPublic = async ({ env }) => {
   const listings = (await readLive(env)).map(x => x.pub);

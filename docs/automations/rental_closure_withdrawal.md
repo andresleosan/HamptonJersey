@@ -9,7 +9,7 @@
 - **Salidas y efectos:** retira la ficha; si falla, crea una tarea urgente «Automatic withdrawal needs review». Crea una tarea «Property let/sold, cancel the viewing: …» por cada visita futura reservada antes del cierre, una sola vez. No cancela visitas ni envía nada.
 - **Guardas humanas y modo:** no aplica (sin IA). La corrección dentro de las 24 horas, la reapertura con «Return to market» y la cancelación de visitas son de una persona.
 - **Interruptor:** `PUB16_TIMED_CLOSURE_READY` = '1'; ausente en el repositorio.
-- **Coste y límite:** 25 ventanas y 50 visitas por pasada; coste en dinero `null`.
+- **Coste y límite:** 25 ventanas y 50 visitas por pasada; el cursor vive en `app_settings` (`pub16_closure_cursor`); coste en dinero `null`.
 - **Código:** `server/rental-closure.js`, `server/rental-closure-job.js`, `migrations/0087_rental_closure.sql`
 - **Pruebas que la cubren:** `tests/server/pub-16-closure-job.test.mjs`, `tests/server/pub-16-closure.test.mjs`, `tests/server/pub-16-closure-d1.test.mjs`, `tests/server/pub-16-public-visibility.test.mjs`, `tests/pub16-timed-closure.e2e.cjs`
 - **Criterio de hecho:** migración 0087 aplicada, interruptor encendido en los dos `wrangler.toml` y recorrido comprobado en producción. El aviso por correo a los clientes de esas visitas es de AUT-17.

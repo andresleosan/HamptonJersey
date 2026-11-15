@@ -9,6 +9,7 @@ import { afterSave, recomputeForListing } from "../match-store.js";
 import { interestSql, interestDates } from "../viewings.js";
 import { listingBatch, derivedListingFields, listingClock } from "../listing-events.js";
 import {checkMarketingEdit,transitionEditorialListing,recordRentalMarketingState} from '../listing-editorial.js';
+import {rentalClosureEnabled,unresolvedRentalClosure,noUnresolvedRentalClosureSql} from '../rental-closure.js';
 import {readListingHistory,validateListingHistoryRows} from '../listing-history.js';
 import { changedListingDetails, listingDetailsUpdateStatement, publicAddressReviewStatement, readListingDetails, validateListingDetails } from '../listing-details.js';
 import { buildPublicAddressReview } from '../public-address.js';
@@ -420,6 +421,10 @@ export async function setState({ request, env, admin, params: [id, action], from
   if (action === "publish" && l.archived_at) fail(400, "Restore the listing before publishing it");
   if (action === "publish" && !fromQueue && await env.DB.prepare("SELECT 1 FROM drive_imports WHERE listing_id = ? AND status = 'review'")
     .bind(id).first()) fail(409, "Use Approve and publish in the queue");
+  // PUB-16: a rental in its 24 hours, or withdrawn after them, is published again only through Return to market.
+  const closureMessage = 'This rental was let. Use Return to market under Rental marketing before publishing it again.';
+  const closed = action === 'publish' && rentalClosureEnabled(env);
+  if (closed && await unresolvedRentalClosure(env, id)) fail(409, closureMessage);
   if (action === "publish") {
     const missing = await publicationMissing(env, l);
     if (missing.length) failPublication(missing);
@@ -447,7 +452,8 @@ export async function setState({ request, env, admin, params: [id, action], from
   const stateGuard = action === 'restore' ? ' AND archived_at IS NOT NULL'
     : ['archive', 'publish'].includes(action) ? ' AND archived_at IS NULL' : '';
   const publishGuard = action === 'publish' ? ` AND trim(COALESCE(title, '')) <> ''
-    AND operation IN ('sale','rent','business') AND ${HAS_PUBLIC_PHOTO.replace('l.id', 'listings.id')}` : '';
+    AND operation IN ('sale','rent','business') AND ${HAS_PUBLIC_PHOTO.replace('l.id', 'listings.id')}${
+      closed ? ` AND ${noUnresolvedRentalClosureSql('listings')}` : ''}` : '';
   const queueId = fromQueue ? related.import_id : null;
   if (fromQueue && (!Number.isSafeInteger(queueId) || queueId <= 0)) fail(400, 'Invalid queue item');
   const queueGuard = action === 'publish' && fromQueue ? ` AND EXISTS (SELECT 1 FROM drive_imports q
@@ -466,6 +472,7 @@ export async function setState({ request, env, admin, params: [id, action], from
   if (!res.meta.changes) {
     const current = await loadListing(env, id);
     if (archive && !current.archived_at) fail(409, busy);
+    if (closed && await unresolvedRentalClosure(env, id)) fail(409, closureMessage);
     if (action === 'publish' && current.updated_at === version) {
       const missing = await publicationMissing(env, current);
       if (missing.length) failPublication(missing);

@@ -46,7 +46,9 @@ export async function updateListingEvent(env, { id, actor, source, action, patch
   derivedFields = [], related = {}, preconditionStatements = [], additionalStatements = [], requestHash }) {
   const cols = Object.keys(patch ?? {}).sort();
   const allowed = [...EDITABLE, ...DERIVED, 'confirmed_at', 'features_at',
-    ...(env.PUB16_TIMED_CLOSURE_READY==='1' && source==='recalculate' && action==='unpublished' ? ['published'] : [])];
+    ...(env.PUB16_TIMED_CLOSURE_READY==='1' && source==='recalculate' && action==='unpublished' ? ['published'] : []),
+    // PUB-16: Return to market after a withdrawal always leaves the listing unpublished.
+    ...(env.PUB16_TIMED_CLOSURE_READY==='1' && source==='panel' && action==='availability_changed' && patch?.published===0 ? ['published'] : [])];
   if (!cols.length || cols.some(k => !allowed.includes(k)) || cols.some(k => patch[k] !== null
     && typeof patch[k] !== 'string' && !(typeof patch[k] === 'number' && Number.isFinite(patch[k])))
     || typeof expectedAt !== 'string' || (operationId !== undefined && !/^[A-Za-z0-9_.-]{1,128}$/.test(operationId)))

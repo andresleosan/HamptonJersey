@@ -1,5 +1,11 @@
 // PUB-16: the schema of migration 0087 is never read unless PUB16_TIMED_CLOSURE_READY is on.
 export const rentalClosureEnabled = env => env.PUB16_TIMED_CLOSURE_READY === '1';
+// Switched on before migration 0087: run again as switched off, as the website was before it (like AGE-12's routes).
+export const missingClosureTable = (env,e) => rentalClosureEnabled(env) && /no such table: rental_closure/.test(String(e?.message));
+export async function closureOrOff(env,run) {
+  try { return await run(env); }
+  catch (e) { if (!missingClosureTable(env,e)) throw e; return run({...env,PUB16_TIMED_CLOSURE_READY:'0'}); }
+}
 const DB_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const ABORT = `INSERT INTO listing_event_context(listing_id) SELECT NULL
   WHERE EXISTS(SELECT 1 FROM listing_event_context WHERE listing_id=?)`;

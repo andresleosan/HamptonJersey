@@ -1,3 +1,4 @@
+import { missingClosureTable } from "./rental-closure.js";
 import { json, fail, HttpError } from "./http.js";
 import { currentAdmin, sameOrigin } from "./auth.js";
 import { qaRoute } from "./qa-history.js";
@@ -91,6 +92,9 @@ async function route(request, env, segments, waitUntil) {
     fail(404, "Not found");
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status);
+    // PUB-16 switched on before migration 0087: a read runs again as switched off.
+    if ((method === "GET" || method === "HEAD") && missingClosureTable(env, e))
+      return route(request, { ...env, PUB16_TIMED_CLOSURE_READY: "0" }, segments, waitUntil);
     console.error(e);
     return json({ error: "Server error. Please try again." }, 500);
   }

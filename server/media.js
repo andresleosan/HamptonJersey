@@ -1,6 +1,6 @@
 import { isPublicMedia, publicMediaTypeAllowed } from "./visibility.js";
 import { currentAdmin } from "./auth.js";
-import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql } from './rental-closure.js';
+import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql, closureOrOff } from './rental-closure.js';
 import { PRIVATE_DOCS } from './listing-documents.js';
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
@@ -58,7 +58,8 @@ const selectedKey = (row, thumb) => thumb && row.thumb_key ? row.thumb_key : row
 const cancelBody = async body => { if (body instanceof ReadableStream && !body.locked) await body.cancel().catch(() => {}); };
 
 // 404 (not 403) for anything the caller may not see, so private files can't be confirmed to exist.
-export async function serveMedia(request, env, id) {
+export const serveMedia = (request, env, id) => closureOrOff(env, env => serveMediaOnce(request, env, id));
+async function serveMediaOnce(request, env, id) {
   const row = await loadRow(env, id);
   // PUB-11: private listing documents are never served here, not even to staff.
   if (!row?.r2_key || [row.r2_key, row.thumb_key].some(key => key?.startsWith(PRIVATE_DOCS))) return notFound();

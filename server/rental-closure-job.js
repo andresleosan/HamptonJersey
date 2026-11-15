@@ -67,8 +67,9 @@ async function withdraw(env,row) {
 // The cursor makes a bounded page fair to later due windows even when an earlier window repeatedly fails.
 export async function processExpiredRentalClosures(env) {
   if(!rentalClosureEnabled(env))return {processed:0,withdrawn:0,failed:0};
-  const cursor=await env.DB.prepare('SELECT after_due,after_id,revision FROM rental_closure_cursor WHERE singleton=1').first();
-  if(!cursor)throw new Error('Rental closure cursor unavailable');
+  // In app_settings: {after_due, after_id}; written only if no other tick moved it meanwhile.
+  const stored=(await env.DB.prepare("SELECT value FROM app_settings WHERE key='pub16_closure_cursor'").first())?.value??null;
+  const cursor=stored?JSON.parse(stored):{after_due:null,after_id:null};
   const later=cursor.after_due!==null;
   const page=env.DB.prepare(`SELECT w.*,l.id AS live_id,l.updated_at,l.published,l.archived_at,l.operation,l.availability
     FROM rental_closure_windows w LEFT JOIN listings l ON l.id=w.listing_id
@@ -85,8 +86,9 @@ export async function processExpiredRentalClosures(env) {
     }
   }
   const last=rows.length===25?rows.at(-1):null;
-  await env.DB.prepare(`UPDATE rental_closure_cursor SET after_due=?,after_id=?,revision=revision+1
-    WHERE singleton=1 AND revision=?`).bind(last?.due_at??null,last?.closure_id??null,cursor.revision).run();
+  await env.DB.prepare(`INSERT INTO app_settings(key,value,updated_at,updated_by) VALUES('pub16_closure_cursor',?,${DB_NOW},'system')
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at WHERE app_settings.value IS ?`)
+    .bind(JSON.stringify({after_due:last?.due_at??null,after_id:last?.closure_id??null}),stored).run();
   await closedViewingTasks(env);
   return {processed:rows.length,withdrawn,failed};
 }
@@ -96,22 +98,26 @@ export async function processExpiredRentalClosures(env) {
 // the client: nothing is cancelled or sent here until AUT-17 can send that notice. Once per viewing, 50 per tick.
 const CLOSED='viewing.property_closed';
 function closedViewingTasks(env) {
-  const clock=jerseyNow(),upcoming=`v.status IN ('requested','confirmed') AND v.date||' '||COALESCE(v.end_time,v.time)>=?`;
-  return env.DB.batch([
-    env.DB.prepare(`WITH closed(listing_id,at,what) AS (
+  const clock=jerseyNow(),at=`${clock.date} ${clock.time}`;
+  // The closed listings' viewings still to come, read by viewing_listing(listing_id, date), each with its event key.
+  const upcoming=`WITH closed(listing_id,at,what) AS (
         SELECT listing_id,opened_at,'let' FROM rental_closure_windows WHERE state='withdrawn'
         UNION ALL SELECT s.listing_id,s.closed_at,'sold' FROM sales s JOIN listings l ON l.id=s.listing_id
-          WHERE s.status='completed' AND l.availability='sold' AND s.closed_at<=strftime('%Y-%m-%dT%H:%M:%fZ',${DB_NOW},'-24 hours'))
+          WHERE s.status='completed' AND l.availability='sold' AND s.closed_at<=strftime('%Y-%m-%dT%H:%M:%fZ',${DB_NOW},'-24 hours')),
+      up AS MATERIALIZED (SELECT v.id,CAST(v.id AS TEXT) AS ref,v.name,v.listing_id,MIN(c.what) AS what
+        FROM closed c CROSS JOIN viewing_requests v ON v.listing_id=c.listing_id AND v.date>=? AND v.created_at<c.at
+        WHERE v.status IN ('requested','confirmed') AND v.date||' '||COALESCE(v.end_time,v.time)>=? GROUP BY v.id)`;
+  return env.DB.batch([
+    env.DB.prepare(`${upcoming}
       INSERT INTO events(at,actor,entity_type,entity_id,type,data)
-      SELECT ${DB_NOW},'system','viewing',CAST(v.id AS TEXT),'${CLOSED}',json_object('listing_id',v.listing_id,'closed',MIN(c.what))
-      FROM closed c JOIN viewing_requests v ON v.listing_id=c.listing_id AND v.created_at<c.at
-      WHERE ${upcoming} AND NOT EXISTS(SELECT 1 FROM events e WHERE e.entity_type='viewing'
-        AND e.entity_id=CAST(v.id AS TEXT) AND e.type='${CLOSED}')
-      GROUP BY v.id ORDER BY v.id LIMIT 50`).bind(`${clock.date} ${clock.time}`),
-    env.DB.prepare(`INSERT INTO notifications(event_id,category,title,action_required,created_at)
+      SELECT ${DB_NOW},'system','viewing',up.ref,'${CLOSED}',json_object('listing_id',up.listing_id,'closed',up.what) FROM up
+      WHERE NOT EXISTS(SELECT 1 FROM events e WHERE e.entity_type='viewing' AND e.entity_id=up.ref AND e.type='${CLOSED}')
+      ORDER BY up.id LIMIT 50`).bind(clock.date,at),
+    env.DB.prepare(`${upcoming}
+      INSERT INTO notifications(event_id,category,title,action_required,created_at)
       SELECT e.id,'task',CASE json_extract(e.data,'$.closed') WHEN 'let' THEN 'Property let' ELSE 'Property sold' END
-        ||', cancel the viewing: '||v.name,1,e.at
-      FROM viewing_requests v JOIN events e ON e.entity_type='viewing' AND e.entity_id=CAST(v.id AS TEXT) AND e.type='${CLOSED}'
-      WHERE ${upcoming} AND NOT EXISTS(SELECT 1 FROM notifications n WHERE n.event_id=e.id)`).bind(`${clock.date} ${clock.time}`),
+        ||', cancel the viewing: '||up.name,1,e.at
+      FROM up JOIN events e ON e.entity_type='viewing' AND e.entity_id=up.ref AND e.type='${CLOSED}'
+      WHERE NOT EXISTS(SELECT 1 FROM notifications n WHERE n.event_id=e.id)`).bind(clock.date,at),
   ]);
 }

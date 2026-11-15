@@ -100,7 +100,8 @@ export async function recordRentalMarketingState(env,{id,command,actor}) {
   if(correcting) additional.push(...correctionStatements(env,id,closure));
   if(reopening) additional.push(...reopenStatements(env,id,closure));
   const patch=correcting ? {availability:closure.previous_availability,confirmed_at:closure.previous_confirmed_at}
-    : {availability:starting?'let_agreed':c.action==='return_to_market'?'to_let':c.action,confirmed_at:c.occurred_at};
+    : {availability:starting?'let_agreed':c.action==='return_to_market'?'to_let':c.action,confirmed_at:c.occurred_at,
+      ...(reopening?{published:0}:{})};
   try{return await updateListingEvent(env,{id,actor,source:'panel',action:'availability_changed',
       patch,expectedAt:c.updated_at,operationId,requestHash,preconditionStatements:preconditions,additionalStatements:additional});}
   catch(error){

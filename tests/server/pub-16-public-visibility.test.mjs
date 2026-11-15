@@ -63,14 +63,58 @@ test('if the deadline passes during asynchronous public projection, the response
     if(!raced&&statements.some(s=>s.sql.includes('FROM listings l LEFT JOIN listing_details'))){raced=true;changeClock(closure.due_at);}
     return result;
   };
-  const result=await call(env,'GET','/listings');assert.equal(raced,true);assert.equal(result.status,503);
-  assert.equal(Array.isArray(result.data),false);
+  // Read once more: the second reading agrees, and the rental past its deadline is not shown.
+  const result=await call(env,'GET','/listings');assert.equal(raced,true);assert.equal(result.status,200);
+  assert.deepEqual(result.data,[]);
 });
 
-test('enabled mode without its schema (migration 0087) cannot expose an unchecked listing or media',async()=>{
+test('a write between the two public readings is read again once; only a second one answers 503',async()=>{
+  const {env}=await setup();const batch=env.DB.batch.bind(env.DB);let writes=1;
+  env.DB.batch=async statements=>{
+    const result=await batch(statements);
+    if(writes>0&&statements.some(s=>s.sql.includes('FROM listings l LEFT JOIN listing_details'))){
+      writes--;env.DB.raw.exec("UPDATE listings SET title=title||'.' WHERE id='HE-R001'");}
+    return result;
+  };
+  const once=await call(env,'GET','/listings');assert.equal(once.status,200);assert.equal(once.data[0].id,'HE-R001');
+  writes=99;assert.equal((await call(env,'GET','/listings')).status,503,'changing at every reading');
+});
+
+test('switched on before migration 0087, the public website reads as switched off',async()=>{
   const {env}=await setup(false);env.PUB16_TIMED_CLOSURE_READY='1';env.DB.raw.exec('DROP TABLE rental_closure_windows');
-  const result=await call(env,'GET','/listings');assert.ok(result.status>=500);assert.equal(Array.isArray(result.data),false);
-  await assert.rejects(()=>media(env));
+  const result=await call(env,'GET','/listings');assert.equal(result.status,200);assert.equal(result.data[0].id,'HE-R001');
+  const image=await media(env);assert.equal(image.status,200);assert.match(image.headers.get('cache-control'),/max-age=86400/);
+  assert.equal((await page(env)).status,200);
+  const slots=await call(env,'GET','/availability?listing_id=HE-R001');assert.equal(slots.status,200,JSON.stringify(slots.data));
+});
+
+test('a withdrawn rental is not published by Publish, and Return to market leaves it unpublished',async()=>{
+  const {env,cookie}=await setup(),closure=await close(env,cookie);dbClock(env,closure.due_at);
+  assert.equal((await processExpiredRentalClosures(env)).withdrawn,1);
+  const version=()=>get(env,"SELECT updated_at FROM listings WHERE id='HE-R001'").updated_at;
+  const publish=()=>call(env,'POST','/admin/listings/HE-R001/publish',{cookie,body:{updated_at:version()}});
+  const before={...get(env,'SELECT * FROM listings WHERE id=?','HE-R001')};
+  const refused=await publish();
+  assert.equal(refused.status,409);assert.match(refused.data.error,/Return to market/);
+  assert.deepEqual({...get(env,'SELECT * FROM listings WHERE id=?','HE-R001')},before);
+  // Even if an older writer had published it, Return to market leaves it off the website.
+  env.DB.raw.exec("UPDATE listings SET published=1 WHERE id='HE-R001'");
+  const back=await call(env,'POST','/admin/listings/HE-R001/rental-marketing',{cookie,body:{request_id:'reopen',updated_at:version(),
+    action:'return_to_market',reason_code:'fell_through',occurred_at:T0,evidence_refs:['media:A00002']}});
+  assert.equal(back.status,200,JSON.stringify(back.data));
+  assert.deepEqual({...get(env,"SELECT availability,published FROM listings WHERE id='HE-R001'")},{availability:'to_let',published:0});
+  assert.deepEqual((await call(env,'GET','/listings')).data,[]);
+  // Reopened, Publish works as usual.
+  assert.equal((await publish()).status,200);
+  assert.equal((await call(env,'GET','/listings')).data[0]?.id,'HE-R001');
+});
+
+test('Publish is refused during the 24 hours too, if the rental was unpublished meanwhile',async()=>{
+  const {env,cookie}=await setup();await close(env,cookie);
+  env.DB.raw.exec("UPDATE listings SET published=0 WHERE id='HE-R001'");
+  const updated_at=get(env,"SELECT updated_at FROM listings WHERE id='HE-R001'").updated_at;
+  assert.equal((await call(env,'POST','/admin/listings/HE-R001/publish',{cookie,body:{updated_at}})).status,409);
+  assert.equal(get(env,"SELECT published FROM listings WHERE id='HE-R001'").published,0);
 });
 
 test('a media request crossing the deadline cannot return its bytes',async()=>{
@@ -116,7 +160,8 @@ test('after withdrawal, Return to market reopens the rental unpublished; once pu
   const reopened=get(env,"SELECT state,withdrawn_at,reopened_at FROM rental_closure_windows WHERE closure_id=?",closure.closure_id);
   assert.equal(reopened.state,'reopened');assert.ok(reopened.withdrawn_at&&reopened.reopened_at);
   assert.deepEqual((await call(env,'GET','/listings')).data,[],'still unpublished: the team publishes it as usual');
-  env.DB.raw.exec("UPDATE listings SET published=1 WHERE id='HE-R001'");
+  assert.equal((await call(env,'POST','/admin/listings/HE-R001/publish',{cookie,
+    body:{updated_at:get(env,"SELECT updated_at FROM listings WHERE id='HE-R001'").updated_at}})).status,200);
   assert.equal((await call(env,'GET','/listings')).data[0]?.id,'HE-R001');
   assert.equal((await page(env)).status,200);
   assert.match((await media(env)).headers.get('cache-control'),/max-age=86400/,'no window left: its photos are cached again');
@@ -130,8 +175,7 @@ test('an invalid deadline or unrecognized window state fails closed even before 
   for(const [field,value] of [['opened_at','2026-02-30T00:00:00.000Z'],['due_at','invalid-date'],['state','unknown']]){
     const {env,cookie}=await setup(),closure=await close(env,cookie);
     dbClock(env,new Date(Date.parse(closure.due_at)-1).toISOString());
-    env.DB.raw.exec('DROP TRIGGER rental_closure_original_immutable');
-    env.DB.raw.exec('DROP TRIGGER rental_closure_terminal_immutable');
+    env.DB.raw.exec('DROP TRIGGER rental_closure_transition');
     env.DB.raw.exec('PRAGMA ignore_check_constraints=ON');
     env.DB.raw.prepare(`UPDATE rental_closure_windows SET ${field}=? WHERE closure_id=?`).run(value,closure.closure_id);
     const response=await call(env,'GET','/listings');assert.equal(response.status,200);assert.deepEqual(response.data,[],field);
