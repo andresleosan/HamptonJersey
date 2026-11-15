@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático.",
+  "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático. Traído de AGE-10 (15-nov): una presentación solo puede incluir fotos aptas de AGE-10 y debe quedar bloqueada si la captura no tiene ninguna.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -79,5 +79,5 @@
     "outbound-policy"
   ],
   "nextStep": "Preparar la presentación privada con revisión humana adicional antes de cada envío y enlace válido hasta su revocación; la envía un empleado, nunca sola.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-15"
 }

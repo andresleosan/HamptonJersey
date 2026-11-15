@@ -164,3 +164,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [SPR-03] Tomar las lecturas vigentes de la casa BUS-07 (hoy guarda solo la observación enlazada como evidencia) · 15-nov-2026
 - [SPR-03] Pasada del reloj para capturas queued (más de 40 archivos o un head fallido): `settleQueuedCaptures` ya existe, pero el Worker hampton-jobs no tiene binding al bucket hampton-media; añadirlo amplía lo que el reloj puede tocar (decisión de Luis, mínimo privilegio). Hoy terminan con «Check files again» · segunda revisión 15-nov · 15-nov-2026
 - [SPR-03] La ficha muestra el estado guardado («checked …») hasta pulsar «Check files again»; el cierre de tareas de captura al pasar a no disponible no escribe evento en el historial · segunda revisión 15-nov · 15-nov-2026
+- [AGE-10] Añadir una versión apta a la captura sin una confirmación nueva (hoy la versión sin marca entra por las fotos de la ficha y solo aparece en la captura siguiente) · 15-nov-2026
+- [AGE-10] La foto de una agencia subida desde el editor no debería ser pública por defecto (la subida pone public=1 y la mostraría en la web si la ficha está publicada) · 15-nov-2026
+- [AGE-10] Recargar la tarjeta tras un 409 y tras «Check files again»; miniatura del archivo capturado en vez de la foto actual · 15-nov-2026
