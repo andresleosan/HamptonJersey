@@ -6,8 +6,8 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Desde el 6-nov-2026, Widen criteria (BUS-17): con menos de 3 casas, la pestaña Matches enseña cuántas casas más saldrían con un 10 % más de presupuesto, una parroquia más o un dormitorio menos, y «Use this» rellena el cambio sin guardar. Los cambios manuales materiales requieren confirmación explícita en servidor y panel; el resumen incluye cambios derivados y Use this no guarda. Se preservan datos legados y el round-trip de transfer.",
-  "falta": "Integrar las propuestas de AUT-19 con el mismo contrato y probar el recorrido completo; la pausa o retirada sigue fuera de alcance hasta decisión expresa. No se aplican cambios por interés o dictado sin confirmación. Traído de AUT-19 (15-nov): las propuestas de AUT-19 ya se confirman por el mismo guardado de criterios (criteria_confirmation); queda probar el recorrido completo con AUT-19 encendida. La pausa sigue fuera.",
+  "hecho": "El selector Stage de la ficha permite poner la búsqueda en Paused con Apply. Widen criteria (BUS-17) enseña cuántas casas más saldrían y «Use this» solo rellena el formulario. Los cambios materiales exigen confirmación en servidor y panel. Las propuestas de AUT-19 se confirman por el mismo guardado (commit): mismo evento applicant.updated, misma confirmación, misma subida de versión y mismo recálculo. 15-nov: prueba de recorrido completo con AUT-19 encendida, en servidor y en navegador a 1280 y 390: ver Widen y pulsar Use this no cambian la búsqueda, sus coincidencias, su historial ni su estado activo; solo proponer y confirmar la cambia. Sin código nuevo de producto.",
+  "falta": "Publicar en main las dos pruebas del recorrido. La pausa o retirada de la búsqueda queda fuera por su propia definición y por el plan maestro vigente; no bloquea.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:288-293",
@@ -17,7 +17,14 @@
     "tests/sap10-confirmation.e2e.cjs",
     "tests/server/applicants.test.mjs",
     "docs/roadmap/work/SAP-10/confirmacion-manual-2026-11-13.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la pausa o retirada queda fuera del alcance vigente y no bloquea."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la pausa o retirada queda fuera del alcance vigente y no bloquea.",
+    "tests/server/sap10-criteria-route.test.mjs: GET con Widen y PUT sin confirmación no escriben nada; guardado directo y propuesta confirmada dan el mismo evento, versión +1, mismas coincidencias y búsqueda activa (2/2, 15-nov).",
+    "tests/sap10-widen-proposal.e2e.cjs: navegador aislado a 1280 y 390 con AUT-19 heredada de wrangler.toml; Use this → Propose changes → Confirm changes; la búsqueda solo cambia al confirmar (aprobado 15-nov).",
+    "server/routes/applicants.js:414-450 y 522-538: update y confirmProposal pasan por commit; el PUT exige criteria_confirmation (447).",
+    "server/routes/applicants.js: los únicos UPDATE de criterios están en commit; archivo, search_state y Sales no tocan criterios; Hermes entra solo por proposeCriteria (sin aplicar).",
+    "tests/server/applicants-public.test.mjs: un registro duplicado del público no cambia la búsqueda.",
+    "Decisión: no se construye nada nuevo porque el contrato ya se cumplía (fuente: ficha SAP-10 y criterio de hecho de la skill, sección 3).",
+    "Decisión: la pausa o retirada queda fuera sin decisión pendiente (fuente: plan maestro vigente, adaptación del 14-nov en CONTINUIDAD-AVANZAR.md)."
   ],
   "modulo": "M10",
   "deps": [
@@ -59,6 +66,6 @@
     "applicants-ui",
     "search-lifecycle"
   ],
-  "nextStep": "Integrar propuestas AUT-19 con la confirmación humana y mantener la pausa fuera del alcance vigente.",
+  "nextStep": "Integrar en main las pruebas del recorrido y cerrar por aceptación propia.",
   "actualizado": "2026-11-15"
 }
