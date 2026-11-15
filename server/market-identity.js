@@ -20,7 +20,7 @@ const conflict = message => { throw new HttpError(409, message); };
 const READ = 2000, SHOWN = 50;
 const MAIN = { sale: 'sale_price', rent: 'rent', business: 'business_price' };
 // "St. Helier", "Saint Helier" and "st helier" compare equal; nothing is guessed beyond spelling.
-const plain = text => typeof text === 'string' ? text.toLowerCase().replace(/\bsaint\b/g, 'st').replace(/[^a-z0-9]+/g, ' ').trim() : '';
+export const plain = text => typeof text === 'string' ? text.toLowerCase().replace(/\bsaint\b/g, 'st').replace(/[^a-z0-9]+/g, ' ').trim() : '';
 
 function price(n) {
   const terms = (n.financial_terms ?? []).filter(t => t.kind === MAIN[n.operation] && t.amount_minor != null && t.currency);
@@ -244,4 +244,39 @@ export const readLinkedPublications = gated(async (env, links) => {
   for (const row of results) out.set(row.listing_id, [...(out.get(row.listing_id) ?? []), publication(row)]);
   for (const pubs of out.values()) pubs.sort((a, b) => (b.observed_at ?? '').localeCompare(a.observed_at ?? ''));
   return out;
+});
+
+// BUS-01 / BUS-03: every home of the common inventory, one per operation: a home BUS-10's decisions stand for (its root
+// and every home joined to it) and each advert nobody decided on yet as its own home, each with its adverts at their
+// latest reading from a source open now. listing_id: the Hampton listing a person linked the home to (BUS-07), whose
+// own matching then counts for it. open_sources 0 means nothing could be read, which is not an empty market; truncated
+// means not every advert was read. Reading writes nothing.
+export const readMarketHomes = gated(async env => {
+  const db = primary(env.DB);
+  const [latest, linked, aliases, links, open] = await db.batch([
+    db.prepare(`${LATEST} ORDER BY source_ref,channel_id,external_key LIMIT ?`).bind(READ + 1),
+    db.prepare(`SELECT a.source_ref,a.channel_id,a.external_key,l.operation,io.property_id
+      FROM market_listings l JOIN market_observations a ON a.id=l.anchor_observation_id
+      JOIN market_identity_observations io ON io.observation_id=a.id`),
+    db.prepare('SELECT source_property_id,target_property_id FROM market_identity_aliases'),
+    db.prepare(`SELECT k.listing_id,k.property_id FROM listing_market_links k WHERE k.action='link'
+      AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id) ORDER BY k.created_at,k.id`),
+    db.prepare(`SELECT COUNT(*) AS n FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
+      WHERE s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR m.status='accepted')`),
+  ]);
+  const key = p => JSON.stringify([p.source_ref, p.channel_id, p.external_key, p.operation]);
+  const own = new Map(linked.results.map(row => [key(row), row.property_id]));
+  const parent = new Map(aliases.results.map(a => [a.source_property_id, a.target_property_id]));
+  const root = id => { while (parent.has(id)) id = parent.get(id); return id; };
+  const listingOf = new Map(links.results.map(k => [root(k.property_id), k.listing_id]));
+  const homes = new Map();
+  // Pets and parking as the reading states them (BUS-09 keeps only true, false or not said), for matching only.
+  for (const row of latest.results.slice(0, READ)) {
+    const f = JSON.parse(row.normalized_json).fields ?? {}, p = { ...publication(row), pets: f.pets ?? null, parking: f.parking ?? null };
+    const home = own.has(key(p)) ? root(own.get(key(p))) : key(p), id = JSON.stringify([home, p.operation]);
+    if (!homes.has(id)) homes.set(id, { key: home, operation: p.operation, listing_id: listingOf.get(home) ?? null, publications: [] });
+    homes.get(id).publications.push(p);
+  }
+  return { homes: [...homes.values()], open_sources: open.results[0].n, truncated: latest.results.length > READ };
 });

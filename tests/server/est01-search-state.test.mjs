@@ -134,7 +134,8 @@ test("a failed search is recorded as failed, without its error, and keeps the la
   env.DB.batch = batch;
   assert.equal(failed.status, 500);
   const after = run(env, id);
-  assert.deepEqual(Object.keys(after).sort(), ["applicant_id", "last_attempt_at", "last_failure_at", "last_success_at"]);
+  // BUS-01 (0083) adds only the market part's state and count, never error text.
+  assert.deepEqual(Object.keys(after).sort(), ["applicant_id", "last_attempt_at", "last_failure_at", "last_success_at", "market_homes", "market_state"]);
   assert.ok(after.last_failure_at >= after.last_attempt_at && after.last_attempt_at >= before.last_success_at);
   assert.equal(after.last_success_at, before.last_success_at);
   assert.deepEqual((await listed(env, id)).search_run, { state: "failed", at: after.last_failure_at, last_success_at: before.last_success_at });
