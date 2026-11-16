@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "La medición de filtros queda conectada tras ANA04_SEARCH_STATS_READY: POST /api/search-stats cuenta marginales con tope de 5.000 al día, /api/config avisa a la web, Insights lee Search trends y la retención borra lo anterior a 90 días. Migración aditiva 0108 creada. Apagado, todo responde como antes.",
-  "falta": "Aplicar la migración 0108 en D1. Aprobar el aviso de privacidad (PRE-09) y la retención de 90 días (PRE-12) antes de encender. Después, encender ANA04_SEARCH_STATS_READY en los dos wrangler.toml y comprobar el recorrido real. La cobertura real no se ha comprobado.",
+  "falta": "Aprobar el aviso de privacidad (PRE-09) y la retención de 90 días (PRE-12) antes de encender. Después, encender ANA04_SEARCH_STATS_READY en los dos wrangler.toml y comprobar el recorrido real. La cobertura real no se ha comprobado.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0108_search_metrics.sql",
@@ -27,7 +27,8 @@
     "Decisión: con el interruptor, un fallo de D1 devuelve 204 y se registra sin datos de la petición. Fuente: plan, «204 significa procesamiento aceptado».",
     "Decisión: la retención usa el pase diario existente y el interruptor está en ambos wrangler.toml. Fuente: plan, sección Retención.",
     "Decisión: 0108 copia el SQL propuesto sin cambios. Fuente: docs/roadmap/work/ANA-04/proposed-search-metrics.sql.",
-    "Revisión independiente (16-nov): sin graves; corregido que un fallo al podar contadores parase la retención de datos personales; la prueba exige ambos wrangler iguales; límite por cliente a MEJORAS."
+    "Revisión independiente (16-nov): sin graves; corregido que un fallo al podar contadores parase la retención de datos personales; la prueba exige ambos wrangler iguales; límite por cliente a MEJORAS.",
+    "16-nov: migración 0108 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -49,10 +50,10 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis: OK a mencionarlo en el aviso de privacidad (PRE-09) y a guardar 90 días de totales; luego aplicar 0108 y ANA04_SEARCH_STATS_READY",
+  "externalBlocker": "Luis: OK a mencionarlo en el aviso de privacidad (PRE-09) y a guardar 90 días de totales; luego ANA04_SEARCH_STATS_READY",
   "resources": [
     "analytics-contract"
   ],
-  "nextStep": "Con PRE-09 y PRE-12 aprobados: aplicar 0108, encender ANA04_SEARCH_STATS_READY en ambos wrangler.toml y verificar el recorrido.",
+  "nextStep": "Con PRE-09 y PRE-12 aprobados: encender ANA04_SEARCH_STATS_READY en ambos wrangler.toml y verificar el recorrido.",
   "actualizado": "2026-11-16"
 }

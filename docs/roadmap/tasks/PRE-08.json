@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503.",
-  "falta": "Aplicar la migración 0109. PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
+  "falta": "PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:484",
@@ -15,7 +15,8 @@
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta.",
     "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después.",
     "Plan: docs/roadmap/work/MSG-01/plan.md (decisiones y fuentes; docs oficiales de Meta comprobadas el 16-nov-2026).",
-    "Pruebas: tests/server/meta-webhooks.test.mjs (firma válida, errónea, ausente, repetida, mal formada; token; tamaño; repetición idempotente; fallo de D1 sin 200; apagado 404)."
+    "Pruebas: tests/server/meta-webhooks.test.mjs (firma válida, errónea, ausente, repetida, mal formada; token; tamaño; repetición idempotente; fallo de D1 sin 200; apagado 404).",
+    "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -34,6 +35,6 @@
   "resources": [
     "meta-webhooks"
   ],
-  "nextStep": "Tras PRE-02: aplicar 0109, cargar los secretos y comprobar el handshake y una llamada firmada real con META_MESSAGES_READY encendido por Luis.",
+  "nextStep": "Tras PRE-02: cargar los secretos y comprobar el handshake y una llamada firmada real con META_MESSAGES_READY encendido por Luis.",
   "actualizado": "2026-11-16"
 }
