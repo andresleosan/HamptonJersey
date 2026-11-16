@@ -27,8 +27,10 @@ async function detail({ env, params: [id] }) {
   if (!c) deleted();
   const { listing_id, title, ...chat } = c;
   const { messages } = await conversation(env, c.id, { team: true }) ?? deleted(); // deleted in between
-  // MSG-03: the linked contact and suggestions, only when switched on (migration 0093).
-  const contact_link = chatContactReady(env) ? await chatContactLink(env, c.id) ?? deleted() : undefined;
+  // MSG-03: the linked contact and suggestions, only when switched on. Switched on before migration 0093, the detail
+  // reads as switched off (like PUB-16's).
+  const contact_link = chatContactReady(env) ? await chatContactLink(env, c.id).then(l => l ?? deleted(),
+    e => { if (/no such column: (contact_id|contact_version)/.test(String(e?.message))) return undefined; throw e; }) : undefined;
   return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages, ...(contact_link && { contact_link }) });
 }
 

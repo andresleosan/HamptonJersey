@@ -1,5 +1,6 @@
 import { json, fail, readJson } from "./http.js";
 import { logEvent } from "./events.js";
+import { normalizePhone } from "./applicants.js";
 
 // MSG-03: a person links a website chat to an existing contact, or unlinks it, from Messages. Nothing links on its own:
 // a contact with the visitor's email or phone is only a suggestion. contact_version (migration 0093) is the link's
@@ -35,31 +36,37 @@ async function link({ request, env, admin, params: [id] }) {
   if (cur.contact_id !== contactId) {
     const event = (contact, type) => logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(contact), type,
       data: { chat_id: chatId } }, null, { ifInserted: true });
-    // Each event only if the statement before it wrote: the update, then the unlink event.
+    // Each event only if the statement before it wrote: the update, then the unlink event. The contact read is part of
+    // the guard: a contact deleted meanwhile unlinks the chat without a new version (ON DELETE SET NULL), and no event
+    // may then be written for it.
     const [r] = await env.DB.batch([
       env.DB.prepare(`UPDATE chats SET contact_id = ?1, contact_version = contact_version + 1
-        WHERE id = ?2 AND contact_version = ?3 AND (?1 IS NULL OR EXISTS (SELECT 1 FROM contacts WHERE id = ?1))`)
-        .bind(contactId, chatId, version),
+        WHERE id = ?2 AND contact_version = ?3 AND contact_id IS ?4
+        AND (?1 IS NULL OR EXISTS (SELECT 1 FROM contacts WHERE id = ?1))`)
+        .bind(contactId, chatId, version, cur.contact_id),
       ...(cur.contact_id !== null ? event(cur.contact_id, "contact.chat_unlinked") : []),
       ...(contactId !== null ? event(contactId, "contact.chat_linked") : []),
     ]);
     if (!r.meta.changes) {
-      const now = await env.DB.prepare("SELECT contact_version FROM chats WHERE id = ?").bind(chatId).first() ?? deleted();
-      if (now.contact_version !== version) stale();
+      const now = await env.DB.prepare("SELECT contact_id, contact_version FROM chats WHERE id = ?").bind(chatId).first() ?? deleted();
+      if (now.contact_version !== version || now.contact_id !== cur.contact_id) stale();
       fail(404, "Contact not found");
     }
   }
   return json({ contact_link: await chatContactLink(env, chatId) ?? deleted() });
 }
 
-// The search box: a name, an email or a phone, at most 10 contacts.
+// The search box: a name, an email or a phone, at most 10 contacts. A phone as written in Jersey ("07797 123456") is
+// the stored +447797123456; other digits match on their last 9, as the applicant's viewings do (routes/applicants.js),
+// or anywhere when shorter. Fewer than 2 digits never search phones.
 async function search({ request, env }) {
   const q = (new URL(request.url).searchParams.get("q") ?? "").trim().toLowerCase();
   if (q.length < 2 || q.length > 100) fail(400, "Type at least 2 characters");
-  const like = s => `%${s.replace(/[\\%_]/g, c => `\\${c}`)}%`, digits = q.replace(/[\s\-()]/g, "");
+  const like = s => `%${s.replace(/[\\%_]/g, c => `\\${c}`)}%`, digits = q.replace(/[\s\-.()+]/g, "");
+  const phone = normalizePhone(q), part = /^\d{2,}$/.test(digits) ? (digits.length >= 9 ? `%${digits.slice(-9)}` : `%${digits}%`) : null;
   const { results: contacts } = await env.DB.prepare(`SELECT ${CONTACT} FROM contacts c
-    WHERE lower(c.name) LIKE ?1 ESCAPE '\\' OR c.email LIKE ?1 ESCAPE '\\' OR c.phone LIKE ?2 ESCAPE '\\'
-    ORDER BY c.name, c.id LIMIT 10`).bind(like(q), like(digits)).all();
+    WHERE lower(c.name) LIKE ?1 ESCAPE '\\' OR c.email LIKE ?1 ESCAPE '\\' OR c.phone = ?2 OR c.phone LIKE ?3
+    ORDER BY c.name, c.id LIMIT 10`).bind(like(q), phone, part).all();
   return json({ contacts });
 }
 

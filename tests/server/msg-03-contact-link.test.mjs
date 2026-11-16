@@ -125,6 +125,40 @@ test("the search finds contacts by name, email or phone, and wildcards are liter
   assert.deepEqual(await ids("7700 900 222"), [a]);
   assert.deepEqual(await ids("%%"), []);
   assert.deepEqual(await ids("__"), []);
+  for (const q of ["--", "()", "..", "+-"]) assert.deepEqual(await ids(q), [], `${q} matches no phone`);
   assert.equal((await admin(env, "GET", "/admin/contacts?q=a")).status, 400);
   assert.equal((await admin(env, "GET", `/admin/contacts?q=${"x".repeat(101)}`)).status, 400);
+});
+
+test("a phone written the Jersey way finds the stored international number", async () => {
+  const env = world(), a = contact(env, "Synthetic Gamma", "gamma@example.test", "+447797123456");
+  contact(env, "Synthetic Delta", "delta@example.test", "+447700900333");
+  const ids = async q => (await admin(env, "GET", `/admin/contacts?q=${encodeURIComponent(q)}`)).data.contacts.map(x => x.id);
+  for (const q of ["07797 123456", "07797.123.456", "07797-123-456", "(07797) 123456", "+44 7797 123456", "0044 7797 123456",
+    "797 123 456"]) assert.deepEqual(await ids(q), [a], q);
+});
+
+test("a contact deleted between the read and the write gets 409 and no event for it", async () => {
+  const env = world(), a = contact(env, "Synthetic A", "a@example.test"), b = contact(env, "Synthetic B", "b@example.test");
+  const id = chat(env);
+  await admin(env, "POST", `/admin/chats/${id}/contact`, { contact_id: a, version: 0 });
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => {
+    env.DB.batch = batch;
+    run(env, "DELETE FROM applicants WHERE contact_id = ?", a);
+    run(env, "DELETE FROM contacts WHERE id = ?", a);
+    return batch(stmts);
+  };
+  const r = await admin(env, "POST", `/admin/chats/${id}/contact`, { contact_id: b, version: 1 });
+  assert.equal(r.status, 409);
+  assert.deepEqual({ ...row(env, "SELECT contact_id, contact_version FROM chats WHERE id = ?", id) }, { contact_id: null, contact_version: 1 });
+  assert.deepEqual(linkEvents(env).map(e => e.type), ["contact.chat_linked"], "no unlink event for the deleted contact");
+});
+
+test("switched on before migration 0093, the chat detail reads as switched off", async () => {
+  const env = world({ skip: [93] }), id = chat(env);
+  const d = await admin(env, "GET", `/admin/chats/${id}`);
+  assert.equal(d.status, 200);
+  assert.equal("contact_link" in d.data, false);
+  assert.equal(d.data.messages.length, 1);
 });
