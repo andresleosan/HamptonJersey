@@ -10,7 +10,8 @@ import { widen } from "../widen.js";
 import { openSearchReview } from "../search-review.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
-import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
+import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
+  OPEN_PRIVACY_REQUEST } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
@@ -125,7 +126,7 @@ async function list({ request, env }) {
   const cutoff = quietCutoff();
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
   const today = jerseyToday(), expiring = p.get("expiring") === "1", retentionReview = p.get("retention_review") === "1";
-  const where = [retentionReview ? RETENTION_REVIEW : expiring ? EXPIRING : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
+  const where = [retentionReview ? RETENTION_REVIEW : expiring ? expiringSql(env) : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
   const args = expiring || retentionReview ? [today] : [];
   if (searchState) { where.push("a.search_state = ?"); args.push(searchState); }
   if (operation) { where.push("COALESCE(a.search_operation, a.operation) = ?"); args.push(operation); }
@@ -164,7 +165,7 @@ async function list({ request, env }) {
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
     `WITH listed AS MATERIALIZED (SELECT a.id, COALESCE(a.search_operation, a.operation) AS operation, a.search_category, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},${waiting ? ` a.id IN (${waiting}) AS in_process,` : ""}
-       CASE WHEN ${EXPIRING} THEN ${KEPT_UNTIL} END AS expires_on,
+       CASE WHEN ${expiringSql(env)} THEN ${KEPT_UNTIL} END AS expires_on,
        CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
        COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
@@ -198,11 +199,12 @@ async function list({ request, env }) {
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
-// stays open (its date may then be past).
-const RETENTION_SQL = `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
-  ${HAS_OPEN_SEARCH} AS search, ${HAS_OPEN_OFFER} AS offer, ${RETENTION_REVIEW} AS review FROM contacts c WHERE c.id = ?`;
-const keptFor = r => ({ kept_until: r.held ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.offer,
-  search: !!r.search, review: !!r.review });
+// stays open (its date may then be past). PRE-12 (with its switch): or an open privacy request does (privacy).
+const retentionSql = env => `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
+  ${HAS_OPEN_SEARCH} AS search, ${HAS_OPEN_OFFER} AS offer, ${RETENTION_REVIEW} AS review${privacyHolds(env)
+    ? `, ${OPEN_PRIVACY_REQUEST} AS privacy` : ""} FROM contacts c WHERE c.id = ?`;
+const keptFor = r => ({ kept_until: r.held || r.privacy ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.offer,
+  search: !!r.search, review: !!r.review, ...(r.privacy !== undefined ? { privacy: !!r.privacy } : {}) });
 
 async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
@@ -229,7 +231,7 @@ async function detail({ env, params: [id] }) {
        WHERE n.resolved_at IS NULL AND e.entity_type = 'contact' AND e.entity_id = ? AND e.type = 'applicant.duplicate_submitted'
        ORDER BY n.created_at DESC, n.id DESC`, contact.id, String(contact.id)),
     q(MATCH_COUNTS_SQL,applicant.id),
-    q(RETENTION_SQL, jerseyToday(), contact.id),
+    q(retentionSql(env), jerseyToday(), contact.id),
     q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
@@ -654,7 +656,7 @@ async function logConversation({ env, admin, params: [id] }) {
   const r = await env.DB.batch([contacted(env, Number(id), ts),
     ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
       { ifInserted: true }),
-    env.DB.prepare(RETENTION_SQL).bind(jerseyToday(), Number(id))]);
+    env.DB.prepare(retentionSql(env)).bind(jerseyToday(), Number(id))]);
   if (!r[0].meta.changes) fail(404, "Contact not found");
   return json({ ok: true, kept_until: keptFor(r[2].results[0]).kept_until });
 }
@@ -736,12 +738,14 @@ async function remove({ request, env, admin, params: [id] }) {
   if ((await readJson(request))?.confirm !== contact.name) fail(400, `Type ${contact.name} to confirm deletion`);
   const others = await env.DB.prepare("SELECT COUNT(*) AS n FROM applicants WHERE contact_id = ? AND id <> ?")
     .bind(contact.id, cur.id).first();
-  // PRE-12 (with its switch): a contact with an open privacy request is kept; the guard below aborts the batch if one
-  // was recorded meanwhile (its NULL request_id fails the audit's NOT NULL).
-  const privacy = env.PRE12_REQUESTS_READY === "1" && !others.n;
-  const held = "This contact has an open privacy request. Close it before deleting.";
-  if (privacy && await env.DB.prepare("SELECT 1 FROM privacy_requests WHERE contact_id = ? AND state = 'open'").bind(contact.id).first())
-    fail(409, held);
+  // PRE-12 (with its switch): deleting the contact waits while it has an open privacy request other than an erasure one;
+  // deleting one search among several, while an access or portability request is open (its data is still to hand over).
+  // The guard below aborts the batch if one was recorded meanwhile (its NULL request_id fails the audit's NOT NULL).
+  const privacy = privacyHolds(env);
+  const heldBy = `SELECT 1 FROM privacy_requests WHERE contact_id = ? AND state = 'open'
+    AND kind ${others.n ? "IN ('access', 'portability')" : "<> 'erasure'"}`;
+  const held = "This contact has an open privacy request that this deletion would affect. Close it first.";
+  if (privacy && await env.DB.prepare(heldBy).bind(contact.id).first()) fail(409, held);
   const ts = now();
   const refs = [{ entity_type: "applicant", entity_id: String(cur.id) },
     ...(others.n ? [] : [{ entity_type: "contact", entity_id: String(contact.id) }])];
@@ -749,7 +753,7 @@ async function remove({ request, env, admin, params: [id] }) {
   const refArgs = refs.flatMap(r => [r.entity_type, r.entity_id]);
   await env.DB.batch([
     ...(privacy ? [env.DB.prepare(`INSERT INTO privacy_request_audit (request_id, revision, action, actor, at)
-      SELECT NULL, 0, 'closed', ?, ? WHERE EXISTS (SELECT 1 FROM privacy_requests WHERE contact_id = ? AND state = 'open')`)
+      SELECT NULL, 0, 'closed', ?, ? WHERE EXISTS (${heldBy})`)
       .bind(admin, ts, contact.id)] : []),
     ...refs.map(ref => resolveNotices(env, ref, admin)),
     env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL WHERE event_id IN (SELECT id FROM events WHERE ${ofRefs})`)

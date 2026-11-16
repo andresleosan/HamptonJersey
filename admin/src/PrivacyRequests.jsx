@@ -13,11 +13,12 @@ const METHODS = { photo_id: "Photo ID seen", details_on_record: "Confirmed throu
   in_person: "In person", other: "Other" };
 const RESULTS = { fulfilled: "Done", partially_fulfilled: "Partly done", refused: "Refused", withdrawn: "Withdrawn by the person" };
 const HOLDS = { sale: "Has a sale, in any state: kept.", open_offer: "Has an open offer: kept while the negotiation lasts.",
-  open_search: "Has an active search, or one under review: resolve and archive it first." };
+  open_search: "Has an active search, or one under review: resolve and archive it first.",
+  privacy_request: "Has another open privacy request (not an erasure one): close it first." };
 const REMOVE = { contact: "Contact record", searches: "Searches", offers: "Offers", matches: "Matches",
   marketing_preferences: "Marketing preferences" };
 const ACTIONS = { created: "Recorded", updated: "Details changed", contact_linked: "Contact linked", identity_verified: "Identity checked",
-  copy_reviewed: "Copy reviewed", closed: "Closed" };
+  copy_viewed: "Copy opened", copy_reviewed: "Copy reviewed", closed: "Closed" };
 const COPY_KINDS = ["access", "portability"];
 const nameOf = (team, email) => team.find(t => t.email === email)?.name || email;
 const Status = ({ r }) => r.state === "closed" ? <span className="badge closed">Closed · {RESULTS[r.result]}</span>
@@ -136,7 +137,7 @@ function Detail({ id }) {
     {open ? <Close key={`x${r.revision}`} r={r} onSaved={done("Request closed.")} reload={load} />
       : <div className="card"><h2>Result</h2><p>{RESULTS[r.result]}, recorded by {nameOf(team, r.closed_by)} on {fmtDate(r.closed_at)}.</p>
         {r.result_note && <p>{r.result_note}</p>}</div>}
-    <div className="card"><h2>History</h2><ul>{d.audit.map(a => <li key={a.revision + a.action}>{fmtDate(a.at)} · {ACTIONS[a.action]} by {nameOf(team, a.actor)}</li>)}</ul></div>
+    <div className="card"><h2>History</h2><ul>{d.audit.map(a => <li key={a.id}>{fmtDate(a.at)} · {ACTIONS[a.action]} by {nameOf(team, a.actor)}</li>)}</ul></div>
   </section>;
 }
 
@@ -277,6 +278,7 @@ function Close({ r, onSaved, reload }) {
   return <form className="card" noValidate aria-labelledby="h-px" onSubmit={e => { e.preventDefault(); a.send({ revision: r.revision, result, note: note || null }); }}>
     <h2 id="h-px">Close the request</h2>
     <p className="muted">Record what was done. Closing deletes and sends nothing.</p>
+    {["access", "portability"].includes(r.kind) && <p className="warn">Download the copy before closing: a closed request no longer serves it.</p>}
     <fieldset className="choices-set"><legend>Result</legend>
       <div className="choices">{Object.entries(RESULTS).map(([k, t]) => <label key={k} className="check">
         <input type="radio" name="px-result" value={k} checked={result === k} onChange={() => setResult(k)}

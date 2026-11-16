@@ -5,7 +5,7 @@ import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
-import { retentionPass, EXPIRING, RETENTION_REVIEW } from "../retention.js";
+import { retentionPass, expiringSql, RETENTION_REVIEW } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 import { readLegal } from "../legal-terms.js";
@@ -43,7 +43,7 @@ async function counted(env, legal, snooze) {
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
   // past ~100 contacts in it, cache the count like rentals_count.
-  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${EXPIRING}`).bind(jerseyToday()),
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${expiringSql(env)}`).bind(jerseyToday()),
   // Reads the listings_live index only (migration 0017).
   env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now()),
   env.DB.prepare(`SELECT json_extract(value, '$.at') AS at, json_extract(value, '$.by') AS by FROM app_settings

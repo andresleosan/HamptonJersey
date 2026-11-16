@@ -28,17 +28,22 @@ export const RETENTION_REVIEW = `c.last_activity_at < date(?, '-11 months') AND 
 export const EXPIRING = `c.last_activity_at < date(?, '-11 months') AND ${EXEMPT}`;
 // E9: the day a contact's 12 months end; the pass deletes it on a later Jersey day.
 export const KEPT_UNTIL = "strftime('%Y-%m-%d', c.last_activity_at, '+12 months')";
+// PRE-12: with its switch on (and so migration 0101), a contact with an open privacy request other than an erasure one
+// is kept: by the pass, out of Expiring and with no kept-until date. An erasure request is no hold: the deletion is what
+// it asks for. Switched off, no statement names that table.
+export const privacyHolds = env => env?.PRE12_REQUESTS_READY === "1";
+export const OPEN_PRIVACY_REQUEST = `EXISTS (SELECT 1 FROM privacy_requests pr WHERE pr.contact_id = c.id AND pr.state = 'open'
+  AND pr.kind <> 'erasure')`;
+export const expiringSql = env => (privacyHolds(env) ? `${EXPIRING} AND NOT ${OPEN_PRIVACY_REQUEST}` : EXPIRING);
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts
 // nothing it depends on changes inside the batch (their searches have no sales nor open offers), so each statement acts
 // on the same contacts.
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
-// PRE-12: with its switch on (and so migration 0101), a contact with an open privacy request, of any kind, is kept too.
-// Switched off, the statement never names that table.
-export const NO_OPEN_PRIVACY_REQUEST = "NOT EXISTS (SELECT 1 FROM privacy_requests pr WHERE pr.contact_id = c.id AND pr.state = 'open')";
+// PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too.
 const contactsDue = held => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
-  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND ${NO_OPEN_PRIVACY_REQUEST}` : ""}
+  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}
   ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
 const eventsOf = (type, set) =>
@@ -76,7 +81,7 @@ export async function runRetention(env, ts) {
   if (SEARCH_METRIC_RETENTION_READY) await pruneSearchMetrics(env, new Date(ts));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
-  const CONTACTS = contactsDue(env.PRE12_REQUESTS_READY === "1"), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+  const CONTACTS = contactsDue(privacyHolds(env)), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs

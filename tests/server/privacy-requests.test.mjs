@@ -294,7 +294,7 @@ test('switched off, the cleanup reads no privacy table and runs as before', asyn
 
 test('the manual Delete does not delete a contact with an open request, and does once it is closed', async () => {
   const env = on(), cookie = await adminCookie(), p = inactive(env);
-  const r = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  const r = (await create(env, cookie, { kind: 'rectification' })).data.request;
   await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
   const refused = await call(env, 'DELETE', `/admin/applicants/${p.applicant}`, { cookie, body: { confirm: 'Quiet Person' } });
   assert.equal(refused.status, 409, refused.text);
@@ -328,8 +328,16 @@ test('the copy has every column of its records, or names it in not_included with
     const missing = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name).filter(c => !(c in sample) && !named.includes(c));
     assert.deepEqual(missing, [], section);
   }
-  for (const k of ['search_category', 'household_total', 'requirement_priorities', 'stage', 'source', 'lost_reason', 'resolution_reason'])
+  for (const k of ['search_category', 'household_total', 'requirement_priorities', 'stage', 'source'])
     assert.ok(k in copy.searches[0], k);
+  // Free text the team writes can name other people: reviewed by hand, never in the copy by itself.
+  const named = section => copy.not_included.filter(n => n.section === section).flatMap(n => n.fields ?? []);
+  for (const k of ['lost_reason', 'resolution_reason']) {
+    assert.equal(k in copy.searches[0], false, k);
+    assert.ok(named('searches').includes(k), k);
+  }
+  assert.equal('conditions' in copy.offers[0], false);
+  assert.ok(named('offers').includes('conditions'));
   assert.ok('last_contact_at' in copy.contact);
   assert.equal(copy.matches[0].listing_id, 'HE-R001');
   const csv = await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie });
@@ -374,4 +382,74 @@ test('opening the copy is audited with ids only, and a closed request serves no 
   const closed = await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie });
   assert.equal(closed.status, 409);
   assert.equal(JSON.stringify(closed.data).includes('pre12-person'), false);
+});
+
+// Second review (16-nov): an erasure request is not a hold; a search delete respects an open access request; Expiring
+// leaves held contacts out; the plan names another open request as a hold.
+test('an open erasure request does not keep the contact: the Delete and the cleanup go ahead', async () => {
+  const env = on(), cookie = await adminCookie(), a = inactive(env, '+447700900331'), b = inactive(env, '+447700900332');
+  for (const p of [a, b]) {
+    const r = (await create(env, cookie, { kind: 'erasure' })).data.request;
+    await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  }
+  const plan = (await call(env, 'GET', `${BASE}/${(await call(env, 'GET', BASE, { cookie })).data.requests[0].id}`, { cookie })).data;
+  assert.equal(plan.erasure.can_delete, true);
+  const del = await call(env, 'DELETE', `/admin/applicants/${a.applicant}`, { cookie, body: { confirm: 'Quiet Person' } });
+  assert.equal(del.status, 200, del.text);
+  await runRetention(env, PASS);
+  assert.equal(exists(env, b.id), false);
+});
+
+test('another open request is a hold in the erasure plan', async () => {
+  const env = on(), cookie = await adminCookie(), p = inactive(env);
+  const e = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${e.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  assert.deepEqual((await call(env, 'GET', `${BASE}/${e.id}`, { cookie })).data.holds, []);
+  const a = (await create(env, cookie, { kind: 'access' })).data.request;
+  await call(env, 'POST', `${BASE}/${a.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const d = (await call(env, 'GET', `${BASE}/${e.id}`, { cookie })).data;
+  assert.deepEqual(d.holds.map(h => h.code), ['privacy_request']);
+  assert.equal(d.erasure.can_delete, false);
+});
+
+test('deleting one of several searches waits while an access or portability request is open', async () => {
+  const env = on(), cookie = await adminCookie(), p = inactive(env);
+  const second = Number(env.DB.raw.prepare(`INSERT INTO applicants (contact_id,operation,source,search_state,resolved_at,resolved_by,
+    resolution_reason,archived_at,created_at,updated_at) VALUES (?,'buy','phone','resolved',?,'admin@example.test','Bought',?,?,?)`)
+    .run(p.id, OLD, OLD, OLD, OLD).lastInsertRowid);
+  const r = (await create(env, cookie, { kind: 'portability' })).data.request;
+  await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const refused = await call(env, 'DELETE', `/admin/applicants/${second}`, { cookie, body: { confirm: 'Quiet Person' } });
+  assert.equal(refused.status, 409, refused.text);
+  assert.equal(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM applicants WHERE id=?').get(second).n, 1);
+  // A rectification request does not stop deleting one search among several.
+  await call(env, 'POST', `${BASE}/${r.id}/close`, { cookie, body: { revision: 2, result: 'withdrawn' } });
+  const fix = (await create(env, cookie, { kind: 'rectification' })).data.request;
+  await call(env, 'POST', `${BASE}/${fix.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  assert.equal((await call(env, 'DELETE', `/admin/applicants/${second}`, { cookie, body: { confirm: 'Quiet Person' } })).status, 200);
+});
+
+test('Expiring and the kept-until date leave out a contact held by an open request; switched off, as before', async () => {
+  const env = on(), cookie = await adminCookie();
+  const db = env.DB.raw, near = '2025-12-01T09:00:00.000Z';
+  const p = inactive(env), q = inactive(env, '+447700900399');
+  db.prepare('UPDATE contacts SET last_activity_at=? WHERE id IN (?,?)').run(near, p.id, q.id);
+  const r = (await create(env, cookie, { kind: 'access' })).data.request;
+  await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const counts = (await call(env, 'GET', '/admin/notifications/counts', { cookie })).data;
+  assert.equal(counts.expiring, 1);
+  const list = (await call(env, 'GET', '/admin/applicants?expiring=1', { cookie })).data;
+  assert.deepEqual(list.applicants.map(x => x.id), [q.applicant]);
+  const detail = (await call(env, 'GET', `/admin/applicants/${p.applicant}`, { cookie })).data;
+  assert.equal(detail.retention.kept_until, null);
+  assert.equal(detail.retention.privacy, true);
+  const off = { ...env, PRE12_REQUESTS_READY: '0' };
+  assert.equal((await call(off, 'GET', '/admin/notifications/counts', { cookie })).data.expiring, 2);
+  assert.ok((await call(off, 'GET', `/admin/applicants/${p.applicant}`, { cookie })).data.retention.kept_until);
+});
+
+test('the request detail gives each audit row its id', async () => {
+  const env = on(), cookie = await adminCookie(), made = (await create(env, cookie)).data.request;
+  const { audit } = (await call(env, 'GET', `${BASE}/${made.id}`, { cookie })).data;
+  assert.ok(Number.isInteger(audit[0].id));
 });

@@ -1,5 +1,5 @@
 import { json, fail, readJson, now, sha256 } from "./http.js";
-import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH } from "./retention.js";
+import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH, OPEN_PRIVACY_REQUEST } from "./retention.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
 
@@ -131,11 +131,12 @@ async function verify({ request, env, admin, params: [id] }) {
     identity_verified_at = ?`, [b.method, ref ? ref.trim() : null, admin, ts]]);
 }
 
-// The cleanup's own exceptions (server/retention.js), read for this contact: the same rule keeps the same people.
+// The cleanup's own exceptions (server/retention.js), read for this contact: the same rule keeps the same people,
+// another open privacy request (not an erasure one) included.
 async function holds(env, contactId) {
-  const h = await env.DB.prepare(`SELECT NOT (${NO_SALE}) AS sale, ${HAS_OPEN_OFFER} AS open_offer, ${HAS_OPEN_SEARCH} AS open_search
-    FROM contacts c WHERE c.id = ?`).bind(contactId).first();
-  return h ? ["sale", "open_offer", "open_search"].filter(k => h[k]).map(code => ({ code })) : [];
+  const h = await env.DB.prepare(`SELECT NOT (${NO_SALE}) AS sale, ${HAS_OPEN_OFFER} AS open_offer, ${HAS_OPEN_SEARCH} AS open_search,
+    ${OPEN_PRIVACY_REQUEST} AS privacy_request FROM contacts c WHERE c.id = ?`).bind(contactId).first();
+  return h ? ["sale", "open_offer", "open_search", "privacy_request"].filter(k => h[k]).map(code => ({ code })) : [];
 }
 
 // What the existing Delete (an archived applicant's, §3.4) would remove for this contact, and what it leaves to a person.
@@ -166,7 +167,7 @@ async function erasurePlan(env, contactId, kept) {
 async function detail({ env, params: [id] }) {
   const r = await current(env, id);
   const kept = r.contact_id == null ? [] : await holds(env, r.contact_id);
-  const [{ results: audit }] = await env.DB.batch([env.DB.prepare(`SELECT revision, action, actor, at FROM privacy_request_audit
+  const [{ results: audit }] = await env.DB.batch([env.DB.prepare(`SELECT id, revision, action, actor, at FROM privacy_request_audit
     WHERE request_id = ? ORDER BY id`).bind(id)]);
   return json({ request: output(r), holds: kept, audit,
     erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null });
@@ -178,18 +179,19 @@ async function detail({ env, params: [id] }) {
 // phone, the panel's history).
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time", "privacy_ack_at", "marketing_opt_in_at",
   "consent_source", "created_at", "updated_at", "last_activity_at", "last_contact_at"];
-const SEARCH = ["id", "operation", "search_category", "search_operation", "stage", "source", "lost_reason", "search_state",
-  "created_at", "updated_at", "first_reviewed_at", "archived_at", "resolved_at", "resolution_reason", "budget_min", "budget_max",
+const SEARCH = ["id", "operation", "search_category", "search_operation", "stage", "source", "search_state",
+  "created_at", "updated_at", "first_reviewed_at", "archived_at", "resolved_at", "budget_min", "budget_max",
   "budget_stretch", "property_types", "bedrooms_min", "bedrooms_max", "bedrooms_ideal", "bathrooms_min", "parking_spaces", "outdoor",
   "furnished", "pets", "parishes_wanted", "parishes_excluded", "preferred_parish", "area_answer", "near", "move_in_date",
   "lease_term_months", "buyer_position", "mortgage_aip", "housing_status", "household_total", "household_adults", "household_children",
   "household_children_status", "requirements", "requirement_priorities", "preferred_language", "viewing_availability",
   "commercial_kind", "commercial_use", "commercial_purchase", "commercial_rent", "commercial_rent_period", "commercial_premium",
   "commercial_expenses", "area_min", "area_max", "area_unit"];
-const OFFER = ["id", "applicant_id", "listing_id", "amount", "conditions", "status", "counter_amount", "created_at", "updated_at"];
+const OFFER = ["id", "applicant_id", "listing_id", "amount", "status", "counter_amount", "created_at", "updated_at"];
 const MATCH = ["id", "applicant_id", "listing_id", "status", "reject_reason", "created_at", "updated_at", "reviewed_at"];
 const PREFERENCE = ["purpose", "channel", "value", "source", "notice_version", "updated_at"];
 const STAFF = "Names of our team members who recorded or changed it; they are not your details.";
+const NOTES = "Internal notes our team wrote; reviewed separately, as they can hold other people's details.";
 const NOT_INCLUDED = [
   { section: "contact", fields: ["id"], reason: "Our internal record number; it says nothing about you." },
   { section: "contact", fields: ["updated_by"], reason: STAFF },
@@ -199,7 +201,9 @@ const NOT_INCLUDED = [
     reason: "Ages of children in the household are reviewed separately before they are shared." },
   { section: "searches", fields: ["matches_revision", "match_ranking_version", "match_inputs_revision"],
     reason: "Internal version counters of the matching; they hold no details." },
-  { section: "offers", fields: ["note"], reason: "Internal notes our team wrote; reviewed separately, as they can hold other people's details." },
+  { section: "searches", fields: ["lost_reason", "resolution_reason"], reason: NOTES },
+  { section: "offers", fields: ["note"], reason: NOTES },
+  { section: "offers", fields: ["conditions"], reason: "Conditions written as free text; reviewed by hand, as they can hold other people's details." },
   { section: "offers", fields: ["created_by", "updated_by"], reason: STAFF },
   { section: "matches", fields: ["score", "checks", "requirements_rank", "area_preference_rank"],
     reason: "Internal figures the app works out to order homes for you; reviewed separately so they can be explained." },
