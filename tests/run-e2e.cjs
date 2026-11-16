@@ -40,6 +40,10 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // VIS-14: open viewings and back-to-back times, switched on for its own test only (off in production).
       ...(process.env.E2E_SCRIPT === "tests/vis14-block.e2e.cjs" ? { VIS14_BLOCK_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
+      // VIS-12: Google Calendar against the fake Google its test starts on localhost:8797; secrets of this run only.
+      ...(process.env.E2E_SCRIPT === "tests/vis12-calendar.e2e.cjs" ? { VIS12_CALENDAR_READY: "1", GOOGLE_OAUTH_URL: "http://localhost:8797",
+        GOOGLE_CALENDAR_API: "http://localhost:8797/calendar/v3", GOOGLE_CALENDAR_CLIENT_ID: "e2e.apps.googleusercontent.com",
+        GOOGLE_CALENDAR_CLIENT_SECRET: randomBytes(16).toString('hex'), GOOGLE_CALENDAR_TOKEN_KEY: randomBytes(32).toString('base64') } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana10-poster-qr.e2e.cjs" ? { ANA10_QR_OPENS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana06-agency-times.e2e.cjs" ? { ANA06_AGENCY_TIMES_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/msg03-contact-link.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "0" } : {}),

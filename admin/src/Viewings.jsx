@@ -8,6 +8,7 @@ import SlotPicker from "./SlotPicker.jsx";
 import Interest from "./Interest.jsx";
 import ViewingGroups from "./ViewingGroups.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
+import { CalendarFact, CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
 const TABS = { requests: "Requests", upcoming: "Upcoming", outcome: "Needs outcome", past: "Past" };
@@ -128,7 +129,7 @@ export default function Viewings({ listing, requestedId }) {
         if (notes !== undefined) { setSel(v.id); setFocusTo({ to: "detail" }); }
         else { pinned.current = null; setMsg({ text }); setFocusTo({ to: "list" }); }
       } else pinned.current = null;
-      return text;
+      return e.data?.code ? { text, code: e.data.code } : text; // VIS-12: a calendar refusal keeps its code
     }
     pinned.current = null;
     // The typed notes, saved after the action (the action itself would drop them).
@@ -219,7 +220,7 @@ export default function Viewings({ listing, requestedId }) {
 function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp, act, saveNotes, remove, recount, onDirty }) {
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule" | "remind" | "feedback"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(false), [calendar, setCalendar] = useState(null), [reviewed, setReviewed] = useState(false);
   const busy = useRef(false), notesRef = useRef(null), opener = useRef(null);
   const house = useHouseRules(v.listing_id, refresh); // VIS-10: read again after a refused change
   const notesDirty = notes.trim() !== (v.notes ?? "");
@@ -241,13 +242,16 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
     busy.current = true; setErr(null);
     const e = await fn();
     busy.current = false;
-    if (e) { setErr(e); setRefresh(x => x + 1); } else after?.();
+    setCalendar(e?.code ?? null); setReviewed(false);
+    if (e) { setErr(e.text ?? e); setRefresh(x => x + 1); } else after?.();
   };
   const withNotes = done => ({ done, notes: notesDirty ? notes : undefined });
   // VIS-08: a request sooner than a tenanted house's notice is confirmed only once staff say access is agreed (VIS-10).
   const short = cycle && v.status === "requested" && noticeShort(house, v);
+  // VIS-12: staff's own check of the negotiator's Google Calendar, after a refusal that asks for it.
+  const checked = () => (reviewed && REVIEWABLE.includes(calendar) ? { calendar_reviewed: true } : {});
   const confirmIt = () => (short && !agreed ? setErr("Confirm that access is agreed with the tenant, or reschedule to a later time")
-    : run(() => act(v, "confirm", short ? { notice_confirmed: true } : {}, withNotes("Confirmed. It's in Upcoming now."))));
+    : run(() => act(v, "confirm", { ...(short ? { notice_confirmed: true } : {}), ...checked() }, withNotes("Confirmed. It's in Upcoming now."))));
   const remind = channel => run(() => act(v, "remind", { channel }, withNotes("Marked as reminded.")), () => setOpen(null));
   const tasked = o => followUp && ["proceed", "more_info"].includes(o); // VIS-04: this answer leaves a task
   const feedback = body => run(() => act(v, "feedback", body,
@@ -258,7 +262,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
   const complete = body => run(() => act(v, "complete", body,
     withNotes(tasked(body.outcome) ? "Outcome saved. It's in Past now, with a follow-up task in the Inbox."
       : body.outcome ? "Outcome saved. It's in Past now." : "Marked completed. It's in Past, waiting for their answer.")));
-  const reschedule = slot => run(() => act(v, "reschedule", slot,
+  const reschedule = slot => run(() => act(v, "reschedule", { ...slot, ...checked() },
     withNotes(`Moved to ${fmtDay(slot.date, true)} at ${slot.time}.`)), () => setOpen(null));
   const toggle = (k, e) => { opener.current = e.currentTarget; setOpen(o => (o === k ? null : k)); setErr(null); };
   const close = () => { setOpen(null); setErr(null); opener.current?.focus(); };
@@ -282,6 +286,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
         {active && <button type="button" className="btn ghost" aria-expanded={open === "reschedule"} onClick={e => toggle("reschedule", e)}>Reschedule</button>}
       </div></div>
     {err && <p role="alert" className="err">{err}</p>}
+    {active && REVIEWABLE.includes(calendar) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
     {gone && <p className="warn" role="note">This viewing has changed and is no longer in {gone}. Your notes aren't saved yet:
       save them below, then choose another viewing.</p>}
     {/* VIS-02 (R9): out of the count until the team counts them again, whatever happens to the viewing meanwhile. Said
@@ -302,6 +307,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
       <div><dt>When</dt><dd className="num">{fmtDay(v.date, true)} · {v.time}-{v.end_time}</dd></div>
       <div><dt>Negotiator</dt><dd>{v.negotiator_name ?? "No negotiator"}</dd></div>
       <div><dt>Viewing</dt><dd>{v.kind}</dd></div>
+      <CalendarFact v={v} />
       <HouseRulesFacts house={house} />
       {v.email && <div><dt>Email</dt><dd><a href={`mailto:${v.email}?subject=${subject}`}>{v.email}</a></dd></div>}
       {v.phone && <div><dt>Phone</dt><dd><a href={`tel:${tel(v.phone)}`}>{v.phone}</a></dd></div>}
@@ -418,6 +424,7 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
   const head = useRef(null), form = useRef(null), focusErr = useRef(false);
   // VIS-10: the chosen property's house rules; a time sooner than its notice needs staff to say access is agreed.
   const house = useHouseRules(f.listing_id, refresh), [agreed, setAgreed] = useState(false), short = noticeShort(house, slot);
+  const [calendar, setCalendar] = useState(null), [reviewed, setReviewed] = useState(false); // VIS-12, after a refusal
   useEffect(() => { head.current?.focus(); api("/admin/listings?slim=1").then(d => setListings(d.listings), e => setMsg({ text: e.message })); }, []);
   const dirty = !!(f.name.trim() || f.email.trim() || f.phone.trim() || f.notes.trim() || slot.time);
   useEffect(() => { onDirty("form", dirty); }, [dirty]);
@@ -441,10 +448,12 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
     try {
       const { id } = await api("/admin/viewings", { method: "POST", body: { listing_id: f.listing_id || null, kind: f.kind,
         negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, name: f.name, email: f.email.trim() || null,
-        phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}) } });
+        phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}),
+        ...(reviewed && REVIEWABLE.includes(calendar) ? { calendar_reviewed: true } : {}) } });
       onBooked(id, `Viewing booked for ${fmtDay(slot.date, true)} at ${slot.time}.`);
     } catch (err) {
       focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
+      setCalendar(err.data?.code ?? null); setReviewed(false);
       // A property can be disabled or its hours changed after these times were read.
       if (err.status === 409 || err.data?.fields?.listing_id || err.data?.fields?.time || err.data?.fields?.notice_confirmed) setRefresh(x => x + 1);
     } finally { setBusy(false); }
@@ -467,7 +476,7 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
         {KINDS.map(k => <option key={k}>{k}</option>)}</select>{error("kind")}</label>
     </div>
     <HouseRulesFacts house={house} own />
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setCalendar(null); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
       listingId={f.listing_id} refresh={refresh} errors={errors} />
     {short ? <NoticeConfirm house={house} checked={agreed} error={errors.notice_confirmed} id="e-nv-notice_confirmed"
       onChange={b => { setAgreed(b); setErrors(({ notice_confirmed, ...x }) => x); }} /> : error("notice_confirmed")}
@@ -478,6 +487,7 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
     </div>
     <p className="muted">An email address or a phone number is enough.</p>
     <label>Internal notes (optional)<textarea className="short" value={f.notes} maxLength={4000} onChange={set("notes")} /></label>
+    {REVIEWABLE.includes(calendar) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
     <div className="inline"><button className="btn">{busy ? "Booking…" : "Book viewing"}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     <Msg m={msg} />

@@ -32,12 +32,14 @@ async function callback(env, query, cookie) {
 }
 const connection = env => env.DB.raw.prepare("SELECT * FROM calendar_connections WHERE negotiator_id = 1").get();
 
-test("switched off or before migration 0105 the calendar routes do not exist", async t => {
+test("switched off the calendar routes do not exist (the panel is told enabled: false); before migration 0105 too", async t => {
   for (const [ready, schema] of [[false, {}], [true, { through: 104 }]]) {
     const { env, google, cookie } = await world(t, { ready, schema });
-    assert.equal((await call(env, "GET", "/admin/calendar/google", { cookie })).status, ready ? 200 : 404);
-    if (ready) assert.deepEqual((await call(env, "GET", "/admin/calendar/google", { cookie })).data.enabled, false);
-    if (!ready) assert.equal((await start(env, cookie)).status, 404);
+    const s = await call(env, "GET", "/admin/calendar/google", { cookie });
+    assert.deepEqual([s.status, s.data], [200, { enabled: false }]);
+    assert.equal((await call(env, "GET", "/admin/calendar/google")).status, 401, "staff only, even off");
+    if (!ready) for (const path of ["/admin/calendar/google/start", "/admin/calendar/google/disconnect", "/admin/calendar/viewings/1/sync"])
+      assert.equal((await call(env, "POST", path, { cookie, body: { negotiator_id: 1 } })).status, 404);
     assert.equal((await callback(env, { code: "c", state: "s" })).status, ready ? 303 : 404);
     assert.equal(google.calls.length, 0);
     t.mock.timers.reset();
@@ -74,7 +76,7 @@ test("the callback connects once, keeps the token sealed and never returns it; t
   const r = await start(env, cookie), state = new URL(r.data.url).searchParams.get("state"), browser = browserCookie(r);
   const res = await callback(env, { code: "4/FIXTURE-CODE", state }, browser);
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("location"), "https://www.hampton.test/admin/?calendar=connected");
+  assert.equal(res.headers.get("location"), "/admin/?calendar=connected#/availability");
   assert.equal(res.headers.get("cache-control"), "no-store");
   const body = await res.text();
   assert.ok(!body.includes("FIXTURE-REFRESH") && !body.includes("ya29"), "refresh_token_not_returned");
@@ -89,7 +91,7 @@ test("the callback connects once, keeps the token sealed and never returns it; t
   assert.deepEqual(status.data.connections.map(c => [c.negotiator_id, c.state]), [[1, "active"]]);
   // state_once_session_bound: the same answer again does nothing.
   const again = await callback(env, { code: "4/FIXTURE-CODE", state }, browser);
-  assert.equal(again.headers.get("location"), "https://www.hampton.test/admin/?calendar=failed");
+  assert.equal(again.headers.get("location"), "/admin/?calendar=failed#/availability");
   assert.equal(google.calls.filter(c => c.url === TOKEN_URL).length, 1);
 });
 
@@ -117,7 +119,7 @@ test("refusing at Google leaves the viewings on Hampton's calendar, and the stat
   const { env, google, cookie } = await world(t);
   const r = await start(env, cookie), state = new URL(r.data.url).searchParams.get("state");
   const res = await callback(env, { error: "access_denied", state }, browserCookie(r));
-  assert.equal(res.headers.get("location"), "https://www.hampton.test/admin/?calendar=denied", "oauth_denied_fallback");
+  assert.equal(res.headers.get("location"), "/admin/?calendar=denied#/availability", "oauth_denied_fallback");
   assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM calendar_oauth_states").get().n, 0);
   assert.equal(google.calls.length, 0);
 });

@@ -4,6 +4,7 @@ import { setUnsaved, unsaved, confirmLeave } from "./unsaved.js";
 import { fmtDay } from "./format.js";
 import { WEEKDAYS, DEFAULT_HOURS, SLOT_MINUTES, jerseyToday } from "../../server/viewings.js";
 import { DEFAULT_VIEWING_POLICY } from "../../server/viewing-policy.js";
+import { CalendarConnection, CalendarReturn } from "./Calendar.jsx";
 
 const DAY = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
 const exceptionText = e => (e.kind === "open" ? `Open ${e.start_time}-${e.end_time}`
@@ -58,6 +59,7 @@ export default function Availability() {
     <p className="muted avail-intro">Who shows homes and when. The website offers {SLOT_MINUTES}-minute viewings inside these hours.</p>
     {adding && <AddNegotiator onAdded={added} onCancel={closeAdd} />}
     <Msg m={msg} />
+    <CalendarReturn />
     {loadErr && <p role="alert" className="err">{loadErr} <button type="button" className="linkish" onClick={load}>Try again</button></p>}
     {!list ? !loadErr && <p>Loading negotiators…</p>
       : !list.length ? <p className="empty card">No negotiators yet. Use Add negotiator for each person who shows homes, so the website can offer their free times.</p>
@@ -234,6 +236,8 @@ function Negotiator({ n, reload, focus }) {
         {rulesDirty && <span className="unsaved">Unsaved changes</span>}</div>
       <Msg m={msgs.rules} id="m-rules" />
     </form>}
+
+    <CalendarConnection n={n} />
 
     <section aria-labelledby="h-exc">
       <h3 id="h-exc" ref={excHeading} tabIndex={-1}>Exceptions</h3>

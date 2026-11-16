@@ -4,8 +4,8 @@
 import { sha256 } from "./http.js";
 
 export const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const TOKEN_URL = "https://oauth2.googleapis.com/token", REVOKE_URL = "https://oauth2.googleapis.com/revoke";
-const API = "https://www.googleapis.com/calendar/v3";
+// GOOGLE_OAUTH_URL and GOOGLE_CALENDAR_API (unset in production) let the e2e point these at a fake Google, as DRIVE_API.
+export const OAUTH_URL = "https://oauth2.googleapis.com", API_URL = "https://www.googleapis.com/calendar/v3";
 // The least access that lets Hampton write events in calendars the negotiator owns and read their busy times; no access
 // to event contents, other calendars' details or email.
 export const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/calendar.events.owned",
@@ -36,28 +36,28 @@ const form = (fetch, url, body) => send(fetch, url, { method: "POST",
   headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body).toString() });
 
 // The authorization code for a refresh token and the scopes actually granted. Throws on any refusal.
-export async function exchangeCode({ fetch, clientId, clientSecret, redirectUri, code }) {
-  const r = await form(fetch, TOKEN_URL, { code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri,
+export async function exchangeCode({ fetch, oauth = OAUTH_URL, clientId, clientSecret, redirectUri, code }) {
+  const r = await form(fetch, `${oauth}/token`, { code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri,
     grant_type: "authorization_code" }), b = r.body;
   if (!r.ok || typeof b?.refresh_token !== "string") throw new Error(`Google token exchange failed (${r.status})`);
   return { refresh_token: b.refresh_token, scopes: String(b.scope ?? "").split(" ").filter(Boolean) };
 }
 
 // A short-lived access token from the stored refresh token; never stored.
-export async function accessToken({ fetch, clientId, clientSecret, refreshToken }) {
-  const r = await form(fetch, TOKEN_URL, { client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken,
+export async function accessToken({ fetch, oauth = OAUTH_URL, clientId, clientSecret, refreshToken }) {
+  const r = await form(fetch, `${oauth}/token`, { client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken,
     grant_type: "refresh_token" }), b = r.body;
   if (!r.ok || typeof b?.access_token !== "string") throw new Error(`Google token refresh failed (${r.status})`);
   return b.access_token;
 }
 
-export const revokeToken = ({ fetch, token }) => form(fetch, REVOKE_URL, { token });
+export const revokeToken = ({ fetch, oauth = OAUTH_URL, token }) => form(fetch, `${oauth}/revoke`, { token });
 
-const call = (c, method, path, { body, query, etag, signal } = {}) => send(c.fetch, `${API}${path}${query ? `?${new URLSearchParams(query)}` : ""}`, {
+const call = (c, method, path, { body, query, etag, signal } = {}) => send(c.fetch, `${c.api ?? API_URL}${path}${query ? `?${new URLSearchParams(query)}` : ""}`, {
   method, headers: { authorization: `Bearer ${c.token}`, ...(body ? { "content-type": "application/json" } : {}), ...(etag ? { "if-match": etag } : {}) },
   ...(body ? { body: JSON.stringify(body) } : {}) }, signal);
 
-// connection: { fetch, token (access token), calendarId }. from/to: ISO instants, at most 14 days apart.
+// connection: { fetch, token (access token), calendarId, api? }. from/to: ISO instants, at most 14 days apart.
 // state: ok, unknown (Google did not answer in 10 s, or refused) or incomplete (more than 100 intervals: never "free").
 export async function getBusy(c, { from, to, signal }) {
   const span = Date.parse(to) - Date.parse(from);

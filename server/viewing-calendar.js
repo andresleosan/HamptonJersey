@@ -7,7 +7,7 @@ import { json, fail, readJson, now, sha256 } from "./http.js";
 import { getCookie } from "./auth.js";
 import { jerseyViewingInstant } from "./viewing-policy.js";
 import { formatExactAddress } from "./listing-details.js";
-import { GOOGLE_SCOPES, authUrl, exchangeCode, accessToken, revokeToken, getBusy, upsertViewingEvent, cancelViewingEvent,
+import { GOOGLE_SCOPES, OAUTH_URL, API_URL, authUrl, exchangeCode, accessToken, revokeToken, getBusy, upsertViewingEvent, cancelViewingEvent,
   eventIdFor } from "./calendar-google.js";
 
 export const calendarReady = env => env?.VIS12_CALENDAR_READY === "1";
@@ -41,14 +41,15 @@ export const calendarConfigured = env => typeof env?.GOOGLE_CALENDAR_CLIENT_ID =
   && typeof env.GOOGLE_CALENDAR_CLIENT_SECRET === "string" && env.GOOGLE_CALENDAR_CLIENT_SECRET !== "" && !!keyBytes(env)
   && /^https:\/\//.test(env.SITE_URL ?? "");
 
+const oauth = env => env.GOOGLE_OAUTH_URL ?? OAUTH_URL;
 // A Google connection for one call: a fresh access token from the sealed refresh token (never stored).
 async function withConnection(env, conn, fetch, run) {
   let token;
   try {
-    token = await accessToken({ fetch, clientId: env.GOOGLE_CALENDAR_CLIENT_ID, clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET,
+    token = await accessToken({ fetch, oauth: oauth(env), clientId: env.GOOGLE_CALENDAR_CLIENT_ID, clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET,
       refreshToken: await openToken(env, conn.negotiator_id, conn.refresh_token_enc) });
   } catch { return { state: "unknown", error: "token" }; }
-  return run({ fetch, token, calendarId: conn.calendar_id });
+  return run({ fetch, token, calendarId: conn.calendar_id, api: env.GOOGLE_CALENDAR_API ?? API_URL });
 }
 const CONNECTION = "SELECT * FROM calendar_connections WHERE negotiator_id = ?";
 const LINK = "SELECT * FROM calendar_event_links WHERE viewing_id = ?";
@@ -217,7 +218,7 @@ async function start({ request, env, admin }) {
 // Google's redirect back (a top-level GET, so no session cookie and no same-origin check): everything it trusts is the
 // state row, used up on the first answer, and the browser cookie. It answers only with a redirect to the panel.
 async function callback({ request, env, waitUntil }) {
-  const back = outcome => new Response(null, { status: 303, headers: { location: `${site(env)}/admin/?calendar=${outcome}`,
+  const back = outcome => new Response(null, { status: 303, headers: { location: `/admin/?calendar=${outcome}#/availability`,
     "cache-control": "no-store", "referrer-policy": "no-referrer",
     "set-cookie": `${BROWSER}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` } });
   const q = new URL(request.url).searchParams, state = q.get("state");
@@ -234,11 +235,11 @@ async function callback({ request, env, waitUntil }) {
   if (!staff || !negotiator) return back("failed");
   let got;
   try {
-    got = await exchangeCode({ fetch: globalThis.fetch, clientId: env.GOOGLE_CALENDAR_CLIENT_ID,
+    got = await exchangeCode({ fetch: globalThis.fetch, oauth: oauth(env), clientId: env.GOOGLE_CALENDAR_CLIENT_ID,
       clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET, redirectUri: redirectUri(env), code });
   } catch { return back("failed"); }
   if (!GOOGLE_SCOPES.every(s => got.scopes.includes(s))) {
-    waitUntil(revokeToken({ fetch: globalThis.fetch, token: got.refresh_token }).catch(() => {}));
+    waitUntil(revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token: got.refresh_token }).catch(() => {}));
     return back("scopes");
   }
   await env.DB.prepare(`INSERT INTO calendar_connections (negotiator_id, calendar_id, state, refresh_token_enc, scopes,
@@ -259,7 +260,7 @@ async function disconnect({ request, env, admin, waitUntil }) {
   if (!r.meta.changes) fail(409, "The connection changed meanwhile. Reload and try again.");
   let token = null;
   try { token = await openToken(env, id, conn.refresh_token_enc); } catch {}
-  if (token) waitUntil(revokeToken({ fetch: globalThis.fetch, token }).catch(() => {}));
+  if (token) waitUntil(revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token }).catch(() => {}));
   return json({ ok: true });
 }
 
@@ -272,6 +273,8 @@ async function viewingState({ env, params: [id] }) {
 }
 const retry = async ({ env, params: [id] }) => json(await syncViewingCalendar(env, viewingId(id)));
 
+// Switched off, only the panel's question is answered: { enabled: false }, as VIS-10's house rules do.
+export const calendarOffRoutes = [["GET", /^\/admin\/calendar\/google$/, () => json({ enabled: false }), true]];
 // Mounted by server/api.js only with VIS12_CALENDAR_READY.
 export const calendarRoutes = [
   ["GET", /^\/admin\/calendar\/google$/, status, true],
