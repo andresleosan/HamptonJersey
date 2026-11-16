@@ -52,11 +52,11 @@ before(async () => {
 });
 after(async () => { if (mf) await mf.dispose(); });
 
-test("off by default: unset or '0' answers 404 everywhere and writes nothing; wrangler.toml does not switch it on", async () => {
+test("off by default: unset or '0' answers 404 everywhere and writes nothing; wrangler.toml switches it on (16-nov-2026, 0103 applied)", async () => {
   assert.equal(signatureReady({}), false);
   assert.equal(signatureReady({ ADM19_SIGNATURE_READY: "0" }), false);
   assert.equal(signatureReady({ ADM19_SIGNATURE_READY: "1" }), true);
-  assert.doesNotMatch(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^ADM19_SIGNATURE_READY = "1"$/m);
+  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^ADM19_SIGNATURE_READY = "1"$/m);
   for (const off of [{ DB: env.DB, SESSION_SECRET: SECRET }, { DB: env.DB, SESSION_SECRET: SECRET, ADM19_SIGNATURE_READY: "0" }]) {
     assert.equal((await req("GET", "/admin/tenancy-signatures", undefined, undefined, off)).status, 404);
     assert.equal((await req("GET", "/admin/tenancies/1/signatures", undefined, undefined, off)).status, 404);
