@@ -13,8 +13,8 @@
     "admin/src/ApplicantDetail.jsx:28",
     "admin/src/ApplicantDetail.jsx:595-603",
     "admin/src/ApplicantTabs.jsx:28-74",
-    "server/routes/applicant-tabs.js:7-44",
-    "server/routes/applicants.js:217",
+    "server/routes/applicant-tabs.js:7-46",
+    "server/routes/applicants.js:215-216",
     "tests/server/sap08-applicant-tabs.test.mjs",
     "tests/sap08-tabs.e2e.cjs",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
