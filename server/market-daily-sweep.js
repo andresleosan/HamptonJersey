@@ -4,7 +4,8 @@
 // attempt is recorded, and a failure keeps the inventory as it was. When no channel is left to read, the day is compared
 // with each channel's previous full pass: an advert not found is a review for a person, never a confirmed
 // unavailability, and a day with adverts not found or sources not read in full leaves one Inbox task. After a day with
-// changes, the active searches are recomputed a few per tick, only with the website's availability rules (EST-15).
+// changes, the active searches are recomputed a few per tick, only with the website's availability rules (EST-15);
+// with BUS-04 on (BUS04_REMATCH_READY), it crosses instead only the searches each change affects (market-rematch.js).
 // Photos are never downloaded here: an advert's readings are data. Off (BUS08_SWEEP_READY not "1") nothing runs.
 import { json, sha256 } from './http.js';
 import { jerseyNow } from './viewings.js';
@@ -228,6 +229,13 @@ async function recompute(env, ts) {
   const sweep = await env.DB.prepare(`SELECT run_id,jersey_day,recompute_after FROM market_daily_sweeps
     WHERE changes>0 AND recomputed_at IS NULL ORDER BY jersey_day DESC LIMIT 1`).first();
   if (!sweep) return null;
+  // BUS-04 crosses only the searches each change affects; the day counts as recomputed once its changes are crossed.
+  if (env.BUS04_REMATCH_READY === '1') {
+    await env.DB.prepare(`UPDATE market_daily_sweeps SET recomputed_at=? WHERE changes>0 AND recomputed_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM market_change_outbox WHERE consumer_state='pending')
+      AND NOT EXISTS (SELECT 1 FROM market_rematch_queue)`).bind(ts).run();
+    return 'rematch';
+  }
   if (!RECOMPUTE_FLAGS.every(flag => env[flag] === '1')) return 'waiting';
   const { results } = await env.DB.prepare(`SELECT a.id FROM applicants a WHERE ${activeSql('a')} AND a.id>?
     ORDER BY a.id LIMIT ?`).bind(sweep.recompute_after, RECOMPUTE_PER_TICK).all();

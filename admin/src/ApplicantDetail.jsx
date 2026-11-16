@@ -49,7 +49,7 @@ export const value = (k, v, nameOf) => (v == null ? show(k, v, nameOf)
 const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requirements changed", "applicant.stage_changed": "Stage changed",
   "applicant.archived": "Archived", "applicant.restored": "Restored", "contact.updated": "Contact details changed",
   "contact.consent_changed": "Consent changed", "contact.conversation": "Conversation logged", "applicant.duplicate_submitted": "Registered again on the website",
-  "applicant.matched": "New matches found", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
+  "applicant.matched": "New matches found", "applicant.market_matched": "New market homes proposed", "offer.updated": "Offer changed", "offer.countered": "Seller countered",
   "offer.accepted": "Offer accepted", "offer.rejected": "Offer rejected", "offer.withdrawn": "Offer withdrawn",
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",

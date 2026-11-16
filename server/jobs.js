@@ -14,6 +14,7 @@ import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';
 import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
+import { marketRematchPass, rematchReady } from './market-rematch.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -43,6 +44,10 @@ export default {
     if (sweepReady(env)) { // BUS-08: the daily market sweep, off until its sources are authorised (BUS-19)
       try { await marketSweepPass(env, now()); }
       catch { console.error('Market sweep pass failed'); }
+    }
+    if (rematchReady(env)) { // BUS-04: the market's changes cross again only the searches they affect
+      try { await marketRematchPass(env, now()); }
+      catch { console.error('Market rematch pass failed'); }
     }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.
