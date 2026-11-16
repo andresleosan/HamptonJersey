@@ -54,6 +54,12 @@ export function dailyRunDue(ts) {
   return { due: local.time >= '01:00', jersey_day: local.date };
 }
 
+// The first instant of the next Jersey day, in UTC (midnight never falls in a clock change, made at 01:00 UTC).
+export function jerseyDayEnd(day) {
+  const next = new Date(Date.parse(`${day}T00:00:00.000Z`) + 86400000), summer = new Date(next - 3600000);
+  return (jerseyNow(summer).date === next.toISOString().slice(0, 10) ? summer : next).toISOString();
+}
+
 const dailyRun = (env, day) => env.DB.prepare(
   "SELECT id,status,version,jersey_day FROM market_runs WHERE kind='daily' AND jersey_day=?").bind(day).first();
 
@@ -106,6 +112,9 @@ function failed(env, runId, c, lease, error, ts) {
 
 const validKey = v => typeof v === 'string' && v.length > 0 && v.length <= 160 && !/[\u0000-\u001f\u007f]/.test(v);
 const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+// Plain JSON all the way down, as BUS-06 stores it (no NaN, undefined, Date...); depth within its limit of 32.
+const jsonLike = (v, depth = 0) => depth < 28 && (v === null || ['string', 'boolean'].includes(typeof v) ||
+  (typeof v === 'number' && Number.isFinite(v)) || ((Array.isArray(v) || plain(v)) && Object.values(v).every(item => jsonLike(item, depth + 1))));
 const validTime = v => typeof v === 'string' && Number.isFinite(Date.parse(v)) && new Date(v).toISOString() === v;
 
 // The reader's answer as a BUS-06 page: observations normalised by BUS-09, the processing time as reading time.
@@ -116,7 +125,7 @@ async function toPage(read, lease, ts) {
   const records = [], keys = new Set();
   for (const r of read.records) {
     try {
-      if (!validKey(r?.external_key) || keys.has(r.external_key) || !plain(r.raw) || !plain(r.observation) ||
+      if (!validKey(r?.external_key) || keys.has(r.external_key) || !plain(r.raw) || !jsonLike(r.raw) || !plain(r.observation) ||
           (r.source_at !== undefined && !validTime(r.source_at)) ||
           (r.raw.description !== undefined && (typeof r.raw.description !== 'string' || r.raw.description.length > 4000)))
         throw new TypeError('Invalid advert');
@@ -264,9 +273,10 @@ export async function marketSweepPass(env, ts, { readers = READERS } = {}) {
         AND (sr.lease_until IS NULL OR sr.lease_until<=?) AND (sr.next_due IS NULL OR sr.next_due<=?)
       ORDER BY sr.next_due IS NOT NULL,sr.next_due,sr.paging_key LIMIT ?`).bind(run.id, ts, ts, CHANNELS_PER_TICK).all();
     for (const c of channels) out.read.push(await readChannel(env, run, c, readers, ts));
+    // A channel told to wait past the end of the day (its interval, a rate limit) does not hold back the comparison.
     const left = await env.DB.prepare(`SELECT 1 FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
-      AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC} LIMIT 1`)
-      .bind(run.id).first();
+      AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}
+        AND (sr.next_due IS NULL OR sr.next_due<?) LIMIT 1`).bind(run.id, jerseyDayEnd(run.jersey_day)).first();
     if (!left) { await compare(env, run, ts); out.compared = true; }
   }
   out.recompute = await recompute(env, ts);

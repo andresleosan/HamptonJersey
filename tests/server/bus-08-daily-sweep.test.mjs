@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { makeEnv, call, adminCookie } from './helpers.mjs';
 import { createInventoryRun } from '../../server/market-inventory-store.js';
 import worker from '../../server/jobs.js';
-import { CHANNELS_PER_TICK, MAX_FAILURES, RECOMPUTE_FLAGS, SourceReadError, dailyRunDue, marketSweepPass }
+import { CHANNELS_PER_TICK, MAX_FAILURES, RECOMPUTE_FLAGS, SourceReadError, dailyRunDue, jerseyDayEnd, marketSweepPass }
   from '../../server/market-daily-sweep.js';
 
 // Ticks from two days ahead, 03:00 UTC (after 01:00 in Jersey in any season): leases and pacing compare with D1's clock.
@@ -85,6 +85,11 @@ test('01:00 Jersey time, once per local day, through both clock changes', () => 
   assert.equal(dailyRunDue('2026-06-30T23:59:00.000Z').due, false);
   assert.equal(dailyRunDue('2026-12-01T00:59:00.000Z').due, false);
   assert.deepEqual(dailyRunDue('2026-12-01T23:50:00.000Z'), { due: true, jersey_day: '2026-12-01' });
+  // The day ends at the next Jersey midnight: 23:00 UTC in summer, 00:00 UTC in winter and on both change days.
+  assert.equal(jerseyDayEnd('2026-07-01'), '2026-07-01T23:00:00.000Z');
+  assert.equal(jerseyDayEnd('2026-12-01'), '2026-12-02T00:00:00.000Z');
+  assert.equal(jerseyDayEnd('2026-03-29'), '2026-03-29T23:00:00.000Z');
+  assert.equal(jerseyDayEnd('2026-10-25'), '2026-10-26T00:00:00.000Z');
 });
 
 test('one run per Jersey day on the manifest of its first tick; missed days are not made up', async () => {
@@ -317,6 +322,28 @@ test('one advert a source sends badly is left out, not the whole page', async ()
   rest(env); await marketSweepPass(env, at(0), { readers });
   assert.deepEqual(rows(env, 'SELECT external_key FROM market_observations ORDER BY external_key'), [{ external_key: 'A-1' }, { external_key: 'A-5' }]);
   assert.deepEqual({ ...one(env, 'SELECT outcome,records,skipped FROM market_sweep_attempts') }, { outcome: 'complete', records: 2, skipped: 3 });
+});
+
+test('an advert with a nested value BUS-06 cannot store is left out, not the whole page', async () => {
+  const env = world({ sources: ['agency-a'] }), { readers, reader } = fixtures({ 'agency-a': many('A', 4) });
+  const read = reader.readPage;
+  reader.readPage = async input => { const page = await read(input);
+    page.records[1].raw.meta = { score: NaN }; page.records[2].raw.meta = { seen: new Date() };
+    page.records[3].raw.meta = [{ note: undefined }]; return page; };
+  rest(env); await marketSweepPass(env, at(0), { readers });
+  assert.deepEqual(rows(env, 'SELECT external_key FROM market_observations'), [{ external_key: 'A-1' }]);
+  assert.deepEqual({ ...one(env, 'SELECT outcome,records,skipped FROM market_sweep_attempts') }, { outcome: 'complete', records: 1, skipped: 3 });
+});
+
+test("a channel told to wait past the end of the Jersey day does not hold back that day's comparison", async () => {
+  const env = world(), { readers } = fixtures({ 'agency-a': many('A', 2), 'agency-b': many('B', 25) });
+  env.DB.raw.exec("UPDATE market_sources SET min_interval_s=3600,policy_version=policy_version+1 WHERE source_ref='agency-b'");
+  rest(env);
+  assert.equal((await marketSweepPass(env, at(0), { readers })).compared, false, 'a wait within the day is still waited for');
+  env.DB.raw.exec("UPDATE market_source_runs SET next_due=? WHERE source_ref='agency-b'".replace('?', `'${at(1)}'`));
+  const out = await marketSweepPass(env, at(0, 10), { readers });
+  assert.deepEqual([out.read, out.compared], [[], true]);
+  assert.match(task(env, runOf(env, at(0).slice(0, 10)).id).task_reason, /0 adverts not found, 1 sources not read in full/);
 });
 
 // Each D1 call counts once: a query, or a batch (one transaction) whatever it holds.
