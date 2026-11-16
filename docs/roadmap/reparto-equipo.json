@@ -10863,7 +10863,8 @@
         "server/listing-history.js + admin/src/ListingHistory.jsx (acción withdrawal_notes_purged)",
         "Decisión (A), fuente: diseño docs/superpowers/specs/2026-11-08-l1b-privacy-requests-design.md:41 («visitas con vínculo explícito»); el vínculo explícito es la confirmación de una persona, una a una; registro propio append-only porque el CHECK de privacy_request_audit no admite acciones nuevas sin reconstruir la tabla.",
         "Decisión (B), fuente: ficha (falta) y EST-19 (listing.photos_purged escrito por el propio batch): evento aparte en vez de ampliar related del trigger de 0029, la opción menos invasiva y reversible (skill §4.5).",
-        "16-nov-2026 (A+B): tests/server/privacy-requests.test.mjs 29/29 (4 nuevas: interruptor/0111 y huella estable, revisión una a una, permisos y estados, purga de notas al borrar ficha con atomicidad); npm test 3217/3217 + unittest 29 OK; npm run build y check:release OK; e2e aislado tests/pre12-requests.e2e.cjs 1280/390 OK con la confirmación de una visita y su descarga. Una base sin 0044 borra fichas como antes (pub06-spr01-migration)."
+        "16-nov-2026 (A+B): tests/server/privacy-requests.test.mjs 29/29 (4 nuevas: interruptor/0111 y huella estable, revisión una a una, permisos y estados, purga de notas al borrar ficha con atomicidad); npm test 3217/3217 + unittest 29 OK; npm run build y check:release OK; e2e aislado tests/pre12-requests.e2e.cjs 1280/390 OK con la confirmación de una visita y su descarga. Una base sin 0044 borra fichas como antes (pub06-spr01-migration).",
+        "Revisión independiente (16-nov): sin graves; corregido: decidir una visita borra la revisión de la copia, y una confirmación deja de valer si la visita se edita después o si se vuelve a vincular el contacto. Las notas de retirada de fichas borradas antes del 16-nov siguen huérfanas: borrarlas es Luis (COLA-LUIS)."
       ],
       "modulo": "M03/M12",
       "deps": [],

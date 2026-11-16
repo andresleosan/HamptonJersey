@@ -646,3 +646,30 @@ test('deleting a listing removes its withdrawal notes, revisions and receipts, a
   assert.equal((await call(env, 'DELETE', '/admin/listings/HE-R003', { cookie, body: { confirm: 'HE-R003' } })).status, 200);
   assert.equal(n('events', "entity_id='HE-R003' AND type='listing.withdrawal_notes_purged'"), 0);
 });
+
+test('viewing review: a decision clears the copy review; an edited viewing or a relink needs confirming again', async () => {
+  const env = reviewOn(), cookie = await adminCookie(), { request } = await verified(env, cookie);
+  seedListing(env);
+  const v = viewing(env, { email: 'pre12-person@example.test' });
+  const hash = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.sha256;
+  assert.equal((await call(env, 'POST', `${BASE}/${request.id}/copy-review`, { cookie, body: { revision: request.revision, sha256: hash } })).status, 200);
+  assert.equal((await decide(env, cookie, request.id, v, true)).status, 200);
+  const row = () => env.DB.raw.prepare('SELECT copy_hash, contact_id FROM privacy_requests WHERE id = ?').get(request.id);
+  assert.equal(row().copy_hash, null, 'the copy changed, so its review was cleared');
+  const inCopy = async () => ((await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.copy.viewing_requests ?? []).map(x => x.id);
+  assert.deepEqual(await inCopy(), [v]);
+
+  // Edited after the confirmation: out of the copy until someone confirms it again.
+  env.DB.raw.prepare("UPDATE viewing_requests SET name = 'Someone Else', updated_at = ? WHERE id = ?").run('2999-01-01T00:00:00.000Z', v);
+  assert.deepEqual(await inCopy(), []);
+  const listed = (await call(env, 'GET', `${BASE}/${request.id}`, { cookie })).data.viewings;
+  assert.equal(listed.find(x => x.id === v).confirmed, null);
+  env.DB.raw.prepare('UPDATE viewing_requests SET updated_at = ? WHERE id = ?').run(T, v);
+  assert.deepEqual(await inCopy(), [v]);
+
+  // Relinked (to the same contact here): the earlier confirmation was for the earlier link.
+  const r = (await call(env, 'GET', `${BASE}/${request.id}`, { cookie })).data.request;
+  env.DB.raw.prepare(`INSERT INTO privacy_request_audit (request_id, revision, action, actor, at) VALUES (?, ?, 'contact_linked', 'admin@example.test', ?)`)
+    .run(request.id, r.revision, '2999-01-01T00:00:00.000Z');
+  assert.deepEqual(await inCopy(), []);
+});

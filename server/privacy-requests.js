@@ -166,17 +166,28 @@ async function confirmations(env, r) {
   try {
     const { results } = await env.DB.prepare(`SELECT p.viewing_id, p.confirmed, p.actor, p.at FROM privacy_request_viewings p
       WHERE p.request_id = ?1 AND p.contact_id = ?2 AND p.id = (SELECT MAX(q.id) FROM privacy_request_viewings q
-        WHERE q.request_id = ?1 AND q.contact_id = ?2 AND q.viewing_id = p.viewing_id)`).bind(r.id, r.contact_id).all();
+        WHERE q.request_id = ?1 AND q.contact_id = ?2 AND q.viewing_id = p.viewing_id)
+        -- A confirmation made before the contact was last (re)linked was for an earlier link: it does not count.
+        AND p.at >= COALESCE((SELECT MAX(a.at) FROM privacy_request_audit a WHERE a.request_id = ?1
+          AND a.action = 'contact_linked'), '')`).bind(r.id, r.contact_id).all();
     return new Map(results.filter(d => d.confirmed).map(d => [d.viewing_id, { by: d.actor, at: d.at }]));
   } catch (e) { if (/no such table/.test(e?.message ?? "")) return new Map(); throw e; }
 }
 async function viewingsToReview(env, r) {
   const confirmed = await confirmations(env, r);
-  return (await matchedViewings(env, r.contact_id, REVIEW)).map(v => ({ ...v, confirmed: confirmed.get(v.id) ?? null }));
+  return (await matchedViewings(env, r.contact_id, [...REVIEW, "updated_at"])).map(({ updated_at, ...v }) => {
+    const c = confirmed.get(v.id);
+    return { ...v, confirmed: c && !edited({ updated_at, created_at: v.created_at }, c) ? c : null };
+  });
 }
+// A viewing request edited after it was confirmed needs confirming again: the confirmation was for what was read then.
+const edited = (v, c) => (v.updated_at ?? v.created_at) > c.at;
 async function confirmedViewings(env, r) {
   const confirmed = viewingReviewReady(env) ? await confirmations(env, r) : new Map();
-  return confirmed.size ? (await matchedViewings(env, r.contact_id, VIEWING)).filter(v => confirmed.has(v.id)) : [];
+  if (!confirmed.size) return [];
+  const rows = await matchedViewings(env, r.contact_id, [...new Set([...VIEWING, "created_at", "updated_at"])]);
+  return rows.filter(v => confirmed.has(v.id) && !edited(v, confirmed.get(v.id)))
+    .map(v => Object.fromEntries(VIEWING.map(k => [k, v[k]])));
 }
 
 async function decideViewing({ request, env, admin, params: [id, viewing] }) {
@@ -187,9 +198,12 @@ async function decideViewing({ request, env, admin, params: [id, viewing] }) {
   if (typeof b?.confirmed !== "boolean") return bad({ confirmed: "Say whether this viewing request is the person's" });
   if (!(await matchedViewings(env, r.contact_id, ["id", "email", "phone"])).some(x => x.id === v))
     fail(404, "This viewing request is not a possible match for the contact");
-  const { meta } = await env.DB.prepare(`INSERT INTO privacy_request_viewings (request_id, contact_id, viewing_id, confirmed, actor, at)
+  // The copy changes, so its review (for the copy as it was) is cleared, as a new contact link does.
+  const [{ meta }] = await env.DB.batch([env.DB.prepare(`INSERT INTO privacy_request_viewings (request_id, contact_id, viewing_id, confirmed, actor, at)
     SELECT id, contact_id, ?, ?, ?, ? FROM privacy_requests WHERE id = ? AND state = 'open' AND contact_id = ?`)
-    .bind(v, b.confirmed ? 1 : 0, admin, now(), id, r.contact_id).run();
+    .bind(v, b.confirmed ? 1 : 0, admin, now(), id, r.contact_id),
+    env.DB.prepare(`UPDATE privacy_requests SET copy_hash = NULL, copy_reviewed_by = NULL, copy_reviewed_at = NULL
+      WHERE id = ? AND changes() = 1`).bind(id)]);
   if (!meta.changes) fail(409, STALE);
   return json({ viewings: await viewingsToReview(env, r) });
 }
