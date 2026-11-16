@@ -56,6 +56,8 @@ import chatContactRoutes, { chatContactReady } from "./chat-contact.js";
 import chatApplicantRoutes, { chatApplicantReady } from "./chat-applicant.js";
 import marketingPreferenceRoutes, { purposeReady } from "./communication-preferences.js";
 import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.js";
+import tenancyLinkRoutes from "./tenancy-contact-links.js";
+import { tenancyLinkReady } from "./retention.js";
 import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
 import savedSearchRoutes, { savedSearchesReady, unsubscribeRoutes } from "./saved-searches.js";
@@ -163,6 +165,7 @@ async function route(request, env, segments, waitUntil) {
     if (savedSearchesReady(env)) routes = [...routes, ...savedSearchRoutes]; // REG-15: needs migrations 0096 and 0107
     else if (purposeReady(env)) routes = [...routes, ...unsubscribeRoutes]; // REG-15 off later: its alerts' links still stop them
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
+    if (tenancyLinkReady(env)) routes = [...routes, ...tenancyLinkRoutes]; // PRE-12: needs migration 0113
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
     if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109

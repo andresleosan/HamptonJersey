@@ -1,5 +1,6 @@
 import { json, fail, readJson, now, sha256 } from "./http.js";
-import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH, OPEN_PRIVACY_REQUEST } from "./retention.js";
+import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH, OPEN_PRIVACY_REQUEST, tenancyLinkReady } from "./retention.js";
+import { tenanciesFor, linkedTenancies, tenancyItems, setTenancyLink } from "./tenancy-contact-links.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
 
@@ -143,7 +144,8 @@ async function holds(env, contactId, requestId) {
 // What the existing Delete (an archived applicant's, §3.4) would remove for this contact, and what it leaves to a person.
 // Viewing requests carry no contact id: those with the same non-empty email, or the same phone once normalised as the
 // contact's is (normalizePhone), are only possible matches (other people can share them), counted for a person to check
-// one by one, never deleted here. Rentals are not linked to contacts: named for a check by hand, never matched.
+// one by one, never deleted here. Rentals are not linked to contacts: named for a check by hand, never matched; with
+// PRE12_TENANCY_LINK_READY, the tenancies a person linked and those still to check are counted, never deleted.
 const STRIPPED = ["' '", "'-'", "'.'", "'('", "')'"].reduce((sql, c) => `replace(${sql}, ${c}, '')`, "v.phone");
 async function matchedViewings(env, contactId, fields) {
   const c = await env.DB.prepare("SELECT email, phone FROM contacts WHERE id = ?").bind(contactId).first();
@@ -207,6 +209,17 @@ async function decideViewing({ request, env, admin, params: [id, viewing] }) {
   if (!meta.changes) fail(409, STALE);
   return json({ viewings: await viewingsToReview(env, r) });
 }
+// PRE-12 (server/tenancy-contact-links.js): from an open request with its contact, a person links or unlinks each
+// proposed tenancy; the link lasts beyond the request.
+async function decideTenancy({ request, env, admin, params: [id, tenancy] }) {
+  if (!tenancyLinkReady(env)) fail(404, "Not found");
+  const b = await readJson(request), r = await current(env, id);
+  if (r.state !== "open") fail(409, CLOSED);
+  if (r.contact_id == null) fail(400, "Link the contact first");
+  if (typeof b?.linked !== "boolean") return bad({ linked: "Say whether this person is the tenant" });
+  await setTenancyLink(env, Number(tenancy), r.contact_id, b.linked, admin);
+  return json({ tenancies: await tenanciesFor(env, r.contact_id) });
+}
 async function erasurePlan(env, contactId, kept) {
   const n = await env.DB.prepare(`SELECT
     (SELECT COUNT(*) FROM applicants WHERE contact_id = ?1) AS searches,
@@ -215,7 +228,8 @@ async function erasurePlan(env, contactId, kept) {
     (SELECT COUNT(*) FROM marketing_preferences WHERE contact_id = ?1) AS marketing_preferences`).bind(contactId).first();
   return { can_delete: kept.length === 0,
     remove: [{ item: "contact", count: 1 }, ...["searches", "offers", "matches", "marketing_preferences"].map(item => ({ item, count: n[item] }))],
-    by_hand: [{ item: "viewing_requests", count: await possibleViewings(env, contactId) }, { item: "rentals", count: null }] };
+    by_hand: [{ item: "viewing_requests", count: await possibleViewings(env, contactId) },
+      ...(tenancyLinkReady(env) ? await tenancyItems(env, contactId) : [{ item: "rentals", count: null }])] };
 }
 
 async function detail({ env, params: [id] }) {
@@ -225,7 +239,8 @@ async function detail({ env, params: [id] }) {
     WHERE request_id = ? ORDER BY id`).bind(id)]);
   return json({ request: output(r), holds: kept, audit,
     erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null,
-    ...(viewingReviewReady(env) && COPY_KINDS.includes(r.kind) && r.contact_id != null ? { viewings: await viewingsToReview(env, r) } : {}) });
+    ...(viewingReviewReady(env) && COPY_KINDS.includes(r.kind) && r.contact_id != null ? { viewings: await viewingsToReview(env, r) } : {}),
+    ...(tenancyLinkReady(env) && r.contact_id != null ? { tenancies: await tenanciesFor(env, r.contact_id) } : {}) });
 }
 
 // The copy for an access or portability request: explicit fields of the records linked to the contact by id, read in one
@@ -275,6 +290,23 @@ const NOT_INCLUDED = [
   { section: "viewing_requests", reason: "Viewing requests are matched to you only by email or phone, so our team checks each one before sharing it." },
   { section: "history", reason: "The panel's internal log of changes; reviewed separately." },
 ];
+// Named only when the copy holds linked tenancies (D3: identity, address and dates), so a copy without them keeps its hash.
+const TENANCY_NOT_INCLUDED = [
+  { section: "tenancies", fields: ["rental_id", "payment_ref", "regime", "law_scope", "financial_revision"],
+    reason: "Our internal record numbers and codes; they say nothing about you." },
+  { section: "tenancies", fields: ["occupants"], reason: "Other people living in the home, sometimes children; reviewed separately before they are shared." },
+  { section: "tenancies", fields: ["notes"], reason: NOTES },
+  { section: "tenancies", fields: ["created_by", "updated_by"], reason: STAFF },
+  { section: "tenancies", fields: ["created_at", "updated_at"], reason: "When our record was written or changed; reviewed with the rental file." },
+  { section: "tenancies", fields: ["rent", "due_day", "deposit", "deposit_received_on", "deposit_protected_on", "deposit_ref",
+    "opening_balance", "last_rent_change_on", "collect_from"],
+    reason: "Rent, deposit and payment details follow their own policy and are reviewed separately with the rental file." },
+  { section: "tenancies", fields: ["inventory_in_on", "inventory_out_on"], reason: "Inventories are reviewed separately with the rental file." },
+  { section: "tenancies", fields: ["landlord_id", "service", "fee_percent"],
+    reason: "The landlord's record and how we manage the home; they are not your details." },
+  { section: "tenancy_records", reason: "Rent changes, charges, payments, arrears steps, deposit proposals, contracts, signatures, "
+    + "inventories, inspections and repairs follow their own policy and are reviewed separately, as they can hold other people's details." },
+];
 const cols = (fields, alias) => fields.map(f => `${alias}.${f}`).join(", ");
 // Named only when the copy holds confirmed viewing requests, so a copy without them keeps its hash.
 const VIEWING_NOT_INCLUDED = [
@@ -320,9 +352,12 @@ async function buildCopy(env, r) {
   if (!contact) fail(404, "Contact not found");
   const alerts = await propertyAlerts(env, r.contact_id), facebook = await facebookConversations(env, r.contact_id);
   const viewings = await confirmedViewings(env, r);
-  const not_included = [...NOT_INCLUDED, ...(viewings.length ? VIEWING_NOT_INCLUDED : []), ...(facebook ? [FACEBOOK_NOT_INCLUDED] : [])];
+  const tenancies = tenancyLinkReady(env) ? await linkedTenancies(env, r.contact_id) : [];
+  const not_included = [...NOT_INCLUDED, ...(viewings.length ? VIEWING_NOT_INCLUDED : []),
+    ...(tenancies.length ? TENANCY_NOT_INCLUDED : []), ...(facebook ? [FACEBOOK_NOT_INCLUDED] : [])];
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
     matches, marketing_preferences: prefs, ...(viewings.length ? { viewing_requests: viewings } : {}),
+    ...(tenancies.length ? { tenancies } : {}),
     ...(alerts.length ? { property_alerts: alerts } : {}), not_included };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
@@ -352,7 +387,7 @@ function toCsv(copy) {
   const rows = [["section", "record", "field", "value"]];
   const add = (section, record, obj) => { for (const [k, v] of Object.entries(obj)) rows.push([section, String(record), k, v == null ? "" : String(v)]); };
   add("contact", 1, copy.contact);
-  for (const s of ["searches", "offers", "matches", "marketing_preferences", "viewing_requests", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
+  for (const s of ["searches", "offers", "matches", "marketing_preferences", "viewing_requests", "tenancies", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
   copy.not_included.forEach((n, i) => rows.push(["not_included", String(i + 1), n.section,
     `${n.fields ? `${n.fields.join(" ")}: ` : ""}${n.reason}`]));
   return rows.map(r => r.map((v, i) => csvCell(i === 3 ? csvText(v) : v)).join(",")).join("\r\n") + "\r\n";
@@ -402,4 +437,5 @@ export default [
   ["GET", new RegExp(`${ONE}/copy/download$`), download, true],
   ["POST", new RegExp(`${ONE}/close$`), close, true],
   ["POST", new RegExp(`${ONE}/viewings/([1-9]\\d{0,14})$`), decideViewing, true],
+  ["POST", new RegExp(`${ONE}/tenancies/([1-9]\\d{0,14})$`), decideTenancy, true],
 ];
