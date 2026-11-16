@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **ANA-04 construida y apagada:** Insights podrá mostrar qué filtros usa la gente en la web (operación, zona, dormitorios, precio máximo y búsquedas sin resultados), en totales por día, sin datos de personas. Espera a 0108, al aviso de privacidad y a la retención aprobada. Progreso 139 → 139 de 211.
+
 16-nov-2026 · **Properties Queue vuelve a enviar carpetas a Hermes** (PUB21_DRIVE_READY=1, por decisión de Luis): pegar el enlace de la carpeta de Drive y Hermes deja la propuesta de la ficha para revisarla. Progreso 139 → 139 de 211.
 
 16-nov-2026 · **REG-15 construida, en la cola de Luis:** «Email me new homes» en la web deja guardar una búsqueda con solo email y criterios (doble confirmación, baja en un clic) y recibir una vez al día las casas nuevas que encajan, con el mismo motor que los aplicantes. Apagada hasta que Luis abra el formulario y haya correo (AUT-17). Progreso 139 → 139 de 211.

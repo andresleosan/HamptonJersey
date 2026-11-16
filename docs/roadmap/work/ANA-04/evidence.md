@@ -32,3 +32,7 @@ Synthetic, networkless browser tests use snapshots of the historical HTML and li
 ## Integrated validation
 
 On `1ee082123db27ac7d874db0fa9a1ddf91afa049c`, the complete suite passed with 1,536 JavaScript and 25 Python tests; build, release, team and package checks passed. The isolated browser runner passed the cached-file compatibility cases, synthetic producer, unavailable trends and integrated ANA-01 journeys. These checks used local fixtures, not production data. The P1 cached-page incompatibility identified by the independent review was reproduced before the fix; fallback values are tested for parity with the canonical dimensions, and metrics are never sent from the fallback.
+
+## 16-nov-2026 · Conectada al interruptor (apagada)
+
+Lo anterior queda superado: el esquema propuesto es ahora la migración `migrations/0108_search_metrics.sql` (sin aplicar) y las piezas que estaban cerradas en el código dependen de `ANA04_SEARCH_STATS_READY` (en `wrangler.toml` y `jobs/wrangler.toml`, "0"). Con el interruptor apagado todo responde igual que antes. Para encender: aplicar 0108, aviso de privacidad (PRE-09) y retención de 90 días aprobada (PRE-12).

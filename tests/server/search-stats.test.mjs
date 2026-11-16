@@ -130,5 +130,13 @@ test('both wrangler files carry the ANA-04 switch, off and equal', async () => {
   const {readFileSync} = await import('node:fs');
   const flag = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8').match(/^ANA04_SEARCH_STATS_READY = "(\d)"$/m)?.[1];
   assert.equal(flag('wrangler.toml'), '0');
-  assert.equal(flag('jobs/wrangler.toml'), '0');
+  // Equal whatever the value: the clock and the panel both run the 90-day prune, so it is switched on in both at once.
+  assert.equal(flag('jobs/wrangler.toml'), flag('wrangler.toml'));
+});
+
+test('switched on before migration 0108, the retention pass still runs to the end', async () => {
+  const {runRetention} = await import('../../server/retention.js');
+  const {makeDb} = await import('./helpers.mjs');
+  const env = {DB: makeDb({skip: [108]}), ANA04_SEARCH_STATS_READY: '1'};
+  await assert.doesNotReject(runRetention(env, '2026-11-16T00:05:00.000Z'));
 });

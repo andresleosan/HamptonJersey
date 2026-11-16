@@ -9845,7 +9845,8 @@
         "Decisión: la web sabe que mide por searchStats en /api/config, como savedSearches de REG-15. Fuente: patrón de REG-15, opción más simple y reversible.",
         "Decisión: con el interruptor, un fallo de D1 devuelve 204 y se registra sin datos de la petición. Fuente: plan, «204 significa procesamiento aceptado».",
         "Decisión: la retención usa el pase diario existente y el interruptor está en ambos wrangler.toml. Fuente: plan, sección Retención.",
-        "Decisión: 0108 copia el SQL propuesto sin cambios. Fuente: docs/roadmap/work/ANA-04/proposed-search-metrics.sql."
+        "Decisión: 0108 copia el SQL propuesto sin cambios. Fuente: docs/roadmap/work/ANA-04/proposed-search-metrics.sql.",
+        "Revisión independiente (16-nov): sin graves; corregido que un fallo al podar contadores parase la retención de datos personales; la prueba exige ambos wrangler iguales; límite por cliente a MEJORAS."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",

@@ -77,7 +77,8 @@ export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
 // ts: the ISO time of the pass; the cutoffs are its Jersey date.
 // ANA-04: search counters older than today plus 90 days, only with ANA04_SEARCH_STATS_READY (migration 0108).
 export async function runRetention(env, ts) {
-  if (searchStatsReady(env)) await pruneSearchMetrics(env, new Date(ts));
+  // A failed counter prune (e.g. switched on before 0108) must never stop the deletion of personal data below.
+  if (searchStatsReady(env)) await pruneSearchMetrics(env, new Date(ts)).catch(() => console.error('Search metrics prune failed'));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const CONTACTS = contactsDue(privacyHolds(env)), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
