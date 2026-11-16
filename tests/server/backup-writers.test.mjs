@@ -2,6 +2,7 @@
 // Apagada (BACKUP_READY ausente o "0") todo responde igual y nada toca las tablas de la migración 0094.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {makeEnv, seedListing, seedMedia, adminCookie, ORIGIN} from './helpers.mjs';
 import {emailEnv, TS} from './email-helpers.mjs';
 import {handleApi} from '../../server/api.js';
@@ -216,4 +217,18 @@ test('media, ficha /p, /properties, sitemap y robots solo leen: excluidas de la 
   assert.ok(seen.length > 0 && seen.every(s => /^\s*(SELECT|WITH)\b/i.test(s) && !/backup_/.test(s)), seen.join('\n---\n'));
   assert.ok(r2.length > 0);
   assert.deepEqual(permits(env), []);
+});
+
+// hampton-jobs no empaqueta la sesión del panel (auth.js, jose): la compuerta no los importa.
+test('el grafo de importación de server/jobs.js no llega a auth.js ni a jose', () => {
+  const seen = new Set();
+  const walk = url => {
+    if (seen.has(url.href)) return;
+    seen.add(url.href);
+    for (const [, spec] of readFileSync(url, 'utf8').matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g))
+      if (spec.startsWith('.')) walk(new URL(spec, url)); else seen.add(spec);
+  };
+  walk(new URL('../../server/jobs.js', import.meta.url));
+  assert.ok(seen.has(new URL('../../server/backup-write-gate.js', import.meta.url).href));
+  assert.deepEqual([...seen].filter(s => /\/auth\.js$|^jose/.test(s)), []);
 });

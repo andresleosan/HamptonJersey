@@ -53,3 +53,5 @@ CREATE TABLE backup_writers (
   CHECK ((closed_at IS NULL) = (close_reason IS NULL))
 );
 CREATE INDEX backup_writers_open ON backup_writers(epoch) WHERE closed_at IS NULL;
+-- drainState busca permisos del epoch cerrado, también cerrados: sin este índice recorrería la tabla entera.
+CREATE INDEX backup_writers_epoch ON backup_writers(epoch);

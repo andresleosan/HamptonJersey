@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import {makeDb, adminCookie, SECRET} from './helpers.mjs';
+import {currentAdmin} from '../../server/auth.js';
 import {backupDue, attemptAt} from '../../server/backup-policy.js';
 import {
   withApplicationWrite, closeWriteGate, drainState, sealable, openWriteGate, reconcileWritePermit, BackupMaintenanceError,
@@ -115,21 +116,22 @@ test('un permiso huérfano solo se cierra con la revisión de un admin', async (
   e.DB.raw.prepare(`INSERT INTO backup_writers (id, epoch, operation, started_at) VALUES (?, 0, 'api:lost', ?)`).run(RUN, T);
   await closeWriteGate(e, {run_id: RUN2, now: T});
   assert.equal(await sealable(e, {run_id: RUN2, epoch: 1, now: plus(T, 1)}), false, 'permiso de otro epoch también cuenta');
-  // El revisor sale de la sesión autenticada de la petición, nunca de un campo que el llamante escriba.
+  // El revisor sale de la sesión autenticada de la petición (currentAdmin de auth.js, que la ruta de admin inyecta),
+  // nunca de un campo que el llamante escriba.
   const review = (cookie, body) => ({kind: 'authorized_review', reviewer: 'admin@example.test',
     request: new Request('https://hampton.test/api/admin/backups', {method: 'POST', body: JSON.stringify(body ?? {}),
       headers: cookie ? {cookie} : {}})});
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: null}), 'unknown');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: {kind: 'authorized_review', reviewer: 'admin@example.test'}}), 'unknown',
+  const reconcile = (proof, deps = {currentAdmin}) => reconcileWritePermit(e, {id: RUN, proof, ...deps});
+  assert.equal(await reconcile(null), 'unknown');
+  assert.equal(await reconcile({kind: 'authorized_review', reviewer: 'admin@example.test'}), 'unknown',
     'un reviewer sin sesión no vale');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(null, {reviewer: 'admin@example.test'})}), 'unknown',
-    'ni el reviewer del cuerpo');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie('nobody@example.test'))}), 'unknown');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie('colleague@example.test'),
-    {reviewer: 'admin@example.test'})}), 'closed');
+  assert.equal(await reconcile(review(null, {reviewer: 'admin@example.test'})), 'unknown', 'ni el reviewer del cuerpo');
+  assert.equal(await reconcile(review(await adminCookie('nobody@example.test'))), 'unknown');
+  assert.equal(await reconcile(review(await adminCookie()), {}), 'unknown', 'sin currentAdmin inyectado no hay revisor');
+  assert.equal(await reconcile(review(await adminCookie('colleague@example.test'), {reviewer: 'admin@example.test'})), 'closed');
   assert.equal(e.DB.raw.prepare('SELECT reconciled_by FROM backup_writers WHERE id = ?').get(RUN).reconciled_by,
     'colleague@example.test', 'queda el admin de la sesión, no el del cuerpo ni el del campo');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie())}), 'closed');
+  assert.equal(await reconcile(review(await adminCookie())), 'closed');
   assert.equal(await sealable(e, {run_id: RUN2, epoch: 1, now: plus(T, 2)}), true);
 });
 
@@ -147,6 +149,18 @@ test('migración 0094: aditiva, compuerta abierta y estados coherentes', () => {
     .run(RUN, T, 'a'.repeat(64), T, T);
   assert.throws(() => db.prepare(`INSERT INTO backup_runs (id, week_start, policy_hash, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?)`).run(RUN2, T, 'a'.repeat(64), T, T), /UNIQUE/, 'una sola copia por semana');
+});
+
+test('drainState no recorre backup_writers entera: los permisos cerrados se acumulan', async () => {
+  const e = env(), plans = [], prepare = e.DB.prepare.bind(e.DB);
+  e.DB.prepare = sql => {
+    if (/backup_writers/.test(sql) && /^\s*SELECT/i.test(sql)) plans.push(sql);
+    return prepare(sql);
+  };
+  await drainState(e, {run_id: RUN, epoch: 1, now: T});
+  assert.equal(plans.length, 1);
+  const plan = e.DB.raw.prepare(`EXPLAIN QUERY PLAN ${plans[0]}`).all(T).map(r => r.detail).join('\n');
+  assert.doesNotMatch(plan, /SCAN backup_writers\b(?! USING)/, plan);
 });
 
 test('cobertura: toda entrada figura en el registro y BACKUP_READY sigue apagado mientras falte alguna', () => {

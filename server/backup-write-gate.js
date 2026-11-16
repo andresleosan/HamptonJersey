@@ -4,7 +4,6 @@
 // epoch sigue vigente y el plazo no venció. Con BACKUP_READY distinto de "1" nada de esto se usa.
 // La lista de entradas que deben pasar por aquí está en docs/roadmap/work/PRE-14/writer-coverage.md.
 import {BACKUP_POLICY} from './backup-policy.js';
-import {currentAdmin} from './auth.js';
 
 export const backupReady = env => env?.BACKUP_READY === '1';
 
@@ -90,9 +89,11 @@ export async function openWriteGate(env, {run_id, epoch, now = null}) {
 // Un permiso abierto solo se cierra con una revisión de un admin que acredita que ya no puede mutar.
 // La edad del permiso no es prueba: sin prueba válida el resultado es 'unknown' y la copia no se certifica.
 // proof: {kind: 'authorized_review', request}. El revisor es el admin de la sesión autenticada de esa petición; ningún
-// campo que el llamante escriba (proof.reviewer, el cuerpo) cuenta.
-export async function reconcileWritePermit(env, {id, proof}, now = () => null) {
-  if (proof?.kind !== 'authorized_review' || !(proof.request instanceof Request)) return 'unknown';
+// campo que el llamante escriba (proof.reviewer, el cuerpo) cuenta. currentAdmin (server/auth.js) lo inyecta la ruta de
+// admin, para que hampton-jobs, que importa este módulo, no empaquete la sesión del panel.
+export async function reconcileWritePermit(env, {id, proof, currentAdmin}, now = () => null) {
+  if (proof?.kind !== 'authorized_review' || !(proof.request instanceof Request) || typeof currentAdmin !== 'function')
+    return 'unknown';
   const reviewer = await currentAdmin(proof.request, env);
   if (!reviewer) return 'unknown';
   const r = await env.DB.prepare(`UPDATE backup_writers SET closed_at = ${at(3)}, close_reason = 'reconciled', reconciled_by = ?2
