@@ -144,6 +144,7 @@ async function respond({ request, env, admin, params: [vid, pid], waitUntil }) {
   }
   // The write after the answer's event happens only if this request recorded the answer (never behind a 409 for a
   // repeated one): right after logEvent, changes() = 1 only when its event, and so the answer, was inserted.
+  // Keep that logEvent a single statement (no notice): a second statement would make the gate read the wrong one.
   const mine = "changes() = 1";
   const stmts = [
     env.DB.prepare(`INSERT INTO viewing_acceptances (proposal_id, participant, response, channel, answered_at, answered_by,
