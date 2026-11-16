@@ -31,3 +31,18 @@ test('lista y cierra un permiso huérfano con la compuerta cerrada, solo un admi
   assert.equal(row(e).reconciled_by, 'colleague@example.test');
   assert.equal((await call(e, 'POST', '/admin/backups/permits/not-an-id/reconcile', {cookie: await adminCookie()})).status, 404);
 });
+
+test('el resumen de una copia es solo para admins y no lleva claves, hashes ni sello', async () => {
+  const e = {...makeEnv(), BACKUP_READY: '1'};
+  e.DB.raw.prepare(`INSERT INTO backup_runs (id, week_start, policy_hash, status, attempt, reason_code, manifest_key,
+    manifest_cipher_hash, signing_key_id, created_at, updated_at) VALUES (?, ?, ?, 'failed', 2, 'export_timeout', ?, ?, 'sig-1', ?, ?)`)
+    .run(RUN, T, 'a'.repeat(64), GATE, 'b'.repeat(64), T, T);
+  const path = `/admin/backups/${RUN}`;
+  assert.equal((await call(e, 'GET', path)).status, 401);
+  const r = await call(e, 'GET', path, {cookie: await adminCookie()});
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(r.data.run, {id: RUN, week_start: T, status: 'failed', attempt: 2, reason_code: 'export_timeout',
+    started_at: null, sealed_at: null, expires_at: null, recovery_hold: 0});
+  assert.equal((await call(e, 'GET', `/admin/backups/${GATE}`, {cookie: await adminCookie()})).status, 404);
+});
