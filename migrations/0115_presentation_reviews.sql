@@ -1,5 +1,5 @@
 -- AGE-11: the extra human review of a private presentation (AGE-12's link, 0086) before a person sends it. Additive:
--- two new tables (their UNIQUE is their index) and a trigger each; no existing row changes. Read and written by server/private-presentations.js
+-- three new tables (their UNIQUE or key is their index) and a trigger each; no existing row changes. Read and written by server/private-presentations.js
 -- with AGE11_REVIEW_READY=1.
 -- One row per approval, never rewritten: the snapshot a person saw and approved (the homes in order, each with its
 -- approved match, its availability confirmation in force and its date, the conditions shown (operation and price or
@@ -18,6 +18,14 @@ CREATE TABLE presentation_reviews (
 );
 CREATE TRIGGER presentation_reviews_append_only BEFORE UPDATE ON presentation_reviews
 BEGIN SELECT RAISE(ABORT, 'presentation reviews are append-only'); END;
+-- The approval a link was recorded as sent under, written in the same batch as AGE-12's sent_at: the client's page shows
+-- that snapshot only. A link sent without one (before the review, or with it switched off) keeps AGE-12's view.
+CREATE TABLE presentation_sends (
+  grant_id INTEGER PRIMARY KEY REFERENCES presentation_grants(id) ON DELETE CASCADE,
+  review_id INTEGER NOT NULL REFERENCES presentation_reviews(id) ON DELETE CASCADE
+);
+CREATE TRIGGER presentation_sends_append_only BEFORE UPDATE ON presentation_sends
+BEGIN SELECT RAISE(ABORT, 'presentation sends are append-only'); END;
 -- AGE-11 for ANA-06: a person records that the client confirmed receiving a home of a link recorded as sent, with the
 -- real time they received it (never in the future, never before the link was sent or after the conversation that says
 -- so) and, as evidence, only the id of a conversation logged with that client's contact (contact.conversation event):

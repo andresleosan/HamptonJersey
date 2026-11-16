@@ -88,6 +88,7 @@ function Receipt({ grantId, o, conversations, onSaved }) {
     e.preventDefault();
     if (busy) return;
     if (mode === "record" && !when) return setMsg({ text: "Enter when the client received it. If nobody knows, do not record a receipt." });
+    if (mode === "record" && Number.isNaN(Date.parse(when))) return setMsg({ text: "Enter a valid date and time." });
     setBusy(true); setMsg(null);
     const base = { match_id: o.match_id, revision: r?.revision ?? 0, reason };
     try {
