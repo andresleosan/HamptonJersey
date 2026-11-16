@@ -50,48 +50,9 @@
 | Zoopla – Jersey | https://zoopla.co.uk/for-sale/property/jersey | Sus términos prohíben el acceso automatizado |
 | Zoopla – Jersey | https://zoopla.co.uk/to-rent/property/jersey | Sus términos prohíben el acceso automatizado |
 
-## Denegado (38)
+## Denegado
 
-| Fuente | URL | Motivo |
-|---|---|---|
-| 192.com Jersey | https://192.com/atoz/business/jersey/estate--agents | Directorio o referencia: no publica anuncios propios |
-| 192.com Jersey | https://www.192.com/atoz/business/jersey/estate--agents/ | Directorio o referencia: no publica anuncios propios |
-| Abode2 Directory | https://abode2.com/directory-categories/uk-estate-agents | Directorio o referencia: no publica anuncios propios |
-| Abode2 Directory | https://www.abode2.com/directory/wilsons-knight-frank-2/ | Directorio o referencia: no publica anuncios propios |
-| Aviva Directory Jersey | https://avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals | Directorio o referencia: no publica anuncios propios |
-| Aviva Directory Jersey | https://www.avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals/ | Directorio o referencia: no publica anuncios propios |
-| Christies International Real Estate | https://christiesrealestate.com/network/christies-international-real-estate-hunt-estates/166 | Directorio o referencia: no publica anuncios propios |
-| Cylex Jersey | https://st-helier.cylex-uk.co.uk/estate-agents | Directorio o referencia: no publica anuncios propios |
-| Cylex Jersey | https://st-helier.cylex-uk.co.uk/estate-agents/ | Directorio o referencia: no publica anuncios propios |
-| Find The Best St Helier | https://find-the-best.co.uk/estate-agents/st-helier | Directorio o referencia: no publica anuncios propios |
-| Find.je | https://find.je/ | Directorio o referencia: no publica anuncios propios |
-| Find.je | https://find.je/find-a-business-results?directory_type=business&q=estate+agent | Directorio o referencia: no publica anuncios propios |
-| Find.je | https://find.je/single-category/estate-agents | Directorio o referencia: no publica anuncios propios |
-| Government of Jersey | https://gov.je/Government/Departments/InfrastructureEnvironment/Pages/property.aspx | Directorio o referencia: no publica anuncios propios |
-| Government of Jersey | https://gov.je/lifeevents/movingtojersey/preparingtomove/pages/arrangeaccommodation.aspx | Directorio o referencia: no publica anuncios propios |
-| Hampton Estates | https://hamptonestatesjersey.com/ | Web propia de Hampton: sus fichas ya están en el catálogo |
-| Homely.je | https://homely.je/ | Homely: excluida por el plan maestro |
-| Homely.je | https://homely.je/for-sale | Homely: excluida por el plan maestro |
-| Homely.je | https://homely.je/to-rent | Homely: excluida por el plan maestro |
-| JSY Social | https://jsysocial.com/ | Directorio o referencia: no publica anuncios propios |
-| Jersey Chamber of Commerce | https://jerseychamber.com/membership-directory/corporate | Directorio o referencia: no publica anuncios propios |
-| Jersey Chamber of Commerce | https://jerseychamber.com/membership-directory/corporate/2103888 | Directorio o referencia: no publica anuncios propios |
-| Jersey Estate Agents Association | https://jeaa.je/members | Directorio o referencia: no publica anuncios propios |
-| JerseyWeb | https://jerseyweb.je/directory/estate-agents | Directorio o referencia: no publica anuncios propios |
-| Opendi Jersey | https://jersey.opendi.co.uk/ | Directorio o referencia: no publica anuncios propios |
-| PrimeResi Directory | https://directory.primeresi.com/companies | Directorio o referencia: no publica anuncios propios |
-| PrimeResi Directory | https://directory.primeresi.com/companies/catterson-wood | Directorio o referencia: no publica anuncios propios |
-| PropertyManagementCo Jersey | https://propertymanagementco.co.uk/jersey | Directorio o referencia: no publica anuncios propios |
-| PropertyManagementCo Jersey | https://www.propertymanagementco.co.uk/jersey | Directorio o referencia: no publica anuncios propios |
-| Propertymark | https://propertymark.co.uk/find-an-expert.html?q=Jersey | Directorio o referencia: no publica anuncios propios |
-| Propertymark | https://www.propertymark.co.uk/find-an-expert.html?q=Jersey | Directorio o referencia: no publica anuncios propios |
-| RICS Find a Surveyor Jersey | https://ricsfirms.com/Surveyors/GB/Jersey_33737 | Directorio o referencia: no publica anuncios propios |
-| RICS Find a Surveyor Jersey | https://www.ricsfirms.com/Surveyors/GB/Jersey_33737 | Directorio o referencia: no publica anuncios propios |
-| Swoop Jersey | https://swoop.je/buyers-guide | Directorio o referencia: no publica anuncios propios |
-| The Property Ombudsman | https://tpos.co.uk/business-search/indigo-estates | Directorio o referencia: no publica anuncios propios |
-| The Property Ombudsman | https://www.tpos.co.uk/business-search/indigo-estates/ | Directorio o referencia: no publica anuncios propios |
-| allAgents | https://allagents.co.uk/thompsonestates.com | Directorio o referencia: no publica anuncios propios |
-| allAgents | https://www.allagents.co.uk/thompsonestates.com | Directorio o referencia: no publica anuncios propios |
+Los 38 canales denegados (34 directorios, Homely, web de Hampton) se eliminaron del proyecto el 16-nov-2026 por orden de Luis (`eliminar-denegados-2026-11-16.sql`).
 
 ## Pendiente (conector posterior) (6)
 

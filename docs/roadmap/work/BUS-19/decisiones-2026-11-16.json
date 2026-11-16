@@ -3,22 +3,6 @@
  "actor": "claude-por-encargo-de-luis",
  "decisions": [
   {
-   "source_ref": "src-192-com-jersey",
-   "channel_id": "bus19-review-85860fefe0dce5ab",
-   "url": "https://192.com/atoz/business/jersey/estate--agents",
-   "name": "192.com Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-192-com-jersey",
-   "channel_id": "bus19-review-ceef1ccb82f905da",
-   "url": "https://www.192.com/atoz/business/jersey/estate--agents/",
-   "name": "192.com Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-a-place-called-yours-jersey",
    "channel_id": "bus19-review-86219d005d18e0f2",
    "url": "https://aplacecalledyours.com/jersey",
@@ -33,22 +17,6 @@
    "name": "A Place Called Yours Jersey",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-abode2-directory",
-   "channel_id": "bus19-review-f6acbbb744734c90",
-   "url": "https://abode2.com/directory-categories/uk-estate-agents",
-   "name": "Abode2 Directory",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-abode2-directory",
-   "channel_id": "bus19-review-ae17d13540d163c1",
-   "url": "https://www.abode2.com/directory/wilsons-knight-frank-2/",
-   "name": "Abode2 Directory",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-accommodation-centre-jersey",
@@ -91,22 +59,6 @@
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
   },
   {
-   "source_ref": "src-allagents",
-   "channel_id": "bus19-review-37cd3a73fb774b79",
-   "url": "https://allagents.co.uk/thompsonestates.com",
-   "name": "allAgents",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-allagents",
-   "channel_id": "bus19-review-deeacb24b824082e",
-   "url": "https://www.allagents.co.uk/thompsonestates.com",
-   "name": "allAgents",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-andium-homes",
    "channel_id": "bus19-review-3573cfd755b57d9b",
    "url": "https://andiumhomes.je/",
@@ -137,22 +89,6 @@
    "name": "Atelier Property",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-aviva-directory-jersey",
-   "channel_id": "bus19-review-b702f85234139c7d",
-   "url": "https://avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals",
-   "name": "Aviva Directory Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-aviva-directory-jersey",
-   "channel_id": "bus19-review-bc06390bb1dc1a36",
-   "url": "https://www.avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals/",
-   "name": "Aviva Directory Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-aw-properties",
@@ -331,14 +267,6 @@
    "reason": "Sin URL o red social: fuera de esta etapa"
   },
   {
-   "source_ref": "src-christies-international-real-estate",
-   "channel_id": "bus19-review-93501239ecff7b77",
-   "url": "https://christiesrealestate.com/network/christies-international-real-estate-hunt-estates/166",
-   "name": "Christies International Real Estate",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-clyde-smith-property-services",
    "channel_id": "bus19-review-f4a62393734cdf27",
    "url": "https://csps.je/",
@@ -409,22 +337,6 @@
    "name": "CTJ Housing Trust",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-cylex-jersey",
-   "channel_id": "bus19-review-d01e676f77e0c187",
-   "url": "https://st-helier.cylex-uk.co.uk/estate-agents",
-   "name": "Cylex Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-cylex-jersey",
-   "channel_id": "bus19-review-323803daff26104f",
-   "url": "https://st-helier.cylex-uk.co.uk/estate-agents/",
-   "name": "Cylex Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-d2-real-estate",
@@ -547,38 +459,6 @@
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
   },
   {
-   "source_ref": "src-find-je",
-   "channel_id": "bus19-review-cb257958902a0cbe",
-   "url": "https://find.je/",
-   "name": "Find.je",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-find-je",
-   "channel_id": "bus19-review-7b1be4efbb0379a8",
-   "url": "https://find.je/find-a-business-results?directory_type=business&q=estate+agent",
-   "name": "Find.je",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-find-je",
-   "channel_id": "bus19-review-34f037e480963462",
-   "url": "https://find.je/single-category/estate-agents",
-   "name": "Find.je",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-find-the-best-st-helier",
-   "channel_id": "bus19-review-093f67b3f034e130",
-   "url": "https://find-the-best.co.uk/estate-agents/st-helier",
-   "name": "Find The Best St Helier",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-finders-keepers",
    "channel_id": "bus19-review-80c56218cd849626",
    "url": "https://finderskeepers.je/",
@@ -643,22 +523,6 @@
    "reason": "Sin URL o red social: fuera de esta etapa"
   },
   {
-   "source_ref": "src-government-of-jersey",
-   "channel_id": "bus19-review-4c8f5d3f95fb2b43",
-   "url": "https://gov.je/Government/Departments/InfrastructureEnvironment/Pages/property.aspx",
-   "name": "Government of Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-government-of-jersey",
-   "channel_id": "bus19-review-3600a3172465473b",
-   "url": "https://gov.je/lifeevents/movingtojersey/preparingtomove/pages/arrangeaccommodation.aspx",
-   "name": "Government of Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-grange-developments",
    "channel_id": "bus19-review-2f4a122021f8b307",
    "url": "https://grangedevelopments.co.uk/our-developments",
@@ -673,14 +537,6 @@
    "name": "Grange Developments",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-hampton-estates",
-   "channel_id": "bus19-review-ae69cb1f0325090b",
-   "url": "https://hamptonestatesjersey.com/",
-   "name": "Hampton Estates",
-   "status": "denied",
-   "reason": "Web propia de Hampton: sus fichas ya están en el catálogo"
   },
   {
    "source_ref": "src-harding-green",
@@ -737,30 +593,6 @@
    "name": "Hiizzy",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-homely-je",
-   "channel_id": "bus19-review-38f8b06dc9fafa1c",
-   "url": "https://homely.je/",
-   "name": "Homely.je",
-   "status": "denied",
-   "reason": "Homely: excluida por el plan maestro"
-  },
-  {
-   "source_ref": "src-homely-je",
-   "channel_id": "bus19-review-25b2a7e6a9f11c9f",
-   "url": "https://homely.je/for-sale",
-   "name": "Homely.je",
-   "status": "denied",
-   "reason": "Homely: excluida por el plan maestro"
-  },
-  {
-   "source_ref": "src-homely-je",
-   "channel_id": "bus19-review-d0799091f722d4f3",
-   "url": "https://homely.je/to-rent",
-   "name": "Homely.je",
-   "status": "denied",
-   "reason": "Homely: excluida por el plan maestro"
   },
   {
    "source_ref": "src-homesearch-jersey",
@@ -883,22 +715,6 @@
    "reason": "Sin URL o red social: fuera de esta etapa"
   },
   {
-   "source_ref": "src-jersey-chamber-of-commerce",
-   "channel_id": "bus19-review-6a9ab1aac4af0374",
-   "url": "https://jerseychamber.com/membership-directory/corporate",
-   "name": "Jersey Chamber of Commerce",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-jersey-chamber-of-commerce",
-   "channel_id": "bus19-review-3fd0b143fd3ff2ac",
-   "url": "https://jerseychamber.com/membership-directory/corporate/2103888",
-   "name": "Jersey Chamber of Commerce",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-jersey-development-company",
    "channel_id": "bus19-review-efddf1fdd1bcb48e",
    "url": "https://horizon.je/register-for-new-jdc-developments",
@@ -921,14 +737,6 @@
    "name": "Jersey Development Company",
    "status": "manual_only",
    "reason": "Sus términos prohíben el acceso automatizado"
-  },
-  {
-   "source_ref": "src-jersey-estate-agents-association",
-   "channel_id": "bus19-review-0d1ebd608a6af8a8",
-   "url": "https://jeaa.je/members",
-   "name": "Jersey Estate Agents Association",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-jersey-evening-post-property",
@@ -1035,28 +843,12 @@
    "reason": "Sin URL o red social: fuera de esta etapa"
   },
   {
-   "source_ref": "src-jerseyweb",
-   "channel_id": "bus19-review-8dadc901104a533c",
-   "url": "https://jerseyweb.je/directory/estate-agents",
-   "name": "JerseyWeb",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-jlp-management",
    "channel_id": "bus19-review-05beb111e68c9499",
    "url": "https://jlp.je/",
    "name": "JLP Management",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-jsy-social",
-   "channel_id": "bus19-review-b38f270a2f5e315a",
-   "url": "https://jsysocial.com/",
-   "name": "JSY Social",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-keys-properties",
@@ -1315,14 +1107,6 @@
    "reason": "OnTheMarket §2.2: prohíbe guardar su contenido sin consentimiento escrito (corregido tras la primera revisión)"
   },
   {
-   "source_ref": "src-opendi-jersey",
-   "channel_id": "bus19-review-c9b0bf4d56a81c15",
-   "url": "https://jersey.opendi.co.uk/",
-   "name": "Opendi Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-palladium-group",
    "channel_id": "bus19-review-59b1aa9062ceefa2",
    "url": "https://honeycombjersey.com/",
@@ -1419,22 +1203,6 @@
    "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
   },
   {
-   "source_ref": "src-primeresi-directory",
-   "channel_id": "bus19-review-cd5922ef73be3445",
-   "url": "https://directory.primeresi.com/companies",
-   "name": "PrimeResi Directory",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-primeresi-directory",
-   "channel_id": "bus19-review-618c893a3fb38a20",
-   "url": "https://directory.primeresi.com/companies/catterson-wood",
-   "name": "PrimeResi Directory",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-properstar",
    "channel_id": "bus19-review-e462999c858f267a",
    "url": "https://properstar.com/",
@@ -1489,38 +1257,6 @@
    "name": "Property Store Jersey / PSJ",
    "status": "allowed",
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
-  },
-  {
-   "source_ref": "src-propertymanagementco-jersey",
-   "channel_id": "bus19-review-70b9a3c390dfaa3c",
-   "url": "https://propertymanagementco.co.uk/jersey",
-   "name": "PropertyManagementCo Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-propertymanagementco-jersey",
-   "channel_id": "bus19-review-5616a0da14d39a4c",
-   "url": "https://www.propertymanagementco.co.uk/jersey",
-   "name": "PropertyManagementCo Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-propertymark",
-   "channel_id": "bus19-review-8a042375efa55d03",
-   "url": "https://propertymark.co.uk/find-an-expert.html?q=Jersey",
-   "name": "Propertymark",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-propertymark",
-   "channel_id": "bus19-review-d28a5d1eaa506a08",
-   "url": "https://www.propertymark.co.uk/find-an-expert.html?q=Jersey",
-   "name": "Propertymark",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-propertyskipper-jersey",
@@ -1667,22 +1403,6 @@
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
   },
   {
-   "source_ref": "src-rics-find-a-surveyor-jersey",
-   "channel_id": "bus19-review-1e3a483cc7b40226",
-   "url": "https://ricsfirms.com/Surveyors/GB/Jersey_33737",
-   "name": "RICS Find a Surveyor Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-rics-find-a-surveyor-jersey",
-   "channel_id": "bus19-review-50624df0755845e3",
-   "url": "https://www.ricsfirms.com/Surveyors/GB/Jersey_33737",
-   "name": "RICS Find a Surveyor Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-rightmove-jersey",
    "channel_id": "bus19-review-f2e1830227d76040",
    "url": "https://rightmove.co.uk/estate-agents/channel-islands.html",
@@ -1795,14 +1515,6 @@
    "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
   },
   {
-   "source_ref": "src-swoop-jersey",
-   "channel_id": "bus19-review-ef53cd1a50515df4",
-   "url": "https://swoop.je/buyers-guide",
-   "name": "Swoop Jersey",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
    "source_ref": "src-the-instant-group-jersey",
    "channel_id": "bus19-review-d087de2be9c890cf",
    "url": "https://coworker.com/jersey",
@@ -1817,22 +1529,6 @@
    "name": "The Instant Group Jersey",
    "status": "manual_only",
    "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
-  },
-  {
-   "source_ref": "src-the-property-ombudsman",
-   "channel_id": "bus19-review-0b752d426db1d526",
-   "url": "https://tpos.co.uk/business-search/indigo-estates",
-   "name": "The Property Ombudsman",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
-  },
-  {
-   "source_ref": "src-the-property-ombudsman",
-   "channel_id": "bus19-review-acd3cab45551fbde",
-   "url": "https://www.tpos.co.uk/business-search/indigo-estates/",
-   "name": "The Property Ombudsman",
-   "status": "denied",
-   "reason": "Directorio o referencia: no publica anuncios propios"
   },
   {
    "source_ref": "src-thompson-lettings",
@@ -1898,5 +1594,6 @@
    "status": "manual_only",
    "reason": "Sus términos prohíben el acceso automatizado"
   }
- ]
+ ],
+ "denegados_eliminados": 38
 }
