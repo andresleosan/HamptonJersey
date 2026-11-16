@@ -1,6 +1,7 @@
 import { missingClosureTable } from "./rental-closure.js";
 import { json, fail, HttpError } from "./http.js";
-import { currentAdmin, sameOrigin } from "./auth.js";
+import { currentAdmin, sameOrigin, accessMismatch } from "./auth.js";
+import { accessReady, classifyAccessSurface, staffPrincipal, oddStaffSegment, AccessError } from "./access.js";
 import { qaRoute } from "./qa-history.js";
 import publicRoutes from "./routes/public.js";
 import ownerRoutes from "./routes/owner-requests.js";
@@ -56,6 +57,12 @@ import marketingPreferenceRoutes, { purposeReady } from "./communication-prefere
 import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 
+const ACCESS_MESSAGES = {
+  access_required: "Your security sign-in has expired. Sign in again to continue.",
+  access_mismatch: "Your security sign-in is for a different account. Sign out, then sign in with the same Google account.",
+  access_unavailable: "Staff sign-in is unavailable right now. Please try again in a few minutes.",
+};
+
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
 
@@ -97,6 +104,12 @@ async function route(request, env, segments, waitUntil) {
     // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").
     let path;
     try { path = "/" + segments.map(decodeURIComponent).join("/"); } catch { fail(400, "Bad URL encoding"); }
+    // PRE-06: Staff paths pass Access before anything else runs.
+    const access = accessReady(env);
+    if (access && classifyAccessSurface({ pathname: "/api" + path }) === "staff") {
+      await staffPrincipal(request, env);
+      if (oddStaffSegment(segments)) fail(400, "Bad URL encoding");
+    }
     // AUT-13: Hermes's door has its own key and no cookie, so the same-origin check (against cookie CSRF) is not its.
     if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
@@ -127,13 +140,16 @@ async function route(request, env, segments, waitUntil) {
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
+      if (auth && access) await staffPrincipal(request, env);
       const admin = auth ? await currentAdmin(request, env) : null;
+      if (auth && !admin && access && await accessMismatch(request, env)) throw new AccessError(403, "access_mismatch");
       if (auth && !admin) fail(401, "Please sign in to continue");
       return await handler({ request, env, admin, params: hit.slice(1), waitUntil });
     }
     fail(404, "Not found");
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message }, e.status);
+    if (e instanceof AccessError) return json({ error: ACCESS_MESSAGES[e.code], code: e.code }, e.status);
     // PUB-16 switched on before migration 0087: a read runs again as switched off.
     if ((method === "GET" || method === "HEAD") && missingClosureTable(env, e))
       return route(request, { ...env, PUB16_TIMED_CLOSURE_READY: "0" }, segments, waitUntil);

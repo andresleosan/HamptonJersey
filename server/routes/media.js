@@ -2,6 +2,7 @@ import { json, fail, readJson, now } from "../http.js";
 import { loadListing } from "./listings.js";
 import { listingBatch, listingClock } from "../listing-events.js";
 import { inspectUploadImage } from "../upload-image.js";
+import { serveStaffMedia } from "../media.js";
 
 const KINDS = ["photo", "floorplan", "aerial", "document"];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -117,4 +118,7 @@ export default [
   ["PUT", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/media$/, save, true],
   ["POST", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/media$/, upload, true],
   ["DELETE", /^\/admin\/media\/([A-Za-z0-9]+)$/, remove, true],
+  // PRE-06: the panel's files, Staff only.
+  ["GET", /^\/admin\/media\/([A-Za-z0-9]+)\/content$/, ({ request, env, params: [id] }) => serveStaffMedia(request, env, id), true],
+  ["HEAD", /^\/admin\/media\/([A-Za-z0-9]+)\/content$/, ({ request, env, params: [id] }) => serveStaffMedia(request, env, id), true],
 ];

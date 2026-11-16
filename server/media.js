@@ -1,5 +1,6 @@
 import { isPublicMedia, publicMediaTypeAllowed } from "./visibility.js";
 import { currentAdmin } from "./auth.js";
+import { accessReady } from "./access.js";
 import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql, closureOrOff } from './rental-closure.js';
 import { PRIVATE_DOCS } from './listing-documents.js';
 
@@ -60,11 +61,13 @@ const cancelBody = async body => { if (body instanceof ReadableStream && !body.l
 // 404 (not 403) for anything the caller may not see, so private files can't be confirmed to exist.
 export const serveMedia = (request, env, id) => closureOrOff(env, env => serveMediaOnce(request, env, id));
 async function serveMediaOnce(request, env, id) {
+  // PRE-06: with Access on, /media is public only; the panel reads files from /api/admin/media/:id/content.
+  const currentStaff = () => accessReady(env) ? null : currentAdmin(request, env);
   const row = await loadRow(env, id);
   // PUB-11: private listing documents are never served here, not even to staff.
   if (!row?.r2_key || [row.r2_key, row.thumb_key].some(key => key?.startsWith(PRIVATE_DOCS))) return notFound();
   let pub = isPublicMedia(row, row) && (!rentalClosureEnabled(env) || row.closure_visible === 1);
-  if (!pub && !(await currentAdmin(request, env))) return notFound();
+  if (!pub && !(await currentStaff())) return notFound();
   const thumb = new URL(request.url).searchParams.has("thumb"), key = selectedKey(row, thumb);
   const obj = await env.MEDIA.get(key);
   if (!obj) return notFound();
@@ -73,7 +76,7 @@ async function serveMediaOnce(request, env, id) {
   const objectType = headers.get("content-type");
   if (!objectType && row.content_type) headers.set("content-type", row.content_type);
   if (pub && !publicMediaTypeAllowed(headers.get('content-type'))) {
-    if (!(await currentAdmin(request, env))) {
+    if (!(await currentStaff())) {
       await cancelBody(obj.body);
       return notFound();
     }
@@ -85,7 +88,7 @@ async function serveMediaOnce(request, env, id) {
     if (!inspected) return notFound();
     body = inspected.body;
     if (inspected.document) {
-      if (!(await currentAdmin(request, env))) { await body.cancel().catch(() => {}); return notFound(); }
+      if (!(await currentStaff())) { await body.cancel().catch(() => {}); return notFound(); }
       pub = false;
     }
   }
@@ -100,7 +103,7 @@ async function serveMediaOnce(request, env, id) {
     await cancelBody(body); return notFound();
   }
   pub = pub && isPublicMedia(latest, latest) && (!rentalClosureEnabled(env) || latest.closure_visible === 1);
-  if (!pub && !(await currentAdmin(request, env))) { await cancelBody(body); return notFound(); }
+  if (!pub && !(await currentStaff())) { await cancelBody(body); return notFound(); }
   if (!objectType) {
     if (latest.content_type) headers.set("content-type", latest.content_type);
     else headers.delete("content-type");
@@ -111,4 +114,24 @@ async function serveMediaOnce(request, env, id) {
   headers.set("cache-control", pub ? (rentalClosureEnabled(env) && latest.closure_free !== 1 ? "no-store" : "public, max-age=86400")
     : "private, no-store");
   return new Response(body, { headers });
+}
+
+// PRE-06: the panel's way to a file (photos, plans, PDFs), behind Staff and, when on, Access. Never cached; anything
+// that is not a plain image downloads instead of opening. Private listing documents keep their own route (PUB-11).
+const INLINE = /^image\/(?:jpeg|png|webp|gif|avif)$/;
+export async function serveStaffMedia(request, env, id) {
+  const row = await env.DB.prepare("SELECT r2_key, thumb_key, content_type FROM media WHERE id = ?").bind(id).first();
+  if (!row?.r2_key || [row.r2_key, row.thumb_key].some(key => key?.startsWith(PRIVATE_DOCS))) return notFound();
+  const obj = await env.MEDIA.get(selectedKey(row, new URL(request.url).searchParams.has("thumb")));
+  if (!obj) return notFound();
+  const headers = new Headers();
+  obj.writeHttpMetadata(headers);
+  if (!headers.get("content-type") && row.content_type) headers.set("content-type", row.content_type);
+  if (!INLINE.test((headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase()))
+    headers.set("content-disposition", "attachment");
+  headers.set("etag", obj.httpEtag);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("cache-control", "private, no-store");
+  if (request.method === "HEAD") { await cancelBody(obj.body); return new Response(null, { headers }); }
+  return new Response(obj.body, { headers });
 }

@@ -1,4 +1,5 @@
 import { jwtVerify, createRemoteJWKSet } from "jose";
+import { accessReady, staffPrincipal } from "./access.js";
 
 const GOOGLE_JWKS = createRemoteJWKSet(new URL(
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
@@ -46,11 +47,19 @@ export const getCookie = (request, name) =>
   (request.headers.get("cookie") || "").split(/;\s*/).find(c => c.startsWith(name + "="))?.slice(name.length + 1) ?? null;
 
 // Signed cookie AND still listed in admins: removing someone takes effect on their next request.
+// PRE-06: with Access on, also the same person Access let through on this request.
 export async function currentAdmin(request, env) {
   if (env.QA_HISTORY_KEY && env.QA_HISTORY_KEY === env.SESSION_SECRET) return null;
   const email = await readSession(getCookie(request, COOKIE), env.SESSION_SECRET);
   if (!email) return null;
+  if (accessReady(env) && (await staffPrincipal(request, env).catch(() => null))?.email !== email) return null;
   return (await env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(email).first()) ? email : null;
 }
 
 export const sameOrigin = request => request.headers.get("origin") === new URL(request.url).origin;
+
+// PRE-06: a valid Hampton session for someone other than the person Access let through.
+export async function accessMismatch(request, env) {
+  const email = await readSession(getCookie(request, COOKIE), env.SESSION_SECRET);
+  return !!email && (await staffPrincipal(request, env)).email !== email;
+}
