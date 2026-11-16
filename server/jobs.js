@@ -16,7 +16,7 @@ import { followupReady, saleFollowupPass } from './sale-followup.js';
 import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
 import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
-import { withApplicationWrite, BackupMaintenanceError } from './backup-write-gate.js';
+import { withApplicationWrite, BackupMaintenanceError, backupReady, purgeClosedWritePermits } from './backup-write-gate.js';
 import { backupStartPass } from './backup-start.js';
 import { spoolReady, stageInboundDuringBackup, replayBackupInbound } from './backup-mail-spool.js';
 import { calendarReady, calendarRetryTick } from './calendar-sync.js';
@@ -30,6 +30,10 @@ const clock = {
     await env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by)
       VALUES ('clock', json_object('at', ?1), ?2, 'system')
       ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).bind(ts, now()).run();
+    if (backupReady(env)) { // PRE-14: every request leaves a permit row; those of past windows go, 1000 a tick
+      try { await purgeClosedWritePermits(env); }
+      catch { console.error('Backup permit purge failed'); }
+    }
     if (spoolReady(env)) { // PRE-14: email kept during the last backup window, now stored with its arrival time
       try { const c = await replayBackupInbound(env); if (c.failed || c.rejected) console.error('Spooled email', c); }
       catch { console.error('Spooled email pass failed'); }

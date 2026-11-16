@@ -103,3 +103,13 @@ export async function reconcileWritePermit(env, {id, proof, currentAdmin}, now =
   const row = await env.DB.prepare('SELECT closed_at FROM backup_writers WHERE id = ?1').bind(id).first();
   return row?.closed_at ? 'closed' : 'unknown';
 }
+
+// Cada petición deja una fila en backup_writers. El reloj borra, por tandas, las cerradas de ventanas anteriores
+// (epoch menor que el de la compuerta): las abiertas y las del epoch actual las necesita drainState, y las conciliadas
+// guardan quién las cerró. Devuelve cuántas borró.
+export async function purgeClosedWritePermits(env, {limit = 1000} = {}) {
+  const r = await env.DB.prepare(`DELETE FROM backup_writers WHERE id IN (SELECT id FROM backup_writers
+    WHERE closed_at IS NOT NULL AND close_reason <> 'reconciled'
+      AND epoch < (SELECT epoch FROM backup_write_gate WHERE id = 1) LIMIT ?1)`).bind(limit).run();
+  return r.meta.changes;
+}

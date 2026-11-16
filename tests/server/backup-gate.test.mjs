@@ -7,7 +7,7 @@ import {currentAdmin} from '../../server/auth.js';
 import {backupDue, attemptAt} from '../../server/backup-policy.js';
 import {
   withApplicationWrite, closeWriteGate, drainState, sealable, openWriteGate, reconcileWritePermit, BackupMaintenanceError,
-  listOpenWritePermits,
+  listOpenWritePermits, purgeClosedWritePermits,
 } from '../../server/backup-write-gate.js';
 
 const RUN = '11111111-1111-4111-8111-111111111111', RUN2 = '22222222-2222-4222-8222-222222222222';
@@ -226,4 +226,21 @@ test('admisión con respuesta perdida y cierre que falla una vez no dejan permis
   const open = await listOpenWritePermits(e);
   assert.deepEqual(open.map(p => [p.operation, p.epoch]), [['api:stuck', 0]]);
   assert.deepEqual(Object.keys(open[0]).sort(), ['epoch', 'id', 'operation', 'started_at']);
+});
+
+test('el reloj purga los permisos cerrados de ventanas anteriores, nunca los abiertos, los conciliados ni los del epoch actual', async () => {
+  const e = env();
+  const add = (id, epoch, closed, reason = 'finished') => e.DB.raw.prepare(`INSERT INTO backup_writers
+    (id, epoch, operation, started_at, closed_at, close_reason) VALUES (?, ?, 'api:x', ?, ?, ?)`)
+    .run(id, epoch, T, closed ? T : null, closed ? reason : null);
+  const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  add(id(1), 0, true); add(id(2), 0, true); add(id(3), 0, false); add(id(4), 0, true, 'reconciled');
+  await closeWriteGate(e, {run_id: RUN, now: T});
+  await openWriteGate(e, {run_id: RUN, epoch: 1, now: plus(T, 1)}); // epoch 2
+  add(id(5), 2, true);
+  assert.equal(await purgeClosedWritePermits(e, {limit: 1}), 1);
+  assert.equal(await purgeClosedWritePermits(e), 1);
+  assert.equal(await purgeClosedWritePermits(e), 0);
+  const left = e.DB.raw.prepare('SELECT id FROM backup_writers ORDER BY id').all().map(r => r.id);
+  assert.deepEqual(left, [id(3), id(4), id(5)]);
 });
