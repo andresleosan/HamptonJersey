@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { adminMediaUrl } from "./admin-media-url.js";
 import { AVAILABILITY, fmtDate, priceText } from "./format.js";
 import { REJECT_REASONS } from "../../server/applicants.js";
 import { CHECK_LABEL, unknownMusts } from "../../server/candidate-state.js";
@@ -52,7 +53,7 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
   const offSite = !l.published || l.archived_at || !l.has_public_photo;
 
   return <article className="card match" aria-labelledby={`match-${match.id}`}>
-    <div className="match-photo">{l.cover_id ? <img src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" />
+    <div className="match-photo">{l.cover_id ? <img src={adminMediaUrl(l.cover_id, { thumb: true })} alt="" loading="lazy" />
       : <span className="muted">No photo</span>}</div>
     <div className="match-body">
       <div className="match-head">

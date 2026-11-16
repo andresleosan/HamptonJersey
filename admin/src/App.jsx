@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { api } from "./api.js";
 import { firebaseSignOut } from "./firebase.js";
 import Login from "./Login.jsx";
+import AccessReauth from "./AccessReauth.jsx";
 import Inbox from "./Inbox.jsx";
 import BrowserAlerts from "./BrowserAlerts.jsx";
 import Applicants from "./Applicants.jsx";
@@ -86,15 +87,18 @@ export default function App() {
   const [advertiserSession] = useState(createAdvertiserSession);
   const [me, setMe] = useState(undefined); // undefined = checking, null = signed out
   const [expired, setExpired] = useState(false);
+  const [reauth, setReauth] = useState(false); // PRE-06: Access's security sign-in expired
+  const blocked = expired || reauth;
   const [counts, setCounts] = useState({});
   const [taskPending, setTaskPending] = useState(false), [pendingNavigation, setPendingNavigation] = useState(false);
   const pendingRef = useRef(false); pendingRef.current = taskPending;
   const hash = useHash(pendingRef, setPendingNavigation);
   useEffect(() => {
     api("/me").then(d => setMe(d.email), () => setMe(null));
-    const f = () => setExpired(true);
+    const f = () => setExpired(true), g = () => setReauth(true);
     addEventListener("hs:signed-out", f);
-    return () => removeEventListener("hs:signed-out", f);
+    addEventListener("hs:access-reauth", g);
+    return () => { removeEventListener("hs:signed-out", f); removeEventListener("hs:access-reauth", g); };
   }, []);
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
@@ -103,7 +107,7 @@ export default function App() {
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
-  usePoll(loadCounts, me && !expired && current !== "" ? 30000 : null);
+  usePoll(loadCounts, me && !blocked && current !== "" ? 30000 : null);
 
   // The sticky bar's height (it wraps on phones) for `scroll-padding-top`: a focused field never lands under it.
   const bar = useRef(null);
@@ -145,15 +149,15 @@ export default function App() {
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} selection={query??''} onChange={loadCounts} />
     : section === "rentals" ? <Rentals requestedPayment={new URLSearchParams(query).get('payment')} unmatched={new URLSearchParams(query).get('payments')==='unmatched'} onChange={loadCounts} />
     : section === "insights" && arg === "demand" ? <Suspense fallback={<p role="status">Loading demand review…</p>}><DemandCampaigns /></Suspense>
-    : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={expired} />
+    : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={blocked} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
-    : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")} paused={expired} onChange={loadCounts} />
+    : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")} paused={blocked} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "legal" ? <LegalTerms onChange={loadCounts} />
     : section === "privacy" && "privacy" in counts ? <PrivacyRequests key={arg ?? ""} id={/^[0-9a-f-]{36}$/.test(arg ?? "") ? arg : null} />
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
-    : <Inbox paused={expired} onCounts={setCounts} me={me} onPending={setTaskPending} />;
+    : <Inbox paused={blocked} onCounts={setCounts} me={me} onPending={setTaskPending} />;
   const leave = e => {
     if (taskPending) { e?.preventDefault(); setPendingNavigation(true); return false; }
     return confirmLeave(e);
@@ -165,7 +169,7 @@ export default function App() {
     setMe(null);
   };
   return <>
-    <header ref={bar} className="bar" inert={expired} onClick={e => { if (e.target.closest("a")) leave(e); }}>
+    <header ref={bar} className="bar" inert={blocked} onClick={e => { if (e.target.closest("a")) leave(e); }}>
       <a href="#/" className="brand">Hampton Estates{" "}<span className="staff">Staff</span></a>
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
@@ -193,15 +197,16 @@ export default function App() {
       <button type="button" className="btn ghost sm" title={`Signed in as ${me}`} onClick={logout}>Sign out</button>
     </header>
     {/* Every link in the page, like those in the header, asks first when there are unsaved changes. */}
-    <main className="page" inert={expired} onClickCapture={e => { if (e.target.closest("a[href^='#']")) leave(e); }}>
+    <main className="page" inert={blocked} onClickCapture={e => { if (e.target.closest("a[href^='#']")) leave(e); }}>
       {taskPending && pendingNavigation && <p role="alert" className="warn">Confirm the pending task result before leaving. Wait for the reply, or use the task's retry button if the result is uncertain.</p>}
       {counts.outbound && <Paused outbound={counts.outbound} onResumed={loadCounts} />}
       {page}
-      <BrowserAlerts paused={expired} onOpen={()=>{if(leave()){window.focus();location.hash='#/';}}}/></main>
+      <BrowserAlerts paused={blocked} onOpen={()=>{if(leave()){window.focus();location.hash='#/';}}}/></main>
     {/* Session expired mid-task: sign in again on top of the page so nothing typed is lost. */}
     {expired && <div className="modal" role="dialog" aria-modal="true" aria-label="Session expired">
       <Login title="Your session has expired" note="Sign in again; what you were editing is still here." onSignedIn={signedIn} home={false} />
     </div>}
+    {reauth && !expired && <AccessReauth onDone={() => setReauth(false)} />}
   </>;
 }
 

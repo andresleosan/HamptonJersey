@@ -3,6 +3,7 @@ import { priceOperation } from "../../server/listing-pricing.js";
 import { derivePricePerArea, formatPricePerArea, formatPremiumPerArea } from "../../server/listing-price-area.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
+import { adminMediaUrl } from "./admin-media-url.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import ListingDocuments from "./ListingDocuments.jsx";
@@ -352,7 +353,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
 
   return <div className="editor">
     <aside className="side card">
-      {cover ? <img src={`/media/${cover.id}?thumb`} alt="" /> : <div className="thumb big" />}
+      {cover ? <img src={adminMediaUrl(cover.id, { thumb: true })} alt="" /> : <div className="thumb big" />}
       <h1 id="h-editor" tabIndex={-1}>{l.title}</h1>
       <p className="meta"><span>{l.id}</span><span><span className={`badge ${state}`}>{STATUS_LABEL[state]}</span></span>
         {l.to_confirm === 1 && <span><span className="badge attention">To confirm</span></span>}</p>

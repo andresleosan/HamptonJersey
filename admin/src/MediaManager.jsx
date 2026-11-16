@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
+import { adminMediaUrl } from "./admin-media-url.js";
 import { KIND, safeHref } from "./format.js";
 import { uploadPhoto } from "./image.js";
 import { qualitySuggestions } from "./photo-quality.js";
@@ -88,8 +89,8 @@ export default function MediaManager({ listingId, media, coverId, updatedAt, onC
       className={m.id === cover ? "is-cover" : undefined}>
       <div className="ph">
         {m.content_type === "application/pdf"
-          ? <a className="doc" href={`/media/${m.id}`} target="_blank" rel="noopener noreferrer">Open PDF</a>
-          : <img src={`/media/${m.id}?thumb`} alt={m.label || ""} loading="lazy" />}
+          ? <a className="doc" href={adminMediaUrl(m.id)} download>Download PDF</a>
+          : <img src={adminMediaUrl(m.id, { thumb: true })} alt={m.label || ""} loading="lazy" />}
         {m.id === cover && <span className="tag">Cover</span>}
         {m.origin === "external" && <span className="tag priv">Private reference</span>}
       </div>

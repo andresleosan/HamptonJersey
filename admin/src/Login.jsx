@@ -12,7 +12,7 @@ export default function Login({ onSignedIn, title = "Hampton Estates admin", not
       onSignedIn(email);
     } catch (e) {
       if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return setState({});
-      if (e.status === 403) { await firebaseSignOut().catch(() => {}); return setState({ denied: true }); }
+      if (e.status === 403 && e.data?.code !== "access_mismatch") { await firebaseSignOut().catch(() => {}); return setState({ denied: true }); }
       setState({ error: e.status != null ? e.message
         : "Couldn't open Google sign-in. Allow pop-ups for this site and try again." });
     }

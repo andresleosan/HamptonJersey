@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
+import { adminMediaUrl } from "./admin-media-url.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
 import { ON_MARKET } from "../../server/listing.js";
@@ -114,7 +115,7 @@ export default function Listings({ onChange }) {
         <th scope="col">Checked</th><th scope="col">Matched</th><th scope="col">Interested</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
       <tbody>{shown.map(l => <tr key={l.id}>
-        <td>{l.cover_id ? <img className="thumb" src={`/media/${l.cover_id}?thumb`} alt="" loading="lazy" /> : <span className="thumb" />}</td>
+        <td>{l.cover_id ? <img className="thumb" src={adminMediaUrl(l.cover_id, { thumb: true })} alt="" loading="lazy" /> : <span className="thumb" />}</td>
         <td><div className="title-cell"><button type="button" className="star" aria-pressed={l.featured_rank != null} disabled={stateOf(l) === "archived"}
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
           aria-label={`Featured on the home page: ${l.title}${featNo[l.id] ? `, number ${featNo[l.id]}` : ""}`} onClick={() => star(l)}>{l.featured_rank != null ? "★" : "☆"}

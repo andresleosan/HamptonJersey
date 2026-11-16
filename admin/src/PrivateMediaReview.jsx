@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import { adminMediaUrl } from "./admin-media-url.js";
 import { fmtDate } from "./format.js";
 
 // AGE-10: which files of the latest captured record (SPR-03) may be shown to a client in a private presentation. A
@@ -34,7 +35,7 @@ function Review({ f, onSaved }) {
   const name = f.label || (f.role === "floorplan" ? "Floor plan" : "Photo");
   return <li>
     <div className="inline">
-      <img className="thumb" src={`/media/${encodeURIComponent(f.media_id)}?thumb`} alt="" loading="lazy" />
+      <img className="thumb" src={adminMediaUrl(f.media_id, { thumb: true })} alt="" loading="lazy" />
       <span><strong>{name}</strong>{" "}<span className={`badge ${d ? BADGE[d.status][0] : "neutral"}`}>{d ? BADGE[d.status][1] : "To review"}</span></span>
     </div>
     <span className="muted">Source: {source(f.source)}</span>
