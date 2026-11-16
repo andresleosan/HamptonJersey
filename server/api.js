@@ -58,6 +58,7 @@ import marketingPreferenceRoutes, { purposeReady } from "./communication-prefere
 import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.js";
 import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
+import { calendarRoutes, calendarReady } from "./viewing-calendar.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 
 const ACCESS_MESSAGES = {
@@ -148,6 +149,7 @@ async function route(request, env, segments, waitUntil) {
     if (purposeReady(env)) routes = [...routes, ...marketingPreferenceRoutes]; // PRE-10: needs migration 0096
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
+    if (calendarReady(env)) routes = [...routes, ...calendarRoutes]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {

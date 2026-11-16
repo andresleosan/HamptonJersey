@@ -6,10 +6,15 @@ import { touchByViewing } from "../retention.js";
 import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
 import { cycleOn, REMINDER_CHANNELS, outcomeReady, followUp } from "../viewing-cycle.js";
 import { vis14Ready } from "../viewing-groups.js";
+import { calendarBusyCheck, afterViewingChange } from "../viewing-calendar.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const stale = "Someone else saved changes to this viewing. Reload to see them (your changes were not saved).";
+// VIS-12: the negotiator's Google Calendar, when connected and switched on (null otherwise: nothing is checked).
+// calendar_reviewed: staff checked that calendar themselves, kept with the event.
+const calendarCheck = (env, body, slot) => calendarBusyCheck(env, slot, { reviewed: body.calendar_reviewed === true });
+const busy = cal => json({ error: cal.error, code: cal.code }, 409);
 
 // §5's four tabs. "Now" is the Jersey clock: a confirmed viewing stays upcoming until its end time, then needs an outcome.
 // Each: [condition (binds: today, time), order].
@@ -76,7 +81,7 @@ async function dayOf(env, { negotiator_id, date, listing_id }, clock) {
 }
 
 // C14: booked by the team, so confirmed at once; NOT-01 adds an informational Feed fact. Any existing listing will do.
-async function create({ request, env, admin }) {
+async function create({ request, env, admin, waitUntil }) {
   const body = await readJson(request), clock = jerseyNow();
   const r = validateViewing(body, { today: clock.date, panel: true });
   if (r.errors) return fields(r.errors);
@@ -91,17 +96,22 @@ async function create({ request, env, admin }) {
   // VIS-10: short of a tenanted house's notice, only once staff confirm that access is agreed (kept in the event).
   const notice = await noticeCheck(env, v, clock, body.notice_confirmed === true);
   if (notice.error) return fields({ notice_confirmed: notice.error });
+  const cal = await calendarCheck(env, body, { negotiator_id: v.negotiator_id, date: v.date, time: v.time,
+    end_time: addMinutes(v.time, day.policy?.duration_minutes ?? SLOT_MINUTES) });
+  if (cal?.error) return busy(cal);
   // C6, as on the website: if another booking took the slot since the check, nothing at all is written.
   const [booked] = await env.DB.batch([
     bookStatement(env, v, { status: "confirmed", policy: day.policy, parish: day.parish, actor: admin, notice: notice.guard }),
     ...(day.policy ? [policySnapshot(env, day.policy, day.parish)] : []),
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: null, type: "viewing.booked",
       data: { listing_id: v.listing_id, date: v.date, time: v.time, kind: v.kind, negotiator_id: v.negotiator_id,
-        ...(notice.confirmed ? { notice_confirmed: true } : {}) } }, null,
+        ...(notice.confirmed ? { notice_confirmed: true } : {}), ...(cal?.reviewed ? { calendar_reviewed: true } : {}) } }, null,
     { ifInserted: true }),
     touchByViewing(env, v, now()),
   ]);
-  return booked.meta.changes ? json({ id: booked.meta.last_row_id }, 201) : taken();
+  if (!booked.meta.changes) return taken();
+  afterViewingChange(env, waitUntil, booked.meta.last_row_id);
+  return json({ id: booked.meta.last_row_id }, 201);
 }
 
 // C7: the statuses each action leaves from, and where it goes (reschedule keeps the status). VIS-08: remind and
@@ -173,7 +183,7 @@ async function change(env, action, body, cur, clock, admin, cycle, ts) {
 
 // C7 with optimistic locking: the client sends the updated_at it saw (null for a request never edited).
 // VIS-14's plans move and cancel viewings through it too (server/routes/viewing-groups.js).
-export async function runAction({ env, admin, id, body }) {
+export async function runAction({ env, admin, id, body, waitUntil }) {
   if (!("updated_at" in body) || (body.updated_at !== null && typeof body.updated_at !== "string"))
     fail(400, "Missing updated_at: reload the viewing");
   if (!Object.hasOwn(FROM, body.action)) fail(400, "Unknown action");
@@ -185,6 +195,11 @@ export async function runAction({ env, admin, id, body }) {
   if (cur.updated_at !== body.updated_at) fail(409, stale);
   const ch = await change(env, body.action, body, cur, jerseyNow(), admin, cycle, ts);
   if (ch.errors) return fields(ch.errors);
+  const slot = body.action === "confirm" ? cur : body.action === "reschedule" ? { ...cur, ...ch.set } : null;
+  const cal = slot && await calendarCheck(env, body, { viewing_id: id, negotiator_id: slot.negotiator_id, date: slot.date,
+    time: slot.time, end_time: slot.end_time ?? addMinutes(slot.time, SLOT_MINUTES) });
+  if (cal?.error) return busy(cal);
+  if (cal?.reviewed) ch.data = { ...ch.data, calendar_reviewed: true };
   const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) };
   const guards = [ch.guard, ch.property].filter(Boolean);
   const type = `viewing.${ch.event ?? (body.action === "reschedule" ? "rescheduled" : TO[body.action])}`;
@@ -205,7 +220,10 @@ export async function runAction({ env, admin, id, body }) {
     // after a touch changes() is the touch's (each of these actions happens once to a viewing).
     ...(["confirm", "cancel"].includes(body.action) ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifEvent: type })] : []),
   ]);
-  if (r.meta.changes) return json({ ok: true });
+  if (r.meta.changes) {
+    if (["confirm", "reschedule", "cancel"].includes(body.action)) afterViewingChange(env, waitUntil, id);
+    return json({ ok: true });
+  }
   // Nothing changed: the row went, someone else saved it, or (the lock held) the new slot was taken meanwhile.
   const after = await env.DB.prepare("SELECT updated_at FROM viewing_requests WHERE id = ?").bind(id).first();
   if (!after) fail(404, "Viewing not found");
@@ -214,10 +232,10 @@ export async function runAction({ env, admin, id, body }) {
   return taken();
 }
 
-async function update({ request, env, admin, params: [id] }) {
+async function update({ request, env, admin, params: [id], waitUntil }) {
   const body = (await readJson(request)) ?? {};
   if (typeof body !== "object" || Array.isArray(body)) fail(400, "Invalid format");
-  if ("action" in body) return runAction({ env, admin, id: Number(id), body });
+  if ("action" in body) return runAction({ env, admin, id: Number(id), body, waitUntil });
   if (!("notes" in body)) fail(400, "Nothing to update");
   const r = await env.DB.prepare("UPDATE viewing_requests SET notes = ?, updated_at = ?, updated_by = ? WHERE id = ?")
     .bind(readNotes(body), now(), admin, Number(id)).run();
@@ -226,7 +244,7 @@ async function update({ request, env, admin, params: [id] }) {
 }
 
 // The request's personal data goes with it: its notices lose the name, its events their data (NULL, never '').
-async function remove({ env, admin, params: [id] }) {
+async function remove({ env, admin, params: [id], waitUntil }) {
   const ref = { entity_type: "viewing", entity_id: String(Number(id)) };
   const [,r] = await env.DB.batch([
     resolveNotices(env, ref, admin),
@@ -236,6 +254,7 @@ async function remove({ env, admin, params: [id] }) {
     env.DB.prepare("UPDATE events SET data = NULL WHERE entity_type = ? AND entity_id = ?").bind(ref.entity_type, ref.entity_id),
   ]);
   if (!r.meta.changes) fail(404, "Viewing not found");
+  afterViewingChange(env, waitUntil, Number(id)); // VIS-12: its Google event, if any, is cancelled
   return json({ ok: true });
 }
 

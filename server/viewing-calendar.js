@@ -1,0 +1,283 @@
+// VIS-12: a confirmed viewing in its negotiator's Google Calendar, and their busy times read before one is confirmed.
+// Switched off (VIS12_CALENDAR_READY) or before migration 0105, nothing here reads, writes or calls anyone. The
+// applicant's Google invitation is a second switch (VIS12_CALENDAR_INVITES_READY): off, the event has no attendee and
+// Google sends nobody anything. The event carries the house, its address and the time: never the viewing's notes, the
+// house's keys or access note (VIS-10), nor the applicant's name or phone.
+import { json, fail, readJson, now, sha256 } from "./http.js";
+import { getCookie } from "./auth.js";
+import { jerseyViewingInstant } from "./viewing-policy.js";
+import { formatExactAddress } from "./listing-details.js";
+import { GOOGLE_SCOPES, authUrl, exchangeCode, accessToken, revokeToken, getBusy, upsertViewingEvent, cancelViewingEvent,
+  eventIdFor } from "./calendar-google.js";
+
+export const calendarReady = env => env?.VIS12_CALENDAR_READY === "1";
+export const invitesReady = env => calendarReady(env) && env?.VIS12_CALENDAR_INVITES_READY === "1";
+const noTable = e => /no such table: calendar_/.test(e?.message ?? "");
+
+// --- The refresh token, sealed with AES-GCM under GOOGLE_CALENDAR_TOKEN_KEY (32 bytes, base64), a secret outside D1.
+const enc = s => new TextEncoder().encode(s);
+const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+function keyBytes(env) {
+  try { const k = unb64(env?.GOOGLE_CALENDAR_TOKEN_KEY ?? ""); return k.length === 32 ? k : null; } catch { return null; }
+}
+const tokenKey = env => {
+  const raw = keyBytes(env);
+  if (!raw) throw new Error("VIS-12: GOOGLE_CALENDAR_TOKEN_KEY must be 32 bytes in base64");
+  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+};
+export async function sealToken(env, negotiatorId, token) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc(`vis12:${negotiatorId}`) }, await tokenKey(env), enc(token));
+  return `v1.${b64(iv)}.${b64(ct)}`;
+}
+async function openToken(env, negotiatorId, sealed) {
+  const [v, iv, ct] = String(sealed ?? "").split(".");
+  if (v !== "v1") throw new Error("VIS-12: unknown token format");
+  return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(iv), additionalData: enc(`vis12:${negotiatorId}`) },
+    await tokenKey(env), unb64(ct)));
+}
+export const calendarConfigured = env => typeof env?.GOOGLE_CALENDAR_CLIENT_ID === "string" && env.GOOGLE_CALENDAR_CLIENT_ID !== ""
+  && typeof env.GOOGLE_CALENDAR_CLIENT_SECRET === "string" && env.GOOGLE_CALENDAR_CLIENT_SECRET !== "" && !!keyBytes(env)
+  && /^https:\/\//.test(env.SITE_URL ?? "");
+
+// A Google connection for one call: a fresh access token from the sealed refresh token (never stored).
+async function withConnection(env, conn, fetch, run) {
+  let token;
+  try {
+    token = await accessToken({ fetch, clientId: env.GOOGLE_CALENDAR_CLIENT_ID, clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET,
+      refreshToken: await openToken(env, conn.negotiator_id, conn.refresh_token_enc) });
+  } catch { return { state: "unknown", error: "token" }; }
+  return run({ fetch, token, calendarId: conn.calendar_id });
+}
+const CONNECTION = "SELECT * FROM calendar_connections WHERE negotiator_id = ?";
+const LINK = "SELECT * FROM calendar_event_links WHERE viewing_id = ?";
+
+// --- The event. Jersey wall times to their instant (BST first in the autumn's repeated hour; none in the spring gap).
+const instant = (date, time) => [3600, 0].map(offset => jerseyViewingInstant(date, time, offset)).find(Boolean) ?? null;
+const utc = iso => iso.replace(".000Z", "Z");
+// v: the viewing with its house's title, address fields and the applicant's email. invite: add the applicant.
+export function viewingEvent(v, { invite }) {
+  const starts = instant(v.date, v.time), ends = instant(v.date, v.end_time ?? v.time);
+  if (!starts || !ends) return null;
+  const address = formatExactAddress(v, v);
+  return {
+    summary: `Viewing: ${v.title ?? "Property"}`,
+    ...(address ? { location: address } : {}),
+    description: ["Hampton Estates viewing", v.listing_id, v.kind].filter(Boolean).join(" · "),
+    start: { dateTime: utc(starts), timeZone: "Europe/Jersey" }, end: { dateTime: utc(ends), timeZone: "Europe/Jersey" },
+    status: "confirmed", visibility: "private", transparency: "opaque",
+    guestsCanSeeOtherGuests: false, guestsCanInviteOthers: false,
+    extendedProperties: { private: { hampton_viewing: String(v.id) } },
+    ...(invite && v.email ? { attendees: [{ email: v.email }] } : {}),
+  };
+}
+
+const VIEWING = `SELECT v.id, v.listing_id, v.negotiator_id, v.kind, v.date, v.time, v.end_time, v.email, v.status, v.updated_at,
+  v.created_at, COALESCE(l.title, v.listing_title_snapshot) AS title, l.road_name, l.location, l.parish, l.country,
+  d.building_name_or_number, d.postcode
+  FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id LEFT JOIN listing_details d ON d.listing_id = v.listing_id
+  WHERE v.id = ?`;
+
+// Brings the viewing's Google event in line with the viewing as it is now: confirmed → the event at its time;
+// cancelled or deleted → the event cancelled (if there ever was one). Requested, completed or no-show: left as it is.
+// Safe to repeat: one event per viewing (deterministic id), written only if it differs. Returns { state }.
+export async function syncViewingCalendar(env, viewingId, { fetch = globalThis.fetch } = {}) {
+  if (!calendarReady(env)) return { state: "off" };
+  try { return await sync(env, viewingId, fetch); }
+  catch (e) { if (noTable(e)) return { state: "off" }; throw e; }
+}
+
+async function sync(env, id, fetch) {
+  const [v, link] = await Promise.all([env.DB.prepare(VIEWING).bind(id).first(), env.DB.prepare(LINK).bind(id).first()]);
+  const wanted = !v || v.status === "cancelled" ? "cancelled" : v.status === "confirmed" ? "confirmed" : null;
+  if (!wanted || (wanted === "cancelled" && !link)) return { state: link?.state ?? "none" };
+  // The revision and what the event shows: two saves in the same millisecond still differ by their content.
+  const op = v ? [v.updated_at ?? v.created_at, wanted, v.negotiator_id, v.date, v.time, v.end_time].join("|") : "deleted|cancelled";
+  if (link?.op === op && link.state === "synced") return { state: "synced" };
+  const negotiatorId = wanted === "confirmed" ? v.negotiator_id : link.negotiator_id;
+  const conn = negotiatorId == null ? null : await env.DB.prepare(CONNECTION).bind(negotiatorId).first();
+  if (!conn && !link) return { state: "none" }; // never connected: Hampton's own calendar only
+  const moved = !!link && link.negotiator_id !== negotiatorId, invite = invitesReady(env);
+  if (moved && link.wanted === "confirmed") { // first out of the calendar it was in
+    const old = await env.DB.prepare(CONNECTION).bind(link.negotiator_id).first();
+    if (old?.state === "active") await withConnection(env, old, fetch, c => cancelViewingEvent(c,
+      { external_id: link.external_id, sendUpdates: link.invited && invite ? "all" : "none" }));
+  }
+  const external_id = link?.external_id ?? await eventIdFor(id), ts = now();
+  // The mapping is durable before Google is called: a lost answer is found again under the same id.
+  await env.DB.prepare(`INSERT INTO calendar_event_links (viewing_id, negotiator_id, calendar_id, external_id, op, wanted, state, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+    ON CONFLICT(viewing_id) DO UPDATE SET op = excluded.op, wanted = excluded.wanted, state = 'pending', error = NULL,
+      updated_at = excluded.updated_at, negotiator_id = excluded.negotiator_id, calendar_id = excluded.calendar_id,
+      etag = CASE WHEN ? THEN NULL ELSE etag END, starts_utc = CASE WHEN ? THEN NULL ELSE starts_utc END,
+      ends_utc = CASE WHEN ? THEN NULL ELSE ends_utc END, invited = CASE WHEN ? THEN 0 ELSE invited END`)
+    .bind(id, negotiatorId, conn?.calendar_id ?? link.calendar_id, external_id, op, wanted, ts, ...Array(4).fill(moved ? 1 : 0)).run();
+  if (conn?.state !== "active") return { state: "pending" }; // disconnected: nothing is sent
+  const event = wanted === "confirmed" ? viewingEvent(v, { invite: invite || (!moved && link?.invited === 1) }) : null;
+  const known = !moved && link?.starts_utc ? { starts_utc: link.starts_utc, ends_utc: link.ends_utc } : null;
+  const result = wanted === "cancelled"
+    ? await withConnection(env, conn, fetch, c => cancelViewingEvent(c, { external_id, sendUpdates: link.invited && invite ? "all" : "none" }))
+    : !event ? { state: "conflict", error: "no such time in Jersey" }
+    : await withConnection(env, conn, fetch, c => upsertViewingEvent(c, { external_id, event, expected: known,
+      sendUpdates: event.attendees && invite ? "all" : "none" }));
+  const wrote = result.state === "synced" && event;
+  // Recorded only while this is still the latest change and the same connection is still active: a late answer after
+  // a newer change, a disconnect or a reconnect changes nothing.
+  const r = await env.DB.prepare(`UPDATE calendar_event_links SET state = ?, error = ?, updated_at = ?, etag = COALESCE(?, etag),
+      starts_utc = COALESCE(?, starts_utc), ends_utc = COALESCE(?, ends_utc), invited = COALESCE(?, invited)
+    WHERE viewing_id = ? AND op = ? AND EXISTS (SELECT 1 FROM calendar_connections WHERE negotiator_id = ? AND state = 'active'
+      AND connected_at = ?)`)
+    .bind(result.state, result.error?.slice(0, 200) ?? null, now(), result.etag ?? null, wrote ? instant(v.date, v.time) : null,
+      wrote ? instant(v.date, v.end_time ?? v.time) : null, wrote ? (event.attendees ? 1 : 0) : null, id, op, conn.negotiator_id,
+      conn.connected_at).run();
+  return { state: r.meta.changes ? result.state : "superseded" };
+}
+
+// Fire-and-forget after a viewing changed (confirmed, moved, cancelled, deleted): after the answer, never before it.
+export function afterViewingChange(env, waitUntil, viewingId) {
+  if (calendarReady(env)) waitUntil(syncViewingCalendar(env, viewingId).catch(e => console.error("VIS-12 calendar", e?.message)));
+}
+
+// For a clock (not connected here: server/jobs.js is AUT-07's): the events Google did not take yet, oldest first.
+export async function calendarRetryTick(env, { limit = 50, fetch = globalThis.fetch } = {}) {
+  if (!calendarReady(env)) return { tried: 0 };
+  const rows = (await env.DB.prepare(`SELECT viewing_id FROM calendar_event_links WHERE state IN ('pending','unknown')
+    ORDER BY updated_at LIMIT ?`).bind(limit).all()).results;
+  for (const r of rows) await syncViewingCalendar(env, r.viewing_id, { fetch });
+  return { tried: rows.length };
+}
+
+// Before a viewing is confirmed, booked or moved: is that time free in the negotiator's Google Calendar? null when there
+// is nothing to check (off, or no connected calendar: Hampton's calendar alone). Only intervals are read; none is kept.
+// reviewed: staff checked the calendar themselves; it answers for "could not check" and for an overlap with the
+// viewing's own event (freeBusy merges it with anything else at that time, so it is never subtracted), never for busy.
+const UNCHECKED = { code: "calendar_unchecked", error: "The negotiator's Google Calendar could not be checked for this time. Try again, or check it yourself and confirm that the time is free." };
+const BUSY = { code: "calendar_busy", error: "The negotiator is busy at this time in Google Calendar. Please choose another." };
+const SELF = { code: "calendar_self_overlap", error: "Google Calendar shows this viewing's own event at this time, and maybe something else. Check the negotiator's calendar and confirm that nothing else is there." };
+export async function calendarBusyCheck(env, { viewing_id = null, negotiator_id, date, time, end_time }, { reviewed = false, fetch = globalThis.fetch } = {}) {
+  if (!calendarReady(env) || negotiator_id == null) return null;
+  let conn, link;
+  try {
+    [conn, link] = await Promise.all([env.DB.prepare(CONNECTION).bind(negotiator_id).first(),
+      viewing_id == null ? null : env.DB.prepare(LINK).bind(viewing_id).first()]);
+  } catch (e) { if (noTable(e)) return null; throw e; }
+  if (conn?.state !== "active") return null;
+  const pass = reviewed ? { reviewed: true } : null, from = instant(date, time), to = instant(date, end_time);
+  if (!from || !to) return pass ?? UNCHECKED;
+  const busy = await withConnection(env, conn, fetch, c => getBusy(c, { from, to }));
+  if (busy.state !== "ok") return pass ?? UNCHECKED;
+  const own = link?.negotiator_id === negotiator_id && link.wanted === "confirmed" && link.starts_utc
+    ? [Date.parse(link.starts_utc), Date.parse(link.ends_utc)] : [NaN, NaN];
+  let self = false;
+  for (const b of busy.intervals) {
+    const s = Math.max(Date.parse(from), Date.parse(b.start)), e = Math.min(Date.parse(to), Date.parse(b.end));
+    if (!(s < e)) continue;
+    if (s >= own[0] && e <= own[1]) self = true; else return BUSY;
+  }
+  return self ? pass ?? SELF : null;
+}
+
+// --- Connecting a negotiator's calendar: OAuth on the server, a one-use state tied to the staff member and to their
+// browser (a SameSite=Lax cookie, the one that survives Google's redirect back), the redirect fixed from SITE_URL.
+const BROWSER = "__Host-hcal", STATE_MINUTES = 10;
+const site = env => env.SITE_URL.replace(/\/+$/, "");
+const redirectUri = env => `${site(env)}/api/calendar/google/callback`;
+const random = () => b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+async function status({ env }) {
+  let connections;
+  try {
+    connections = (await env.DB.prepare(`SELECT negotiator_id, provider, calendar_id, state, scopes, connected_at, connected_by,
+      revoked_at FROM calendar_connections ORDER BY negotiator_id`).all()).results;
+  } catch (e) { if (noTable(e)) return json({ enabled: false }); throw e; }
+  return json({ enabled: true, configured: calendarConfigured(env), invites: invitesReady(env), connections }, 200, { "cache-control": "no-store" });
+}
+
+const negotiatorId = body => (Number.isSafeInteger(body?.negotiator_id) && body.negotiator_id > 0 ? body.negotiator_id : fail(400, "Choose a negotiator"));
+
+async function start({ request, env, admin }) {
+  const id = negotiatorId(await readJson(request));
+  if (!calendarConfigured(env)) fail(503, "Google Calendar is not set up yet.");
+  if (!(await env.DB.prepare("SELECT 1 FROM negotiators WHERE id = ? AND active = 1").bind(id).first())) fail(400, "Choose an active negotiator");
+  const state = random(), browser = random(), at = Date.now();
+  try {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM calendar_oauth_states WHERE expires_at <= ?").bind(new Date(at).toISOString()),
+      env.DB.prepare(`INSERT INTO calendar_oauth_states (state_hash, browser_hash, negotiator_id, admin, created_at, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?)`).bind(await sha256(state), await sha256(browser), id, admin, new Date(at).toISOString(),
+        new Date(at + STATE_MINUTES * 60000).toISOString()),
+    ]);
+  } catch (e) { if (noTable(e)) fail(503, "Google Calendar is not set up yet."); throw e; }
+  return json({ url: authUrl({ clientId: env.GOOGLE_CALENDAR_CLIENT_ID, redirectUri: redirectUri(env), state }) }, 200, {
+    "cache-control": "no-store",
+    "set-cookie": `${BROWSER}=${browser}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${STATE_MINUTES * 60}` });
+}
+
+// Google's redirect back (a top-level GET, so no session cookie and no same-origin check): everything it trusts is the
+// state row, used up on the first answer, and the browser cookie. It answers only with a redirect to the panel.
+async function callback({ request, env, waitUntil }) {
+  const back = outcome => new Response(null, { status: 303, headers: { location: `${site(env)}/admin/?calendar=${outcome}`,
+    "cache-control": "no-store", "referrer-policy": "no-referrer",
+    "set-cookie": `${BROWSER}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` } });
+  const q = new URL(request.url).searchParams, state = q.get("state");
+  if (!state || state.length > 100) return back("failed");
+  let row;
+  try { row = await env.DB.prepare("DELETE FROM calendar_oauth_states WHERE state_hash = ? RETURNING *").bind(await sha256(state)).first(); }
+  catch (e) { if (noTable(e)) return back("failed"); throw e; }
+  if (!row || row.expires_at <= now()) return back("failed");
+  if (q.get("error")) return back("denied"); // the viewings stay on Hampton's own calendar
+  const browser = getCookie(request, BROWSER), code = q.get("code");
+  if (!browser || await sha256(browser) !== row.browser_hash || !code || code.length > 1000 || !calendarConfigured(env)) return back("failed");
+  const [staff, negotiator] = await Promise.all([env.DB.prepare("SELECT 1 FROM admins WHERE email = ?").bind(row.admin).first(),
+    env.DB.prepare("SELECT 1 FROM negotiators WHERE id = ? AND active = 1").bind(row.negotiator_id).first()]);
+  if (!staff || !negotiator) return back("failed");
+  let got;
+  try {
+    got = await exchangeCode({ fetch: globalThis.fetch, clientId: env.GOOGLE_CALENDAR_CLIENT_ID,
+      clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET, redirectUri: redirectUri(env), code });
+  } catch { return back("failed"); }
+  if (!GOOGLE_SCOPES.every(s => got.scopes.includes(s))) {
+    waitUntil(revokeToken({ fetch: globalThis.fetch, token: got.refresh_token }).catch(() => {}));
+    return back("scopes");
+  }
+  await env.DB.prepare(`INSERT INTO calendar_connections (negotiator_id, calendar_id, state, refresh_token_enc, scopes,
+      connected_at, connected_by) VALUES (?, 'primary', 'active', ?, ?, ?, ?)
+    ON CONFLICT(negotiator_id) DO UPDATE SET calendar_id = 'primary', state = 'active', refresh_token_enc = excluded.refresh_token_enc,
+      scopes = excluded.scopes, connected_at = excluded.connected_at, connected_by = excluded.connected_by, revoked_at = NULL, revoked_by = NULL`)
+    .bind(row.negotiator_id, await sealToken(env, row.negotiator_id, got.refresh_token), GOOGLE_SCOPES.join(" "), now(), row.admin).run();
+  return back("connected");
+}
+
+// Disconnecting forgets the token at once (no later write can use it) and asks Google to revoke it.
+async function disconnect({ request, env, admin, waitUntil }) {
+  const id = negotiatorId(await readJson(request));
+  const conn = await env.DB.prepare("SELECT * FROM calendar_connections WHERE negotiator_id = ? AND state = 'active'").bind(id).first();
+  if (!conn) fail(404, "No connected calendar");
+  const r = await env.DB.prepare(`UPDATE calendar_connections SET state = 'revoked', refresh_token_enc = NULL, revoked_at = ?, revoked_by = ?
+    WHERE negotiator_id = ? AND state = 'active' AND connected_at = ?`).bind(now(), admin, id, conn.connected_at).run();
+  if (!r.meta.changes) fail(409, "The connection changed meanwhile. Reload and try again.");
+  let token = null;
+  try { token = await openToken(env, id, conn.refresh_token_enc); } catch {}
+  if (token) waitUntil(revokeToken({ fetch: globalThis.fetch, token }).catch(() => {}));
+  return json({ ok: true });
+}
+
+const viewingId = v => (/^[1-9]\d{0,14}$/.test(v) ? Number(v) : fail(400, "Invalid viewing ID"));
+async function viewingState({ env, params: [id] }) {
+  let l;
+  try { l = await env.DB.prepare("SELECT state, wanted, error, updated_at FROM calendar_event_links WHERE viewing_id = ?").bind(viewingId(id)).first(); }
+  catch (e) { if (noTable(e)) return json({ state: "off" }); throw e; }
+  return json(l ?? { state: "none" });
+}
+const retry = async ({ env, params: [id] }) => json(await syncViewingCalendar(env, viewingId(id)));
+
+// Mounted by server/api.js only with VIS12_CALENDAR_READY.
+export const calendarRoutes = [
+  ["GET", /^\/admin\/calendar\/google$/, status, true],
+  ["POST", /^\/admin\/calendar\/google\/start$/, start, true],
+  ["POST", /^\/admin\/calendar\/google\/disconnect$/, disconnect, true],
+  ["GET", /^\/calendar\/google\/callback$/, callback],
+  ["GET", /^\/admin\/calendar\/viewings\/([^/]+)$/, viewingState, true],
+  ["POST", /^\/admin\/calendar\/viewings\/([^/]+)\/sync$/, retry, true],
+];

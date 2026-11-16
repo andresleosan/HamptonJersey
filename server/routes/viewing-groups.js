@@ -62,7 +62,7 @@ async function ofHouse(env, refs, listingId) {
 // Back-to-back: the requests, in the order given, move to the first free times of one negotiator from the start time
 // on, each through the Reschedule action (its slot, property and notice rules). They stay requests; the first refusal
 // stops the rest, which stay where they were.
-async function consecutive({ request, env, admin }) {
+async function consecutive({ request, env, admin, waitUntil }) {
   const body = (await readJson(request)) ?? {}, clock = jerseyNow();
   const { wrong, slot } = readSlot(body, clock), refs = readRefs(body.viewings, 20);
   if (!refs || refs.length < 2) wrong.viewings = "Choose two or more requests";
@@ -77,7 +77,7 @@ async function consecutive({ request, env, admin }) {
     if (!free) { refused.push({ id: ref.id, error: "No free time left that day for this negotiator." }); break; }
     let res;
     try {
-      res = await runAction({ env, admin, id: ref.id, body: { action: "reschedule", updated_at: ref.updated_at,
+      res = await runAction({ env, admin, waitUntil, id: ref.id, body: { action: "reschedule", updated_at: ref.updated_at,
         negotiator_id: slot.negotiator_id, date: slot.date, time: free.time, notice_confirmed: body.notice_confirmed === true } });
     } catch (e) {
       if (!(e instanceof HttpError)) throw e;
@@ -165,7 +165,7 @@ async function addPlaces({ request, env, admin, params: [id] }) {
 
 // Cancelling the open viewing closes it to new places first, then cancels its viewings one by one through the Cancel
 // action (their events and notices as today). Nothing is sent: the team tells each person.
-async function cancel({ env, admin, params: [id] }) {
+async function cancel({ env, admin, params: [id], waitUntil }) {
   const group = await groupOf(env, id), ts = now();
   if (group.status !== "open") fail(409, "This open viewing is already cancelled.");
   const [r] = await env.DB.batch([
@@ -182,7 +182,7 @@ async function cancel({ env, admin, params: [id] }) {
   const cancelled = [], refused = [];
   for (const v of held) {
     try {
-      const res = await runAction({ env, admin, id: v.id, body: { action: "cancel", updated_at: v.updated_at } });
+      const res = await runAction({ env, admin, waitUntil, id: v.id, body: { action: "cancel", updated_at: v.updated_at } });
       (res.status === 200 ? cancelled : refused).push(v.id);
     } catch (e) {
       if (!(e instanceof HttpError)) throw e;
