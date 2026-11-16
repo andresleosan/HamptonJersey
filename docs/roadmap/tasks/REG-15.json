@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Construido apagado (REG15_ALERTS_READY=0 en los dos wrangler.toml). Un visitante deja email y criterios con consentimiento explícito; confirma con doble opt-in; queda como contacto con el permiso PRE-10 property_alerts por email. El reloj cruza las casas nuevas o cambiadas con el mismo motor (evaluate) y deja un correo al día en la cola existente; cada alerta lleva baja. Migración 0107 escrita, sin aplicar.",
-  "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches.",
+  "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches. Antes de encender (revisión independiente 16-nov, menores): que la baja y la purga de pendientes sigan funcionando aunque se apague REG15_ALERTS_READY (o cancelar la cola al apagar); cancelar la confirmación en cola cuando la búsqueda pendiente caduca o se cierra el formulario; incluir saved_searches en el acceso de PRE-12; decidir si recibir alertas cuenta como actividad para la retención de 12 meses.",
   "bloqueo": "Correo (AUT-17) · decisión de Luis · aviso PRE-09",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:222",
@@ -22,7 +22,8 @@
     "Decisión: envío por outbound; confirmación transaccional (server/email.js:82) y alertas marketing.property_alerts con la comprobación de PRE-10 (server/email.js:83-87).",
     "Decisión: Turnstile tras validar y topes en SQL, como el registro y countStat (server/routes/public.js:156, :183-197).",
     "Decisión: pendientes 7 días y un correo por búsqueda y día; ninguna fuente lo fija, opción simple y reversible (skill §4.5).",
-    "Encender: interruptor que recoge datos del público y envía, solo Luis (CONTINUIDAD-AVANZAR.md:31)."
+    "Encender: interruptor que recoge datos del público y envía, solo Luis (CONTINUIDAD-AVANZAR.md:31).",
+    "Revisión independiente (16-nov): sin graves; corregidos: solo a la dirección que confirmó, sin suprimidas, una vez cada 24 h y tope de 40 confirmaciones al día (cupo común de 100). npm test en verde tras la corrección."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",

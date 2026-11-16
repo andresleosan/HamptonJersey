@@ -202,3 +202,21 @@ test("unsubscribing records the objection, cancels the queued alert and deletes 
     "objected");
   assert.equal(one(env, "SELECT status FROM outbound WHERE template = 'marketing.property_alerts'").status, "cancelled");
 });
+
+test("no alert to an address that did not confirm or is suppressed, and neither blocks the others", async () => {
+  const changed = world();
+  await confirmed(changed);
+  seedListing(changed, { ...RENT, currency: "GBP" });
+  changed.DB.raw.prepare("UPDATE contacts SET email = 'someone.else@example.test'").run();
+  await savedSearchPass(changed, LATER);
+  assert.equal(rows(changed, "SELECT * FROM outbound WHERE template = 'marketing.property_alerts'").length, 0);
+  assert.equal(one(changed, "SELECT alerted_through FROM saved_searches").alerted_through, LATER, "advanced: not first again");
+
+  const suppressed = world();
+  await confirmed(suppressed);
+  seedListing(suppressed, { ...RENT, currency: "GBP" });
+  const s = one(suppressed, "SELECT * FROM saved_searches");
+  suppressed.DB.raw.prepare("INSERT INTO email_suppressions VALUES (?, ?, 'provider')").run(s.email_hash, LATER);
+  await savedSearchPass(suppressed, LATER);
+  assert.equal(rows(suppressed, "SELECT * FROM outbound WHERE template = 'marketing.property_alerts'").length, 0);
+});

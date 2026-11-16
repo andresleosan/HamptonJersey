@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **REG-15 construida, en la cola de Luis:** «Email me new homes» en la web deja guardar una búsqueda con solo email y criterios (doble confirmación, baja en un clic) y recibir una vez al día las casas nuevas que encajan, con el mismo motor que los aplicantes. Apagada hasta que Luis abra el formulario y haya correo (AUT-17). Progreso 139 → 139 de 211.
+
 16-nov-2026 · **PRE-14, spool de correo (apagado):** durante la copia semanal el correo entrante se guardará cifrado y se procesará al terminar, en vez de rechazarse; solo funciona cuando Luis cree su bucket privado y su clave. Progreso 139 → 139 de 211.
 
 16-nov-2026 · **AGE-12 y EST-19 encendidas por decisión de Luis:** `/presentation` ya acepta las respuestas de clientes con enlace privado, y Listings › Trash puede purgar por lotes de 20 las fotos de referencia externas de fichas con seis meses en papelera. Siguen sin cerrar hasta la prueba real de cada una. Progreso 139 → 139 de 211.

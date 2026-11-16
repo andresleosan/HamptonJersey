@@ -15,7 +15,7 @@ import { ALLOWED, MARKETING_TEMPLATE, purposeReady, setCommunicationPreference }
 export const savedSearchesReady = env => env?.REG15_ALERTS_READY === "1" && purposeReady(env);
 export const CONFIRM_TEMPLATE = "saved_search_confirm";
 export const ALERT_TEMPLATE = `${MARKETING_TEMPLATE}property_alerts`;
-export const PENDING_DAYS = 7, DAILY_NEW = 200, PER_ADDRESS = 3, HOMES_PER_EMAIL = 10, SEARCHES_PER_TICK = 50;
+export const PENDING_DAYS = 7, DAILY_NEW = 40, PER_ADDRESS = 3, HOMES_PER_EMAIL = 10, SEARCHES_PER_TICK = 50;
 const KEYS = ["email", "operation", "budget_max", "bedrooms_min", "parishes", "property_types", "consent",
   "privacy_version", "turnstile"];
 const values = list => list.map(([v]) => v);
@@ -201,10 +201,12 @@ export async function savedSearchPass(env, ts = now()) {
   await env.DB.prepare("DELETE FROM saved_searches WHERE status = 'pending' AND created_at < ?").bind(ago(ts, PENDING_DAYS)).run();
   const policy = await savedSearchPolicy(env);
   if (!policy) return;
+  // Each search at most once in 24 h, never to a suppressed address: neither can hold the 50 a tick for everyone else.
   const { results: searches } = await env.DB.prepare(`SELECT s.id, s.contact_id, s.criteria, s.alerted_through,
-      s.unsubscribe_token, c.email FROM saved_searches s JOIN contacts c ON c.id = s.contact_id
+      s.unsubscribe_token, s.email_hash, c.email FROM saved_searches s JOIN contacts c ON c.id = s.contact_id
     WHERE s.status = 'active' AND c.email IS NOT NULL AND ${ALLOWED("s.contact_id", "'property_alerts'", "'email'")}
-    ORDER BY s.alerted_through, s.id LIMIT ${SEARCHES_PER_TICK}`).all();
+      AND s.alerted_through < ? AND NOT EXISTS (SELECT 1 FROM email_suppressions WHERE address_hash = s.email_hash)
+    ORDER BY s.alerted_through, s.id LIMIT ${SEARCHES_PER_TICK}`).bind(ago(ts, 1)).all();
   if (!searches.length) return;
   const { readLive } = await import("./routes/public.js");
   // ts is taken before the listings are read: a home changed while they are read is newer, so the next pass sees it.
@@ -217,11 +219,14 @@ export async function savedSearchPass(env, ts = now()) {
     const criteria = JSON.parse(s.criteria);
     const fits = homes.filter(x => x.row.updated_at > s.alerted_through).map(x => ({ ...x, fit: alertFits(criteria, x.row) }))
       .filter(x => x.fit).slice(0, HOMES_PER_EMAIL);
+    const hash = await sha256(s.email);
+    // Only to the address that confirmed: if the team changed the contact's email, no alert until it confirms again.
+    const send = fits.length > 0 && hash === s.email_hash;
     // Advancing every search read keeps the 50 a tick moving through all of them (ORDER BY alerted_through).
-    const advance = env.DB.prepare(`UPDATE saved_searches SET alerted_through = ? WHERE id = ?${fits.length ? " AND changes() = 1" : ""}`)
+    const advance = env.DB.prepare(`UPDATE saved_searches SET alerted_through = ? WHERE id = ?${send ? " AND changes() = 1" : ""}`)
       .bind(started, s.id);
-    if (!fits.length) { await advance.run(); continue; }
-    const hash = await sha256(s.email), ref = crypto.randomUUID().replaceAll("-", "");
+    if (!send) { await advance.run(); continue; }
+    const ref = crypto.randomUUID().replaceAll("-", "");
     // One per search and day (dedupe_key); a conflict leaves alerted_through as it is, so tomorrow's email has them.
     await env.DB.batch([env.DB.prepare(`INSERT INTO outbound (ref,dedupe_key,template,entity_id,version,recipient,recipient_hash,
         subject,text,status,approved_by,approved_at,created_at,updated_at)
