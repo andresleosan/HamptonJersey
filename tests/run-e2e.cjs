@@ -63,7 +63,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/age-14-suppression.e2e.cjs" ? { AGE14_SUPPRESSION_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm17-legal-terms.e2e.cjs" ? { ADM17_LEGAL_TERMS_READY: "1" } : {}),
       // EST-01 checks the Matches column as it reads without SAP-02's counts (on in wrangler.toml); SAP-02 has its own check.
-      ...(process.env.E2E_SCRIPT === "tests/est01-search-state.e2e.cjs" ? { EST01_SEARCH_STATE_READY: "1", SAP02_COUNTS_READY: "0" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/est01-search-state.e2e.cjs" ? { EST01_SEARCH_STATE_READY: "1", SAP02_COUNTS_READY: "0", BUS01_MARKET_MATCHING_READY: "0" } : {}),
       // ADM-20's warnings check expects New tenancy without the 2025 rules (on in wrangler.toml); ADM-20 has its own check.
       ...(process.env.E2E_SCRIPT === "tests/adm-20-warnings.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm11-compliance.e2e.cjs" ? { ADM11_CALENDAR_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
