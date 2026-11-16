@@ -16,11 +16,12 @@ import { followupReady, saleFollowupPass } from './sale-followup.js';
 import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
 import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
+import { withApplicationWrite, BackupMaintenanceError } from './backup-write-gate.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
 // D1 first, so a repeated tick, or a panel poll, does not redo a run that is done.
-export default {
+const clock = {
   async scheduled(controller, env) {
     const ts = new Date(controller.scheduledTime).toISOString();
     await env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by)
@@ -59,5 +60,15 @@ export default {
     await emailPass(env, now(), now, await enquiryEmailCheck(env));
     await enquiryEmailPass(env);
   },
-  async email(message, env) { await receiveEmail(message, env); },
+};
+
+// PRE-14: the whole tick and each inbound email run inside one write permit. While the weekly backup has the gate
+// closed the tick does nothing (no write, no send; the next tick catches up) and an email is refused with a reason the
+// sender sees, until the encrypted spool (Task 5) takes it instead. With BACKUP_READY off this is the plain call.
+const maintenance = e => { if (!(e instanceof BackupMaintenanceError)) throw e; };
+export default {
+  scheduled: (controller, env) => withApplicationWrite(env, { operation_id: 'jobs:scheduled' },
+    () => clock.scheduled(controller, env)).catch(e => { maintenance(e); console.log('Clock paused for the weekly backup'); }),
+  email: (message, env) => withApplicationWrite(env, { operation_id: 'jobs:email' }, () => receiveEmail(message, env))
+    .catch(e => { maintenance(e); message.setReject('Hampton is saving its weekly backup. Please send this again in a few minutes.'); }),
 };

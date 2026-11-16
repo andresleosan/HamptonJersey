@@ -4,6 +4,7 @@
 // epoch sigue vigente y el plazo no venció. Con BACKUP_READY distinto de "1" nada de esto se usa.
 // La lista de entradas que deben pasar por aquí está en docs/roadmap/work/PRE-14/writer-coverage.md.
 import {BACKUP_POLICY} from './backup-policy.js';
+import {currentAdmin} from './auth.js';
 
 export const backupReady = env => env?.BACKUP_READY === '1';
 
@@ -88,12 +89,15 @@ export async function openWriteGate(env, {run_id, epoch, now = null}) {
 
 // Un permiso abierto solo se cierra con una revisión de un admin que acredita que ya no puede mutar.
 // La edad del permiso no es prueba: sin prueba válida el resultado es 'unknown' y la copia no se certifica.
-// reviewer: el admin de la sesión autenticada que llama, nunca un campo del cuerpo de la petición.
+// proof: {kind: 'authorized_review', request}. El revisor es el admin de la sesión autenticada de esa petición; ningún
+// campo que el llamante escriba (proof.reviewer, el cuerpo) cuenta.
 export async function reconcileWritePermit(env, {id, proof}, now = () => null) {
-  if (proof?.kind !== 'authorized_review' || typeof proof.reviewer !== 'string') return 'unknown';
+  if (proof?.kind !== 'authorized_review' || !(proof.request instanceof Request)) return 'unknown';
+  const reviewer = await currentAdmin(proof.request, env);
+  if (!reviewer) return 'unknown';
   const r = await env.DB.prepare(`UPDATE backup_writers SET closed_at = ${at(3)}, close_reason = 'reconciled', reconciled_by = ?2
     WHERE id = ?1 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM admins WHERE email = ?2)`)
-    .bind(id, proof.reviewer, now()).run();
+    .bind(id, reviewer, now()).run();
   if (r.meta.changes === 1) return 'closed';
   const row = await env.DB.prepare('SELECT closed_at FROM backup_writers WHERE id = ?1').bind(id).first();
   return row?.closed_at ? 'closed' : 'unknown';

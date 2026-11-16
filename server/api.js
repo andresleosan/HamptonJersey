@@ -49,6 +49,7 @@ import trashRoutes from "./property-photo-purge.js";
 import chatContactRoutes, { chatContactReady } from "./chat-contact.js";
 import chatApplicantRoutes, { chatApplicantReady } from "./chat-applicant.js";
 import marketingPreferenceRoutes, { purposeReady } from "./communication-preferences.js";
+import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
@@ -56,12 +57,33 @@ const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRou
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
-  const res = await route(request, env, segments, waitUntil);
+  const res = backupReady(env) ? await gated(request, env, segments, waitUntil) : await route(request, env, segments, waitUntil);
   // Admin, session and chat answers carry personal data: never cache them anywhere.
   if (/^(admin|me|session|hermes|chat|qa|presentation)$/.test(segments[0] ?? "")) res.headers.set("cache-control", "no-store");
   // AGE-12: a client's private presentation is never indexed and never says where it was opened from.
   if (segments[0] === "presentation") { res.headers.set("x-robots-tag", "noindex"); res.headers.set("referrer-policy", "no-referrer"); }
   return res;
+}
+
+// PRE-14: every /api request, Hermes's door and GETs included, runs inside one write permit that stays open until the
+// request's waitUntil work has finished; the answer goes out as soon as the route returns. While the weekly backup has
+// the gate closed nothing runs (the body is not read) and the answer is 503 backup_maintenance with Retry-After 60.
+function gated(request, env, segments, waitUntil) {
+  const pending = [];
+  let respond;
+  const answer = new Promise(r => { respond = r; });
+  const family = /^[a-z0-9-]{1,40}$/.test(segments[0] ?? "") ? segments[0] : "other";
+  const permit = withApplicationWrite(env, { operation_id: `api:${family}` }, async () => {
+    respond(await route(request, env, segments, p => { pending.push(p); }));
+    for (let i = 0; i < pending.length; i++) await Promise.resolve(pending[i]).catch(() => {});
+  });
+  waitUntil(permit.catch(() => {}));
+  return Promise.race([answer, permit.then(() => answer, e => {
+    if (e instanceof BackupMaintenanceError) return json({ error: "Hampton is saving its weekly backup. Please try again in a minute.",
+      code: e.code }, 503, { "retry-after": String(e.retryAfter) });
+    console.error(e);
+    return json({ error: "Server error. Please try again." }, 500);
+  })]);
 }
 
 async function route(request, env, segments, waitUntil) {

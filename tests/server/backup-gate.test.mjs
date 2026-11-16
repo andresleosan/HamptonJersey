@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
-import {makeDb} from './helpers.mjs';
+import {makeDb, adminCookie, SECRET} from './helpers.mjs';
 import {backupDue, attemptAt} from '../../server/backup-policy.js';
 import {
   withApplicationWrite, closeWriteGate, drainState, sealable, openWriteGate, reconcileWritePermit, BackupMaintenanceError,
@@ -14,7 +14,7 @@ const T = '2026-11-15T02:00:00.000Z';
 const plus = (iso, s) => new Date(Date.parse(iso) + s * 1000).toISOString();
 const week = iso => backupDue(iso).week_start;
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return {promise, resolve}; };
-const env = () => ({DB: makeDb(), BACKUP_READY: '1'});
+const env = () => ({DB: makeDb(), BACKUP_READY: '1', SESSION_SECRET: SECRET});
 const openPermits = e => e.DB.raw.prepare('SELECT count(*) AS n FROM backup_writers WHERE closed_at IS NULL').get().n;
 
 test('domingo 02:00 de Jersey, en invierno y en verano', () => {
@@ -115,10 +115,21 @@ test('un permiso huérfano solo se cierra con la revisión de un admin', async (
   e.DB.raw.prepare(`INSERT INTO backup_writers (id, epoch, operation, started_at) VALUES (?, 0, 'api:lost', ?)`).run(RUN, T);
   await closeWriteGate(e, {run_id: RUN2, now: T});
   assert.equal(await sealable(e, {run_id: RUN2, epoch: 1, now: plus(T, 1)}), false, 'permiso de otro epoch también cuenta');
+  // El revisor sale de la sesión autenticada de la petición, nunca de un campo que el llamante escriba.
+  const review = (cookie, body) => ({kind: 'authorized_review', reviewer: 'admin@example.test',
+    request: new Request('https://hampton.test/api/admin/backups', {method: 'POST', body: JSON.stringify(body ?? {}),
+      headers: cookie ? {cookie} : {}})});
   assert.equal(await reconcileWritePermit(e, {id: RUN, proof: null}), 'unknown');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: {kind: 'authorized_review', reviewer: 'nobody@example.test'}}), 'unknown');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: {kind: 'authorized_review', reviewer: 'admin@example.test'}}), 'closed');
-  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: {kind: 'authorized_review', reviewer: 'admin@example.test'}}), 'closed');
+  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: {kind: 'authorized_review', reviewer: 'admin@example.test'}}), 'unknown',
+    'un reviewer sin sesión no vale');
+  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(null, {reviewer: 'admin@example.test'})}), 'unknown',
+    'ni el reviewer del cuerpo');
+  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie('nobody@example.test'))}), 'unknown');
+  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie('colleague@example.test'),
+    {reviewer: 'admin@example.test'})}), 'closed');
+  assert.equal(e.DB.raw.prepare('SELECT reconciled_by FROM backup_writers WHERE id = ?').get(RUN).reconciled_by,
+    'colleague@example.test', 'queda el admin de la sesión, no el del cuerpo ni el del campo');
+  assert.equal(await reconcileWritePermit(e, {id: RUN, proof: review(await adminCookie())}), 'closed');
   assert.equal(await sealable(e, {run_id: RUN2, epoch: 1, now: plus(T, 2)}), true);
 });
 
@@ -146,7 +157,7 @@ test('cobertura: toda entrada figura en el registro y BACKUP_READY sigue apagado
   const entries = [...walk('../../functions/').map(f => f.replace('../../', '')), 'server/jobs.js` `scheduled',
     'server/jobs.js` `email', 'scripts/import_hampton.py', 'scripts/import_agencies.py', 'scripts/upload_r2.sh'];
   for (const entry of entries) assert.ok(rows.some(r => r[1].startsWith(`\`${entry}\``)), `${entry} sin fila de cobertura`);
-  const uncovered = rows.some(r => r[3] !== 'cubierta');
+  const uncovered = rows.some(r => !['cubierta', 'excluida'].includes(r[3]));
   for (const f of ['../../wrangler.toml', '../../jobs/wrangler.toml']) {
     const ready = readFileSync(new URL(f, import.meta.url), 'utf8').match(/^BACKUP_READY = "(\w+)"/m)?.[1];
     assert.ok(ready, `${f}: BACKUP_READY declarado`);
