@@ -6,18 +6,25 @@
   "fase": "F6",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "Messages permite revisar en privado el contacto actual de un chat en un formulario de solo lectura. El endpoint valida sesión y señales de origen, y no crea contactos ni búsquedas; las pruebas usaron datos ficticios.",
-  "falta": "Habilitar la creación solo tras incorporar revisión/CAS de MSG-02, intención idempotente y registro/deduplicación/vínculo atómicos; probar borrado y reintentos. Los campos propuestos por IA requieren MSG-04 y aprobación humana. El formulario de chat todavía no permite editar ni guardar.",
+  "hecho": "Construida apagada (MSG05_CREATE_READY=\"0\", migración aditiva 0098). Encendida: Messages ofrece «Create applicant»; el formulario llega con nombre, correo y teléfono del chat, es editable y solo guarda al pulsar Save applicant. Un único batch D1 escribe la clave de la petición, el contacto (o usa el ofrecido), la búsqueda, su evento y el vínculo del chat, con CAS sobre chats.contact_version (MSG-03). Doble clic o reintento con la misma clave devuelven el mismo aplicante; otra pestaña recibe 409; email/teléfono ya guardado da la oferta 409 de siempre; chat borrado antes o durante el guardado no crea nada; borrar el chat después conserva el aplicante; borrar el contacto deja el reintento en 409 sin recrearlo. Apagada, web y panel quedan como antes.",
+  "falta": "Aplicar la migración 0098 en remoto, encender MSG05_CREATE_READY y comprobar el recorrido real. Los campos propuestos por IA son de MSG-04.",
   "bloqueo": "",
   "evidencia": [
-    "admin/src/App.jsx:93-94",
-    "server/routes/public.js:104-133",
+    "migrations/0098_chat_applicant_saves.sql",
     "server/chat-applicant.js",
+    "server/routes/applicants.js (prepareCreate compartido con el alta)",
     "server/routes/chats.js",
     "admin/src/NewApplicant.jsx",
+    "admin/src/Messages.jsx",
+    "tests/server/msg-05-save.test.mjs",
+    "tests/server/msg-05-save-d1.test.mjs",
     "tests/server/msg-05-draft.test.mjs",
+    "tests/msg-05-create.e2e.cjs",
     "tests/msg-05-draft.e2e.cjs",
-    "docs/superpowers/plans/2026-11-09-msg-05-partial-implementation-evidence.md"
+    "2026-11-16: e2e aislado msg-05-create (interruptor 1) y msg-05-draft / msg03-contact-link (interruptor 0) pasan a 1280 y 390 con datos ficticios.",
+    "Decisión: la revisión es chats.contact_version de MSG-03; la propuesta semántica de MSG-02 sigue desconectada (fuente: encargo y plan de cierre, opción más simple).",
+    "Decisión: el origen (Phone/Walk-in/Email) y la privacidad los marca la persona; no se infieren del chat (plan 2026-11-08, «no inferir consentimiento»).",
+    "Decisión: un chat ya vinculado solo añade la búsqueda a ese contacto (409 con oferta); no se revincula desde aquí."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -37,5 +44,6 @@
     "web-chat",
     "applicants-schema"
   ],
-  "nextStep": "Integrar revisión y CAS de chat e intención idempotente antes de habilitar el guardado humano."
+  "nextStep": "Aplicar 0098 en producción (aditiva), encender MSG05_CREATE_READY con MSG03_CONTACT_LINK_READY ya en 1 y comprobar el recorrido.",
+  "actualizado": "2026-11-16"
 }
