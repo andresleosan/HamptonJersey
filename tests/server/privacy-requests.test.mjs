@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { makeEnv, call, adminCookie, seedListing } from './helpers.mjs';
+import { runRetention } from '../../server/retention.js';
 
 // PRE-12: the team's register of privacy requests. Synthetic people only.
 const T = '2026-11-10T09:00:00.000Z';
@@ -205,7 +206,7 @@ test('the copy needs a checked identity, leaves out internal notes, and download
   assert.equal(copy.offers[0].amount, 650000);
   // Viewing requests are matched only by email or phone, which other people can share: never in the copy by themselves.
   assert.equal('viewing_requests' in copy, false);
-  assert.ok(copy.not_included.some(t => /viewing requests/i.test(t)));
+  assert.ok(copy.not_included.some(n => n.section === 'viewing_requests' && n.reason));
   assert.equal(JSON.stringify(copy).includes('internal offer note'), false);
   assert.ok(copy.not_included.length > 0);
   assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy/download?format=json`, { cookie })).status, 409, 'not reviewed yet');
@@ -245,14 +246,132 @@ test('closing: an access request is fulfilled only with a reviewed copy, and a c
   assert.equal((await call(env, 'GET', '/admin/notifications/counts', { cookie })).data.privacy, 0);
 });
 
-test('deleting the contact the existing way leaves the request, unlinked', async () => {
+test('deleting the contact the existing way, once its request is closed, leaves the request unlinked', async () => {
   const env = on(), cookie = await adminCookie(), p = person(env, { state: 'resolved' });
   const made = (await create(env, cookie, { kind: 'erasure' })).data.request;
   await call(env, 'POST', `${BASE}/${made.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  await call(env, 'POST', `${BASE}/${made.id}/close`, { cookie, body: { revision: 2, result: 'fulfilled' } });
   env.DB.raw.prepare('UPDATE applicants SET archived_at=? WHERE id=?').run(T, p.applicant);
   const del = await call(env, 'DELETE', `/admin/applicants/${p.applicant}`, { cookie, body: { confirm: 'Synthetic Person' } });
   assert.equal(del.status, 200, del.text);
   const r = await call(env, 'GET', `${BASE}/${made.id}`, { cookie });
   assert.equal(r.data.request.contact, null);
   assert.equal(r.data.erasure, null);
+});
+
+// Review fixes (16-nov): open requests hold the contact, the copy says everything, phones compare normalised.
+const OLD = '2024-01-01T09:00:00.000Z', PASS = '2026-11-16T09:00:00.000Z';
+function inactive(env, phone = '+447700900321') {
+  const db = env.DB.raw;
+  const id = Number(db.prepare(`INSERT INTO contacts (name,email,phone,last_activity_at,created_at,updated_at)
+    VALUES ('Quiet Person',?,?,?,?,?)`).run(`quiet${phone.slice(-3)}@example.test`, phone, OLD, OLD, OLD).lastInsertRowid);
+  const applicant = Number(db.prepare(`INSERT INTO applicants (contact_id,operation,source,search_state,resolved_at,resolved_by,
+    resolution_reason,archived_at,created_at,updated_at) VALUES (?,'rent','phone','resolved',?,'admin@example.test','Found a home',?,?,?)`)
+    .run(id, OLD, OLD, OLD, OLD).lastInsertRowid);
+  return { id, applicant };
+}
+const exists = (env, id) => env.DB.raw.prepare('SELECT COUNT(*) AS n FROM contacts WHERE id=?').get(id).n === 1;
+
+test('an open request of any kind keeps the contact from the retention cleanup; a closed one does not', async () => {
+  const env = on(), cookie = await adminCookie();
+  const held = inactive(env, '+447700900321'), freed = inactive(env, '+447700900322'), plain = inactive(env, '+447700900323');
+  const a = (await create(env, cookie, { kind: 'rectification' })).data.request;
+  await call(env, 'POST', `${BASE}/${a.id}/contact`, { cookie, body: { revision: 1, contact_id: held.id } });
+  const b = (await create(env, cookie, { kind: 'objection' })).data.request;
+  await call(env, 'POST', `${BASE}/${b.id}/contact`, { cookie, body: { revision: 1, contact_id: freed.id } });
+  await call(env, 'POST', `${BASE}/${b.id}/close`, { cookie, body: { revision: 2, result: 'fulfilled' } });
+  await runRetention(env, PASS);
+  assert.equal(exists(env, held.id), true, 'open request: kept');
+  assert.equal(exists(env, freed.id), false, 'closed request: the ordinary rule applies');
+  assert.equal(exists(env, plain.id), false, 'no request: the ordinary rule applies');
+});
+
+test('switched off, the cleanup reads no privacy table and runs as before', async () => {
+  const env = makeEnv({ skip: [101] }), p = inactive(env);
+  await runRetention(env, PASS);
+  assert.equal(exists(env, p.id), false);
+});
+
+test('the manual Delete does not delete a contact with an open request, and does once it is closed', async () => {
+  const env = on(), cookie = await adminCookie(), p = inactive(env);
+  const r = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const refused = await call(env, 'DELETE', `/admin/applicants/${p.applicant}`, { cookie, body: { confirm: 'Quiet Person' } });
+  assert.equal(refused.status, 409, refused.text);
+  assert.equal(exists(env, p.id), true);
+  assert.equal(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM applicants WHERE id=?').get(p.applicant).n, 1);
+  await call(env, 'POST', `${BASE}/${r.id}/close`, { cookie, body: { revision: 2, result: 'fulfilled' } });
+  const ok = await call(env, 'DELETE', `/admin/applicants/${p.applicant}`, { cookie, body: { confirm: 'Quiet Person' } });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(exists(env, p.id), false);
+  // Switched off, the Delete is as before.
+  const off = makeEnv({ skip: [101] }), q = inactive(off);
+  assert.equal((await call(off, 'DELETE', `/admin/applicants/${q.applicant}`, { cookie, body: { confirm: 'Quiet Person' } })).status, 200);
+});
+
+test('the copy has every column of its records, or names it in not_included with a reason', async () => {
+  const env = on(), cookie = await adminCookie(), { p, request } = await verified(env, cookie);
+  seedListing(env);
+  const db = env.DB.raw;
+  db.prepare(`INSERT INTO offers (listing_id,applicant_id,amount,status,created_at,created_by,updated_at,updated_by)
+    VALUES ('HE-R001',?,650000,'pending',?,'admin@example.test',?,'admin@example.test')`).run(p.applicant, T, T);
+  db.prepare(`INSERT INTO matches (applicant_id,listing_id,score,checks,status,created_at,updated_at)
+    VALUES (?,'HE-R001',70,'[]','found',?,?)`).run(p.applicant, T, T);
+  db.prepare(`INSERT INTO marketing_preferences (contact_id,purpose,channel,value,source,revision,updated_by,updated_at)
+    VALUES (?,'news','phone','objected','phone',1,'admin@example.test',?)`).run(p.id, T);
+  const { copy } = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  for (const [table, section, sample] of [['contacts', 'contact', copy.contact], ['applicants', 'searches', copy.searches[0]],
+    ['offers', 'offers', copy.offers[0]], ['matches', 'matches', copy.matches[0]], ['marketing_preferences', 'marketing_preferences', copy.marketing_preferences[0]]]) {
+    assert.ok(sample, section);
+    const named = copy.not_included.filter(n => n.section === section).flatMap(n => n.fields ?? []);
+    for (const n of copy.not_included) assert.ok(typeof n.reason === 'string' && n.reason.length > 10, JSON.stringify(n));
+    const missing = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name).filter(c => !(c in sample) && !named.includes(c));
+    assert.deepEqual(missing, [], section);
+  }
+  for (const k of ['search_category', 'household_total', 'requirement_priorities', 'stage', 'source', 'lost_reason', 'resolution_reason'])
+    assert.ok(k in copy.searches[0], k);
+  assert.ok('last_contact_at' in copy.contact);
+  assert.equal(copy.matches[0].listing_id, 'HE-R001');
+  const csv = await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie });
+  assert.equal(csv.status, 200);
+});
+
+test('the erasure plan compares viewing phones normalised, as contacts store them', async () => {
+  const env = on(), cookie = await adminCookie(), p = person(env);
+  seedListing(env);
+  const viewing = (email, phone) => env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id,agent,kind,date,time,name,email,phone,
+    status,created_at,updated_at) VALUES ('HE-R001','team','in_person','2026-11-20','10:00','Someone',?,?,'requested',?,?)`).run(email, phone, T, T);
+  viewing('a@example.test', '07700 900121');
+  viewing('b@example.test', '+44 (0)7700-900121');
+  viewing('c@example.test', '07700 900129');
+  viewing('d@example.test', '');
+  const r = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const plan = (await call(env, 'GET', `${BASE}/${r.id}`, { cookie })).data.erasure;
+  assert.deepEqual(plan.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 2], ['rentals', null]]);
+});
+
+test('closing as sent re-checks the reviewed copy in the same write', async () => {
+  const env = on(), cookie = await adminCookie(), { request } = await verified(env, cookie);
+  const { sha256 } = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  const reviewed = (await call(env, 'POST', `${BASE}/${request.id}/copy-review`, { cookie, body: { revision: request.revision, sha256 } })).data.request;
+  // Between the check and the write, the review goes (as a contact relink would clear it).
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => { env.DB.raw.prepare('UPDATE privacy_requests SET copy_hash=NULL, copy_reviewed_by=NULL, copy_reviewed_at=NULL WHERE id=?')
+    .run(request.id); env.DB.batch = batch; return batch(stmts); };
+  const r = await call(env, 'POST', `${BASE}/${request.id}/close`, { cookie, body: { revision: reviewed.revision, result: 'fulfilled' } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(row(env, request.id).state, 'open');
+});
+
+test('opening the copy is audited with ids only, and a closed request serves no copy', async () => {
+  const env = on(), cookie = await adminCookie(), { request } = await verified(env, cookie);
+  assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).status, 200);
+  const audit = env.DB.raw.prepare('SELECT * FROM privacy_request_audit WHERE request_id=? ORDER BY id').all(request.id);
+  assert.deepEqual({ ...audit.at(-1), id: undefined, at: undefined },
+    { id: undefined, request_id: request.id, revision: request.revision, action: 'copy_viewed', actor: 'admin@example.test', at: undefined });
+  await call(env, 'POST', `${BASE}/${request.id}/close`, { cookie, body: { revision: request.revision, result: 'refused' } });
+  const closed = await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie });
+  assert.equal(closed.status, 409);
+  assert.equal(JSON.stringify(closed.data).includes('pre12-person'), false);
 });

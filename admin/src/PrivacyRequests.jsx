@@ -213,7 +213,10 @@ function Identity({ r, team, onSaved, reload }) {
           <div className="choices">{Object.entries(METHODS).map(([k, t]) => <label key={k} className="check">
             <input type="radio" name="pi-method" value={k} checked={method === k} onChange={() => setMethod(k)}
               aria-describedby={a.errors.method ? "e-pi-method" : undefined} />{t}</label>)}</div>{a.error("method")}</fieldset>
-        <label>Reference (optional)<input value={ref} onChange={e => setRef(e.target.value)} maxLength={120} autoComplete="off" {...a.invalid("reference")} />{a.error("reference")}</label>
+        <div className="field"><label>Reference (optional)<input value={ref} onChange={e => setRef(e.target.value)} maxLength={120} autoComplete="off"
+          {...a.invalid("reference")} aria-describedby={["d-pi-ref", a.invalid("reference")["aria-describedby"]].filter(Boolean).join(" ")} />
+          {a.error("reference")}</label>
+          <small id="d-pi-ref" className="muted">Say what was seen, for example «passport seen at the office». Never write the document's number.</small></div>
         <div className="inline"><button className="btn" disabled={a.busy}>{a.busy ? "Saving…" : "Record identity check"}</button></div>
         <Failure msg={a.msg} reload={reload} focus={a.said} /></form>}
   </div>;
@@ -253,8 +256,8 @@ function Copy({ r, team, onSaved, reload }) {
       {r.copy_review ? <>
         <p><span className="badge positive">Reviewed</span> by {nameOf(team, r.copy_review.reviewed_by)} on {fmtDate(r.copy_review.reviewed_at)}.
           If the data has changed since, the download asks for a new review.</p>
-        <div className="inline"><button type="button" className="btn ghost sm" onClick={() => download("json")}>Download JSON</button>
-          <button type="button" className="btn ghost sm" onClick={() => download("csv")}>Download CSV</button></div></>
+        {r.state === "open" && <div className="inline"><button type="button" className="btn ghost sm" onClick={() => download("json")}>Download JSON</button>
+          <button type="button" className="btn ghost sm" onClick={() => download("csv")}>Download CSV</button></div>}</>
         : <p className="muted">Read the copy before marking it as reviewed. Only a reviewed copy can be downloaded.</p>}
       {r.state === "open" && <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={show}>
         {busy ? "Preparing…" : preview ? "Refresh copy" : "Show copy"}</button></div>}

@@ -34,13 +34,16 @@ export const KEPT_UNTIL = "strftime('%Y-%m-%d', c.last_activity_at, '+12 months'
 // nothing it depends on changes inside the batch (their searches have no sales nor open offers), so each statement acts
 // on the same contacts.
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
-const CONTACTS = `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
-  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT} ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
-const SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+// PRE-12: with its switch on (and so migration 0101), a contact with an open privacy request, of any kind, is kept too.
+// Switched off, the statement never names that table.
+export const NO_OPEN_PRIVACY_REQUEST = "NOT EXISTS (SELECT 1 FROM privacy_requests pr WHERE pr.contact_id = c.id AND pr.state = 'open')";
+const contactsDue = held => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
+  AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND ${NO_OPEN_PRIVACY_REQUEST}` : ""}
+  ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
 const eventsOf = (type, set) =>
   `SELECT id FROM events WHERE entity_type = '${type}' AND entity_id IN (SELECT CAST(id AS TEXT) FROM (${set}))`;
-const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
+
 // E5.
 const VIEWINGS = `SELECT id FROM viewing_requests WHERE date < date(?2, '-12 months') ORDER BY date, id LIMIT ${RETENTION_CAP}`;
 const VIEWING_EVENTS = eventsOf("viewing", VIEWINGS);
@@ -73,6 +76,8 @@ export async function runRetention(env, ts) {
   if (SEARCH_METRIC_RETENTION_READY) await pruneSearchMetrics(env, new Date(ts));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
+  const CONTACTS = contactsDue(env.PRE12_REQUESTS_READY === "1"), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+  const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs
     // json_extract on it), a deletion event per search and contact; matches and offers go with their searches.

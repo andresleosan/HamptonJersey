@@ -736,12 +736,21 @@ async function remove({ request, env, admin, params: [id] }) {
   if ((await readJson(request))?.confirm !== contact.name) fail(400, `Type ${contact.name} to confirm deletion`);
   const others = await env.DB.prepare("SELECT COUNT(*) AS n FROM applicants WHERE contact_id = ? AND id <> ?")
     .bind(contact.id, cur.id).first();
+  // PRE-12 (with its switch): a contact with an open privacy request is kept; the guard below aborts the batch if one
+  // was recorded meanwhile (its NULL request_id fails the audit's NOT NULL).
+  const privacy = env.PRE12_REQUESTS_READY === "1" && !others.n;
+  const held = "This contact has an open privacy request. Close it before deleting.";
+  if (privacy && await env.DB.prepare("SELECT 1 FROM privacy_requests WHERE contact_id = ? AND state = 'open'").bind(contact.id).first())
+    fail(409, held);
   const ts = now();
   const refs = [{ entity_type: "applicant", entity_id: String(cur.id) },
     ...(others.n ? [] : [{ entity_type: "contact", entity_id: String(contact.id) }])];
   const ofRefs = refs.map(() => "(entity_type = ? AND entity_id = ?)").join(" OR ");
   const refArgs = refs.flatMap(r => [r.entity_type, r.entity_id]);
   await env.DB.batch([
+    ...(privacy ? [env.DB.prepare(`INSERT INTO privacy_request_audit (request_id, revision, action, actor, at)
+      SELECT NULL, 0, 'closed', ?, ? WHERE EXISTS (SELECT 1 FROM privacy_requests WHERE contact_id = ? AND state = 'open')`)
+      .bind(admin, ts, contact.id)] : []),
     ...refs.map(ref => resolveNotices(env, ref, admin)),
     env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL WHERE event_id IN (SELECT id FROM events WHERE ${ofRefs})`)
       .bind(...refArgs),
@@ -750,7 +759,7 @@ async function remove({ request, env, admin, params: [id] }) {
     env.DB.prepare("DELETE FROM applicants WHERE id = ?").bind(cur.id),
     ...(others.n ? [touch(env, contact.id, ts)] : [env.DB.prepare("DELETE FROM contacts WHERE id = ?").bind(contact.id)]),
     ...refs.flatMap(ref => logEvent(env, { actor: admin, ...ref, type: `${ref.entity_type}.deleted` })),
-  ]);
+  ]).catch(e => { if (privacy && /NOT NULL constraint failed: privacy_request_audit/.test(String(e?.message))) fail(409, held); throw e; });
   return json({ ok: true });
 }
 

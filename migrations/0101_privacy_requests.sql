@@ -42,11 +42,13 @@ CREATE TABLE privacy_requests (
 CREATE INDEX privacy_requests_open ON privacy_requests (state, received_on);
 
 -- What was done to each request, by whom and when, with ids and codes only: never the person's details. Append-only.
+-- copy_viewed: someone opened the copy (it does not change the request's revision).
 CREATE TABLE privacy_request_audit (
   id INTEGER PRIMARY KEY,
   request_id TEXT NOT NULL REFERENCES privacy_requests(id),
   revision INTEGER NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'contact_linked', 'identity_verified', 'copy_reviewed', 'closed')),
+  action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'contact_linked', 'identity_verified', 'copy_viewed', 'copy_reviewed',
+    'closed')),
   actor TEXT NOT NULL,
   at TEXT NOT NULL
 );
