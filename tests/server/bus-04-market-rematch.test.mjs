@@ -403,7 +403,7 @@ function flagsRead(entry) {
 }
 test('the switch matches in both wrangler files, and the clock mirrors what a crossing reads before it is on', () => {
   const jobs = vars(read('jobs/wrangler.toml')), pages = vars(read('wrangler.toml'));
-  assert.equal(jobs.BUS04_REMATCH_READY, '0');
+  assert.equal(jobs.BUS04_REMATCH_READY, '1');
   assert.equal(pages.BUS04_REMATCH_READY, jobs.BUS04_REMATCH_READY);
   const needed = flagsRead('server/market-rematch.js');
   for (const flag of RECOMPUTE_FLAGS) assert.ok(needed.has(flag), flag);

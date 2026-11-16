@@ -103,7 +103,7 @@ BUS08_SWEEP_READY = "0"
 # MSG-05: a person creates an applicant from a website chat, with its contact details filled in and an explicit Save; one batch writes the contact, the search and the chat's link (migration 0098, applied 16-nov-2026; needs MSG03_CONTACT_LINK_READY). Sends nothing.
 MSG05_CREATE_READY = "1"
 # BUS-04: the market's changes cross again only the active searches they affect, with one Inbox task per search for homes newly proposed or back at a lower price (migration 0097). Sends nothing. Needs the same recompute flags in both files as BUS-08 (a test checks it). Must match the other wrangler.toml.
-BUS04_REMATCH_READY = "0"
+BUS04_REMATCH_READY = "1"
 # BUS-17: one internal Inbox review of an active search 21 days without a complete option (every must-have met and availability confirmed by a person), then 7 days after each closed review, with up to 20 explained alternatives; and a task when a rejected home's price drops 5% (migration 0099). Sends nothing and changes no criteria or match. Needs EST01_SEARCH_STATE_READY, EST16_AVAILABILITY_READY and EST15_UNAVAILABILITY_READY in both files. Must match the other wrangler.toml.
 BUS17_REVIEW_READY = "0"
 EMAIL_SERVICE_READY = "false"
