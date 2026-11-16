@@ -169,10 +169,10 @@ test('cobertura: toda entrada figura en el registro y BACKUP_READY sigue apagado
   const walk = dir => readdirSync(new URL(dir, import.meta.url), {withFileTypes: true})
     .flatMap(d => d.isDirectory() ? walk(`${dir}${d.name}/`) : d.name.endsWith('.js') ? [`${dir}${d.name}`] : []);
   const entries = [...walk('../../functions/').map(f => f.replace('../../', '')), 'server/jobs.js` `scheduled',
-    'server/jobs.js` `email', 'scripts/import_hampton.py', 'scripts/import_agencies.py', 'scripts/upload_r2.sh'];
+    'server/jobs.js` `email', 'backups/index.js', 'scripts/import_hampton.py', 'scripts/import_agencies.py', 'scripts/upload_r2.sh'];
   for (const entry of entries) assert.ok(rows.some(r => r[1].startsWith(`\`${entry}\``)), `${entry} sin fila de cobertura`);
   const uncovered = rows.some(r => !['cubierta', 'excluida'].includes(r[3]));
-  for (const f of ['../../wrangler.toml', '../../jobs/wrangler.toml']) {
+  for (const f of ['../../wrangler.toml', '../../jobs/wrangler.toml', '../../backups/wrangler.toml']) {
     const ready = readFileSync(new URL(f, import.meta.url), 'utf8').match(/^BACKUP_READY = "(\w+)"/m)?.[1];
     assert.ok(ready, `${f}: BACKUP_READY declarado`);
     assert.ok(ready === '0' || !uncovered, `${f}: no se activa con escritores sin cubrir`);

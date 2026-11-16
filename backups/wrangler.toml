@@ -1,0 +1,45 @@
+# PRE-14 · Task 4: the weekly encrypted backup. A Worker with no URL that only holds the Workflow (server/backup-workflow.js);
+# the clock (hampton-jobs) starts one instance per week through its BACKUP_WORKFLOW binding. NOT DEPLOYED and not connected
+# to Workers Builds: Luis creates the private bucket, the D1 export token and the keys first (PRE-14 task card).
+# When connected, the same Workers Builds settings as jobs/: root directory "backups", build command
+# "cd .. && npm ci --ignore-scripts", deploy command "../node_modules/.bin/wrangler deploy", SKIP_DEPENDENCY_INSTALL=1,
+# preview builds off. nodejs_compat because server/backups.js hashes streams with node:crypto.
+# Secrets, only with `wrangler secret put` (never here): CF_ACCOUNT_ID, D1_EXPORT_TOKEN (D1 export on this database only),
+# BACKUP_RECOVERY_PUBLIC_KEY (Luis's RSA-3072 public key, SPKI base64), BACKUP_SIGNING_KEY (Ed25519 PKCS8 base64),
+# BACKUP_SIGNING_KEY_ID. Luis's private recovery key never reaches this Worker.
+name = "hampton-backups"
+main = "index.js"
+compatibility_date = "2025-10-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+
+[vars]
+# Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered and conditions a–f are met; keep equal in the other two wrangler.toml.
+BACKUP_READY = "0"
+# The database the export API copies: the same id as [[d1_databases]] below (already public in ../wrangler.toml).
+D1_DATABASE_ID = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hampton"
+database_id = "1da41b63-c61f-4491-9f8d-3a9afde6e0fb"
+
+# The website's media, read by the capture (the code only lists and gets; R2 bindings have no read-only mode).
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "hampton-media"
+
+# The private backup bucket: no public domain, no r2.dev, no CORS. Created by Luis before the first deploy.
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "hampton-backups"
+
+[[workflows]]
+name = "hampton-weekly-backup"
+binding = "BACKUP_WORKFLOW"
+class_name = "WeeklyBackupWorkflow"
+
+# Workers Logs: counts, states and reason codes only.
+[observability]
+enabled = true

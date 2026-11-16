@@ -1,9 +1,17 @@
 // PRE-14 · Task 1: política de la copia semanal (spec 2026-11-09-tp01-consistent-backup-design.md, «Estado y
 // contratos»). Domingo 02:00 Europe/Jersey, tres intentos a +0/+10/+40 min del primero, 12 copias verificadas.
 // La idempotencia la da week_start (UNIQUE en backup_runs): un tick repetido o retrasado devuelve la misma semana.
+// Task 4: la copia solo empieza en las 6 h siguientes (start_window_min); después la pausa caería en horario de trabajo.
 export const BACKUP_POLICY = Object.freeze({
   weekday: 0, hour: 2, attempt_offsets_min: Object.freeze([0, 10, 40]), keep_weeks: 12, drain_ms: 60_000, gate_ms: 300_000,
+  start_window_min: 360,
 });
+
+// policy_hash de backup_runs: SHA-256 de la política en vigor, para que un run no se capture con otra distinta.
+export async function backupPolicyHash(policy = BACKUP_POLICY) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(policy)));
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 const DAY = 86_400_000, HOUR = 3_600_000;
 const fmt = new Intl.DateTimeFormat('en-GB', {timeZone: 'Europe/Jersey', year: 'numeric', month: '2-digit',

@@ -17,6 +17,7 @@ import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
 import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
 import { withApplicationWrite, BackupMaintenanceError } from './backup-write-gate.js';
+import { backupStartPass } from './backup-start.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -65,10 +66,18 @@ const clock = {
 // PRE-14: the whole tick and each inbound email run inside one write permit. While the weekly backup has the gate
 // closed the tick does nothing (no write, no send; the next tick catches up) and an email is refused with a reason the
 // sender sees, until the encrypted spool (Task 5) takes it instead. With BACKUP_READY off this is the plain call.
+// Task 4: after the tick, outside its permit, the clock starts the week's backup Workflow (server/backup-start.js);
+// with BACKUP_READY off that call returns at once and touches nothing.
 const maintenance = e => { if (!(e instanceof BackupMaintenanceError)) throw e; };
 export default {
-  scheduled: (controller, env) => withApplicationWrite(env, { operation_id: 'jobs:scheduled' },
-    () => clock.scheduled(controller, env)).catch(e => { maintenance(e); console.log('Clock paused for the weekly backup'); }),
+  async scheduled(controller, env) {
+    try {
+      await withApplicationWrite(env, { operation_id: 'jobs:scheduled' }, () => clock.scheduled(controller, env))
+        .catch(e => { maintenance(e); console.log('Clock paused for the weekly backup'); });
+    } finally {
+      await backupStartPass(env, now()).catch(() => console.error('Backup start failed'));
+    }
+  },
   email: (message, env) => withApplicationWrite(env, { operation_id: 'jobs:email' }, () => receiveEmail(message, env))
     .catch(e => { maintenance(e); message.setReject('Hampton is saving its weekly backup. Please send this again in a few minutes.'); }),
 };
