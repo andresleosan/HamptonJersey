@@ -16,16 +16,18 @@ export const viewingArgs = contact => {
   return [email, phone ? phone.slice(1).slice(-9) : null];
 };
 
+// What the Viewings tab and the Timeline read of a matched viewing. Never the requester's name, email, phone or notes:
+// a viewing matched this way may be someone else's. feedback_by is the team member who recorded the feedback.
+export const VIEWING_COLUMNS = `v.id, v.listing_id, COALESCE(l.title, v.listing_title_snapshot) AS listing_title, v.listing_ref,
+  v.kind, v.date, v.time, v.end_time, v.status, v.outcome, v.feedback_at, v.feedback_by, v.created_at`;
+
 const contactOf = async (env, id) => (await env.DB.prepare(`SELECT c.id, c.email, c.phone FROM applicants a
   JOIN contacts c ON c.id = a.contact_id WHERE a.id = ?`).bind(Number(id)).first()) ?? fail(404, "Applicant not found");
 
-// What the tab shows of each viewing, and which of the contact's details it shares. Never the requester's name, email,
-// phone or notes: a viewing matched this way may be someone else's.
+// What the tab shows of each viewing, and which of the contact's details it shares.
 async function viewings({ env, params: [id] }) {
   const contact = await contactOf(env, id);
-  const { results } = await env.DB.prepare(`SELECT v.id, v.listing_id, COALESCE(l.title, v.listing_title_snapshot) AS listing_title,
-      v.listing_ref, v.kind, v.date, v.time, v.end_time, v.status, v.outcome, v.feedback_at, v.created_at,
-      ${BY_EMAIL} AS by_email, ${BY_PHONE} AS by_phone
+  const { results } = await env.DB.prepare(`SELECT ${VIEWING_COLUMNS}, ${BY_EMAIL} AS by_email, ${BY_PHONE} AS by_phone
     FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
     WHERE ${BY_EMAIL} OR ${BY_PHONE} ORDER BY v.date DESC, v.time DESC, v.id DESC LIMIT 50`).bind(...viewingArgs(contact)).all();
   return json({ match: "email_phone", viewings: results.map(({ by_email, by_phone, ...v }) =>

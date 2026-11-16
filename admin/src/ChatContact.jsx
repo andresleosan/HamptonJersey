@@ -4,7 +4,8 @@ import { api } from "./api.js";
 // MSG-03: which contact a website chat belongs to. A person links or unlinks it; a contact with the visitor's email or
 // phone is only suggested. Shown only when the server sends contact_link (MSG03_CONTACT_LINK_READY, migration 0093).
 const who = c => [c.email, c.phone].filter(Boolean).join(" · ");
-const record = c => (c.applicant_id ? <a href={`#/applicants/${c.applicant_id}`}>{c.name}</a> : c.name);
+// The record opens on its Messages tab, where the contact's linked chats are (SAP-08).
+const record = c => (c.applicant_id ? <a href={`#/applicants/${c.applicant_id}/messages`}>{c.name}</a> : c.name);
 
 export function ChatContact({ chatId, link, onLinked, action = "Review chat contact" }) {
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [busy, setBusy] = useState(false);

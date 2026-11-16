@@ -81,7 +81,6 @@ const { join, dirname } = require('node:path');
 
       // The contact's record lists the chat and opens it in Messages.
       await card.getByRole('link', { name: 'Tom Renouf' }).click();
-      await page.getByRole('tab', { name: 'Messages' }).click(); // SAP-08: the record's Messages tab
       const chats = page.locator('section[aria-labelledby="h-contact-chats"]');
       await chats.waitFor();
       assert.ok(await fits(), 'the record fits');

@@ -48,6 +48,8 @@ test("viewings: the contact's email or phone, the same cross as the Timeline, an
   // The Timeline reads the same viewings.
   const d = await get(env, `/admin/applicants/${a}`);
   assert.deepEqual(d.data.viewings.map(v => v.id), [both, byEmail, byPhone]);
+  for (const key of ["name", "email", "phone", "notes", "outcome_note", "interest_note"]) assert.equal(key in d.data.viewings[0], false, `detail ${key}`);
+  assert.ok(!JSON.stringify(d.data.viewings).includes("Private note") && !JSON.stringify(d.data.viewings).includes("work@example.test"));
 });
 
 test("viewings: a contact without email or without phone never matches other people's empty values", async () => {
