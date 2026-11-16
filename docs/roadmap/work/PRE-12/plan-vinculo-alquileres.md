@@ -61,3 +61,5 @@ Además se ajustan las tres aserciones `['rentals', null]` de `tests/server/priv
 - **D4 · Hold:** **recomendado** que una tenancy vinculada y en curso (`ended_on` nulo o futuro) retenga al contacto en la limpieza y en el Delete manual, y que una terminada no retenga nada ni tenga plazo hasta PRE-33 (spec:7, spec:57). Alternativa: ningún hold hasta PRE-33.
 - **D5 · Propietarios:** `landlords` sigue sin vincularse a contactos. **Recomendado: tarea aparte después**; 0090:27 ya los mantiene borrables.
 - **D6 · Trigger append-only:** el encargo limita 0113 a CREATE TABLE/INDEX. **Recomendado** añadir el `BEFORE UPDATE` como 0111:20-21. Si no, el append-only queda solo en código y pruebas.
+
+**Decididas el 16-nov-2026 por `/avanzar`** con la recomendación de cada una (skill §4 y CONTINUIDAD: decisiones de producto según lo recomendado y documentado; Luis puede cambiarlas): D1 vínculo duradero · D2 candidato y clic · D3 identidad, dirección y fechas · D4 hold solo para la tenancy vinculada en curso, detrás del interruptor · D5 propietarios en tarea aparte · D6 trigger append-only (CREATE TRIGGER es aditivo según CONTINUIDAD).
