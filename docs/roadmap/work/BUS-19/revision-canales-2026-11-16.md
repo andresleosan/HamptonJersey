@@ -19,3 +19,5 @@ Hosts y rutas permitidos = host y ruta del canal (sin parámetros); redirección
 Límites: la lectura de términos fue automática por palabras clave sobre las páginas enlazadas desde el canal; una web sin términos enlazados se trató como «términos sin prohibición». Permitido no significa leído: cada canal necesita su lector (BUS-09).
 
 Aplicación: `decisiones-2026-11-16.sql` (UPDATE versión 1→2 + fila de historial por canal, idempotente), probada sobre el esquema 0043 en memoria. Detalle por canal: `decisiones-2026-11-16.json`.
+
+**Actualización**: los 38 canales denegados se eliminaron de producción y de estos archivos (`eliminar-denegados-2026-11-16.sql`). Si se vuelve a aceptar el directorio de 237 canales, reaparecerían como pendientes: filtrarlos antes.

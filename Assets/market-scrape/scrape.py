@@ -76,6 +76,7 @@ class Renderer:
 RENDER = Renderer()
 
 def fetch(url, host0):
+    if re.search(r'[\\@\s\x00-\x1f]', urlsplit(url).netloc + url.split('?')[0]) or urlsplit(url).scheme not in ('http', 'https'): return None, None, 'url-no-valida'
     host = urlsplit(url).hostname
     if bare(host) != bare(host0): return None, None, 'other-host'
     if not robots_for(host).can_fetch(UA, url): return None, None, 'robots'
