@@ -12,8 +12,8 @@ const taken = () => json({ error: "That time was just booked. Please choose anot
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const stale = "Someone else saved changes to this viewing. Reload to see them (your changes were not saved).";
 // VIS-12: the negotiator's Google Calendar, when connected and switched on (null otherwise: nothing is checked).
-// calendar_reviewed: staff checked that calendar themselves, kept with the event.
-const calendarCheck = (env, body, slot) => calendarBusyCheck(env, slot, { reviewed: body.calendar_reviewed === true });
+// calendar_reviewed: { negotiator_id, date, time } staff checked in that calendar themselves (that slot only), kept with the event.
+const calendarCheck = (env, body, slot) => calendarBusyCheck(env, slot, { reviewed: body.calendar_reviewed });
 const busy = cal => json({ error: cal.error, code: cal.code }, 409);
 
 // §5's four tabs. "Now" is the Jersey clock: a confirmed viewing stays upcoming until its end time, then needs an outcome.

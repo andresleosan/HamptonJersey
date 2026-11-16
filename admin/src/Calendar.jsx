@@ -22,15 +22,19 @@ const RETURN = {
   denied: [false, "Google Calendar was not connected: access was refused at Google. Viewings stay in Hampton's calendar."],
   scopes: [false, "Google Calendar was not connected: both calendar permissions are needed. Please connect again and allow both."],
   failed: [false, "Google Calendar was not connected: the sign-in expired or was finished in another browser. Please connect again."],
+  connected_revoke_failed: [false, "Google Calendar connected. Google could not be told to remove the access given before: "
+    + "the negotiator can remove the older Hampton access at myaccount.google.com/permissions."],
 };
+// M9: shown only with the calendar switched on; the answer is taken off the address either way.
 export function CalendarReturn() {
-  const [m] = useState(() => RETURN[new URLSearchParams(location.search).get("calendar")] ?? null);
+  const [s] = useCalendar(), [m] = useState(() => RETURN[new URLSearchParams(location.search).get("calendar")] ?? null);
   useEffect(() => {
-    if (!m) return;
-    const q = new URLSearchParams(location.search); q.delete("calendar");
+    const q = new URLSearchParams(location.search);
+    if (!q.has("calendar")) return;
+    q.delete("calendar");
     history.replaceState(history.state, "", location.pathname + (q.size ? `?${q}` : "") + location.hash);
   }, []);
-  return m && <p role={m[0] ? "status" : "alert"} className={m[0] ? "ok" : "err"}>{m[1]}</p>;
+  return m && s?.enabled ? <p role={m[0] ? "status" : "alert"} className={m[0] ? "ok" : "err"}>{m[1]}</p> : null;
 }
 
 // The negotiator's record in Availability: connected or not, and the button that changes it.
@@ -48,15 +52,19 @@ export function CalendarConnection({ n }) {
     if (busy || !confirm(`Disconnect ${n.name}'s Google Calendar? Events already there stay; new changes to viewings are not written to it.`)) return;
     setBusy(true); setMsg(null);
     try {
-      await api("/admin/calendar/google/disconnect", { method: "POST", body: { negotiator_id: n.id } });
-      await reload(); setMsg({ ok: true, text: `${n.name}'s Google Calendar is disconnected.` });
+      const r = await api("/admin/calendar/google/disconnect", { method: "POST", body: { negotiator_id: n.id } });
+      await reload();
+      // M2: Hampton forgot the token either way; if Google did not confirm revoking it, the person removes it by hand.
+      setMsg(r?.revoked === false ? { text: `${n.name}'s Google Calendar is disconnected, but Google could not be told to remove `
+        + `Hampton's access: ${n.name} can remove it at myaccount.google.com/permissions.` }
+        : { ok: true, text: `${n.name}'s Google Calendar is disconnected.` });
     } catch (e) { setMsg({ text: e.message }); }
     finally { setBusy(false); }
   };
   return <section aria-labelledby="h-gcal">
     <h3 id="h-gcal">Google Calendar</h3>
     {c ? <>
-      <p>Connected. Confirmed viewings go into {n.name}'s Google Calendar, and their busy times there are checked before a viewing is confirmed or moved.</p>
+      <p>Connected{c.google_email ? <> as <strong>{c.google_email}</strong></> : ""}. Confirmed viewings go into {n.name}'s Google Calendar, and their busy times there are checked before a viewing is confirmed or moved.</p>
       <p className="muted">Since {fmtDate(c.connected_at)} · by {c.connected_by}</p>
       <div className="inline"><button type="button" className="btn ghost" onClick={disconnect}>{busy ? "Disconnecting…" : "Disconnect Google Calendar"}</button></div>
     </> : <>

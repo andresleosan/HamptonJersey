@@ -104,14 +104,14 @@ const control = body => new Promise((ok, fail) => {
     await page.waitForURL(/accounts\.google\.com/);
     // SITE_URL is wrangler.toml's: the redirect is the production one, never taken from the request.
     assert.equal(googleSignIn.searchParams.get('redirect_uri'), 'https://www.hamptonestatesjersey.com/api/calendar/google/callback');
-    assert.deepEqual(googleSignIn.searchParams.get('scope').split(' '), ['https://www.googleapis.com/auth/calendar.events.owned',
+    assert.deepEqual(googleSignIn.searchParams.get('scope').split(' '), ['openid', 'email', 'https://www.googleapis.com/auth/calendar.events.owned',
       'https://www.googleapis.com/auth/calendar.freebusy']);
     // Google sends the browser back with a code and the state; the panel says so and the record shows it connected.
     await page.goto(`${BASE}api/calendar/google/callback?code=4%2FFIXTURE-CODE&state=${encodeURIComponent(googleSignIn.searchParams.get('state'))}`);
     await page.getByRole('status').filter({ hasText: 'Google Calendar connected.' }).waitFor();
     assert.equal(new URL(page.url()).search, '', 'the answer is taken off the address');
     await pickNegotiator();
-    await gcal.getByText(`Connected. Confirmed viewings go into ${negotiator}'s Google Calendar`).waitFor();
+    await gcal.getByText(new RegExp(`^Connected as negotiator@hampton\\.test\\. Confirmed viewings go into ${negotiator}'s Google Calendar`)).waitFor(); // M1
     assert.ok(!(await page.content()).includes('FIXTURE-REFRESH'), 'the token never reaches the page');
     await shot(record, 'connected');
 

@@ -221,12 +221,16 @@ test("a time changed in Google, or an event changed meanwhile (412), goes to rev
   assert.equal(link(env, other).state, "conflict", "412_review");
 });
 
-test("deleting a viewing cancels its event; the link that is left holds no personal data", async t => {
+test("M6: deleting a viewing deletes its event in Google (not just cancels it); the link left holds no personal data", async t => {
   const { env, google, cookie } = await world(t, { invites: true });
   const id = seedViewing(env);
   await act(env, cookie, id, "confirm");
   assert.equal((await call(env, "DELETE", `/admin/viewings/${id}`, { cookie })).status, 200);
-  assert.equal(google.events.get(await eventIdFor(id)).status, "cancelled");
+  assert.equal(google.events.get(await eventIdFor(id)), undefined, "gone from Google, attendee and all");
+  const del = google.calls.find(c => c.method === "DELETE");
+  assert.match(del.url, /sendUpdates=all/, "the invited applicant is told it is off");
+  await syncViewingCalendar(env, id);
+  assert.equal(google.calls.filter(c => c.method === "DELETE").length, 1, "deleted once");
   const l = link(env, id);
   assert.equal(l.state, "synced");
   assert.ok(!/sam|Buyer|07700|Bernage/.test(JSON.stringify(l)));

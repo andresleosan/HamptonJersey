@@ -17,8 +17,8 @@ const random = () => b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+
 async function status({ env }) {
   let connections;
   try {
-    connections = (await env.DB.prepare(`SELECT negotiator_id, provider, calendar_id, state, scopes, connected_at, connected_by,
-      revoked_at FROM calendar_connections ORDER BY negotiator_id`).all()).results;
+    connections = (await env.DB.prepare(`SELECT negotiator_id, provider, calendar_id, google_email, state, scopes, connected_at,
+      connected_by, revoked_at FROM calendar_connections ORDER BY negotiator_id`).all()).results;
   } catch (e) { if (noTable(e)) return json({ enabled: false }); throw e; }
   return json({ enabled: true, configured: calendarConfigured(env), invites: invitesReady(env), connections }, 200, { "cache-control": "no-store" });
 }
@@ -66,30 +66,44 @@ async function callback({ request, env, waitUntil }) {
     got = await exchangeCode({ fetch: globalThis.fetch, oauth: oauth(env), clientId: env.GOOGLE_CALENDAR_CLIENT_ID,
       clientSecret: env.GOOGLE_CALENDAR_CLIENT_SECRET, redirectUri: redirectUri(env), code });
   } catch { return back("failed"); }
-  if (!GOOGLE_SCOPES.every(s => got.scopes.includes(s))) {
-    waitUntil(revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token: got.refresh_token }).catch(() => {}));
-    return back("scopes");
+  // M1: without every calendar permission, or without the account's verified address, nothing is kept (the new token
+  // is revoked at once).
+  const missing = !GOOGLE_SCOPES.every(s => got.scopes.includes(s));
+  if (missing || !got.email) {
+    waitUntil(revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token: got.refresh_token }));
+    return back(missing ? "scopes" : "failed");
   }
-  await env.DB.prepare(`INSERT INTO calendar_connections (negotiator_id, calendar_id, state, refresh_token_enc, scopes,
-      connected_at, connected_by) VALUES (?, 'primary', 'active', ?, ?, ?, ?)
-    ON CONFLICT(negotiator_id) DO UPDATE SET calendar_id = 'primary', state = 'active', refresh_token_enc = excluded.refresh_token_enc,
-      scopes = excluded.scopes, connected_at = excluded.connected_at, connected_by = excluded.connected_by, revoked_at = NULL, revoked_by = NULL`)
-    .bind(row.negotiator_id, await sealToken(env, row.negotiator_id, got.refresh_token), GOOGLE_SCOPES.join(" "), now(), row.admin).run();
+  const before = await env.DB.prepare("SELECT * FROM calendar_connections WHERE negotiator_id = ? AND state = 'active'")
+    .bind(row.negotiator_id).first();
+  await env.DB.prepare(`INSERT INTO calendar_connections (negotiator_id, calendar_id, google_email, state, refresh_token_enc, scopes,
+      connected_at, connected_by) VALUES (?, 'primary', ?, 'active', ?, ?, ?, ?)
+    ON CONFLICT(negotiator_id) DO UPDATE SET calendar_id = 'primary', google_email = excluded.google_email, state = 'active',
+      refresh_token_enc = excluded.refresh_token_enc, scopes = excluded.scopes, connected_at = excluded.connected_at,
+      connected_by = excluded.connected_by, revoked_at = NULL, revoked_by = NULL`)
+    .bind(row.negotiator_id, got.email, await sealToken(env, row.negotiator_id, got.refresh_token), GOOGLE_SCOPES.join(" "), now(), row.admin).run();
+  // M2: a reconnection replaces the token; the one it replaces is revoked at Google, or the panel says it could not be.
+  if (before && !(await revokeStored(env, before))) return back("connected_revoke_failed");
   return back("connected");
 }
 
-// Disconnecting forgets the token at once (no later write can use it) and asks Google to revoke it.
-async function disconnect({ request, env, admin, waitUntil }) {
+// M2: asks Google to revoke a stored token. false when it could not: the key no longer opens it, or Google did not confirm.
+async function revokeStored(env, conn) {
+  let token;
+  try { token = await openToken(env, conn.negotiator_id, conn.refresh_token_enc); } catch { return false; }
+  return revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token });
+}
+
+// Disconnecting forgets the token at once (no later write can use it) and asks Google to revoke it. revoked: whether
+// Google confirmed it (M2: false when the key no longer opens the token or Google did not answer; the panel says where to
+// remove the access by hand).
+async function disconnect({ request, env, admin }) {
   const id = negotiatorId(await readJson(request));
   const conn = await env.DB.prepare("SELECT * FROM calendar_connections WHERE negotiator_id = ? AND state = 'active'").bind(id).first();
   if (!conn) fail(404, "No connected calendar");
   const r = await env.DB.prepare(`UPDATE calendar_connections SET state = 'revoked', refresh_token_enc = NULL, revoked_at = ?, revoked_by = ?
     WHERE negotiator_id = ? AND state = 'active' AND connected_at = ?`).bind(now(), admin, id, conn.connected_at).run();
   if (!r.meta.changes) fail(409, "The connection changed meanwhile. Reload and try again.");
-  let token = null;
-  try { token = await openToken(env, id, conn.refresh_token_enc); } catch {}
-  if (token) waitUntil(revokeToken({ fetch: globalThis.fetch, oauth: oauth(env), token }).catch(() => {}));
-  return json({ ok: true });
+  return json({ ok: true, revoked: await revokeStored(env, conn) });
 }
 
 const viewingId = v => (/^[1-9]\d{0,14}$/.test(v) ? Number(v) : fail(400, "Invalid viewing ID"));

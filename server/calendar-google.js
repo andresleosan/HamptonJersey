@@ -15,9 +15,11 @@ export const TIMEOUT_MS = 10000, MAX_BUSY = 100, MAX_RANGE_DAYS = 14;
 // Valid as a Google event id (base32hex letters a-v and digits, 5–1024): the hex SHA-256 of the viewing's identity.
 export const eventIdFor = viewingId => sha256(`hampton-viewing:${viewingId}`);
 
+// M1: openid email too, so Hampton knows (and shows) which Google account was connected; nothing else of the profile.
+export const AUTH_SCOPES = ["openid", "email", ...GOOGLE_SCOPES];
 export function authUrl({ clientId, redirectUri, state }) {
   const q = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, response_type: "code",
-    scope: GOOGLE_SCOPES.join(" "), access_type: "offline", prompt: "consent", include_granted_scopes: "false", state });
+    scope: AUTH_SCOPES.join(" "), access_type: "offline", prompt: "consent", include_granted_scopes: "false", state });
   return `${AUTH_URL}?${q}`;
 }
 
@@ -35,12 +37,23 @@ async function send(fetch, url, init, signal) {
 const form = (fetch, url, body) => send(fetch, url, { method: "POST",
   headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body).toString() });
 
-// The authorization code for a refresh token and the scopes actually granted. Throws on any refusal.
+// The verified address in the ID token Google's token endpoint sent straight to Hampton over TLS (OpenID Connect allows
+// reading it without checking its signature then); null when absent or not verified.
+function accountOf(idToken) {
+  try {
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(String(idToken).split(".")[1].replace(/-/g, "+")
+      .replace(/_/g, "/")), c => c.charCodeAt(0))));
+    return claims.email_verified === true && typeof claims.email === "string" && claims.email.length <= 320 ? claims.email.toLowerCase() : null;
+  } catch { return null; }
+}
+
+// The authorization code for a refresh token, the scopes actually granted and the account's verified address. Throws on
+// any refusal.
 export async function exchangeCode({ fetch, oauth = OAUTH_URL, clientId, clientSecret, redirectUri, code }) {
   const r = await form(fetch, `${oauth}/token`, { code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri,
     grant_type: "authorization_code" }), b = r.body;
   if (!r.ok || typeof b?.refresh_token !== "string") throw new Error(`Google token exchange failed (${r.status})`);
-  return { refresh_token: b.refresh_token, scopes: String(b.scope ?? "").split(" ").filter(Boolean) };
+  return { refresh_token: b.refresh_token, scopes: String(b.scope ?? "").split(" ").filter(Boolean), email: accountOf(b.id_token) };
 }
 
 // A short-lived access token from the stored refresh token; never stored.
@@ -51,7 +64,9 @@ export async function accessToken({ fetch, oauth = OAUTH_URL, clientId, clientSe
   return b.access_token;
 }
 
-export const revokeToken = ({ fetch, oauth = OAUTH_URL, token }) => form(fetch, `${oauth}/revoke`, { token });
+// Resolves to true once Google confirms the token is revoked (or no longer valid), false otherwise; never throws.
+export const revokeToken = ({ fetch, oauth = OAUTH_URL, token }) => form(fetch, `${oauth}/revoke`, { token })
+  .then(r => r.ok || (r.status === 400 && r.body?.error === "invalid_token"), () => false);
 
 const call = (c, method, path, { body, query, etag, signal } = {}) => send(c.fetch, `${c.api ?? API_URL}${path}${query ? `?${new URLSearchParams(query)}` : ""}`, {
   method, headers: { authorization: `Bearer ${c.token}`, ...(body ? { "content-type": "application/json" } : {}), ...(etag ? { "if-match": etag } : {}) },
@@ -115,5 +130,14 @@ export async function cancelViewingEvent(c, { external_id, sendUpdates = "none" 
     if (cur.status === "cancelled") return done(cur);
     const p = await call(c, "PUT", path, { body: { ...cur, status: "cancelled" }, query: { sendUpdates }, etag: cur.etag });
     return p.ok ? done(p.body) : failed(p, "cancel");
+  } catch (e) { return { state: "unknown", error: String(e?.name ?? "error").slice(0, 60) }; }
+}
+
+// M6: deletes the event (a viewing deleted for privacy): Google keeps no title, place or attendee of it for Hampton.
+// Already gone: nothing to do.
+export async function deleteViewingEvent(c, { external_id, sendUpdates = "none" }) {
+  try {
+    const r = await call(c, "DELETE", `/calendars/${encodeURIComponent(c.calendarId)}/events/${external_id}`, { query: { sendUpdates } });
+    return r.ok || r.status === 404 || r.status === 410 ? { state: "synced", etag: null } : failed(r, "delete");
   } catch (e) { return { state: "unknown", error: String(e?.name ?? "error").slice(0, 60) }; }
 }

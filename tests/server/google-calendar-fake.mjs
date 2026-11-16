@@ -4,14 +4,16 @@ export const TOKEN_URL = "https://oauth2.googleapis.com/token";
 export const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 export const API = "https://www.googleapis.com/calendar/v3";
 
-export function fakeGoogle({ scope = "https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.freebusy" } = {}) {
+// Google answers the "email" scope with its full name; the ID token carries the account's address (M1).
+export function fakeGoogle({ scope = "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events.owned https://www.googleapis.com/auth/calendar.freebusy" } = {}) {
   const g = {
     events: new Map(), // id → event resource (with etag)
     busy: [],          // [{ start, end }] that freeBusy answers
     calls: [],         // { method, url, body, headers }
     fail: {},          // "insert" | "get" | "put" | "freebusy" | "token" → status, or "throw" / "hang"
     loseInsertAnswer: false,
-    scope, tag: 0,
+    scope, tag: 0, grants: 0,
+    account: { email: "negotiator@hampton.test", email_verified: true }, // what the ID token says (null: no ID token)
   };
   const reply = (status, body) => new Response(body == null ? null : JSON.stringify(body), { status,
     headers: { "content-type": "application/json" } });
@@ -30,13 +32,18 @@ export function fakeGoogle({ scope = "https://www.googleapis.com/auth/calendar.e
     g.calls.push({ method, url: url.href, body, headers });
     if (url.href.startsWith(TOKEN_URL)) {
       const f = await failure("token"); if (f) return f;
-      if (body.grant_type === "authorization_code")
-        return reply(200, { access_token: "ya29.FIXTURE-ACCESS", refresh_token: "1//FIXTURE-REFRESH", scope: g.scope, expires_in: 3599 });
-      if (body.grant_type === "refresh_token" && body.refresh_token === "1//FIXTURE-REFRESH")
+      if (body.grant_type === "authorization_code") {
+        // The first grant is 1//FIXTURE-REFRESH, later ones 1//FIXTURE-REFRESH-2, -3… (a reconnection gets a new token).
+        const n = ++g.grants, part = o => Buffer.from(JSON.stringify(o)).toString("base64url");
+        return reply(200, { access_token: "ya29.FIXTURE-ACCESS", refresh_token: `1//FIXTURE-REFRESH${n > 1 ? `-${n}` : ""}`,
+          scope: g.scope, expires_in: 3599,
+          ...(g.account ? { id_token: `${part({ alg: "RS256" })}.${part({ iss: "https://accounts.google.com", ...g.account })}.c2ln` } : {}) });
+      }
+      if (body.grant_type === "refresh_token" && body.refresh_token?.startsWith("1//FIXTURE-REFRESH"))
         return reply(200, { access_token: "ya29.FIXTURE-ACCESS", expires_in: 3599, scope: g.scope });
       return reply(400, { error: "invalid_grant" });
     }
-    if (url.href.startsWith(REVOKE_URL)) return reply(200, {});
+    if (url.href.startsWith(REVOKE_URL)) { const f = await failure("revoke"); return f ?? reply(200, {}); }
     if (headers.authorization !== "Bearer ya29.FIXTURE-ACCESS") return reply(401, { error: { code: 401 } });
     if (url.pathname === "/calendar/v3/freeBusy") {
       const f = await failure("freebusy", init.signal); if (f) return f;
@@ -67,6 +74,12 @@ export function fakeGoogle({ scope = "https://www.googleapis.com/auth/calendar.e
       const ev = stamp({ ...body, id });
       g.events.set(key, ev);
       return reply(200, ev);
+    }
+    if (method === "DELETE" && id) { // M6: the event goes (Google keeps no attendee, title or place of it for us)
+      const f = await failure("delete"); if (f) return f;
+      if (!g.events.has(key)) return reply(410, { error: { code: 410 } });
+      g.events.delete(key);
+      return new Response(null, { status: 204 });
     }
     return reply(405, null);
   };

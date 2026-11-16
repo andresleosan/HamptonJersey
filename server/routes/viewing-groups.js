@@ -10,7 +10,7 @@ import { noticeCheck } from "../house-rules.js";
 import { cycleOn } from "../viewing-cycle.js";
 import { COUNTS, inOpenGroupSql, holds, places } from "../viewing-groups.js";
 import { runAction } from "./inbox.js";
-import { afterViewingChange } from "../calendar-sync.js";
+import { afterViewingChange, calendarBusyCheck } from "../calendar-sync.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -193,14 +193,32 @@ async function refusal(env, group, { id, updated_at }) {
 
 // Gives places to the requests chosen, one by one. Resolves to {placed, refused}. VIS-12: a confirmed viewing moved to
 // the group's time moves its Google Calendar event too (a request has none: nothing happens).
-async function reserveAll(env, admin, group, refs, confirmed, waitUntil) {
+// M4: a confirmed viewing moves only to a time free in the negotiator's Google Calendar, as any move does; the group's
+// places already written there are Hampton's own events, so an overlap with them asks for staff's check (reviewed).
+async function reserveAll(env, admin, group, refs, confirmed, waitUntil, reviewed) {
   const placed = [], refused = [], cycle = await cycleOn(env), clock = jerseyNow();
   for (const ref of refs) {
+    const cal = await groupCalendarCheck(env, group, ref.id, reviewed);
+    if (cal?.error) { refused.push({ id: ref.id, status: 409, error: cal.error, code: cal.code }); continue; }
     const no = await reserveGroupPlace(env, admin, group, ref, { cycle, clock, confirmed });
     if (no) refused.push({ id: ref.id, status: no[0], error: no[1] });
     else { placed.push(ref.id); afterViewingChange(env, waitUntil, ref.id); }
   }
   return { placed, refused };
+}
+
+async function groupCalendarCheck(env, group, id, reviewed) {
+  const v = await env.DB.prepare("SELECT status FROM viewing_requests WHERE id = ?").bind(id).first();
+  if (v?.status !== "confirmed") return null; // a request has no event; it is checked when it is confirmed
+  let known = [];
+  try {
+    known = (await env.DB.prepare(`SELECT l.starts_utc, l.ends_utc FROM calendar_event_links l JOIN viewing_group_places p
+      ON p.viewing_id = l.viewing_id WHERE p.group_id = ? AND l.viewing_id <> ? AND l.state = 'synced' AND l.wanted = 'confirmed'
+      AND l.negotiator_id = ? AND l.starts_utc IS NOT NULL`).bind(group.id, id, group.negotiator_id).all()).results
+      .map(l => [l.starts_utc, l.ends_utc]);
+  } catch (e) { if (!/no such table: calendar_/.test(e?.message ?? "")) throw e; }
+  return calendarBusyCheck(env, { viewing_id: id, negotiator_id: group.negotiator_id, date: group.date, time: group.time,
+    end_time: group.end_time }, { reviewed, known });
 }
 
 // An open viewing: a free time of one negotiator at this property, capacity 1 to 50, and the requests chosen given a
@@ -227,6 +245,10 @@ async function create({ request, env, admin, waitUntil }) {
   if (notice.error) return fields({ notice_confirmed: notice.error });
   const policy = a.policies?.[slot.negotiator_id] ?? null, duration = policy?.duration_minutes ?? SLOT_MINUTES;
   const end = addMinutes(slot.time, duration), parish = policy ? a.parish ?? null : null;
+  // M4: the negotiator's Google Calendar too, as for a booking (VIS-12; nothing is checked while it is off).
+  const cal = await calendarBusyCheck(env, { negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, end_time: end },
+    { reviewed: body.calendar_reviewed });
+  if (cal?.error) return json({ error: cal.error, code: cal.code }, 409);
   const g = slotGuard(env, slot, { policy, parish: a.parish ?? null, actor: admin });
   const p = propertyViewingGuard(slot, { duration }), n = notice.guard;
   const [ins] = await env.DB.batch([
@@ -244,7 +266,7 @@ async function create({ request, env, admin, waitUntil }) {
   ]);
   if (!ins.meta.changes) return taken();
   const group = { id: ins.meta.last_row_id, ...slot, end_time: end };
-  return json({ id: group.id, ...(await reserveAll(env, admin, group, refs, confirmed, waitUntil)) }, 201);
+  return json({ id: group.id, ...(await reserveAll(env, admin, group, refs, confirmed, waitUntil, body.calendar_reviewed)) }, 201);
 }
 
 const groupOf = async (env, id) => {
@@ -258,8 +280,8 @@ async function addPlaces({ request, env, admin, params: [id], waitUntil }) {
   const body = (await readJson(request)) ?? {}, refs = readRefs(body.viewings, 50);
   if (!refs?.length) return fields({ viewings: "Choose one or more requests" });
   const group = await groupOf(env, id);
-  const r = await reserveAll(env, admin, group, refs, body.notice_confirmed === true, waitUntil);
-  return r.placed.length ? json(r) : json({ error: r.refused[0].error, ...r }, r.refused[0].status);
+  const r = await reserveAll(env, admin, group, refs, body.notice_confirmed === true, waitUntil, body.calendar_reviewed);
+  return r.placed.length ? json(r) : json({ error: r.refused[0].error, code: r.refused[0].code, ...r }, r.refused[0].status);
 }
 
 // Cancelling an open viewing that has not started closes it to new places first, then cancels its viewings one by one

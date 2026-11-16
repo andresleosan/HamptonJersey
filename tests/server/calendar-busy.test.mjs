@@ -38,6 +38,8 @@ const act = (env, cookie, id, action, more = {}) => call(env, "PUT", `/admin/vie
   body: { action, updated_at: row(env, id).updated_at, ...more } });
 const book = (env, cookie, o = {}) => call(env, "POST", "/admin/viewings", { cookie, body: { listing_id: ID, negotiator_id: 1,
   kind: "In person", date: day(1), time: "15:00", name: "Jo Renter", email: "jo@example.je", ...o } });
+// M7: staff's own check names the negotiator, day and time it was made for; it answers for that slot only.
+const checked = (date, time, negotiator_id = 1) => ({ calendar_reviewed: { negotiator_id, date, time } });
 const lastEventData = env => JSON.parse(env.DB.raw.prepare("SELECT data FROM events ORDER BY id DESC LIMIT 1").get().data ?? "null");
 
 test("a time busy in the negotiator's Google Calendar cannot be confirmed, booked or moved to", async t => {
@@ -47,7 +49,7 @@ test("a time busy in the negotiator's Google Calendar cannot be confirmed, booke
   const r = await act(env, cookie, id, "confirm");
   assert.deepEqual([r.status, r.data.code], [409, "calendar_busy"], "busy_slot_denied");
   assert.equal(row(env, id).status, "requested");
-  assert.equal((await act(env, cookie, id, "confirm", { calendar_reviewed: true })).status, 409, "a busy time is not overridden");
+  assert.equal((await act(env, cookie, id, "confirm", checked(day(1), "10:00"))).status, 409, "a busy time is not overridden");
   assert.equal((await book(env, cookie)).data.code, "calendar_busy");
   const free = seedViewing(env, { time: "12:00" });
   assert.equal((await act(env, cookie, free, "confirm")).status, 200);
@@ -67,8 +69,17 @@ test("when Google cannot be checked the viewing stays pending, unless staff chec
     assert.deepEqual([r.status, r.data.code], [409, "calendar_unchecked"], `freebusy_timeout_pending (${failure})`);
     assert.equal(row(env, id).status, "requested");
   }
-  assert.equal((await act(env, cookie, id, "confirm", { calendar_reviewed: true })).status, 200);
+  for (const wrong of [{ calendar_reviewed: true }, checked(day(1), "10:30"), checked(day(2), "10:00"), checked(day(1), "10:00", 2)])
+    assert.equal((await act(env, cookie, id, "confirm", wrong)).data.code, "calendar_unchecked", `M7: evidence for another slot (${JSON.stringify(wrong)})`);
+  assert.equal((await act(env, cookie, id, "confirm", checked(day(1), "10:00"))).status, 200);
   assert.equal(lastEventData(env).calendar_reviewed, true, "staff's check is kept with the confirmation");
+});
+
+test("M10: a viewing whose end is not after its start is 'could not check', never a server error", async t => {
+  const { env, cookie } = await world(t);
+  const id = seedViewing(env, { time: "10:00", end_time: "10:00" });
+  const r = await act(env, cookie, id, "confirm");
+  assert.deepEqual([r.status, r.data.code], [409, "calendar_unchecked"]);
 });
 
 test("getBusy gives up after 10 seconds, refuses more than 14 days and never treats more than 100 intervals as free", async t => {
@@ -111,24 +122,34 @@ test("a summer viewing is checked at its British Summer Time instant", async t =
 test("moving onto the viewing's own event is never taken as free: staff confirm it hides nothing else", async t => {
   const { env, google, cookie } = await world(t);
   const id = seedViewing(env);
-  await act(env, cookie, id, "confirm"); // its event is written at 10:00
-  google.fail.put = 503;
-  await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "11:00" }); // Google kept 10:00
-  delete google.fail.put;
+  await act(env, cookie, id, "confirm"); // its event is written (synced) at 10:00
   // freeBusy merges the viewing's own event with anything else at that time: it is never subtracted.
   google.busy = [{ start: `${day(1)}T10:00:00Z`, end: `${day(1)}T10:30:00Z` }];
   const r = await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:00" });
   assert.deepEqual([r.status, r.data.code], [409, "calendar_self_overlap"], "self_event_merged_foreign_busy_never_subtracted");
   // The evidence is for this revision only: sent with an old updated_at it is refused as stale.
   const stale = await call(env, "PUT", `/admin/viewings/${id}`, { cookie, body: { action: "reschedule", updated_at: "2026-01-01T00:00:00.000Z",
-    negotiator_id: 1, date: day(1), time: "10:00", calendar_reviewed: true } });
+    negotiator_id: 1, date: day(1), time: "10:00", ...checked(day(1), "10:00") } });
   assert.equal(stale.status, 409, "wrong_revision_evidence_denied");
-  assert.equal(row(env, id).time, "11:00");
-  assert.equal((await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:00", calendar_reviewed: true })).status, 200);
+  assert.equal((await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:00", ...checked(day(1), "10:00") })).status, 200);
   // Busy beyond its own event is plain busy, evidence or not.
   google.busy = [{ start: `${day(1)}T10:00:00Z`, end: `${day(1)}T11:00:00Z` }];
-  const later = await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:30", calendar_reviewed: true });
+  const later = await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:30", ...checked(day(1), "10:30") });
   assert.equal(later.data.code, "calendar_busy");
+});
+
+test("M3: an event Google may not hold (its last write failed) is not counted as the viewing's own", async t => {
+  const { env, google, cookie } = await world(t);
+  const id = seedViewing(env);
+  await act(env, cookie, id, "confirm"); // synced at 10:00
+  google.fail.put = 503;
+  await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "11:00" }); // unknown: Google may hold either
+  delete google.fail.put;
+  assert.equal(env.DB.raw.prepare("SELECT state FROM calendar_event_links WHERE viewing_id = ?").get(id).state, "unknown");
+  google.busy = [{ start: `${day(1)}T10:00:00Z`, end: `${day(1)}T10:30:00Z` }];
+  const r = await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: day(1), time: "10:00", ...checked(day(1), "10:00") });
+  assert.deepEqual([r.status, r.data.code], [409, "calendar_busy"]);
+  assert.equal(row(env, id).time, "11:00");
 });
 
 test("a negotiator without a connected calendar books on Hampton's calendar alone, with no Google check", async t => {

@@ -63,7 +63,7 @@ test("the Google address has the fixed redirect, the minimum scopes and a one-us
   const url = new URL(r.data.url);
   assert.equal(url.origin + url.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
   assert.equal(url.searchParams.get("redirect_uri"), "https://www.hampton.test/api/calendar/google/callback", "redirect_fixed");
-  assert.deepEqual(url.searchParams.get("scope").split(" "), GOOGLE_SCOPES);
+  assert.deepEqual(url.searchParams.get("scope").split(" "), ["openid", "email", ...GOOGLE_SCOPES], "M1: and which account");
   assert.deepEqual([url.searchParams.get("access_type"), url.searchParams.get("response_type")], ["offline", "code"]);
   assert.match(r.headers.get("set-cookie"), /^__Host-hcal=[\w-]{43}; Path=\/; HttpOnly; Secure; SameSite=Lax; Max-Age=600$/);
   const saved = env.DB.raw.prepare("SELECT * FROM calendar_oauth_states").get();

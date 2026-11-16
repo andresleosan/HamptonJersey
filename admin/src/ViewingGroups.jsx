@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDay } from "./format.js";
 import SlotPicker from "./SlotPicker.jsx";
 import { useHouseRules, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
+import { CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
 
 // VIS-14: houses with two or more open requests, shown above Requests once the server reports it on (VIS14_BLOCK_READY).
 // Staff plan them as back-to-back times of one negotiator or as one open viewing with places. Nothing is sent: the
@@ -95,6 +96,8 @@ function PlanForm({ listing, mode, requests, onDone, onClose }) {
   const [slot, setSlot] = useState({ negotiator_id: null, date: null, time: null }), [capacity, setCapacity] = useState(String(Math.max(n, 6)));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
   const house = useHouseRules(listing, refresh), [agreed, setAgreed] = useState(false), short = noticeShort(house, slot);
+  // VIS-12 (M4): after Google Calendar could not be checked for an open viewing, staff's own check of that slot only.
+  const [calendar, setCalendar] = useState(null), [reviewed, setReviewed] = useState(false);
   const head = useRef(null), form = useRef(null), focusErr = useRef(false), uid = `pf-${listing}`;
   useEffect(() => { head.current?.focus(); }, []);
   useEffect(() => { if (focusErr.current) { focusErr.current = false; form.current?.querySelector("[aria-invalid=true]")?.focus(); } }, [errors]);
@@ -110,7 +113,8 @@ function PlanForm({ listing, mode, requests, onDone, onClose }) {
     if (Object.keys(local).length) { focusErr.current = true; setErrors(local); setMsg({ text: "Please check the highlighted fields." }); return; }
     setBusy(true); setMsg(null);
     const body = { listing_id: listing, negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, viewings: refs(requests),
-      ...(open ? { capacity: places } : {}), ...(short ? { notice_confirmed: true } : {}) };
+      ...(open ? { capacity: places } : {}), ...(short ? { notice_confirmed: true } : {}),
+      ...(open && reviewed && REVIEWABLE.includes(calendar?.code) ? { calendar_reviewed: calendar.slot } : {}) };
     try {
       const r = await api(open ? "/admin/viewing-groups" : "/admin/viewing-groups/consecutive", { method: "POST", body });
       await onDone({ ok: true, text: open
@@ -118,6 +122,8 @@ function PlanForm({ listing, mode, requests, onDone, onClose }) {
         : `Moved ${plural(r.moved.length, "request")} to ${r.moved.map(m => m.time).join(", ")} on ${fmtDay(slot.date, true)}. They stay as requests: tell each person their time, then confirm it.${notMoved(r.refused)}` });
     } catch (err) {
       focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
+      setCalendar(err.data?.code ? { code: err.data.code, slot: { negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time } } : null);
+      setReviewed(false);
       if (err.status === 409 || err.data?.fields?.time || err.data?.fields?.notice_confirmed) setRefresh(x => x + 1);
       setBusy(false);
     }
@@ -127,7 +133,7 @@ function PlanForm({ listing, mode, requests, onDone, onClose }) {
     <p className="muted">{open
       ? `One time for everyone. Each of the ${n} requests gets a place and stays pending until you confirm it.`
       : `The ${n} requests move to back-to-back free times of one negotiator, from the time you choose. They stay as requests until you confirm each one.`}</p>
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setCalendar(null); setReviewed(false); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
       listingId={listing} refresh={refresh} errors={errors} />
     {open && <label className="block-places">Places
       <input type="number" inputMode="numeric" min={n} max={50} value={capacity} onChange={e => { setCapacity(e.target.value); setErrors(({ capacity, ...x }) => x); }}
@@ -136,6 +142,7 @@ function PlanForm({ listing, mode, requests, onDone, onClose }) {
     {short ? <NoticeConfirm house={house} checked={agreed} error={errors.notice_confirmed} id={`${uid}-notice_confirmed`}
       onChange={b => { setAgreed(b); setErrors(({ notice_confirmed, ...x }) => x); }} /> : error("notice_confirmed")}
     {error("viewings")}
+    {open && REVIEWABLE.includes(calendar?.code) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
     <div className="inline"><button className="btn">{busy ? "Saving…" : open ? "Create open viewing" : `Move ${n} requests`}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     <Msg m={msg} />
