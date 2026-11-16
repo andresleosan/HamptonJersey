@@ -30,6 +30,7 @@ export function taskTarget(value,manual=false) {
 }
 
 // PRE-14: backups:<run> exists through its system backup.failed event, not backup_runs: migration 0094 may be unapplied.
+// ADM-12: case-codes:<day> exists through its system case_codes.cap_reached event (server/case-auth-email.js).
 export function targetExists(kind,id,context='NULL',owner=false) {
   const tenancy=`json_extract(${context},'$.tenancy_id')`,repair=`json_extract(${context},'$.repair_id')`;
   return `(CASE ${kind}
@@ -50,7 +51,9 @@ export function targetExists(kind,id,context='NULL',owner=false) {
     WHEN 'collection' THEN (${id}='unmatched-payments' OR ${id} GLOB 'landlord-statements:[0-9][0-9][0-9][0-9]-[01][0-9]' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)
       OR EXISTS(SELECT 1 FROM market_runs mr WHERE ${id}='market-sweep:'||mr.id AND mr.kind='daily')
       OR (${id} GLOB 'backups:*' AND EXISTS(SELECT 1 FROM events be WHERE be.entity_type='collection' AND be.entity_id=${id}
-        AND be.type='backup.failed' AND be.actor='system'))) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
+        AND be.type='backup.failed' AND be.actor='system'))
+      OR (${id} GLOB 'case-codes:*' AND EXISTS(SELECT 1 FROM events ce WHERE ce.entity_type='collection' AND ce.entity_id=${id}
+        AND ce.type='case_codes.cap_reached' AND ce.actor='system'))) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
 }
 
 export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${kind} AND ${event}.entity_id=${id})
