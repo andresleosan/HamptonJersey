@@ -1,6 +1,8 @@
 // ADM-12: a tenant reports a repair with the private link Hampton Estates sent. The link's token is in the fragment: it
 // is read once, removed from the address bar and kept only in memory. Opening the page sends nothing; "Email me a code"
 // asks for a 6-digit code at the tenancy's email, and the right code opens a 30-minute session (an HttpOnly cookie).
+// A link in the address bar always starts its own sign-in: a session left in this browser (a shared computer, another
+// link) is ended first, so this link never shows or files into another tenancy. "Sign out" ends it too.
 // The form sends text only, no photos. Built with textContent only; nothing is stored in the browser.
 const token = location.hash.slice(1);
 if (location.hash) history.replaceState(null, "", location.pathname);
@@ -24,6 +26,13 @@ const post = async (path, body) => {
   return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
 };
 const button = (text, ghost) => el("button", { className: ghost ? "btn ghost" : "btn", type: ghost ? "button" : "submit", textContent: text });
+const signOut = () => fetch("/api/case-access/sign-out", { method: "POST", cache: "no-store" }).catch(() => {});
+function signOutButton() {
+  const out = button("Sign out", true);
+  out.addEventListener("click", async () => { busy(out, "Signing out…"); await signOut();
+    status("You have signed out. To report a repair again, open the link Hampton Estates sent you."); });
+  return out;
+}
 const field = (label, input, hint) => el("label", { className: "field" }, el("span", { textContent: label }), hint && el("p", { className: "hint", textContent: hint }), input);
 function busy(btn, text) { const was = btn.textContent; btn.disabled = true; btn.textContent = text; return () => { btn.disabled = false; btn.textContent = was; }; }
 
@@ -90,7 +99,7 @@ function reportForm(ctx) {
       "Where it is, since when, and anything you have already tried. Up to 2,000 characters."), choices,
     el("p", { className: "note", textContent: "Please do not send photos here. If Hampton Estates needs them, the team will tell you how to send them. "
       + "Reporting a repair does not guarantee a response within a set time and does not authorise any work: Hampton Estates will contact you." }),
-    alert, left, el("div", { className: "row" }, send));
+    alert, left, el("div", { className: "row" }, send, signOutButton()));
   form.addEventListener("submit", async e => {
     e.preventDefault();
     title.removeAttribute("aria-invalid");
@@ -107,18 +116,19 @@ function reportForm(ctx) {
     } catch { alert.textContent = "We could not confirm that your report was sent. Please try again: it will not be sent twice."; }
     done();
   });
-  show(ctx.reports_left > 0 ? form : el("p", { className: "card", textContent: "You have sent 10 reports today with this link. For anything else, "
-    + "please call Hampton Estates." }));
+  show(ctx.reports_left > 0 ? form : el("div", { className: "card" }, el("p", { textContent: "You have sent 10 reports today with this link. "
+    + "For anything else, please call Hampton Estates." }), el("div", { className: "row" }, signOutButton())));
   function received(receipt) {
     operationId = crypto.randomUUID();
     const another = button("Report another repair", true);
     another.addEventListener("click", () => load());
     show(el("div", { className: "card" }, el("p", { className: "ok", role: "status", textContent: "Thank you. Your report has been received." }),
       el("p", { textContent: `Reference ${receipt.id.slice(0, 8).toUpperCase()}. Hampton Estates will contact you about it; no work has been ordered yet.` }),
-      el("div", { className: "row" }, another)));
+      el("div", { className: "row" }, another, signOutButton())));
   }
 }
 
+// After the code, or to report another: the session's own form. A session that ended sends back to the link.
 async function load() {
   try {
     const r = await fetch("/api/repair-report", { cache: "no-store" });
@@ -127,4 +137,6 @@ async function load() {
     status(r.status === 404 ? "Open the link Hampton Estates sent you again to report a repair." : GONE);
   } catch { status("We could not load this page. Please check your connection and try again."); }
 }
-load();
+
+(async () => { if (token) { await signOut(); return askForCode(); }
+  load(); })();

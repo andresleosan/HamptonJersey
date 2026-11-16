@@ -10,7 +10,7 @@ import { emailAddress, emailDay } from "../email.js";
 import { validateRepair } from "../rentals.js";
 import { jerseyToday } from "../viewings.js";
 import { asObject, fieldErrors, ensureChanged, rentalEvent } from "./rentals.js";
-import { keyed, gone, createCaseGrant, markCaseGrant, resolveCaseActor, stillInForce } from "../case-access.js";
+import { keyed, gone, createCaseGrant, markCaseGrant, resolveCaseActor, stillInForce, closeStale } from "../case-access.js";
 
 const PER_DAY = 10;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -26,16 +26,20 @@ export async function createRepairReportGrant(env, { rental_id, tenancy_id, reci
     expires_on, source_revision: await sha256(email) }, actor);
 }
 
-// The tenancy's repair links, newest first: never their token; whether each still works and how many reports it brought.
+// The tenancy's repair links, newest first, never their token: every one that may still work (so it can be revoked) and
+// the 20 newest that no longer do, with how many reports each brought. Reading them first closes those the tenancy's
+// changes ended (closeStale).
 async function view(env, tenancyId) {
-  const t = await env.DB.prepare("SELECT tenant_email FROM tenancies WHERE id = ?").bind(tenancyId).first();
-  const email = emailAddress(t?.tenant_email ?? ""), current = email && await sha256(email), ts = now();
-  const { results } = await env.DB.prepare(`SELECT g.id, g.status, g.expires_on, g.expires_at, g.source_revision, g.created_at, g.created_by,
-    g.sent_at, g.sent_by, g.revoked_at, g.revoked_by, (SELECT COUNT(*) FROM repair_report_receipts WHERE grant_id = g.id) AS reports
-    FROM case_grants g WHERE g.case_kind = 'tenancy' AND g.case_id = ? AND g.purpose = 'repair_report' ORDER BY g.created_at DESC LIMIT 20`)
-    .bind(tenancyId).all();
-  return { enabled: true, links: results.map(({ expires_at, source_revision, ...g }) => ({ ...g, expired: expires_at <= ts,
-    email_changed: source_revision !== current })) };
+  const ts = now();
+  await closeStale(env, tenancyId, ts);
+  const list = open => env.DB.prepare(`SELECT g.id, g.status, g.expires_on, g.expires_at, g.created_at, g.created_by, g.sent_at,
+    g.sent_by, g.revoked_at, g.revoked_by, g.closed_at, g.closed_reason,
+    (SELECT COUNT(*) FROM repair_report_receipts WHERE grant_id = g.id) AS reports FROM case_grants g
+    WHERE g.case_kind = 'tenancy' AND g.case_id = ? AND g.purpose = 'repair_report'
+    AND ${open ? "" : "NOT"} (g.status IN ('dormant', 'active') AND g.expires_at > ?) ORDER BY g.created_at DESC ${open ? "" : "LIMIT 20"}`)
+    .bind(tenancyId, ts);
+  const [a, b] = (await env.DB.batch([list(true), list(false)])).map(r => r.results);
+  return { enabled: true, links: [...a, ...b].map(({ expires_at, ...g }) => ({ ...g, expired: expires_at <= ts })) };
 }
 const list = async ({ env, params: [id] }) => json(await view(env, Number(id)));
 async function create({ request, env, admin, params: [id] }) {

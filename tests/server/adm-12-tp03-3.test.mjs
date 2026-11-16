@@ -109,6 +109,21 @@ test("no_photo_upload_external_evidence_only: JSON text only; a photo or a file 
   assert.equal(count(env, "repairs"), 1);
 });
 
+// Review 16-nov: every link that can still work is listed (so it can be revoked); only the ended ones are capped at 20.
+test("the panel lists every open link, however many, and the 20 newest that no longer work", async () => {
+  const env = seed(onEnv()), first = await link(env);
+  env.DB.raw.prepare("UPDATE case_grants SET created_at = '2000-01-01T00:00:00.000Z' WHERE id = ?").run(first.id);
+  const ended = [];
+  for (let i = 0; i < 22; i++) ended.push((await link(env, { sent: false })).id);
+  for (const id of ended) assert.equal((await staff(env, "POST", `/admin/case-grants/${id}/revoke`, {})).status, 200);
+  for (let i = 0; i < 21; i++) await link(env, { sent: false });
+  const links = (await staff(env, "GET", "/admin/tenancies/1/repair-links")).data.links;
+  assert.equal(links.filter(g => g.status !== "revoked").length, 22, "all open ones, the oldest included");
+  assert.ok(links.some(g => g.id === first.id));
+  assert.equal(links.filter(g => g.status === "revoked").length, 20);
+  assert.equal((await staff(env, "POST", `/admin/case-grants/${first.id}/revoke`, {})).status, 200, "so it can be revoked");
+});
+
 test("the form's fields are checked like the team's: a title, an urgency, an operation id", async () => {
   const { env, cookie } = await session();
   const r = await report(env, cookie, { operation_id: op(1) });

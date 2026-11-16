@@ -19,6 +19,14 @@ test("no third party, no storage, no HTML from data, no upload", () => {
   assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
 });
 
+// Review 16-nov: on a shared browser, a session left by another link must never show or file into that other tenancy.
+test("a link in the address bar always starts its own sign-in, after ending any session; and the tenant can sign out", () => {
+  const start = js.slice(js.lastIndexOf("\n(async"));
+  assert.match(start, /if \(token\) \{ await signOut\(\); return askForCode\(\); \}\s*load\(\);/);
+  assert.match(js, /const signOut = \(\) => fetch\("\/api\/case-access\/sign-out", \{ method: "POST"/);
+  assert.match(js, /button\("Sign out", true\)/);
+});
+
 test("_headers keeps the page out of caches and search engines, with no referrer", () => {
   const rule = readFileSync(join(__dirname, "../site/_headers"), "utf8").split(/^(?=\S)/m).find(b => b.startsWith("/repair-report\n"));
   for (const line of ["! Referrer-Policy", "Referrer-Policy: no-referrer", "Cache-Control: no-store", "X-Frame-Options: DENY", "X-Robots-Tag: noindex"])

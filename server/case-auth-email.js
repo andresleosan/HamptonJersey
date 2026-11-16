@@ -2,16 +2,18 @@
 // sender and switch (EMAIL_SERVICE_READY and the EMAIL binding; off until AUT-17). The code is made in memory and leaves
 // only in that one provider call: the database keeps its HMAC, the outcome and the quota, never the code, the body or the
 // address, and no outbound row (so it never shows in Email). One batch checks the link again, revokes the previous code,
-// applies 1 a minute and 10 a Jersey day per link and reserves one of the team's 100 emails a day in email_attempts,
-// shared with dispatchEmail. Only then, after checking the link and the email settings once more, is the provider called,
-// once. An unclear result is never resent: the tenant asks for a new code, which revokes this one.
+// applies 1 a minute and 10 a Jersey day per link and 30 a day for all links together (so codes never take more than
+// that of the team's emails) and reserves one of the team's 100 emails a day in email_attempts, shared with
+// dispatchEmail. Only then, after checking the link and the email settings once more, is the provider called, once. An
+// unclear result is never resent: the tenant asks for a new code, which revokes this one. A recipient the provider
+// reports as suppressed joins email_suppressions, as in dispatchEmail.
 import { fail, now } from "./http.js";
 import { DAILY_LIMIT, emailDay, serviceReady, sendNow } from "./email.js";
 import { ensureChanged } from "./routes/rentals.js";
 import { TOKEN, caseKey, challengeDigest, hashCaseToken, keyId, makeCode } from "./case-access-crypto.js";
 import { gone, grantInForce, stillInForce } from "./case-access.js";
 
-const CODE_MS = 10 * 60e3, PER_DAY = 10;
+const CODE_MS = 10 * 60e3, PER_DAY = 10, ALL_PER_DAY = 30;
 const NO_EMAIL = "We can't send a code right now. Please try again later or contact Hampton Estates.";
 // As dispatchEmail's AUTHORIZED: email switched on, sending not paused, the address (by its hash) not suppressed.
 const SENDABLE = `EXISTS (SELECT 1 FROM app_settings WHERE key = 'email' AND json_extract(value,'$.enabled') = 1)
@@ -44,8 +46,9 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
         id, g.id, await challengeDigest(secret, id, g.id, code), await keyId(secret), ts, expires),
       st(`INSERT INTO case_auth_attempts (id, challenge_id, grant_id, recipient_version, status, day, at, expires_at)
         SELECT ?, ?, ?, ?, 'reserved', ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM case_auth_attempts WHERE grant_id = ? AND at > ?)
-        AND (SELECT COUNT(*) FROM case_auth_attempts WHERE grant_id = ? AND day = ?) < ${PER_DAY}`,
-        attempt, id, g.id, g.source_revision, day, ts, expires, g.id, minuteAgo, g.id, day),
+        AND (SELECT COUNT(*) FROM case_auth_attempts WHERE grant_id = ? AND day = ?) < ${PER_DAY}
+        AND (SELECT COUNT(*) FROM case_auth_attempts WHERE day = ?) < ${ALL_PER_DAY}`,
+        attempt, id, g.id, g.source_revision, day, ts, expires, g.id, minuteAgo, g.id, day, day),
       ensureChanged(env),
       st(`INSERT INTO email_attempts (token, outbound_id, day, at) SELECT ?, NULL, ?, ? WHERE ${SENDABLE}
         AND (SELECT COUNT(*) FROM email_attempts WHERE day = ?) < ${DAILY_LIMIT}`, attempt, day, ts, g.source_revision, day),
@@ -56,10 +59,12 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
     if (!(await grantInForce(env, "g.id = ?", g.id, clock()))) gone();
     const q = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM case_auth_attempts WHERE grant_id = ?1 AND at > ?2) AS recent,
       (SELECT COUNT(*) FROM case_auth_attempts WHERE grant_id = ?1 AND day = ?3) AS today,
+      (SELECT COUNT(*) FROM case_auth_attempts WHERE day = ?3) AS everyone,
       (SELECT COUNT(*) FROM email_attempts WHERE day = ?3) < ${DAILY_LIMIT} AND ${SENDABLE.replace("?", "?4")} AS sendable`)
       .bind(g.id, minuteAgo, day, g.source_revision).first();
     if (q.recent) fail(429, "A code was sent less than a minute ago. Please wait a minute before asking for another.");
     if (q.today >= PER_DAY) fail(429, "You have asked for 10 codes today. Please try again tomorrow or contact Hampton Estates.");
+    if (q.everyone >= ALL_PER_DAY) fail(429, "We can send no more codes today. Please try again tomorrow or call Hampton Estates.");
     if (!q.sendable) fail(503, NO_EMAIL);
     throw e;
   }
@@ -67,7 +72,7 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
   const live = transport(env) && await env.DB.prepare(`SELECT 1 FROM case_challenges WHERE id = ? AND status = 'open' AND ${SENDABLE}`)
     .bind(id, g.source_revision).first() && await grantInForce(env, "g.id = ?", g.id, clock());
   if (!live) {
-    await settle(env, id, attempt, "failed", null, "NOT_SENT");
+    await settle(env, g, id, attempt, "failed", null, "NOT_SENT");
     return (await grantInForce(env, "g.id = ?", g.id, clock())) ? fail(503, NO_EMAIL) : gone();
   }
   let status = "accepted", messageId = null, error = null;
@@ -80,17 +85,20 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
     const named = typeof e?.code === "string" && /^E_[A-Z_]{1,58}$/.test(e.code);
     [status, error] = named ? ["failed", e.code] : ["unknown", "UNKNOWN_RESULT"];
   }
-  await settle(env, id, attempt, status, messageId, error);
+  await settle(env, g, id, attempt, status, messageId, error);
   if (status === "failed") fail(503, NO_EMAIL);
   return { challenge_id: id, expires_at: expires };
 }
 
-async function settle(env, id, attempt, status, messageId, error) {
+async function settle(env, g, id, attempt, status, messageId, error) {
   try {
     await env.DB.batch([
       env.DB.prepare("UPDATE case_auth_attempts SET status = ?, message_id = ?, error_code = ? WHERE id = ? AND status = 'reserved'")
         .bind(status, messageId, error, attempt),
       ...(status === "failed" ? [env.DB.prepare("UPDATE case_challenges SET status = 'revoked' WHERE id = ? AND status = 'open'").bind(id)] : []),
+      // source_revision is the address's SHA-256, the hash email_suppressions keeps (dispatchEmail does the same).
+      ...(error === "E_RECIPIENT_SUPPRESSED" ? [env.DB.prepare(`INSERT INTO email_suppressions VALUES (?, ?, 'provider')
+        ON CONFLICT(address_hash) DO NOTHING`).bind(g.source_revision, now())] : []),
     ]);
   } catch { console.error("ADM-12: a sign-in code's outcome could not be saved"); } // never the code, address or provider payload
 }

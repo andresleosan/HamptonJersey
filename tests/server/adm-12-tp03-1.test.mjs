@@ -12,6 +12,8 @@ import { ADMIN, OTHER, KEY, seed, onEnv, staff, inAWeek, count, backdate, link, 
 let mod;
 try { mod = await import("../../server/case-access.js"); } catch (e) { if (e.code !== "ERR_MODULE_NOT_FOUND") throw e; }
 const need = () => assert.ok(mod, "server/case-access.js is not built yet");
+const report = (env, cookie) => call(env, "POST", "/repair-report/submit", { cookie,
+  body: { operation_id: crypto.randomUUID(), title: "Leak", urgency: "routine" } });
 
 test("off: no new route answers and the existing rental answers are the same", async () => {
   const off = seed(makeEnv()), on = seed(onEnv());
@@ -219,6 +221,96 @@ test("grant_expiry_revokes_existing_session: expiry, revocation, a new tenant em
     await end(env, id);
     assert.equal((await call(env, "GET", "/repair-report", { cookie })).status, 404, label);
   }
+});
+
+// Review 16-nov: a check of purpose and version on every read and write; an approval of the policy is a new version.
+test("purpose_and_version_revalidated: revoking or re-approving the repair_report policy ends links already sent", async () => {
+  const env = seed(onEnv()), { token } = await link(env), cookie = await signIn(env, token);
+  const policy = set => env.DB.raw.prepare(`UPDATE case_purpose_policies SET ${set}, revision = revision + 1 WHERE purpose = 'repair_report'`).run();
+  policy("status = 'revoked'");
+  assert.equal((await call(env, "GET", "/repair-report", { cookie })).status, 404);
+  assert.equal((await ask(env, token)).status, 404);
+  policy("status = 'approved', approval_ref = 'fixture-policy-2'");
+  assert.equal((await call(env, "GET", "/repair-report", { cookie })).status, 404, "a new approval is a new version");
+  assert.equal((await ask(env, token)).status, 404);
+  // New links need the team's capability renewed under the new version too (ADM-18 binds it to the policy revision).
+  assert.equal((await staff(env, "POST", "/admin/tenancies/1/repair-links", { expires_on: inAWeek() })).status, 403);
+  env.DB.raw.prepare("UPDATE case_capability_grants SET status = 'revoked', version = version + 1 WHERE id = 'fixture-1'").run();
+  env.DB.raw.prepare(`INSERT INTO case_capability_grants (id, case_kind, case_id, staff_email, capability, purpose, status, version,
+    membership_version, policy_revision, approval_ref, approved_by, valid_from) VALUES ('fixture-1-r3', 'tenancy', 1, ?, 'case_data_write',
+    'repair_report', 'active', 1, 1, 3, 'fixture-grant-r3', 'fixture-operator', '2000-01-01T00:00:00.000Z')`).run(ADMIN);
+  assert.equal((await ask(env, (await link(env)).token)).status, 202, "a link made under the new version works");
+});
+
+// Review 16-nov: «cambio receptor invalida hijos» for good, also when the change is undone.
+test("closed for good: a new email, an ended tenancy or an archived property close the link; undoing it revives nothing", async () => {
+  const set = sql => env => env.DB.raw.prepare(sql).run(jerseyToday());
+  const cases = [
+    ["recipient_changed", set("UPDATE tenancies SET tenant_email = 'someone.else@example.test' WHERE id = 1 AND ? IS NOT NULL"),
+      set("UPDATE tenancies SET tenant_email = 'tenant.one@example.test' WHERE id = 1 AND ? IS NOT NULL")],
+    ["property_archived", set("UPDATE rentals SET archived_at = ? WHERE id = 1"), set("UPDATE rentals SET archived_at = NULL WHERE id = 1 AND ? IS NOT NULL")],
+    ["tenancy_ended", set("UPDATE tenancies SET ended_on = ? WHERE id = 1"), set("UPDATE tenancies SET ended_on = NULL WHERE id = 1 AND ? IS NOT NULL")],
+  ];
+  for (const [reason, change, undo] of cases) {
+    const env = seed(onEnv()), { id, token } = await link(env), cookie = await signIn(env, token);
+    change(env);
+    assert.equal((await report(env, cookie)).status, 404, reason);
+    undo(env);
+    assert.equal((await report(env, cookie)).status, 404, `${reason} undone, same session`);
+    assert.equal((await ask(env, token)).status, 404, `${reason} undone, same link`);
+    assert.deepEqual({ ...env.DB.raw.prepare("SELECT status, closed_reason FROM case_grants WHERE id = ?").get(id) },
+      { status: "closed", closed_reason: reason });
+    assert.equal(count(env, "repairs"), 0);
+  }
+  // Seen by the team's panel alone, with no tenant traffic: the same.
+  const env = seed(onEnv()), { id, token } = await link(env);
+  cases[0][1](env);
+  const panel = (await staff(env, "GET", "/admin/tenancies/1/repair-links")).data.links.find(g => g.id === id);
+  assert.deepEqual([panel.status, panel.closed_reason], ["closed", "recipient_changed"]);
+  cases[0][2](env);
+  assert.equal((await ask(env, token)).status, 404);
+  assert.equal((await staff(env, "POST", `/admin/case-grants/${id}/sent`, {})).status, 409);
+});
+
+test("sign out ends the session at once, in the database too", async () => {
+  const env = seed(onEnv()), { token } = await link(env), cookie = await signIn(env, token);
+  const out = await call(env, "POST", "/case-access/sign-out", { cookie });
+  assert.equal(out.status, 200);
+  assert.match(out.headers.get("set-cookie"), /^__Host-hampton-case=; Path=\/; HttpOnly; Secure; SameSite=Strict; Max-Age=0$/);
+  assert.equal((await call(env, "GET", "/repair-report", { cookie })).status, 404, "the old cookie no longer works");
+  assert.equal((await call(env, "POST", "/case-access/sign-out", {})).status, 200, "without a session too");
+});
+
+test("all case codes together: at most 30 a Jersey day, inside the team's 100", async () => {
+  const env = seed(onEnv()), a = await link(env, { tenancy: 1 }), b = await link(env, { tenancy: 2 });
+  const { emailDay } = await import("../../server/email.js"), ts = new Date().toISOString(), day = emailDay(ts);
+  const c = env.DB.raw.prepare("INSERT INTO case_challenges (id, grant_id, digest, key_id, status, created_at, expires_at) VALUES (?, ?, ?, ?, 'revoked', ?, ?)");
+  const t = env.DB.raw.prepare(`INSERT INTO case_auth_attempts (id, challenge_id, grant_id, recipient_version, status, day, at, expires_at)
+    VALUES (?, ?, ?, ?, 'accepted', ?, '2000-01-01T00:00:00.000Z', ?)`);
+  for (let i = 0; i < 29; i++) {
+    const id = crypto.randomUUID();
+    c.run(id, a.id, "0".repeat(64), "0".repeat(16), ts, ts);
+    t.run(crypto.randomUUID(), id, a.id, "0".repeat(64), day, ts);
+  }
+  assert.equal((await ask(env, b.token)).status, 202, "the 30th");
+  backdate(env, "case_auth_attempts", "at");
+  const before = [count(env, "case_challenges"), count(env, "email_attempts"), env.sent.length];
+  const r = await ask(env, b.token);
+  assert.equal(r.status, 429);
+  assert.match(r.data.error, /no more codes today/);
+  assert.deepEqual([count(env, "case_challenges"), count(env, "email_attempts"), env.sent.length], before);
+});
+
+test("a recipient the provider reports as suppressed is added to the suppression list, as email.js does", async () => {
+  const env = seed(onEnv()), { token } = await link(env);
+  env.EMAIL = { send: async () => { throw Object.assign(new Error("suppressed"), { code: "E_RECIPIENT_SUPPRESSED" }); } };
+  assert.equal((await ask(env, token)).status, 503);
+  const { sha256 } = await import("../../server/http.js");
+  assert.deepEqual({ ...env.DB.raw.prepare("SELECT address_hash, reason FROM email_suppressions").get() },
+    { address_hash: await sha256("tenant.one@example.test"), reason: "provider" });
+  backdate(env, "case_auth_attempts", "at");
+  env.EMAIL = { send: async () => assert.fail("never sent to a suppressed address") };
+  assert.equal((await ask(env, token)).status, 503);
 });
 
 test("wrong_purpose_wrong_case_denied: a session is for its purpose, its tenancy and the operations approved", async () => {

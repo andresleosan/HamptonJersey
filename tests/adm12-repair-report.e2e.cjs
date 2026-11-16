@@ -126,6 +126,25 @@ const { chromium, webkit } = require(process.env.PW || 'playwright-core');
         [{ title: `Boiler not working ${width}`, urgency: 'urgent', status: 'reported', approved_at: null, created_by: 'tenant' }]);
       assert.deepEqual(await client.evaluate(() => [localStorage.length, sessionStorage.length]), [0, 0]);
       if (shots) await client.screenshot({ path: join(shots, `adm12-received-${width}.png`), fullPage: true });
+      const session = () => client.evaluate(() => fetch('/api/repair-report', { cache: 'no-store' }).then(r => r.status));
+
+      // The same browser opens a link again (a shared computer): the session it had ends and the link asks for its own code.
+      await client.goto('about:blank'); await client.goto(link);
+      await says(main, 'link again', ['we will email a 6-digit code']);
+      assert.equal(await session(), 404, 'the earlier session was ended');
+      // A new code (the email's stand-in again), the form, then Sign out ends the session.
+      const second = randomUUID(), code2 = String(200000 + width), now2 = new Date();
+      d1(`INSERT INTO case_challenges (id, grant_id, digest, key_id, created_at, expires_at) VALUES ('${second}', '${grant}',
+        '${await challengeDigest(key, second, grant, code2)}', '${await keyId(key)}', '${now2.toISOString()}', '${expires}')`);
+      await client.unroute('**/api/case-access/challenge');
+      await client.route('**/api/case-access/challenge', route => route.fulfill({ status: 202, contentType: 'application/json',
+        body: JSON.stringify({ challenge_id: second, expires_at: expires }) }));
+      await main.getByRole('button', { name: 'Email me a code' }).click();
+      await main.getByLabel('6-digit code').fill(code2); await main.getByRole('button', { name: 'Check code' }).click();
+      await says(main, 'form again', ['Your home:', address, 'You can send 9 more reports today with this link.']);
+      await main.getByRole('button', { name: 'Sign out' }).click();
+      await says(main, 'signed out', ['You have signed out.']);
+      assert.equal(await session(), 404, 'signed out');
 
       // The team sees it in Repairs as reported by the tenant, then revokes the link: the tenant's session ends.
       await page.reload();

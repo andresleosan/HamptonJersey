@@ -13,7 +13,7 @@ La propuesta de revocación y retención probada por separado aún no resuelve l
 
 ## 0110 · ADM-12 case-access
 
-`0110_case_access.sql` es aditiva (solo `CREATE TABLE` y `CREATE INDEX`) y su esquema no depende de 0046 ni 0049. El código sí: crear y activar un enlace del inquilino consume las capacidades de ADM-18 (`server/case-capabilities.js`), que exigen 0046 y 0049 aplicadas; sin ellas esas rutas responden 403 y no escriben nada. Encender `ADM12_CASE_ACCESS_READY` requiere además la clave `CASE_CHALLENGE_HMAC_KEY` y el envío de correo de AUT-17. [Ficha](../docs/roadmap/tasks/ADM-12.json).
+`0110_case_access.sql` es aditiva (solo `CREATE TABLE` y `CREATE INDEX`) y su esquema no depende de 0046 ni 0049. El código sí: crear y activar un enlace del inquilino consume las capacidades de ADM-18 (`server/case-capabilities.js`), que exigen 0046 y 0049 aplicadas; sin ellas esas rutas responden 403 y no escriben nada. Cada uso del enlace comprueba además la política `repair_report` de 0046 en la revisión con la que se creó. Encender `ADM12_CASE_ACCESS_READY` requiere además la clave `CASE_CHALLENGE_HMAC_KEY` y el envío de correo de AUT-17. [Ficha](../docs/roadmap/tasks/ADM-12.json).
 
 ## 0050 y 0068 · BUS-10
 
