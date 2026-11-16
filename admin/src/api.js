@@ -16,11 +16,12 @@ function reauth(method) {
 }
 
 // For the panel's own fetch calls too (downloads, uploads): the reauth error, already announced, or null.
-// Their fetch must use redirect: "manual", like api().
+// Their fetch must use redirect: "manual", like api(). A real Response always has headers and clone(); the optional
+// calls only let the panel's DOM tests answer with plain objects.
 export async function accessReauth(res, method = "GET") {
   if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)
-    || /^text\/html/i.test(res.headers.get("content-type") ?? "")
-    || (res.status === 403 && (await res.clone().json().catch(() => null))?.code === "access_required")) return reauth(method);
+    || /^text\/html/i.test(res.headers?.get("content-type") ?? "")
+    || (res.status === 403 && (await (res.clone?.() ?? res).json().catch(() => null))?.code === "access_required")) return reauth(method);
   return null;
 }
 
