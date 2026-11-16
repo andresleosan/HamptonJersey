@@ -54,7 +54,7 @@ const CHAT_STATUS = { waiting: "Waiting", answered: "Answered", handled: "Handle
 // linked to applicants yet, and says so.
 export function ApplicantMessages({ id, active }) {
   const [state, read] = useTabRead(`/admin/applicants/${id}/messages`, active);
-  return <>
+  return <div className="sections">
     <section className="card" aria-labelledby="h-contact-chats">
       <h2 id="h-contact-chats">Website chats</h2>
       {state.phase !== "ready" ? <Pending state={state} read={read} what="website chats" />
@@ -69,5 +69,5 @@ export function ApplicantMessages({ id, active }) {
       <h2 id="h-a-email">Email</h2>
       <p className="muted">Email conversations are not linked to applicants yet.</p>
     </section>
-  </>;
+  </div>;
 }
