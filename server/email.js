@@ -95,6 +95,11 @@ const AUTHORIZED = (enquiry = "0", marketing = false) => `EXISTS (SELECT 1 FROM 
   AND outbound.approved_at IS NOT NULL AND outbound.approved_by IS NOT NULL
   AND outbound.recipient IS NOT NULL AND outbound.text IS NOT NULL AND outbound.subject IS NOT NULL
   AND (outbound.template <> 'enquiry' OR (${enquiry})) AND ${PROMOTION(marketing)}`;
+// The one provider call: the queued emails below and ADM-12's sign-in code (case-auth-email.js), from the same sender.
+// Callers check serviceReady and the binding first, and reserve the day's quota in email_attempts before calling.
+export const sendNow = (env, to, subject, text) => env.EMAIL.send({ from: { email: EMAIL_FROM, name: "Hampton Estates" }, to,
+  replyTo: EMAIL_REPLY_TO, subject, text,
+  html: `<div style="font:15px/1.6 Arial,sans-serif;color:#141414"><pre style="font:inherit;white-space:pre-wrap">${esc(text)}</pre></div>` });
 const RETRY = new Set(["E_RATE_LIMIT_EXCEEDED", "E_DAILY_LIMIT_EXCEEDED"]);
 const REJECTED = new Set(["E_VALIDATION_ERROR", "E_FIELD_MISSING", "E_TOO_MANY_RECIPIENTS", "E_TOO_MANY_ATTACHMENTS",
   "E_SENDER_NOT_VERIFIED", "E_RECIPIENT_NOT_ALLOWED", "E_RECIPIENT_SUPPRESSED", "E_ACCOUNT_SUSPENDED",
@@ -144,9 +149,7 @@ export async function dispatchEmail(env, clock = now, enquiry) {
     }
     if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
     try {
-      const result = await env.EMAIL.send({ from: { email: EMAIL_FROM, name: "Hampton Estates" }, to: row.recipient,
-        replyTo: EMAIL_REPLY_TO, subject: `${row.subject} [HE-OUT-${row.ref}]`, text: row.text,
-        html: `<div style="font:15px/1.6 Arial,sans-serif;color:#141414"><pre style="font:inherit;white-space:pre-wrap">${esc(row.text)}</pre></div>` });
+      const result = await sendNow(env, row.recipient, `${row.subject} [HE-OUT-${row.ref}]`, row.text);
       if (typeof result?.messageId !== "string" || !result.messageId.length || result.messageId.length > 512)
         throw new Error("Missing acceptance id");
       await env.DB.prepare(`UPDATE outbound SET status = 'accepted', message_id=?, error_code=NULL, claim_token=NULL,

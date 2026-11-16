@@ -11,3 +11,10 @@
   Cache-Control: no-store
   X-Frame-Options: DENY
   X-Robots-Tag: noindex
+# ADM-12: a tenant's private link to report a repair (its data comes from /api/repair-report, never cached either).
+/repair-report
+  ! Referrer-Policy
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Frame-Options: DENY
+  X-Robots-Tag: noindex

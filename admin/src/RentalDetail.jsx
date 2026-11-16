@@ -11,6 +11,7 @@ import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.js
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
 import { TenancySignatures } from "./TenancySignatures.jsx";
+import { RepairLinks } from "./RepairLinks.jsx";
 import { Suppliers } from "./Suppliers.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
@@ -174,7 +175,8 @@ export default function RentalDetail({ id, selection='', onChange }) {
             const facts = [p.contractor, p.quote != null && `quote ${money(p.quote)}`, p.cost != null && `cost ${money(p.cost)}`,
               p.done_on && `done ${fmtDay(p.done_on)}`, !p.charge_landlord && "not charged to the landlord"].filter(Boolean);
             return <li key={p.id} id={`repair-${p.id}`} tabIndex={-1} aria-current={!linked.error&&linked.repair===p.id?'location':undefined} className={live && p.urgency === "emergency" ? "overdue" : undefined}>
-              <span><strong>{p.title}</strong><span className="meta">{(facts.length ? facts : [`Reported ${day(p.created_at)}`])
+              <span><strong>{p.title}</strong><span className="meta">{(facts.length ? facts
+                : [`Reported ${p.created_by === "tenant" ? "by the tenant " : ""}${day(p.created_at)}`]) /* ADM-12: the tenant's link */
                 .map((fact, i) => <span key={i}>{fact}</span>)}</span>
                 {p.approved_at && <span className="muted cell-note">{p.approved_amount != null
                   ? `The landlord approved up to ${money(p.approved_amount)} on ${fmtDay(p.approved_on)}` : `The landlord approved it ${day(p.approved_at)}`}</span>}</span>
@@ -359,6 +361,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
     <TenancyInspections id={id} tick={tick} onRepair={refresh} />
     <TenancyRecords id={id} tick={tick} />
     <TenancySignatures id={id} tick={tick} onChanged={refresh} />
+    {!ended && <RepairLinks id={id} />}
     <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />
 
     {full && <><h3 id={`h-charges-${id}`}>Charges</h3>
@@ -417,6 +420,7 @@ const EVENT = {
   "rental.restored": () => "Property restored",
   "compliance.updated": d => `${CHECK[d.kind]} ${checkDates(d.after, "done", "due by")}`,
   "repair.created": d => `Repair reported${d.inspection_id ? " from an inspection" : ""}: ${d.title}`,
+  "repair.reported": (d, { repairs }) => `Repair reported by the tenant through their link: ${repairs.find(p => p.id === d.repair_id)?.title ?? ""}`,
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
