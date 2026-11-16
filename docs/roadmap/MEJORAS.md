@@ -199,3 +199,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ANA-08] Listar en #/insights los resúmenes semanales anteriores (hoy solo desde su aviso en el Inbox) · 15-nov-2026
 - [BUS-18] Paginar Matched applicants o cargar estados por página por encima de 50 búsquedas; leer el JSON de la ficha una vez y no en cada fila de MATCHES_SQL (eval_listing, listing, COVER_ID: ~la mitad de los 2 KB por tarjeta); filtrar por tipo en el índice de eventos la subconsulta CLARIFICATION · 15-nov-2026
 - [ADM-03] Borrador para el propietario en el paso +10 de atrasos; token monotónico en repairs y saneamiento de tareas históricas; medir la CPU del pase de notificaciones en producción (raw_pending pasa a 4 términos) · 15-nov-2026
+- [BUS-08] Compactar las observaciones diarias que no cambian (hoy una fila por anuncio y día en market_observations); pantalla del panel para la pasada diaria y sus anuncios no encontrados; enlace de la tarea del Inbox a esa pantalla · 16-nov-2026
