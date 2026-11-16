@@ -1,0 +1,106 @@
+decision,fuente,url,motivo
+manual_only,Broadlands Commercial,https://broadlandscommercial.com/,Sus términos prohíben el acceso automatizado
+manual_only,Connections,https://connections.je/,Sus términos prohíben el acceso automatizado
+manual_only,Connections,https://www.connections.je/property-search-results/,Sus términos prohíben el acceso automatizado
+manual_only,Dandara Sales,https://dandara.com/locations/jersey,Sus términos prohíben el acceso automatizado
+manual_only,Dandara Sales,https://www.dandara.com/locations/jersey/,Sus términos prohíben el acceso automatizado
+manual_only,Falcon Consultants,https://falcon.je/,Sus términos prohíben el acceso automatizado
+manual_only,Forty-Eight,https://forty-eight.co.uk/,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Forty-Eight,https://www.forty-eight.co.uk/branches/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,JamesEdition Jersey,https://jamesedition.com/real_estate/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,JamesEdition Jersey,https://www.jamesedition.com/real_estate/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Jersey Development Company,https://horizon.je/register-for-new-jdc-developments,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Development Company,https://jerseydevelopment.je/,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Development Company,https://www.westward.je/apartments,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Evening Post Property,https://property.jerseyeveningpost.com/find-agent?submit=all,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Evening Post Property,https://property.jerseyeveningpost.com/home,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Evening Post Property,https://property.jerseyeveningpost.com/search?page=1&rent=1,Sus términos prohíben el acceso automatizado
+manual_only,Jersey Property App · Raven Consultancy,https://apps.apple.com/us/app/jersey-property-app/id6762444379,Sus términos prohíben el acceso automatizado
+manual_only,Knight Frank Jersey,https://knightfrank.je/,Sus términos prohíben el acceso automatizado
+manual_only,Les Vaux Housing Trust,https://lesvauxhousingtrust.org.je/,Sus términos prohíben el acceso automatizado
+manual_only,Les Vaux Housing Trust,https://www.lesvauxhousingtrust.org.je/,Sus términos prohíben el acceso automatizado
+manual_only,Les Vaux Housing Trust,https://www.lesvauxhousingtrust.org.je/estates/,Sus términos prohíben el acceso automatizado
+manual_only,Livingroom Estate Agents,https://livingroomproperty.com/,Sus términos prohíben el acceso automatizado
+manual_only,LoopNet Jersey,https://loopnet.co.uk/search/commercial-property/channel-islands-county--united-kingdom/for-sale,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,LoopNet Jersey,https://www.loopnet.co.uk/search/commercial-property/jersey-cid--united-kingdom/for-rent/,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Mansion Global Jersey,https://www.mansionglobal.com/buy/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Mansion Global Jersey,https://www.mansionglobal.com/rent/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,PrimeLocation – Jersey / Channel Isles,https://primelocation.com/for-sale/property/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Properstar,https://properstar.com/,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Quemard Estates,https://quemard.je/,Sus términos prohíben el acceso automatizado
+manual_only,Quemard Estates,https://www.quemard.je/properties-for-sale-st-helier.htm,Sus términos prohíben el acceso automatizado
+manual_only,Quemard Estates,https://www.quemard.je/properties.aspx?menuID=31&mode=1,Sus términos prohíben el acceso automatizado
+manual_only,Rightmove – Jersey,https://rightmove.co.uk/estate-agents/channel-islands.html,Sus términos prohíben el acceso automatizado
+manual_only,Rightmove – Jersey,https://rightmove.co.uk/property-for-sale/Jersey.html,Sus términos prohíben el acceso automatizado
+manual_only,Rightmove – Jersey,https://rightmove.co.uk/property-to-rent/Jersey.html,Sus términos prohíben el acceso automatizado
+manual_only,SpareRoom – Jersey,https://spareroom.co.uk/flatmate/channel_isles/jersey,Sus términos prohíben el acceso automatizado
+manual_only,The Instant Group Jersey,https://coworker.com/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,The Instant Group Jersey,https://www.coworker.com/jersey,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Troys Estate Agents,https://troysjersey.com/,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Troys Estate Agents,https://www.troysjersey.com/,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Troys Estate Agents,https://www.troysjersey.com/properties/lettings,Bloquea bots (robots.txt o HTTP 401/403)
+manual_only,Zoopla – Jersey,https://zoopla.co.uk/for-sale/property/jersey,Sus términos prohíben el acceso automatizado
+manual_only,Zoopla – Jersey,https://zoopla.co.uk/to-rent/property/jersey,Sus términos prohíben el acceso automatizado
+denied,192.com Jersey,https://192.com/atoz/business/jersey/estate--agents,Directorio o referencia: no publica anuncios propios
+denied,192.com Jersey,https://www.192.com/atoz/business/jersey/estate--agents/,Directorio o referencia: no publica anuncios propios
+denied,Abode2 Directory,https://abode2.com/directory-categories/uk-estate-agents,Directorio o referencia: no publica anuncios propios
+denied,Abode2 Directory,https://www.abode2.com/directory/wilsons-knight-frank-2/,Directorio o referencia: no publica anuncios propios
+denied,Aviva Directory Jersey,https://avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals,Directorio o referencia: no publica anuncios propios
+denied,Aviva Directory Jersey,https://www.avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals/,Directorio o referencia: no publica anuncios propios
+denied,Christies International Real Estate,https://christiesrealestate.com/network/christies-international-real-estate-hunt-estates/166,Directorio o referencia: no publica anuncios propios
+denied,Cylex Jersey,https://st-helier.cylex-uk.co.uk/estate-agents,Directorio o referencia: no publica anuncios propios
+denied,Cylex Jersey,https://st-helier.cylex-uk.co.uk/estate-agents/,Directorio o referencia: no publica anuncios propios
+denied,Find The Best St Helier,https://find-the-best.co.uk/estate-agents/st-helier,Directorio o referencia: no publica anuncios propios
+denied,Find.je,https://find.je/,Directorio o referencia: no publica anuncios propios
+denied,Find.je,https://find.je/find-a-business-results?directory_type=business&q=estate+agent,Directorio o referencia: no publica anuncios propios
+denied,Find.je,https://find.je/single-category/estate-agents,Directorio o referencia: no publica anuncios propios
+denied,Government of Jersey,https://gov.je/Government/Departments/InfrastructureEnvironment/Pages/property.aspx,Directorio o referencia: no publica anuncios propios
+denied,Government of Jersey,https://gov.je/lifeevents/movingtojersey/preparingtomove/pages/arrangeaccommodation.aspx,Directorio o referencia: no publica anuncios propios
+denied,Hampton Estates,https://hamptonestatesjersey.com/,Web propia de Hampton: sus fichas ya están en el catálogo
+denied,Homely.je,https://homely.je/,Homely: excluida por el plan maestro
+denied,Homely.je,https://homely.je/for-sale,Homely: excluida por el plan maestro
+denied,Homely.je,https://homely.je/to-rent,Homely: excluida por el plan maestro
+denied,JSY Social,https://jsysocial.com/,Directorio o referencia: no publica anuncios propios
+denied,Jersey Chamber of Commerce,https://jerseychamber.com/membership-directory/corporate,Directorio o referencia: no publica anuncios propios
+denied,Jersey Chamber of Commerce,https://jerseychamber.com/membership-directory/corporate/2103888,Directorio o referencia: no publica anuncios propios
+denied,Jersey Estate Agents Association,https://jeaa.je/members,Directorio o referencia: no publica anuncios propios
+denied,JerseyWeb,https://jerseyweb.je/directory/estate-agents,Directorio o referencia: no publica anuncios propios
+denied,Opendi Jersey,https://jersey.opendi.co.uk/,Directorio o referencia: no publica anuncios propios
+denied,PrimeResi Directory,https://directory.primeresi.com/companies,Directorio o referencia: no publica anuncios propios
+denied,PrimeResi Directory,https://directory.primeresi.com/companies/catterson-wood,Directorio o referencia: no publica anuncios propios
+denied,PropertyManagementCo Jersey,https://propertymanagementco.co.uk/jersey,Directorio o referencia: no publica anuncios propios
+denied,PropertyManagementCo Jersey,https://www.propertymanagementco.co.uk/jersey,Directorio o referencia: no publica anuncios propios
+denied,Propertymark,https://propertymark.co.uk/find-an-expert.html?q=Jersey,Directorio o referencia: no publica anuncios propios
+denied,Propertymark,https://www.propertymark.co.uk/find-an-expert.html?q=Jersey,Directorio o referencia: no publica anuncios propios
+denied,RICS Find a Surveyor Jersey,https://ricsfirms.com/Surveyors/GB/Jersey_33737,Directorio o referencia: no publica anuncios propios
+denied,RICS Find a Surveyor Jersey,https://www.ricsfirms.com/Surveyors/GB/Jersey_33737,Directorio o referencia: no publica anuncios propios
+denied,Swoop Jersey,https://swoop.je/buyers-guide,Directorio o referencia: no publica anuncios propios
+denied,The Property Ombudsman,https://tpos.co.uk/business-search/indigo-estates,Directorio o referencia: no publica anuncios propios
+denied,The Property Ombudsman,https://www.tpos.co.uk/business-search/indigo-estates/,Directorio o referencia: no publica anuncios propios
+denied,allAgents,https://allagents.co.uk/thompsonestates.com,Directorio o referencia: no publica anuncios propios
+denied,allAgents,https://www.allagents.co.uk/thompsonestates.com,Directorio o referencia: no publica anuncios propios
+pending,Places.je,https://places.je/,Places.je: conector posterior (PRE-01)
+pending,Places.je,https://places.je/buy,Places.je: conector posterior (PRE-01)
+pending,Places.je,https://places.je/rent,Places.je: conector posterior (PRE-01)
+pending,Properties.je,https://properties.je/buy,"Properties.je: conector posterior, permiso escrito"
+pending,Properties.je,https://properties.je/rent,"Properties.je: conector posterior, permiso escrito"
+pending,Properties.je,https://www.properties.je/,"Properties.je: conector posterior, permiso escrito"
+pending (sin cambio),BCK Lettings,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Benest Estates,https://best.je/,Necesita permiso escrito antes de copiar contenido
+pending (sin cambio),Buy + Sell Jersey,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),CBRE Jersey,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Choice Properties,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),De Vere Estate Agents,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Facebook Marketplace – Jersey,https://facebook.com/marketplace,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Gaudin & Co – Facebook,https://facebook.com/gaudinandco,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Isle Sell It,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey (C.I.) Rooms For Rent (And Other Accommodation),,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey Anything for Sale,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey Property Rentals,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey Property for Rent,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey Rentals,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Jersey Stuff for Sale,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Marks Estate Agents,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),Moore Properties,,Sin URL o red social: fuera de esta etapa
+pending (sin cambio),ND Estates,https://ndestates.com/,Necesita permiso escrito antes de copiar contenido
+pending (sin cambio),The Accommodation Centre,https://www.acjersey.com/,Web no responde: revisar más adelante
