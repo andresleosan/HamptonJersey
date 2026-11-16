@@ -122,8 +122,8 @@ test('the plan: evidenced start, one review per due date, 7 days after the close
   assert.equal(plan(base, undefined, 'unknown', DUE, enabled), null);
   assert.equal(plan({ ...base, live: 0 }, undefined, 'absent', DUE, enabled), null);
   const absent = { ...base, state: 'absent', episode: 1, no_full_since: T0, source: 'activation', last_closed_at: null, reviews: 1 };
-  assert.equal(plan(absent, { id: 9 }, 'absent', later(DUE, DAY), enabled), null); // open: updated nowhere, never doubled
-  const closedAt = '2026-10-30T15:00:00.000Z', closing = plan(absent, { id: 9, resolved_at: closedAt, resolved_by: 'a@example.test' },
+  assert.equal(plan(absent, { id: 9, episode: 1 }, 'absent', later(DUE, DAY), enabled), null); // open: updated nowhere, never doubled
+  const closedAt = '2026-10-30T15:00:00.000Z', closing = plan(absent, { id: 9, episode: 1, resolved_at: closedAt, resolved_by: 'a@example.test' },
     'absent', later(closedAt, TICK), enabled);
   assert.deepEqual([closing.close.outcome, closing.cycle.last_closed_at, closing.open], ['reviewed', closedAt, null]);
   const after = { ...absent, last_closed_at: closedAt };
@@ -336,11 +336,48 @@ test('a clock off for over an hour restarts every absence from its resumption', 
   assert.equal(cycle(env).source, 'activation');
   const back = later(DUE, 10 * DAY); // nothing ran for 30 days
   await tickAt(env, back);
-  assert.deepEqual(cycle(env), { state: 'absent', episode: 1, no_full_since: back, source: 'legacy_baseline', last_closed_at: null });
+  assert.deepEqual(cycle(env), { state: 'absent', episode: 2, no_full_since: back, source: 'legacy_baseline', last_closed_at: null });
   assert.deepEqual(reviews(env), []);
-  assert.equal(one(env, 'SELECT enabled_at FROM search_review_progress').enabled_at, back);
+  // The restart leaves a trace: when, and how many absences it restarted.
+  assert.deepEqual({ ...one(env, 'SELECT enabled_at,last_restart_at,last_restart_absences FROM search_review_progress') },
+    { enabled_at: back, last_restart_at: back, last_restart_absences: 1 });
   await searchReviewPass(env, later(back, 21 * DAY - TICK));
   assert.deepEqual(reviews(env), []);
+});
+
+test('after a restart the next review starts a new episode: 21 days on, with its 21-day text', async () => {
+  // Reviewed before the clock stopped.
+  let env = world();
+  await search(env);
+  await searchReviewPass(env, later(DUE, -TICK));
+  await searchReviewPass(env, DUE);
+  await done(env, tasks(env)[0].id);
+  let closedAt = tasks(env)[0].resolved_at;
+  await searchReviewPass(env, later(closedAt, TICK));
+  const back = later(closedAt, DAY);
+  await tickAt(env, back);
+  await searchReviewPass(env, later(back, 20 * DAY));
+  assert.equal(reviews(env).length, 1);
+  await searchReviewPass(env, later(back, 22 * DAY));
+  assert.deepEqual(reviews(env).map(r => [r.episode, r.cycle, r.outcome]), [[1, 1, 'reviewed'], [2, 1, null]]);
+  assert.equal(tasks(env).at(-1).title, '21-day search review for Ana Le Gros');
+  assert.match(tasks(env).at(-1).task_reason, /^No home has met every must-have with availability confirmed by a person for 21 days\./);
+  // Still open when the clock stopped and done after: it belongs to the earlier absence, so the next waits 21 days.
+  env = world();
+  await search(env);
+  await searchReviewPass(env, later(DUE, -TICK));
+  await searchReviewPass(env, DUE);
+  const restart = later(new Date().toISOString(), -2 * DAY);
+  await tickAt(env, restart);
+  await done(env, tasks(env)[0].id);
+  closedAt = tasks(env)[0].resolved_at;
+  await searchReviewPass(env, later(closedAt, TICK));
+  assert.deepEqual([reviews(env)[0].outcome, cycle(env).last_closed_at], ['reviewed', null]);
+  await searchReviewPass(env, later(closedAt, 8 * DAY));
+  assert.equal(reviews(env).length, 1);
+  await searchReviewPass(env, later(restart, 22 * DAY));
+  assert.deepEqual(reviews(env).map(r => [r.episode, r.cycle]), [[1, 1], [2, 1]]);
+  assert.equal(tasks(env).at(-1).title, '21-day search review for Ana Le Gros');
 });
 
 test('a rejected home: a new rejection starts again, and one open drop task per match', async () => {

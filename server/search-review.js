@@ -5,7 +5,7 @@
 // Absence is only certified when the search's last full run succeeded (EST-01), its ranking is current and every stored
 // match agrees with evaluate() over the listings as they are now (a listing's own recompute is not recorded, so a failed
 // one shows here as a difference); otherwise nothing starts or advances. A clock off for over an hour restarts every
-// absence from its resumption, as nothing was watched meanwhile.
+// absence from its resumption as a new episode, as nothing was watched meanwhile, and records when and how many.
 // 21 Jersey calendar days into an absence one review opens: an Inbox task with up to 20 explained alternatives. The
 // team's Done on that task closes it, and 7 days later, still with none, the next opens. A complete option, or the
 // search stopping, closes an open review by its source and ends the absence; a later one is a new episode.
@@ -115,8 +115,8 @@ export function plan(s, review, availability, ts, enabledAt) {
   let close = null, reviews = cycle.episode === s.episode ? s.reviews : 0;
   if (review?.resolved_at) {
     close = { outcome: 'reviewed', at: review.resolved_at, by: review.resolved_by ?? 'system', source: false };
-    // Closed before an absence restarted (the clock was off): the next is due 21 days from that restart.
-    cycle.last_closed_at = review.resolved_at >= cycle.no_full_since ? review.resolved_at : null;
+    // A review of an earlier episode (open when the clock restarted): the next is due 21 days from that restart.
+    cycle.last_closed_at = review.episode === cycle.episode ? review.resolved_at : null;
   }
   let open = null;
   if (!review || close) {
@@ -272,13 +272,15 @@ export async function searchReviewPass(env, ts) {
   if (!REVIEW_FLAGS.every(flag => env[flag] === '1')) return { waiting: true };
   await env.DB.prepare('INSERT INTO search_review_progress(id,enabled_at) VALUES (1,?) ON CONFLICT DO NOTHING').bind(ts).run();
   const progress = await env.DB.prepare('SELECT enabled_at,last_tick_at,after_id FROM search_review_progress WHERE id=1').first();
-  // Off, or waiting for its flags, for over an hour: nothing was watched, so every absence restarts now with no history
-  // assumed, and a search registered meanwhile is not taken as watched since its registration.
+  // Off, or waiting for its flags, for over an hour: nothing was watched, so every absence restarts now as a new episode
+  // with no history assumed, and a search registered meanwhile is not taken as watched since its registration. The
+  // progress row keeps when that last happened and how many absences it restarted.
   const resumed = progress.last_tick_at != null && Date.parse(ts) - Date.parse(progress.last_tick_at) > GAP_MS;
   await env.DB.batch([
-    ...(resumed ? [env.DB.prepare(`UPDATE search_review_cycles SET source='legacy_baseline',no_full_since=?,last_closed_at=NULL,
-        revision=revision+1,updated_at=? WHERE state='absent'`).bind(ts, ts),
-      env.DB.prepare('UPDATE search_review_progress SET enabled_at=? WHERE id=1').bind(ts)] : []),
+    ...(resumed ? [env.DB.prepare(`UPDATE search_review_progress SET enabled_at=?,last_restart_at=?,
+        last_restart_absences=(SELECT COUNT(*) FROM search_review_cycles WHERE state='absent') WHERE id=1`).bind(ts, ts),
+      env.DB.prepare(`UPDATE search_review_cycles SET source='legacy_baseline',no_full_since=?,last_closed_at=NULL,episode=episode+1,
+        revision=revision+1,updated_at=? WHERE state='absent'`).bind(ts, ts)] : []),
     env.DB.prepare('UPDATE search_review_progress SET last_tick_at=? WHERE id=1 AND (last_tick_at IS NULL OR last_tick_at<?)').bind(ts, ts)]);
   if (resumed) progress.enabled_at = ts;
   const { results: page } = await env.DB.prepare(`SELECT a.id FROM applicants a LEFT JOIN search_review_cycles y ON y.applicant_id=a.id
@@ -302,7 +304,7 @@ export async function searchReviewPass(env, ts) {
         (SELECT price FROM search_rejected_prices WHERE match_id=m.id) AS seen_price,
         (SELECT rejected_at FROM search_rejected_prices WHERE match_id=m.id) AS seen_rejected_at
       FROM matches m JOIN listings l ON l.id=m.listing_id WHERE m.applicant_id IN (SELECT value FROM json_each(?))`).bind(ids),
-    env.DB.prepare(`SELECT v.id,v.applicant_id,n.resolved_at,n.resolved_by FROM search_reviews v
+    env.DB.prepare(`SELECT v.id,v.applicant_id,v.episode,n.resolved_at,n.resolved_by FROM search_reviews v
       LEFT JOIN notifications n ON n.task_key='bus17:review:'||v.id WHERE v.closed_at IS NULL AND v.applicant_id IN (SELECT value FROM json_each(?))`).bind(ids),
   ])).map(r => r.results);
   const out = { searched: searches.length, opened: 0, closed: 0, deferred: 0, price_drops: 0, unchanged: 0, contended: 0, failed: 0 };

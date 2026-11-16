@@ -5,17 +5,20 @@
 
 -- The clock's own progress: when the module was last switched on (a search registered before that has no evidenced
 -- history, so its absence starts when the clock first sees it), its last tick (a gap of over an hour means it was off:
--- every absence restarts from the resumption, as nothing was watched meanwhile) and the page cursor. One row.
+-- every absence restarts from the resumption as a new episode, as nothing was watched meanwhile), the page cursor, and
+-- when that restart last happened and how many absences it restarted. One row.
 CREATE TABLE search_review_progress (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   enabled_at TEXT NOT NULL,
   last_tick_at TEXT,
-  after_id INTEGER NOT NULL DEFAULT 0
+  after_id INTEGER NOT NULL DEFAULT 0,
+  last_restart_at TEXT,
+  last_restart_absences INTEGER
 );
 
 -- One row per search the clock has seen. state: absent (no complete option since no_full_since), held (a complete
--- option exists) or inactive (the search was not active). episode: raised each time a new absence starts, so a review
--- of an earlier absence never counts for this one. source: what evidences no_full_since (activation: registered or
+-- option exists) or inactive (the search was not active). episode: raised each time a new absence starts (a restart
+-- after the clock was off included), so a review of an earlier absence never counts for this one. source: what evidences no_full_since (activation: registered or
 -- reactivated with none; last_full_lost: the last complete option went; legacy_baseline: registered before the clock).
 -- last_closed_at: when this episode's last review was closed (the next is due 7 days later). revision: every write
 -- checks it, so two ticks never act twice; write_token: the last write's own token, which the same batch checks before acting.
