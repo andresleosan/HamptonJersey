@@ -39,6 +39,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/vis04-after-viewing.e2e.cjs" ? { VIS04_OUTCOME_READY: "1", VIS08_CYCLE_READY: "1" } : {}),
       // VIS-14: open viewings and back-to-back times, switched on for its own test only (off in production).
       ...(process.env.E2E_SCRIPT === "tests/vis14-block.e2e.cjs" ? { VIS14_BLOCK_READY: "1" } : {}),
+      // VIS-17: a viewing agreed with several people, switched on for its own test only (off in production).
+      ...(process.env.E2E_SCRIPT === "tests/vis17-coordination.e2e.cjs" ? { VIS17_MULTIPART_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       // VIS-12: Google Calendar against the fake Google its test starts on localhost:8797; secrets of this run only.
       ...(process.env.E2E_SCRIPT === "tests/vis12-calendar.e2e.cjs" ? { VIS12_CALENDAR_READY: "1", GOOGLE_OAUTH_URL: "http://localhost:8797",

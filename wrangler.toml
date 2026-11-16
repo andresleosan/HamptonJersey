@@ -131,6 +131,10 @@ PRE12_TENANCY_LINK_READY = "0"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"
+# VIS-17: a viewing coordinated with several people: the team proposes one time, records each required person's answer
+# (client always; advertiser or agency and the negotiator when chosen) with how and when, and the viewing is confirmed
+# only once all have accepted (migration 0114). Sends nothing; no client-facing page. Apply 0114 before switching on.
+VIS17_MULTIPART_READY = "0"
 EMAIL_SERVICE_READY = "false"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"
