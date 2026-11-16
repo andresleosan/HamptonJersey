@@ -1,5 +1,11 @@
-# ADM-21: avance parcial
+# ADM-21: avance
 
-El codificador CSV puro transforma filas sintéticas de tipos cerrados, con importes enteros en peniques, escape CSV y protección ante fórmulas. Se revisó independientemente y se cubrió con pruebas sintéticas. No obtiene datos, no implementa permisos ni expone descargas.
+Construido el 16-nov-2026: Rentals › Accounting export descarga en CSV los cargos con sus write-offs y reversiones
+(ADM-09), los pagos recibidos y las liquidaciones cerradas (ADM-10, última revisión, desde su instantánea), con el
+codificador puro (peniques, escape y protección ante fórmulas). Descarga GET solo con sesión del equipo y del mismo
+origen, sin caché; rango de hasta 366 días, 50.000 filas y 16 MB, por encima se rechaza sin recortar. Columnas en
+[columns.md](columns.md).
 
-Antes de conectarlo se requieren la autoridad financiera ADM-09 y el snapshot cerrado ADM-10; también hay que comprobar el límite de importes para liquidaciones, limitar el tamaño total o usar streaming y verificar la compatibilidad con el programa contable elegido. El prefijo de protección modifica el texto exportado. La tarea sigue pendiente.
+Falta publicarlo y descargar un rango real en producción. La compatibilidad se comprobó con lectores CSV estándar, no
+con un programa contable concreto: el formato se adapta cuando Hampton diga cuál usa. El prefijo de protección modifica
+el texto exportado que empiece por `=`, `+`, `-`, `@` o un carácter de control.
