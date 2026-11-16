@@ -1,5 +1,5 @@
 import { json, fail, readJson, now, sha256 } from "./http.js";
-import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH, OPEN_PRIVACY_REQUEST, tenancyLinkReady } from "./retention.js";
+import { NO_SALE, HAS_OPEN_OFFER, HAS_OPEN_SEARCH, OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY } from "./retention.js";
 import { tenanciesFor, linkedTenancies, tenancyItems, setTenancyLink } from "./tenancy-contact-links.js";
 import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
@@ -138,7 +138,11 @@ async function holds(env, contactId, requestId) {
   const other = OPEN_PRIVACY_REQUEST.replace(/\)$/, " AND pr.id <> ?)"); // this request is not "another"
   const h = await env.DB.prepare(`SELECT NOT (${NO_SALE}) AS sale, ${HAS_OPEN_OFFER} AS open_offer, ${HAS_OPEN_SEARCH} AS open_search,
     ${other} AS privacy_request FROM contacts c WHERE c.id = ?`).bind(requestId, contactId).first();
-  return h ? ["sale", "open_offer", "open_search", "privacy_request"].filter(k => h[k]).map(code => ({ code })) : [];
+  const kept = h ? ["sale", "open_offer", "open_search", "privacy_request"].filter(k => h[k]).map(code => ({ code })) : [];
+  // PRE-12 (D4): with its switch and 0113, a running tenancy a person linked to this contact, as the cleanup and Delete.
+  if (tenancyLinkReady(env) && await linkTable(env) && await env.DB.prepare(`SELECT 1 FROM contacts c WHERE c.id = ?1
+    AND ${RUNNING_TENANCY}`).bind(contactId, jerseyToday()).first()) kept.push({ code: "running_tenancy" });
+  return kept;
 }
 
 // What the existing Delete (an archived applicant's, §3.4) would remove for this contact, and what it leaves to a person.
@@ -217,7 +221,7 @@ async function decideTenancy({ request, env, admin, params: [id, tenancy] }) {
   if (r.state !== "open") fail(409, CLOSED);
   if (r.contact_id == null) fail(400, "Link the contact first");
   if (typeof b?.linked !== "boolean") return bad({ linked: "Say whether this person is the tenant" });
-  await setTenancyLink(env, Number(tenancy), r.contact_id, b.linked, admin);
+  await setTenancyLink(env, Number(tenancy), r.contact_id, b.linked, admin, r.id); // still open and on that contact when written
   return json({ tenancies: await tenanciesFor(env, r.contact_id) });
 }
 async function erasurePlan(env, contactId, kept) {
