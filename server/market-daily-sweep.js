@@ -37,9 +37,11 @@ const TASK_TYPE = 'market.sweep_review';
 const taskKey = runId => `bus08:sweep:${runId}`, entity = runId => `market-sweep:${runId}`;
 const later = (ts, seconds) => new Date(Date.parse(ts) + seconds * 1000).toISOString();
 const clockAt = ts => () => new Date(ts);
-// The channels the sweep reads: those claimSourcePage (BUS-06) would lease now, so one it would refuse is not taken
+// The channels reviewed for automatic reading; one of them not read in full is in the day's review, read or not.
+const REVIEWED = "s.access_status='allowed' AND s.method='http'";
+// The ones the sweep reads: those claimSourcePage (BUS-06) would lease now, so one it would refuse is not taken
 // again and again, nor waited for. sr: the channel's row in the run.
-const AUTOMATIC = `s.access_status='allowed' AND s.method='http' AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
+const AUTOMATIC = `${REVIEWED} AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
   AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
   AND EXISTS (SELECT 1 FROM market_runs r JOIN market_directory_manifests m ON m.revision=r.manifest_revision
     WHERE r.id=sr.run_id AND s.directory_revision=r.manifest_revision AND m.status='accepted' AND m.sha256=r.manifest_sha256)`;
@@ -84,11 +86,11 @@ const attempt = (env, runId, c, ts, outcome, records = null, skipped = null) => 
   .bind(crypto.randomUUID(), runId, c.source_ref, c.channel_id, ts, outcome, records, skipped);
 
 // A failed read keeps the inventory as it was. Access refused is not retried that day; a rate limit waits as asked
-// (60 s at least); a network or page failure, or a lease BUS-06 refuses, is retried on later ticks, MAX_FAILURES
+// (the channel's interval at least, as every wait); a network or page failure, or a lease BUS-06 refuses, is retried on later ticks, MAX_FAILURES
 // times in all. lease: the one held, or null when none could be taken (then only an expired one is released).
 function failed(env, runId, c, lease, error, ts) {
   const code = error instanceof SourceReadError ? error.code : 'unavailable';
-  const wait = code === 'rate_limited' ? Math.max(60, Number(error.retryAfterS) || 0) : 1200;
+  const wait = Math.max(c.min_interval_s ?? 60, code === 'rate_limited' ? Number(error.retryAfterS) || 0 : 1200);
   return env.DB.batch([attempt(env, runId, c, ts, code),
     env.DB.prepare(`UPDATE market_source_runs SET lease_token=NULL,lease_until=NULL,next_due=?,
       status=CASE WHEN ?='access_denied' THEN 'blocked' WHEN ?='rate_limited' THEN 'pending'
@@ -122,9 +124,13 @@ async function toPage(read, lease, ts) {
       keys.add(r.external_key);
     } catch { /* skipped */ }
   }
-  return { page_key: `c-${(await sha256(lease.cursor ?? '')).slice(0, 40)}`, cursor: lease.cursor,
-    next_cursor: read.exhausted ? null : read.next_cursor ?? null, exhausted: read.exhausted, observed_at: ts, records,
-    skipped: read.records.length - records.length };
+  const page = { page_key: `c-${(await sha256(lease.cursor ?? '')).slice(0, 40)}`, cursor: lease.cursor,
+    next_cursor: read.exhausted ? null : read.next_cursor ?? null, exhausted: read.exhausted, observed_at: ts, records: [] };
+  // BUS-06 refuses a page over 131072 bytes: an advert that would take it over is left out too.
+  for (const record of records)
+    if (new TextEncoder().encode(JSON.stringify({ ...page, records: [...page.records, record] })).byteLength <= 131072)
+      page.records.push(record);
+  return { ...page, skipped: read.records.length - page.records.length };
 }
 
 async function readChannel(env, run, c, readers, ts) {
@@ -138,7 +144,21 @@ async function readChannel(env, run, c, readers, ts) {
   }
   let lease;
   try { lease = await claimSourcePage(env, { run_id: run.id, source_ref: c.source_ref, channel_id: c.channel_id }, clockAt(ts)); }
-  catch (error) { await failed(env, run.id, c, null, error, ts); return 'failed'; } // refused: counted, retried later
+  catch (error) {
+    // Refused because the channel was read too recently or is leased by another run: wait until it can be, uncounted.
+    const paced = await env.DB.prepare(`UPDATE market_source_runs SET next_due=(SELECT MAX(COALESCE(a.lease_until,''),
+        COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ',a.last_acquired_at,'+'||s.min_interval_s||' seconds'),''))
+        FROM market_source_activity a JOIN market_sources s ON s.source_ref=a.source_ref AND s.channel_id=a.channel_id
+        WHERE a.source_ref=market_source_runs.source_ref AND a.channel_id=market_source_runs.channel_id)
+      WHERE run_id=? AND source_ref=? AND channel_id=? AND EXISTS (SELECT 1 FROM market_source_activity a
+        JOIN market_sources s ON s.source_ref=a.source_ref AND s.channel_id=a.channel_id
+        WHERE a.source_ref=market_source_runs.source_ref AND a.channel_id=market_source_runs.channel_id
+          AND (a.lease_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') OR strftime('%Y-%m-%dT%H:%M:%fZ','now')<
+            strftime('%Y-%m-%dT%H:%M:%fZ',a.last_acquired_at,'+'||s.min_interval_s||' seconds')))
+      RETURNING next_due`).bind(run.id, c.source_ref, c.channel_id).first();
+    if (paced) return 'waiting';
+    await failed(env, run.id, c, null, error, ts); return 'failed'; // refused otherwise: counted, retried later
+  }
   let page, skipped;
   try {
     const read = await reader.readPage({ source_ref: c.source_ref, channel_id: c.channel_id, cursor: lease.cursor,
@@ -169,7 +189,7 @@ async function readChannel(env, run, c, readers, ts) {
 async function compare(env, run, ts) {
   if (await env.DB.prepare('SELECT 1 FROM market_daily_sweeps WHERE run_id=?').bind(run.id).first()) return;
   const unread = `(SELECT COUNT(*) FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
-    AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND ${AUTOMATIC} AND sr.status<>'complete')`;
+    AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND ${REVIEWED} AND sr.status<>'complete')`;
   await env.DB.batch([
     env.DB.prepare(`INSERT OR IGNORE INTO market_sweep_missing(run_id,source_ref,channel_id,external_key,observation_id)
       SELECT run_id,source_ref,channel_id,external_key,id FROM (
@@ -230,7 +250,7 @@ export async function marketSweepPass(env, ts, { readers = READERS } = {}) {
   const run = await openToday(env, ts);
   if (run?.status === 'open') {
     out.run = run.id;
-    const { results: channels } = await env.DB.prepare(`SELECT sr.source_ref,sr.channel_id,sr.page_no,s.allowed_hosts,s.allowed_paths
+    const { results: channels } = await env.DB.prepare(`SELECT sr.source_ref,sr.channel_id,sr.page_no,s.allowed_hosts,s.allowed_paths,s.min_interval_s
       FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
       WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}
         AND (sr.lease_until IS NULL OR sr.lease_until<=?) AND (sr.next_due IS NULL OR sr.next_due<=?)
@@ -260,7 +280,7 @@ async function dailySweep({ env }) {
       (SELECT MAX(attempted_at) FROM market_sweep_attempts a WHERE a.source_ref=sr.source_ref AND a.channel_id=sr.channel_id
         AND a.outcome='complete') AS last_full_sweep_at
     FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
-    WHERE sr.run_id=? AND ${AUTOMATIC} ORDER BY sr.paging_key LIMIT 50`).bind(latest).all() : { results: [] };
+    WHERE sr.run_id=? AND ${REVIEWED} ORDER BY sr.paging_key LIMIT 50`).bind(latest).all() : { results: [] };
   const { results: missing } = latest ? await env.DB.prepare(`SELECT source_ref,channel_id,external_key,observation_id
     FROM market_sweep_missing WHERE run_id=? ORDER BY source_ref,channel_id,external_key LIMIT 50`).bind(latest).all() : { results: [] };
   return json({ days, channels, missing });
