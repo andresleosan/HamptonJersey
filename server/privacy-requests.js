@@ -229,6 +229,16 @@ async function propertyAlerts(env, contactId) {
   } catch (e) { if (/no such table/.test(e?.message ?? "")) return []; throw e; }
 }
 
+// MSG-01: Facebook messages are treated like website chats: named, reviewed by hand, never copied here. Named only for
+// someone who has them, so a copy already reviewed keeps its hash; without migration 0109 there are none.
+const FACEBOOK_NOT_INCLUDED = { section: "facebook_messages",
+  reason: "Messages sent to our Facebook page are reviewed separately, as they can hold other people's details." };
+async function facebookConversations(env, contactId) {
+  try {
+    return (await env.DB.prepare("SELECT COUNT(*) AS n FROM channel_conversations WHERE contact_id = ?").bind(contactId).first()).n;
+  } catch (e) { if (/no such table/.test(e?.message ?? "")) return 0; throw e; }
+}
+
 async function buildCopy(env, r) {
   if (!COPY_KINDS.includes(r.kind)) fail(400, "Only access and portability requests have a copy");
   if (r.contact_id == null || !r.identity_method) fail(400, "Link the contact and check the identity first");
@@ -244,9 +254,10 @@ async function buildCopy(env, r) {
         ORDER BY p.purpose, p.channel`).bind(r.contact_id),
     ]);
   if (!contact) fail(404, "Contact not found");
-  const alerts = await propertyAlerts(env, r.contact_id);
+  const alerts = await propertyAlerts(env, r.contact_id), facebook = await facebookConversations(env, r.contact_id);
+  const not_included = facebook ? [...NOT_INCLUDED, FACEBOOK_NOT_INCLUDED] : NOT_INCLUDED;
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
-    matches, marketing_preferences: prefs, ...(alerts.length ? { property_alerts: alerts } : {}), not_included: NOT_INCLUDED };
+    matches, marketing_preferences: prefs, ...(alerts.length ? { property_alerts: alerts } : {}), not_included };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
 }

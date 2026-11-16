@@ -469,3 +469,16 @@ test('REG-15: the copy lists the person\'s confirmed property alerts, and only w
   assert.deepEqual(copy.property_alerts, [{ criteria: '{"operation":"rent","budget_max":2500}', created_at: T, confirmed_at: T }]);
   assert.equal(JSON.stringify(copy).includes('b'.repeat(64)), false, 'never the unsubscribe token');
 });
+
+test('MSG-01: Facebook conversations are named in the copy for review by hand, only for someone who has them', async () => {
+  const env = on(), cookie = await adminCookie();
+  const { request } = await verified(env, cookie);
+  const before = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  assert.equal(before.copy.not_included.some(n => n.section === 'facebook_messages'), false);
+  const contact = env.DB.raw.prepare('SELECT contact_id FROM privacy_requests WHERE id = ?').get(request.id).contact_id;
+  env.DB.raw.prepare(`INSERT INTO channel_conversations (channel, account_id, external_user_id, contact_id, last_inbound_at,
+    last_at, created_at) VALUES ('messenger', '100000000000001', '200000000000001', ?, ?, ?, ?)`).run(contact, T, T, T);
+  const after = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  assert.ok(after.copy.not_included.some(n => n.section === 'facebook_messages' && n.reason));
+  assert.notEqual(after.sha256, before.sha256);
+});
