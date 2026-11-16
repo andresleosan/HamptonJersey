@@ -60,6 +60,8 @@ import tenancyLinkRoutes from "./tenancy-contact-links.js";
 import { tenancyLinkReady } from "./retention.js";
 import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
+import coordinationRoutes from "./routes/viewing-coordination.js";
+import { vis17Ready } from "./viewing-coordination.js";
 import savedSearchRoutes, { savedSearchesReady, unsubscribeRoutes } from "./saved-searches.js";
 import { calendarRoutes, calendarOffRoutes, calendarReady } from "./viewing-calendar.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
@@ -167,6 +169,7 @@ async function route(request, env, segments, waitUntil) {
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (tenancyLinkReady(env)) routes = [...routes, ...tenancyLinkRoutes]; // PRE-12: needs migration 0113
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
+    if (vis17Ready(env)) routes = [...routes, ...coordinationRoutes]; // VIS-17: answers 404 until migration 0114
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
     if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109
     // ADM-12: the tenant's repair link; needs migration 0110, CASE_CHALLENGE_HMAC_KEY, and 0046/0049 to create links.

@@ -7,6 +7,7 @@ import { stageOf, reminderDue, REMINDER_CHANNELS } from "../../server/viewing-cy
 import SlotPicker from "./SlotPicker.jsx";
 import Interest from "./Interest.jsx";
 import ViewingGroups from "./ViewingGroups.jsx";
+import ViewingCoordination from "./ViewingCoordination.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
 import { CalendarFact, CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
 
@@ -207,7 +208,7 @@ export default function Viewings({ listing, requestedId }) {
         </div>)}</div>
         {v && <Detail key={v.id} v={v} gone={!stillThere(data, v.id) ? TABS[tab] : null} ended={tab === "outcome"} filtered={listing === v.listing_id} headRef={detailRef}
           count={listing === v.listing_id ? interest?.active_interest ?? null : undefined} cycle={cycle} due={cycle && reminderDue(v, clock)}
-          followUp={!!data.follow_up}
+          followUp={!!data.follow_up} coordination={!!data.coordination} send={send}
           act={act} saveNotes={saveNotes} remove={remove} recount={recount} onDirty={onDirty} />}
       </div>}
   </section>;
@@ -217,7 +218,9 @@ export default function Viewings({ listing, requestedId }) {
 // screen reads it already (filtered by v's listing; null while it loads), else undefined and read here.
 // cycle: VIS-08 is on (reminders, feedback and the notice asked again on Confirm); due: a reminder is due.
 // followUp: VIS-04 is on (a decision to proceed or to ask for more leaves a task in the Inbox).
-function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp, act, saveNotes, remove, recount, onDirty }) {
+// coordination: VIS-17 is on (a time agreed with several people); send: the list's reload after one of its changes.
+function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp, coordination, send, act, saveNotes, remove, recount, onDirty }) {
+  const [agreeing, setAgreeing] = useState(false); // VIS-17: a proposal is open, so Confirm would skip the others
   const [notes, setNotes] = useState(v.notes ?? ""), [open, setOpen] = useState(null); // open: "complete" | "reschedule" | "remind" | "feedback"
   const [err, setErr] = useState(null), [interest, setInterest] = useState(null), [refresh, setRefresh] = useState(0);
   const [agreed, setAgreed] = useState(false), [calendar, setCalendar] = useState(null), [reviewed, setReviewed] = useState(false);
@@ -280,7 +283,7 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
       <h2 id="v-name" ref={headRef} tabIndex={-1}>{v.name} <Badge v={v} cycle={cycle} /></h2>
       <p className="muted">Added {fmtDate(v.created_at)}</p></div>
       <div className="inline">
-        {active && v.status === "requested" && <button type="button" className="btn" onClick={confirmIt}>Confirm</button>}
+        {active && v.status === "requested" && !agreeing && <button type="button" className="btn" onClick={confirmIt}>Confirm</button>}
         {active && v.status === "confirmed" && ended && <>
           <button type="button" className="btn" aria-expanded={open === "complete"} onClick={e => toggle("complete", e)}>Mark completed</button>
           <button type="button" className="btn ghost" onClick={noShow}>No-show</button></>}
@@ -305,6 +308,8 @@ function Detail({ v, gone, ended, filtered, headRef, count, cycle, due, followUp
     {active && open === "remind" && <RemindForm v={v} onSave={remind} onClose={close} onDirty={onDirty} />}
     {awaiting && open === "feedback" && <OutcomeForm feedback followUp={followUp} onSave={feedback} onClose={close} onDirty={onDirty} />}
     {active && open === "reschedule" && <RescheduleForm v={v} house={house} refresh={refresh} onSave={reschedule} onClose={close} onDirty={onDirty} onSlot={forgetCheck} />}
+    {coordination && active && <ViewingCoordination v={v} house={house} onOpen={setAgreeing}
+      saved={text => run(() => send(v, async () => {}, withNotes(text)))} />}
     <dl className="kv">
       <div><dt>Listing</dt><dd>{v.listing_id ? <a href={`#/p/${v.listing_id}`}>{listingOf(v)}</a>
         : v.listing_ref ? <>{listingOf(v)} <span className="muted">({v.listing_ref}, listing deleted)</span></> : listingOf(v)}</dd></div>

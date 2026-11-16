@@ -299,6 +299,10 @@ kbd{font:600 11px var(--body);letter-spacing:0;padding:0 5px;border:1px solid cu
 .block-group{display:grid;gap:8px;padding:12px;background:var(--mist);border-radius:var(--r-sm)}
 .block-form{display:grid;gap:12px;padding-top:8px} .block-form h4{font:600 13px var(--body);margin:0} .block-form p,.block-form .inline{margin:0}
 .block-places input{max-width:120px} .block-plan .btn{min-height:32px}
+/* VIS-17: a time agreed with several people, inside a viewing's detail. */
+.coord-people{display:grid;gap:8px;margin:0;padding-left:18px} .coord-people li{overflow-wrap:anywhere} .coord-people .who{font-weight:600}
+.coord-form{display:grid;gap:12px;padding-top:8px;min-width:0} .coord-form h4{font:600 13px var(--body);margin:0} .coord-form p,.coord-form .inline{margin:0}
+.coord .btn{min-height:32px} @media (max-width:760px){.coord .btn{min-height:44px}}
 .inbox-list ul{list-style:none;margin:0;padding:0}
 .day-head{position:sticky;top:0;margin:0;padding:8px 14px;background:var(--paper);border-bottom:1px solid var(--line);font:600 12px var(--body);color:var(--stone)}
 .inbox-detail h2{overflow-wrap:anywhere} .inbox-detail h2 .badge{font-family:var(--body);vertical-align:3px;margin-left:6px}

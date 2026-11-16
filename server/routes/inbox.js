@@ -7,6 +7,7 @@ import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
 import { cycleOn, REMINDER_CHANNELS, outcomeReady, followUp } from "../viewing-cycle.js";
 import { vis14Ready } from "../viewing-groups.js";
 import { calendarBusyCheck, afterViewingChange } from "../viewing-calendar.js";
+import { coordinationOn, closeOpenProposal } from "../viewing-coordination.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -46,8 +47,10 @@ async function list({ request, env }) {
   // VIS-08: cycle tells the panel that reminders and feedback can be recorded (switched on and migrated). VIS-04:
   // follow_up, that a decision to proceed or to ask for more leaves a task in the Inbox. VIS-14: groups, that houses with
   // several requests can be planned as back-to-back times or an open viewing.
+  // VIS-17: coordination, that a viewing can be coordinated with several people (switched on and migrated).
   return json({ viewings, counts, ...(await cycleOn(env, viewings[0]) ? { cycle: true } : {}),
-    ...(outcomeReady(env) ? { follow_up: true } : {}), ...(vis14Ready(env) ? { groups: true } : {}) });
+    ...(outcomeReady(env) ? { follow_up: true } : {}), ...(vis14Ready(env) ? { groups: true } : {}),
+    ...(await coordinationOn(env) ? { coordination: true } : {}) });
 }
 
 // Task links resolve independently of the list's 500-row window and use the same Jersey tab clock.
@@ -119,10 +122,13 @@ async function create({ request, env, admin, waitUntil }) {
 const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, complete: ["confirmed"], no_show: ["confirmed"],
   remind: ["confirmed"], feedback: ["completed"] };
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
+// VIS-17: what each action makes of the viewing's open proposal.
+const CLOSES = { reschedule: "superseded", cancel: "cancelled", complete: "cancelled", no_show: "cancelled" };
 
 // The columns an action sets, its event data (and name, when it is not the status), and the conditions its UPDATE
 // must still meet: for a reschedule the clash it must not have (C6). cycle: VIS-08 is on; ts: the time of the write.
-async function change(env, action, body, cur, clock, admin, cycle, ts) {
+// VIS-17's confirming write reuses the reschedule's (server/routes/viewing-coordination.js).
+export async function change(env, action, body, cur, clock, admin, cycle, ts) {
   if (action === "remind") {
     if (!REMINDER_CHANNELS.includes(body.channel)) return { errors: { channel: "Choose how you reminded them" } };
     if (`${cur.date} ${cur.end_time ?? cur.time}` < `${clock.date} ${clock.time}`)
@@ -193,6 +199,11 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   if (!cycle && ["remind", "feedback"].includes(body.action)) fail(400, "Unknown action");
   if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status === "no_show" ? "marked as a no-show" : cur.status}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
+  // VIS-17: while a time is being agreed with several people, Confirm would confirm the old time for all of them.
+  const coordination = await coordinationOn(env);
+  if (coordination && body.action === "confirm" && await env.DB.prepare(
+    "SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'").bind(id).first())
+    fail(409, "This viewing is being coordinated with several people. Record their answers, or propose another time.");
   const ch = await change(env, body.action, body, cur, jerseyNow(), admin, cycle, ts);
   if (ch.errors) return fields(ch.errors);
   const slot = body.action === "confirm" ? cur : body.action === "reschedule" ? { ...cur, ...ch.set } : null;
@@ -219,6 +230,8 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
     // Confirmed or cancelled, a website request has been dealt with: its Inbox notice is done. Gated on that event, since
     // after a touch changes() is the touch's (each of these actions happens once to a viewing).
     ...(["confirm", "cancel"].includes(body.action) ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifEvent: type })] : []),
+    // VIS-17: a move, cancel, completion or no-show ends the time being agreed (only if the UPDATE above wrote).
+    ...(coordination && Object.hasOwn(CLOSES, body.action) ? [closeOpenProposal(env, { id, state: CLOSES[body.action], ts, admin })] : []),
   ]);
   if (r.meta.changes) {
     if (["confirm", "reschedule", "cancel"].includes(body.action)) afterViewingChange(env, waitUntil, id);
