@@ -111,7 +111,7 @@ test("over 50,000 rows or 16 MB is refused, not cut short; an amount over £1m i
   assert.equal(r.headers.get("x-export-rows"), "50000");
 
   const row = { schema_version: 1, record_type: "rent_payments", record_id: "x", tenancy_ref: "x".repeat(400), date: T, kind: "rent",
-    currency: "GBP", amount_pence: 1, direction: "credit", related_id: null, revision: 1 };
+    currency: "GBP", amount_pence: 1, direction: "credit", related_id: null, revision: 1, supersedes: null };
   assert.throws(() => encodeAccountingCsv(Array(50000).fill(row)), RangeError);
 
   // A closed statement whose net is over £1,000,000 (written here directly): refused with a clear message, no file.

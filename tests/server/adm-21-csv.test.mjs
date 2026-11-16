@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { encodeAccountingCsv } from '../../server/rental-accounting-csv.js';
 import { parseCsv } from '../../server/rentals.js';
 
-const row = (overrides = {}) => ({ schema_version: 1, record_type: 'rent_charges', record_id: 'id-1', tenancy_ref: 'T-1', date: '2026-11-01', kind: 'rent', currency: 'GBP', amount_pence: 12500, direction: 'debit', related_id: null, revision: 1, ...overrides });
+const row = (overrides = {}) => ({ schema_version: 1, record_type: 'rent_charges', record_id: 'id-1', tenancy_ref: 'T-1', date: '2026-11-01', kind: 'rent', currency: 'GBP', amount_pence: 12500, direction: 'debit', related_id: null, revision: 1, supersedes: null, ...overrides });
 const read = bytes => parseCsv(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 
 test('encodes the fixed columns as UTF-8 RFC4180 with reversible quotes and line breaks', () => {
@@ -12,8 +12,8 @@ test('encodes the fixed columns as UTF-8 RFC4180 with reversible quotes and line
   const text = new TextDecoder().decode(bytes);
   assert.ok(text.endsWith('\r\n'));
   assert.deepEqual(read(bytes), [
-    ['schema_version','record_type','record_id','tenancy_ref','date','kind','currency','amount_pence','direction','related_id','revision'],
-    ['1','rent_charges','id-1','£, "flat"\r\nJersey','2026-11-01','rent','GBP','12500','debit','','1']
+    ['schema_version','record_type','record_id','tenancy_ref','date','kind','currency','amount_pence','direction','related_id','revision','supersedes'],
+    ['1','rent_charges','id-1','£, "flat"\r\nJersey','2026-11-01','rent','GBP','12500','debit','','1','']
   ]);
 });
 

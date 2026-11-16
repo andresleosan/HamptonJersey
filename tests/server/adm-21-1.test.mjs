@@ -17,7 +17,7 @@ const run = (e, sql, ...a) => e.DB.raw.prepare(sql).run(...a);
 const rows = (e, sql, ...a) => e.DB.raw.prepare(sql).all(...a).map(r => ({ ...r }));
 const ok = (r, status = 200) => { assert.equal(r.status, status, r.text); return r.data; };
 const COLUMNS = ["schema_version", "record_type", "record_id", "tenancy_ref", "date", "kind", "currency", "amount_pence",
-  "direction", "related_id", "revision"];
+  "direction", "related_id", "revision", "supersedes"];
 
 // The export as objects, after checking it is a CSV attachment with the fixed header.
 async function exportRows(e, type, from = FROM, to = T) {
@@ -72,6 +72,7 @@ test("charges, payments and statements export as separate record types", async (
 test("a write-off is a credit adjustment, never a payment, and its reversal a debit; the ledger adds up to the balance", async () => {
   const e = env(), { t } = await setup(e);
   pay(e, t, `${PREV}-05`, 50000);
+  run(e, "INSERT INTO charges (tenancy_id, due_on, amount, kind) VALUES (?, ?, 1000, 'opening')", t.id, T);
   const before = (await detail(e, t.id)).balance;
   const rev = (await detail(e, t.id)).tenancy.financial_revision;
   ok(await req(e, "POST", `/admin/tenancies/${t.id}/writeoffs`, { amount: 30000, reason: "Tenant left the island", financial_revision: rev }));
@@ -82,6 +83,9 @@ test("a write-off is a credit adjustment, never a payment, and its reversal a de
   assert.deepEqual(wo.map(x => [x.kind, x.amount_pence, x.direction, x.date, x.tenancy_ref]), [["writeoff", "30000", "credit", T, t.payment_ref]]);
   assert.match(wo[0].related_id, /^charge-\d+$/);
   assert.ok(charges.some(x => x.record_id === wo[0].related_id), "the charge it reduces is in the same file");
+  const sameDay = charges.filter(x => x.date === T).map(x => x.record_type);
+  assert.deepEqual(sameDay.slice(-2), ["rent_charges", "rent_adjustments"], "on one day, charges before adjustments");
+  assert.ok(charges.every(x => x.supersedes === ""));
   const payments = (await exportRows(e, "payments")).rows;
   assert.deepEqual(payments.map(x => x.amount_pence), ["50000"], "no cash for the write-off");
   const ledger = list => list.reduce((s, x) => s + signed(x), 0);
@@ -105,7 +109,7 @@ test("only closed statements export, at their latest revision, and their lines a
   pay(e, a.t, `${PREV}-05`, 150000);
   pay(e, a.t, `${PREV}-06`, 200000, "deposit");
   pay(e, b.t, `${PREV}-05`, 150000);
-  run(e, `INSERT INTO repairs (rental_id, title, urgency, status, cost, done_on, charge_landlord, created_at, updated_at)
+  const repair = run(e, `INSERT INTO repairs (rental_id, title, urgency, status, cost, done_on, charge_landlord, created_at, updated_at)
     VALUES (?, 'Boiler', 'urgent', 'done', 240, ?, 1, ?, ?)`, a.R, `${PREV}-10`, T, T);
   assert.deepEqual((await exportRows(e, "statements")).rows, [], "nothing closed yet");
 
@@ -120,14 +124,23 @@ test("only closed statements export, at their latest revision, and their lines a
   assert.equal(sum("rent") - sum("fee") - sum("gst") - sum("repair"), sum("net"));
   assert.deepEqual(lines.map(x => [x.kind, x.direction]),
     [["rent", "credit"], ["fee", "debit"], ["repair", "debit"], ["gst", "debit"], ["net", "credit"]]);
-  assert.ok(lines.every(x => x.revision === "1" && x.record_id.startsWith(`statement-${first.id}:`)));
+  assert.ok(lines.every(x => x.revision === "1" && x.record_id.startsWith(`statement-${first.id}:`) && x.supersedes === ""));
+  const was = lines;
   assert.ok(!lines.some(x => x.amount_pence === "200000"), "the deposit stays apart");
 
-  // A late payment, then revision 2: only revision 2 exports, as the page shows it.
+  // A late payment and the repair no longer charged, then revision 2: only revision 2 exports, as the page shows it, and
+  // each of its lines names the revision 1 line it replaces; the repair it drops is there at 0 to replace it too.
   pay(e, a.t, `${PREV}-20`, 10000);
+  run(e, "UPDATE repairs SET charge_landlord = 0 WHERE id = ?", Number(repair.lastInsertRowid));
   const second = await close(e, a.L);
   lines = (await exportRows(e, "statements")).rows;
   assert.ok(lines.every(x => x.revision === "2" && x.record_id.startsWith(`statement-${second.id}:`)));
+  const key = x => x.record_id.slice(x.record_id.indexOf(":"));
+  const pairs = list => list.sort((x, y) => x[0].localeCompare(y[0]));
+  assert.deepEqual(pairs(lines.map(x => [key(x), x.supersedes])), pairs(was.map(x => [key(x), x.record_id])),
+    "every revision 1 line is replaced by exactly one revision 2 line");
+  assert.deepEqual(lines.filter(x => x.kind === "repair").map(x => x.amount_pence), ["0"]);
+  assert.deepEqual(lines.map(x => x.kind), ["rent", "fee", "gst", "repair", "net"], "the dropped line before net");
   assert.equal(sum("rent"), (await statement(e, a.L)).closed.statement.totals.rent);
   assert.equal(sum("rent"), 160000);
 });

@@ -31,6 +31,7 @@ Rentals › **Accounting export** (`#/rentals/accounting`) descarga un CSV por t
 | `direction` | `debit` o `credit` (ver abajo). |
 | `related_id` | Fila o elemento relacionado, o vacío. |
 | `revision` | Contratos: `financial_revision` del contrato en el momento de exportar (1 en un pago sin asignar). Liquidaciones: número de revisión cerrada. |
+| `supersedes` | Solo liquidaciones: el `record_id` de la línea equivalente de la revisión cerrada anterior a la que sustituye; vacío en la revisión 1 y en el resto de tipos. |
 
 ## Tipos
 
@@ -42,7 +43,7 @@ Rentals › **Accounting export** (`#/rentals/accounting`) descarga un CSV por t
 | `rent_adjustments` | `adjustment-<id>` | fecha efectiva | `writeoff` | `credit` | `charge-<id>` del cargo que reduce |
 | `rent_adjustments` | `adjustment-<id>` | fecha efectiva | `reversal` | `debit` | `charge-<id>` del cargo |
 
-Un write-off (ADM-09) **no es dinero cobrado**: nunca aparece en `rent_payments`. Los ajustes solo salen con
+Un write-off (ADM-09) **no es dinero cobrado**: nunca aparece en `rent_payments`. El mismo día, los cargos van antes que los ajustes. Los ajustes solo salen con
 `ADM09_ARREARS_READY`, igual que en el panel. Antes de leer se crean los cargos de alquiler que falten, como hace Rentals.
 
 ### `type=payments` → `rent_payments`
@@ -58,7 +59,8 @@ ajustes y pagos `rent` desde el principio hasta hoy es la deuda que muestra el p
 
 Solo liquidaciones **cerradas** (`statement_runs`) y, de cada propietario y mes, la **última revisión cerrada** (la que
 muestra Statements), leída de su instantánea congelada: una corrección posterior no cambia la exportación hasta que se
-cierra la revisión siguiente, que sale con su número en `revision` y otros `record_id`. Se incluye el mes cuyo último
+cierra la revisión siguiente, que sale con su número en `revision`, otros `record_id` e importes completos (no la
+diferencia). Se incluye el mes cuyo último
 día cae dentro del rango; `date` es ese último día.
 
 | kind | record_id | direction | related_id |
@@ -72,6 +74,12 @@ día cae dentro del rango; `date` es ese último día.
 `net` es una línea de control (= `rent` − `fee` − `gst` − `repair` de esa revisión): no se suma con las demás. Las
 líneas con importe 0 no salen, salvo `net`. Los depósitos y otros cobros, y el alquiler dado por perdido del mes, quedan
 fuera como en Statements (los write-offs están en `type=charges`).
+
+**Revisiones: no contar dos veces.** Cada línea de una revisión nueva indica en `supersedes` la línea equivalente (mismo
+`kind` y misma vivienda o reparación) de la revisión cerrada anterior. Una línea que la anterior tenía y la nueva ya no
+sale a 0, antes de `net`, para sustituirla también. **Al importar una revisión nueva, anula la que indica `supersedes`**:
+así cada línea de la revisión anterior queda sustituida por exactamente una de la nueva. Si la revisión anterior se
+borró (datos personales), se usa la más reciente que quede.
 
 ## Compatibilidad
 

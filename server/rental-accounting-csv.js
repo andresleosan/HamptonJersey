@@ -1,5 +1,5 @@
 // Pure encoding only: callers must separately establish financial authority and a stable snapshot.
-const COLUMNS = Object.freeze(['schema_version', 'record_type', 'record_id', 'tenancy_ref', 'date', 'kind', 'currency', 'amount_pence', 'direction', 'related_id', 'revision']);
+const COLUMNS = Object.freeze(['schema_version', 'record_type', 'record_id', 'tenancy_ref', 'date', 'kind', 'currency', 'amount_pence', 'direction', 'related_id', 'revision', 'supersedes']);
 const TYPES = new Set(['rent_charges', 'rent_payments', 'rent_adjustments', 'landlord_statement_lines']);
 export const MAX_ROWS = 50000;
 const MAX_BYTES = 16 * 1024 * 1024;
@@ -26,7 +26,7 @@ function encodeRow(row) {
   if (!Number.isSafeInteger(row.schema_version) || row.schema_version < 1 || !Number.isSafeInteger(row.revision) || row.revision < 1) throw new TypeError('Invalid accounting version');
   if (!TYPES.has(row.record_type) || row.currency !== 'GBP' || !validDate(row.date)) throw new TypeError('Invalid accounting type, currency or date');
   if (!Number.isSafeInteger(row.amount_pence) || Math.abs(row.amount_pence) > MAX_PENCE) throw new TypeError('Invalid accounting amount');
-  const values = [String(row.schema_version), row.record_type, text(row.record_id), text(row.tenancy_ref), row.date, text(row.kind), row.currency, String(row.amount_pence), text(row.direction), row.related_id === null ? '' : text(row.related_id), String(row.revision)];
+  const values = [String(row.schema_version), row.record_type, text(row.record_id), text(row.tenancy_ref), row.date, text(row.kind), row.currency, String(row.amount_pence), text(row.direction), row.related_id === null ? '' : text(row.related_id), String(row.revision), row.supersedes === null ? '' : text(row.supersedes)];
   return values.map(cell).join(',');
 }
 

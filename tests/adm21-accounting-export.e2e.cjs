@@ -15,7 +15,7 @@ const request = (page, path, method = 'GET', body) => page.evaluate(async ({ pat
   return { status: response.status, data: await response.json() };
 }, { path, method, body });
 const fits = page => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
-const HEADER = 'schema_version,record_type,record_id,tenancy_ref,date,kind,currency,amount_pence,direction,related_id,revision';
+const HEADER = 'schema_version,record_type,record_id,tenancy_ref,date,kind,currency,amount_pence,direction,related_id,revision,supersedes';
 
 (async () => {
   assert.ok(BASE && process.env.E2E_PERSIST && process.env.E2E_VARS, 'isolated fixture required');
@@ -70,7 +70,7 @@ const HEADER = 'schema_version,record_type,record_id,tenancy_ref,date,kind,curre
       let file = await download();
       assert.equal(file.name, `hampton-payments-${prev}-01-to-${prevEnd}.csv`);
       assert.ok(file.csv.startsWith(HEADER + '\r\n'));
-      assert.match(file.csv, new RegExp(`^1,rent_payments,payment-\\d+,${ref},${prev}-10,rent,GBP,150000,credit,,\\d+\\r$`, 'm'));
+      assert.match(file.csv, new RegExp(`^1,rent_payments,payment-\\d+,${ref},${prev}-10,rent,GBP,150000,credit,,\\d+,\\r$`, 'm'));
       await page.getByRole('status').getByText(`: ${file.name}.`).waitFor(); // 1 row at 1280, 2 at 390 (both runs' payments)
 
       // The closed statement: its lines add up to its net.
@@ -79,13 +79,13 @@ const HEADER = 'schema_version,record_type,record_id,tenancy_ref,date,kind,curre
       file = await download();
       assert.match(file.csv, /,rent,GBP,150000,credit,/);
       assert.match(file.csv, /,fee,GBP,15000,debit,/);
-      assert.match(file.csv, /,net,GBP,135000,credit,,1\r$/m);
+      assert.match(file.csv, /,net,GBP,135000,credit,,1,\r$/m);
 
       // Charges: last month's rent charge as a debit.
       await page.getByRole('radio', { name: 'Charges and write-offs' }).check();
       await page.getByRole('button', { name: 'Download CSV', exact: true }).focus();
       file = await download();
-      assert.match(file.csv, new RegExp(`^1,rent_charges,charge-\\d+,${ref},${prev}-01,rent,GBP,150000,debit,,\\d+\\r$`, 'm'));
+      assert.match(file.csv, new RegExp(`^1,rent_charges,charge-\\d+,${ref},${prev}-01,rent,GBP,150000,debit,,\\d+,\\r$`, 'm'));
       await page.getByRole('status').getByText(/^Downloaded \d+ rows?: hampton-charges-/).waitFor();
 
       // An empty range downloads nothing; a range ending after today is refused in place, its field marked.
