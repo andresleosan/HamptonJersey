@@ -23,7 +23,9 @@ export default function NewApplicant({ contactId, chatId }) {
   const [websiteConsentOnly, setWebsiteConsentOnly] = useState(false);
   useEffect(() => {
     let live = true;
-    api("/admin/marketing/purposes").then(() => { if (live) { setWebsiteConsentOnly(true); setExtra(x => ({ ...x, marketing: false })); } }, () => {});
+    // Only an explicit 404 (switched off) keeps the tick: any other failure hides it, since the server ignores it when on.
+    const websiteOnly = () => { if (live) { setWebsiteConsentOnly(true); setExtra(x => ({ ...x, marketing: false })); } };
+    api("/admin/marketing/purposes").then(websiteOnly, e => { if (e?.status !== 404) websiteOnly(); });
     return () => { live = false; };
   }, []);
   // Editing the form after a 409 takes back the offer: the email or phone may no longer be that contact's.
