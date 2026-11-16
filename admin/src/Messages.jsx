@@ -108,7 +108,8 @@ function Chat({ id, paused, onChanged, onGone }) {
       {c.listing && <p>About <a href={`#/p/${encodeURIComponent(c.listing.id)}`}>{c.listing.id} {c.listing.title}</a></p>}
     </div>
       <div className="inline">
-        {Number.isSafeInteger(id) && id > 0 && <a className="btn ghost sm" href={`#/applicants/new?chat=${id}`}>Review chat contact</a>}
+        {Number.isSafeInteger(id) && id > 0 && <a className="btn ghost sm" href={`#/applicants/new?chat=${id}`}>
+          {d.create_applicant ? "Create applicant" : "Review chat contact"}</a>}
         {tel && <a className="btn ghost sm" href={`tel:${tel}`}>Call</a>}
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
@@ -118,7 +119,7 @@ function Chat({ id, paused, onChanged, onGone }) {
       {c.phone && <div><dt>Phone</dt><dd className="num">{c.phone}</dd></div>}
       {c.status === "handled" && <div><dt>Handled</dt><dd>{fmtDate(c.handled_at)} by {c.handled_by}</dd></div>}
     </dl>
-    {d.contact_link && <ChatContact chatId={id} link={d.contact_link}
+    {d.contact_link && <ChatContact chatId={id} link={d.contact_link} action={d.create_applicant ? "Create applicant" : "Review chat contact"}
       onLinked={link => (link ? setD(x => ({ ...x, contact_link: link })) : load())} />}
     {err && <p role="alert" className="err">Couldn't refresh; what you see may be out of date. {err}</p>}
     <ol ref={log} tabIndex={0} className="chat-log" aria-label="Conversation">{d.messages.map(m => <li key={m.id} className={m.role}>

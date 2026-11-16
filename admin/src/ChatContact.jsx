@@ -7,7 +7,7 @@ import { fmtAgo, fmtDate } from "./format.js";
 const who = c => [c.email, c.phone].filter(Boolean).join(" · ");
 const record = c => (c.applicant_id ? <a href={`#/applicants/${c.applicant_id}`}>{c.name}</a> : c.name);
 
-export function ChatContact({ chatId, link, onLinked }) {
+export function ChatContact({ chatId, link, onLinked, action = "Review chat contact" }) {
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null), said = useRef(null);
   useEffect(() => { if (msg) said.current?.focus(); }, [msg]);
@@ -50,7 +50,7 @@ export function ChatContact({ chatId, link, onLinked }) {
     </form>
     {/* Always in the page, so the result of each search is announced. */}
     <p role="status" className="muted">{others && (others.length ? `${others.length} ${others.length === 1 ? "contact" : "contacts"} found`
-      : "No contact matches. To add one, use Review chat contact.")}</p>
+      : `No contact matches. To add one, use ${action}.`)}</p>
     {others?.length > 0 && <ul className="plain-list" aria-label="Contacts found">{others.map(pick)}</ul>}
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </section>;

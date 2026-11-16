@@ -86,7 +86,8 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     assert.equal(await page.locator('#a-requirements').inputValue(),'');
     assert.equal(await page.getByRole('button',{name:'Save applicant'}).isDisabled(),true);
     assert.equal(await page.getByLabel('They were told how we use their details and accept the privacy notice').isChecked(),false);
-    assert.equal(await page.getByLabel('They agree to hear about new homes and news from Hampton Estates (optional)').isChecked(),false);
+    // PRE-10 switched on hides the marketing tick; shown or not, nothing is ticked.
+    assert.equal(await page.locator('input[type="checkbox"]:checked').count(),0);
     assert.equal(await page.locator('input[name="n-source"]:checked').count(),0);
     const storage=await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}));
     for(const value of ['Synthetic Visitor','synthetic.visitor@example.test','+447700900456']){

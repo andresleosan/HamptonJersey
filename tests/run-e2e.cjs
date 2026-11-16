@@ -40,7 +40,10 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana10-poster-qr.e2e.cjs" ? { ANA10_QR_OPENS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana06-agency-times.e2e.cjs" ? { ANA06_AGENCY_TIMES_READY: "1" } : {}),
-      ...(process.env.E2E_SCRIPT === "tests/msg03-contact-link.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/msg03-contact-link.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "0" } : {}),
+      // MSG-05: Create applicant from a chat, switched on; the read-only draft's test keeps it off.
+      ...(process.env.E2E_SCRIPT === "tests/msg-05-create.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/msg-05-draft.e2e.cjs" ? { MSG05_CREATE_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pre10-purpose.e2e.cjs" ? { PRE10_PURPOSE_READY: "1" } : {}),
       // The panel opt-in it walks through exists only with PRE-10 off.
       ...(process.env.E2E_SCRIPT === "tests/pre10-objection.e2e.cjs" ? { PRE10_PURPOSE_READY: "0" } : {}),
