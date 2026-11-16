@@ -16,7 +16,8 @@ export async function backupStartPass(env, nowUTC) {
   const read = () => env.DB.prepare(`SELECT r.id, r.status, r.policy_hash, EXISTS (SELECT 1 FROM backup_runs) AS any_run
     FROM (SELECT 1) LEFT JOIN backup_runs r ON r.week_start = ?1`).bind(week_start).first();
   let row = await read();
-  if (!row.id && Date.parse(nowUTC) - Date.parse(week_start) > BACKUP_POLICY.start_window_min * 60_000) {
+  const late = Date.parse(nowUTC) - Date.parse(week_start) > BACKUP_POLICY.start_window_min * 60_000;
+  if (!row.id && late) {
     if (!row.any_run) return {status: 'outside_window'}; // recién encendida: la primera copia será el domingo siguiente
     // Semana perdida (reloj caído toda la ventana): run failed y aviso en un batch, sin iniciar una copia de día.
     const id = crypto.randomUUID();
@@ -38,7 +39,16 @@ export async function backupStartPass(env, nowUTC) {
     await env.BACKUP_WORKFLOW.create({id: row.id, params: {run_id: row.id, week_start, policy_hash: row.policy_hash}});
     return {status: 'started', run_id: row.id};
   } catch {
-    // Ya existe (tick repetido) o la respuesta se perdió: el Workflow avanza el run; nunca una segunda instancia.
-    return {status: 'queued', run_id: row.id};
+    // Un id repetido (tick repetido, o la respuesta se perdió) deja la instancia existente: nunca una segunda.
+    if (await Promise.resolve().then(() => env.BACKUP_WORKFLOW.get(row.id)).then(() => true, () => false)) return {status: 'queued', run_id: row.id};
   }
+  // Sin instancia: binding mal configurado o Workflows caído. Solo un código C0, nunca el mensaje del proveedor.
+  console.error('backup_start_failed', 'workflow_unavailable');
+  if (late) { // pasada la ventana ya no se reintenta: failed y aviso, para que el reloj no lo intente toda la semana
+    await withApplicationWrite(env, {operation_id: 'backup:missed'}, () => env.DB.batch([
+      env.DB.prepare(`UPDATE backup_runs SET status = 'failed', reason_code = 'start_failed', version = version + 1,
+        updated_at = ?2 WHERE id = ?1 AND status = 'queued'`).bind(row.id, nowUTC),
+      ...backupNoticeStatements(env, row.id, nowUTC)]));
+  }
+  return {status: 'start_failed', run_id: row.id};
 }

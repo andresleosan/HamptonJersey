@@ -16,8 +16,9 @@ export const backupNoticeStatements = (env, run_id, ts) => [
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = 'backup:failed:'||week_start)`).bind(ts, run_id),
   env.DB.prepare(`INSERT INTO notifications (event_id, category, title, task_reason, action_required, created_at, task_key)
     SELECT e.id, 'task', 'Weekly backup needs review', 'Week of '||substr(json_extract(e.data,'$.week_start'),1,10)||': backup '||
-      json_extract(e.data,'$.status')||' ('||COALESCE(json_extract(e.data,'$.reason'),'no reason recorded')||') after '||
-      json_extract(e.data,'$.attempt')||' attempts. Earlier backups are kept.', 1, e.at, ${KEY}
+      json_extract(e.data,'$.status')||' ('||COALESCE(json_extract(e.data,'$.reason'),'no reason recorded')||') '||
+      CASE json_extract(e.data,'$.attempt') WHEN 0 THEN 'before any attempt' WHEN 1 THEN 'after 1 attempt'
+        ELSE 'after '||json_extract(e.data,'$.attempt')||' attempts' END||'. Earlier backups are kept.', 1, e.at, ${KEY}
     FROM events e WHERE e.entity_type = 'collection' AND e.entity_id = 'backups:'||?1 AND e.type = 'backup.failed'
       AND e.actor = 'system' AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ${KEY})
     ORDER BY e.id DESC LIMIT 1`).bind(run_id),

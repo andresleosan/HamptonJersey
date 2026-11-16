@@ -23,6 +23,9 @@ const workflow = () => {
     if (made.has(id)) throw new Error('instance.already_exists');
     made.set(id, params);
     return {id};
+  }, async get(id) {
+    if (!made.has(id)) throw new Error('instance.not_found');
+    return {id};
   }};
 };
 function quiet(t) {
@@ -86,6 +89,7 @@ test('reloj: fuera de la ventana de 6 h no se inicia la copia; una semana perdid
   assert.deepEqual([run(env, missed.run_id).status, run(env, missed.run_id).reason_code], ['failed', 'missed_window']);
   assert.equal(env.BACKUP_WORKFLOW.made.size, 0, 'no se inicia una copia en horario de trabajo');
   assert.equal(notices(env).length, 1);
+  assert.match(notices(env)[0].task_reason, /backup failed \(missed_window\) before any attempt\. /);
   await backupStartPass(env, at(BACKUP_POLICY.start_window_min + 100));
   assert.equal(notices(env).length, 1, 'un aviso por semana');
 });
@@ -148,7 +152,8 @@ test('Workflow: intento único con éxito, paso de captura sin reintento implíc
   const j = journal(env, payload.run_id);
   assert.deepEqual(Object.keys(j.attempts), [run(env, payload.run_id).attempt_id]);
   assert.equal(Object.values(j.attempts)[0].outcome, 'complete');
-  assert.deepEqual(Object.keys(j).sort(), ['attempts', 'run_id', 'version']);
+  assert.deepEqual(Object.keys(j).sort(), ['attempts', 'final', 'run_id', 'version']);
+  assert.equal(j.final.status, 'complete');
   assert.equal(notices(env).length, 0);
   c0(step, api);
 });
@@ -222,7 +227,7 @@ test('Workflow: el paso muere exportando → unknown, sin otra exportación, com
   assert.equal(api.starts(), 1, 'la exportación incierta bloquea otro intento');
   assert.equal(gate(env).state, 'open');
   assert.equal(notices(env).length, 1);
-  assert.match(notices(env)[0].task_reason, /backup unknown \(interrupted\) after 1 attempts/);
+  assert.match(notices(env)[0].task_reason, /backup unknown \(interrupted\) after 1 attempt\. /);
 });
 
 test('Workflow: muere tras el sello → se certifica con el mismo sello, sin otra exportación', async t => {
@@ -268,14 +273,14 @@ test('conciliación: purga los intentos sin COMMIT tras 24 h; nunca con unknown,
   quiet(t);
   const env = await backupEnv();
   const ids = () => crypto.randomUUID();
-  const mk = async (status, updated, attempts, committed) => {
+  const mk = async (status, updated, attempts, committed, {final = true, outcome = 'failed'} = {}) => {
     const id = ids();
     env.DB.raw.prepare(`INSERT INTO backup_runs (id, week_start, policy_hash, status, attempt_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, `2026-0${rows(env, 'SELECT id FROM backup_runs').length + 1}-01T02:00:00.000Z`,
       'a'.repeat(64), status, committed ?? attempts.at(-1), T0, updated);
-    const doc = {version: 1, run_id: id, attempts: {}};
+    const doc = {version: 1, run_id: id, attempts: {}, ...(final ? {final: {status, at: T0}} : {})};
     for (const a of attempts) {
-      doc.attempts[a] = {started_at: T0, outcome: null};
+      doc.attempts[a] = {started_at: T0, outcome: a === committed ? 'complete' : outcome};
       await env.BACKUPS.put(`runs/${id}/${a}/x/0.bin`, 'x');
       await env.BACKUPS.put(`runs/${id}/${a}/x/1.bin`, 'x');
       await env.BACKUPS.put(`runs/${id}/${a}/inventory/y.json`, 'x');
@@ -290,6 +295,9 @@ test('conciliación: purga los intentos sin COMMIT tras 24 h; nunca con unknown,
   const failed = await mk('failed', old, [a3]);
   const unknown = await mk('unknown', old, [a4]);
   const fresh = await mk('failed', recent, [a5]);
+  const [a6, a7] = [ids(), ids()];
+  const unfinished = await mk('failed', old, [a6], undefined, {final: false}); // el Workflow aún puede reintentar
+  const noOutcome = await mk('failed', old, [a7], undefined, {outcome: null}); // intento sin resultado registrado
   const keys = id => [...env.BACKUPS.m.keys()].filter(k => k.startsWith(`runs/${id}/`));
 
   const counts = await reconcileBackupControl(env);
@@ -299,6 +307,8 @@ test('conciliación: purga los intentos sin COMMIT tras 24 h; nunca con unknown,
   assert.deepEqual(keys(failed), []);
   assert.equal(keys(unknown).length, 3, 'unknown no se purga');
   assert.equal(keys(fresh).length, 3, 'menos de 24 h');
+  assert.equal(keys(unfinished).length, 3, 'sin cierre del Workflow');
+  assert.equal(keys(noOutcome).length, 3, 'intento sin resultado final');
   assert.ok(journal(env, complete).attempts[a1].purged_at);
   assert.deepEqual((await reconcileBackupControl(env)).purged_attempts, 0, 'repetida no hace nada');
 });
@@ -350,4 +360,46 @@ test('configuración del worker de respaldo: sin URL, nodejs_compat, misma D1, B
   assert.equal(val(b, 'D1_DATABASE_ID'), val(pages, 'database_id'));
   assert.doesNotMatch(b, /D1_EXPORT_TOKEN =|BACKUP_SIGNING_KEY =|CF_ACCOUNT_ID =/, 'secretos solo con wrangler secret');
   assert.doesNotMatch(read('backups/index.js'), /node:|fetch\(/);
+});
+
+test('Workflow: si el paso window o attempt falla del todo, outcome corre igual: run failed (no queued) y aviso', async t => {
+  for (const name of ['window', 'attempt 1']) {
+    quiet(t);
+    sunday(t);
+    const env = await backupEnv(), api = exportApi(env), payload = await queued(env);
+    t.mock.method(globalThis, 'fetch', api.fetch);
+    const step = fakeStep({kill: {[name]: () => Promise.reject(new Error('engine down'))}});
+    const out = await runWeeklyBackup(env, payload, step, fakeClock());
+    const r = run(env, payload.run_id);
+    assert.deepEqual([out.status, r.status, r.reason_code], ['failed', 'failed', 'workflow_step_failed'], name);
+    assert.ok(step.log.some(l => l.name === 'outcome' && !l.error), name);
+    assert.equal(api.calls.length, 0, name);
+    assert.equal(notices(env).length, 1, name);
+    assert.ok(journal(env, payload.run_id).final, `${name}: journal cerrado`);
+    t.mock.restoreAll();
+    t.mock.timers.reset();
+  }
+});
+
+test('reloj: create fallido distingue instancia existente de binding roto (código C0) y, pasada la ventana, avisa', async t => {
+  const logs = quiet(t);
+  const env = makeEnv();
+  const broken = {create: async () => { throw new Error('Private provider detail'); },
+    get: async () => { throw new Error('Private provider detail'); }};
+  Object.assign(env, {BACKUP_READY: '1', BACKUP_WORKFLOW: broken});
+  const r = await backupStartPass(env, at(5));
+  assert.equal(r.status, 'start_failed');
+  assert.ok(logs.some(l => /^backup_start_failed workflow_unavailable$/.test(l)), logs.join('|'));
+  assert.ok(!logs.some(l => l.includes('Private provider detail')));
+  assert.equal(run(env, r.run_id).status, 'queued', 'dentro de la ventana el tick siguiente lo reintenta');
+  // Instancia ya creada (create repetido): sigue en cola sin error.
+  env.BACKUP_WORKFLOW = {create: async () => { throw new Error('x'); }, get: async id => ({id})};
+  assert.deepEqual(await backupStartPass(env, at(15)), {status: 'queued', run_id: r.run_id});
+  // Pasada la ventana sin instancia: failed start_failed y un aviso; el reloj deja de intentarlo.
+  env.BACKUP_WORKFLOW = broken;
+  const late = await backupStartPass(env, at(BACKUP_POLICY.start_window_min + 1));
+  assert.deepEqual(late, {status: 'start_failed', run_id: r.run_id});
+  assert.deepEqual([run(env, r.run_id).status, run(env, r.run_id).reason_code], ['failed', 'start_failed']);
+  assert.equal(notices(env).length, 1);
+  assert.deepEqual(await backupStartPass(env, at(BACKUP_POLICY.start_window_min + 11)), {status: 'failed', run_id: r.run_id});
 });

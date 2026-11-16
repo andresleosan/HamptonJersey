@@ -85,33 +85,42 @@ export async function runWeeklyBackup(env, payload, step, clock) {
   }
   await step.do('reconcile', SETTLE, () => reconcileBackupControl(env, run_id)).catch(() => null);
   // Tarde (instancia creada al final de la ventana o retenida): no se pausa la web en horario de trabajo.
-  let state = await step.do('window', async () => {
-    if (Date.now() - Date.parse(week_start) > BACKUP_POLICY.start_window_min * 60_000) {
-      await env.DB.prepare(`UPDATE backup_runs SET status = 'failed', reason_code = 'missed_window', version = version + 1,
-        updated_at = ${D1_NOW} WHERE id = ?1 AND status = 'queued'`).bind(run_id).run();
-    }
-    return {retry: (await runRow(env, run_id))?.status === 'queued', next_at: null};
-  });
-  for (let n = 1; n <= 3 && state.retry; n++) {
-    if (n > 1 && state.next_at) await step.sleepUntil(`wait ${n}`, Date.parse(state.next_at));
-    const attempt_id = await step.do(`attempt ${n}`, async () => {
-      const id = crypto.randomUUID();
-      await journal(env.BACKUPS, run_id, d => { d.attempts[id] ??= {started_at: new Date().toISOString(), outcome: null}; });
-      return id;
+  // Si un paso de control falla del todo, el bucle se corta y outcome corre igual: el run no queda en cola sin aviso.
+  try {
+    let state = await step.do('window', async () => {
+      if (Date.now() - Date.parse(week_start) > BACKUP_POLICY.start_window_min * 60_000) {
+        await env.DB.prepare(`UPDATE backup_runs SET status = 'failed', reason_code = 'missed_window', version = version + 1,
+          updated_at = ${D1_NOW} WHERE id = ?1 AND status = 'queued'`).bind(run_id).run();
+      }
+      return {retry: (await runRow(env, run_id))?.status === 'queued', next_at: null};
     });
-    const result = await step.do(`capture ${n}`, CAPTURE,
-      () => captureAndSeal(env, {run_id, attempt_id, week_start, policy_hash}, clock)).catch(() => ({status: 'interrupted'}));
-    state = await step.do(`settle ${n}`, SETTLE, () => settleRun(env, run_id, result)).catch(() => ({retry: false}));
-  }
+    for (let n = 1; n <= 3 && state.retry; n++) {
+      if (n > 1 && state.next_at) await step.sleepUntil(`wait ${n}`, Date.parse(state.next_at));
+      const attempt_id = await step.do(`attempt ${n}`, async () => {
+        const id = crypto.randomUUID();
+        await journal(env.BACKUPS, run_id, d => { d.attempts[id] ??= {started_at: new Date().toISOString(), outcome: null}; });
+        return id;
+      });
+      const result = await step.do(`capture ${n}`, CAPTURE,
+        () => captureAndSeal(env, {run_id, attempt_id, week_start, policy_hash}, clock)).catch(() => ({status: 'interrupted'}));
+      state = await step.do(`settle ${n}`, SETTLE, () => settleRun(env, run_id, result)).catch(() => ({retry: false}));
+    }
+  } catch { /* outcome decide con lo que haya en D1 */ }
   return step.do('outcome', async () => {
+    await env.DB.prepare(`UPDATE backup_runs SET status = 'failed', reason_code = 'workflow_step_failed', version = version + 1,
+      updated_at = ${D1_NOW} WHERE id = ?1 AND status = 'queued'`).bind(run_id).run();
     const row = await runRow(env, run_id);
-    if (row && !['queued', 'complete', 'purged'].includes(row.status)) await backupFailureNotice(env, run_id);
+    if (row && !['complete', 'purged'].includes(row.status)) await backupFailureNotice(env, run_id);
+    // Cierre en el journal: desde aquí ningún intento de este run puede volver a empezar (requisito de la purga).
+    await journal(env.BACKUPS, run_id, d => { d.final ??= {status: row?.status ?? 'missing', at: new Date().toISOString()}; })
+      .catch(() => console.error('backup_journal_failed'));
     return {status: row?.status ?? 'missing', attempt: row?.attempt ?? 0, reason: row?.reason_code ?? null};
   });
 }
 
 // Al empezar cada semana: concilia runs anteriores que quedaron a medias y purga los intentos sin COMMIT de runs
-// terminados (complete o failed) hace más de 24 h. Devuelve solo conteos.
+// terminados (complete o failed) hace más de 24 h, solo si su Workflow ya cerró el journal (final) y el intento tiene
+// resultado registrado. Devuelve solo conteos.
 export async function reconcileBackupControl(env, current = null) {
   const counts = {settled: 0, waiting: 0, purged_attempts: 0};
   const {results: open} = await env.DB.prepare(`SELECT id FROM backup_runs
@@ -122,9 +131,11 @@ export async function reconcileBackupControl(env, current = null) {
   const {results: done} = await env.DB.prepare(`SELECT id, status, attempt_id FROM backup_runs
     WHERE status IN ('complete', 'failed') AND updated_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-24 hours')`).all();
   for (const run of done) {
-    const attempts = (await readJournal(env.BACKUPS, run.id))?.doc.attempts ?? {};
-    for (const [attempt_id, a] of Object.entries(attempts)) {
-      if (a.purged_at || !UUID.test(attempt_id) || (run.status === 'complete' && attempt_id === run.attempt_id)) continue;
+    const doc = (await readJournal(env.BACKUPS, run.id))?.doc;
+    if (!doc?.final) continue;
+    for (const [attempt_id, a] of Object.entries(doc.attempts)) {
+      if (a.purged_at || a.outcome == null || !UUID.test(attempt_id)
+        || (run.status === 'complete' && attempt_id === run.attempt_id)) continue;
       for (;;) {
         const page = await env.BACKUPS.list({prefix: `runs/${run.id}/${attempt_id}/`});
         if (!page.objects.length) break;
