@@ -109,6 +109,7 @@ BUS17_REVIEW_READY = "1"
 PRE12_REQUESTS_READY = "1"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
+VIS14_BLOCK_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
