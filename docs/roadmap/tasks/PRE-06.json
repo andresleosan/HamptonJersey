@@ -5,9 +5,9 @@
   "origen": "plan",
   "fase": "—",
   "estado": "pendiente",
-  "responsable": "desarrollo",
-  "hecho": "El panel exige login con una cuenta de Google verificada que esté en Users, con cookie HMAC __Host- de 8 horas (HttpOnly, Secure, SameSite=Strict).",
-  "falta": "Plan maestro (10-nov-2026): Luis eligió Cloudflare Access para esta fase. Falta el código que valida Access en origen, panel, API y medios privados con ruta Staff, y la reautenticación en otra pestaña (plan TP01 PRE-06). No consta que cada cuenta de Users tenga la verificación en dos pasos (el panel no puede comprobarlo) ni que haya Cloudflare Access delante de /admin y /api/admin. Las dos se activan fuera del código, en Google y en Cloudflare.",
+  "responsable": "Luis",
+  "hecho": "El panel exige login con una cuenta de Google verificada que esté en Users, con cookie HMAC __Host- de 8 horas (HttpOnly, Secure, SameSite=Strict). Construido en local el 16-nov-2026, apagado tras PRE06_ACCESS_READY (sin publicar): validación en origen de Cloudflare Access para el panel (/admin/*, con un middleware solo en esa carpeta), la API de admin, /api/session y /api/me. Se comprueba la cabecera Cf-Access-Jwt-Assertion: firma RS256 con las claves del equipo (<equipo>/cdn-cgi/access/certs, 3 s de espera, caché de 5 min, nueva descarga por kid desconocido como mucho cada 30 s), issuer, aud, exp/nbf con 60 s de margen, type=app, email y sub, tamaño máximo 8 KiB y host igual al de SITE_URL. El email de Access debe ser el de la sesión Hampton en cada petición con admin y el de Google al iniciar sesión (antes de firmar la cookie); si no, 403 sin tocar la cookie. Los segmentos codificados (/, \\, %, . y ..) se rechazan en rutas Staff. Los medios privados del panel salen por GET/HEAD /api/admin/media/:id/content (no-store, nosniff, PDF como descarga); encendido, /media es solo público. En el panel, una sesión de Access caducada (redirección, página HTML o access_required) abre «Sign in again to continue» con enlace a /admin/ en otra pestaña; la pestaña original conserva lo escrito, una escritura queda como resultado desconocido y nada se reenvía; «I've signed in» solo lee /api/me. Apagado, todo es igual que antes (probado); encendido sin configuración completa, Staff responde 503 y queda cerrado.",
+  "falta": "Solo la activación, de Luis: 1) comprobar la verificación en dos pasos (y su recuperación) de cada cuenta de Users (el panel no puede comprobarlo); 2) en Cloudflare Zero Trust, crear la aplicación Access self-hosted de Staff sobre www.hamptonestatesjersey.com con las rutas /admin, /admin/*, /api/admin, /api/admin/*, /api/session y /api/me, Google como proveedor, política Allow solo con los emails de Users (sin Everyone ni Bypass) y sesión de 8 h; 3) poner en las variables de la web (wrangler.toml [vars] o el panel de Pages): ACCESS_TEAM_DOMAIN = «https://<equipo>.cloudflareaccess.com» (exacto, sin barra final) y ACCESS_STAFF_AUD = la etiqueta AUD de esa aplicación (64 caracteres hexadecimales); SITE_URL ya está y fija el único host Staff; 4) encender PRE06_ACCESS_READY = «1» en la misma publicación, después de probar la aplicación Access. Las previews y *.pages.dev reciben 403 en Staff. Quedan sin probar el navegador real (390/1280 con la sesión caducada) y la cobertura de Pages en producción. Fuera de esta ficha: la barrera de servicio para /api/hermes y /api/qa (aplicación Access de servicio aparte, del plan TP01); siguen con su propia clave.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:482",
@@ -15,18 +15,28 @@
     "server/auth.js:16-17",
     "server/auth.js:42-53",
     "server/routes/session.js:8-12",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Luis eligió Cloudflare Access para esta fase. Vuelve a desarrollo: lo externo es condición de activación."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Luis eligió Cloudflare Access para esta fase. Vuelve a desarrollo: lo externo es condición de activación.",
+    "server/access.js · server/api.js · server/auth.js · server/routes/session.js · server/media.js · server/routes/media.js · functions/admin/_middleware.js · admin/src/api.js · admin/src/AccessReauth.jsx · admin/src/admin-media-url.js",
+    "tests/server/pre06-access.test.mjs: 18 de 18 (16-nov). Sin cabecera, firma de otra clave, iss o aud erróneos, caducado (más de 60 s), nbf futuro, alg none, HS256, firma vacía, kid desconocido, type distinto de app, sin email o sin sub, más de 8 KiB y otro host: 403. Configuración ausente o mal escrita: 503. Claves solo de <equipo>/cdn-cgi/access/certs, una descarga en caché, sin claves viejas tras 5 min si la descarga falla (503). Apagado (sin variable, \"0\" o variables puestas sin el interruptor): mismas respuestas y Access no se consulta. Encendido: email distinto del de la sesión o del de Google, 403 sin cookie ni escritura; baja de admins, 401; /media privado, 404; ruta Staff de medios GET/HEAD, no-store, nosniff, PDF attachment, private-docs 404.",
+    "tests/server/pre06-coverage.test.mjs: 3 de 3. El middleware cierra /admin, /admin/, /admin/index.html y assets sin aserción válida; wrangler genera _routes.json con /admin/* y las mismas rutas públicas de antes (sin /*); toda ruta con admin está bajo /admin o es /me.",
+    "tests/server/pre06-reauth-client.test.mjs: 3 de 3. Redirección, HTML o access_required dan ACCESS_REAUTH_REQUIRED; escritura con outcome unknown y una sola llamada; 401, 409 y 503 como antes.",
+    "Pruebas focales sin regresión (16-nov): auth, admin, adm-14-renewal, listing-events, media-document-privacy, public, pub-16-public-visibility, spr-03-captures, pub-11-documents (136 de 136); reg07-pets-dom y to-confirm (13 de 13). El panel se construye con vite.",
+    "Decisión: interruptor PRE06_ACCESS_READY (el plan no lo nombra) · fuente: encargo del coordinador.",
+    "Decisión: el host Staff es el de SITE_URL, sin variable nueva · fuente: spec TP05 («host de SITE_URL actual»), mismo criterio que server/seo.js.",
+    "Decisión: el middleware vive en functions/admin/_middleware.js y no en functions/_middleware.js, para que solo /admin/* ejecute una Function (en la raíz, wrangler enruta /* y todo el sitio público pasaría por Functions) · fuente: spec TP05 («conservar las exclusiones públicas»).",
+    "Decisión: «Open PDF» del panel pasa a «Download PDF» porque la ruta Staff entrega los PDF como attachment · fuente: resolución de la revisión independiente en la spec TP05.",
+    "No comprobado: Cloudflare Access real, el formato real del token, Pages real (_routes y /admin sin barra, que Pages redirige a /admin/), el navegador (popup bloqueado, 390/1280, zoom 200) y la verificación en dos pasos de las cuentas."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Luis: configurar Cloudflare Access y comprobar la verificación en dos pasos de cada cuenta; el código no se activa hasta entonces.",
+  "externalBlocker": "Luis: comprobar la verificación en dos pasos de cada cuenta de Users; crear la aplicación Access de Staff (rutas /admin, /admin/*, /api/admin, /api/admin/*, /api/session, /api/me) y poner ACCESS_TEAM_DOMAIN y ACCESS_STAFF_AUD; después encender PRE06_ACCESS_READY. Sin eso el código queda apagado.",
   "resources": [
     "staff-access-model",
     "account-security"
   ],
-  "nextStep": "Construir la validación de Access, apagada, según su plan; Luis configura Access y la verificación en dos pasos fuera del código.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Publicar apagado; cuando Luis tenga la aplicación Access y las dos variables, encender PRE06_ACCESS_READY, probar con un empleado autorizado, uno no autorizado y otro host, y cerrar.",
+  "actualizado": "2026-11-16"
 }
