@@ -61,10 +61,7 @@ function statementLines({ id, landlord_id, revision, snapshot, date }) {
 export async function accountingRows(env, { type, from, to }) {
   const q = sql => env.DB.prepare(sql).bind(from, to);
   if (type === "payments") return (await q(PAYMENTS).all()).results.map(row);
-  if (type === "statements") {
-    const lines = (await q(RUNS).all()).results.flatMap(statementLines);
-    return lines.length > MAX_ROWS ? fail(413, OVER) : lines;
-  }
+  if (type === "statements") return (await q(RUNS).all()).results.flatMap(statementLines);
   // Charges are made as they fall due (as Rentals does); first, in the same batch, those still missing up to today.
   const [, { results }] = await env.DB.batch([ensureCharges(env, jerseyToday()), q(CHARGES(arrearsReady(env)))]);
   return results.map(row);
