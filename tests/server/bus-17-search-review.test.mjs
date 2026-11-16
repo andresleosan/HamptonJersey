@@ -345,6 +345,16 @@ test('a clock off for over an hour restarts every absence from its resumption', 
   assert.deepEqual(reviews(env), []);
 });
 
+test('two ticks resuming at once restart the absence once', async () => {
+  const env = world();
+  await search(env);
+  await searchReviewPass(env, later(T0, DAY));
+  const back = later(DUE, 10 * DAY);
+  await Promise.all([tickAt(env, back), tickAt(env, later(back, 1000))]);
+  assert.deepEqual([cycle(env).episode, cycle(env).no_full_since], [2, back]);
+  assert.equal(one(env, 'SELECT last_restart_at FROM search_review_progress').last_restart_at, back);
+});
+
 test('after a restart the next review starts a new episode: 21 days on, with its 21-day text', async () => {
   // Reviewed before the clock stopped.
   let env = world();
@@ -367,8 +377,11 @@ test('after a restart the next review starts a new episode: 21 days on, with its
   await search(env);
   await searchReviewPass(env, later(DUE, -TICK));
   await searchReviewPass(env, DUE);
+  const panel = async () => ok(await req(env, 'GET', `/admin/applicants/${env.applicant}`)).search_review;
+  assert.equal((await panel()).since, T0);
   const restart = later(new Date().toISOString(), -2 * DAY);
   await tickAt(env, restart);
+  assert.equal((await panel()).since, null); // the open review is of the earlier absence: no date from the restart
   await done(env, tasks(env)[0].id);
   closedAt = tasks(env)[0].resolved_at;
   await searchReviewPass(env, later(closedAt, TICK));

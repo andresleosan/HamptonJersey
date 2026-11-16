@@ -274,13 +274,16 @@ export async function searchReviewPass(env, ts) {
   const progress = await env.DB.prepare('SELECT enabled_at,last_tick_at,after_id FROM search_review_progress WHERE id=1').first();
   // Off, or waiting for its flags, for over an hour: nothing was watched, so every absence restarts now as a new episode
   // with no history assumed, and a search registered meanwhile is not taken as watched since its registration. The
-  // progress row keeps when that last happened and how many absences it restarted.
+  // progress row keeps when that last happened and how many absences it restarted. Both run only while last_tick_at is
+  // still the one read (they precede its update), so two ticks resuming at once restart once.
   const resumed = progress.last_tick_at != null && Date.parse(ts) - Date.parse(progress.last_tick_at) > GAP_MS;
+  const read = '(SELECT last_tick_at FROM search_review_progress WHERE id=1) IS ?';
   await env.DB.batch([
     ...(resumed ? [env.DB.prepare(`UPDATE search_review_progress SET enabled_at=?,last_restart_at=?,
-        last_restart_absences=(SELECT COUNT(*) FROM search_review_cycles WHERE state='absent') WHERE id=1`).bind(ts, ts),
+        last_restart_absences=(SELECT COUNT(*) FROM search_review_cycles WHERE state='absent') WHERE id=1 AND ${read}`)
+        .bind(ts, ts, progress.last_tick_at),
       env.DB.prepare(`UPDATE search_review_cycles SET source='legacy_baseline',no_full_since=?,last_closed_at=NULL,episode=episode+1,
-        revision=revision+1,updated_at=? WHERE state='absent'`).bind(ts, ts)] : []),
+        revision=revision+1,updated_at=? WHERE state='absent' AND ${read}`).bind(ts, ts, progress.last_tick_at)] : []),
     env.DB.prepare('UPDATE search_review_progress SET last_tick_at=? WHERE id=1 AND (last_tick_at IS NULL OR last_tick_at<?)').bind(ts, ts)]);
   if (resumed) progress.enabled_at = ts;
   const { results: page } = await env.DB.prepare(`SELECT a.id FROM applicants a LEFT JOIN search_review_cycles y ON y.applicant_id=a.id
@@ -334,11 +337,13 @@ export async function searchReviewPass(env, ts) {
   return out;
 }
 
-// The panel: the open review of a search, with its alternatives, or null (off, none open, or not migrated).
+// The panel: the open review of a search, with its alternatives, or null (off, none open, or not migrated). since only
+// when the review belongs to the current absence (one opened before a restart has none to show).
 export async function openSearchReview(env, applicantId) {
   if (!reviewReady(env)) return undefined;
   try {
-    const r = await env.DB.prepare(`SELECT v.id,v.cycle,v.opened_at,v.alternatives,v.coverage_pending,y.no_full_since AS since
+    const r = await env.DB.prepare(`SELECT v.id,v.cycle,v.opened_at,v.alternatives,v.coverage_pending,
+        CASE WHEN v.episode=y.episode THEN y.no_full_since END AS since
       FROM search_reviews v LEFT JOIN search_review_cycles y ON y.applicant_id=v.applicant_id
       WHERE v.applicant_id=? AND v.closed_at IS NULL`).bind(applicantId).first();
     return r ? { ...r, alternatives: JSON.parse(r.alternatives), coverage_pending: r.coverage_pending ? JSON.parse(r.coverage_pending) : [] } : null;
