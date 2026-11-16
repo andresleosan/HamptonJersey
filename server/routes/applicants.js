@@ -8,7 +8,7 @@ import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_S
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
 import { openSearchReview } from "../search-review.js";
-import { readyRow, readyView, readyStatements, clearOnStage } from "../applicant-ready.js";
+import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clearOnStage } from "../applicant-ready.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
@@ -237,7 +237,7 @@ async function detail({ env, params: [id] }) {
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
     ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
     ...(search_review !== undefined && { search_review }),
-    ...(ready !== undefined && { team_ready: readyView(ready, applicant) }),
+    ...(ready !== undefined && { team_ready: readyView(ready) }),
     ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id),
       // The server's own answer to "can a website opt-in be confirmed now" (the same check as updateContact's).
       marketing_confirmable: await pendingOptIn(env, contact.id) }) });
@@ -442,8 +442,8 @@ async function commit(env, admin, cur, { next, keys, data, criteriaFields, stage
   const ts = nextVersion(cur.updated_at);
   if (criteriaFields.length) data.criteria_confirmation = { by: admin, at: ts, fields: criteriaFields };
   const leftNew = cur.stage === "new" && stage !== "new";
-  // AUT-18: a stage change takes a Ready for the team mark off in the same save.
-  const unready = keys.includes("stage") && await readyRow(env, cur.id) !== undefined;
+  // AUT-18: a stage change takes a Ready for the team mark off in the same save, even one left from when it was on.
+  const unready = keys.includes("stage") && !!await storedMark(env, cur.id);
   try { await saveVersioned(env, [
     env.DB.prepare(`UPDATE applicants SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK} WHERE id = ?`)
       .bind(...keys.map(k => next[k]), admin, cur.updated_at, ts, cur.id),
@@ -729,7 +729,7 @@ async function setSearch({ request, env, admin, params: [id] }) {
 }
 
 // AUT-18: Ready for the team (ready: true) or Done (ready: false), by a person on the version they saw. Only an active
-// search is marked; Done leaves the search as it is. The search's version moves, so an earlier answer cannot redo either.
+// search with a reviewed proposal (a home shortlisted) is marked; Done leaves the search as it is. The search's version moves, so an earlier answer cannot redo either.
 async function setTeamReady({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
   if (typeof body.ready !== "boolean") fail(400, "Send ready: true or false");
@@ -738,6 +738,8 @@ async function setTeamReady({ request, env, admin, params: [id] }) {
   if (mark === undefined) fail(404, "Not found");
   if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
   if (body.ready && !isActive(cur)) fail(409, "Only an active search can be marked ready for the team.");
+  if (body.ready && !await hasShortlisted(env, cur.id))
+    fail(409, "Shortlist at least one proposed home in Matches before marking this search ready for the team.");
   if (!body.ready && !mark) fail(409, "This search is not marked ready for the team. Reload to see it.");
   const ts = nextVersion(cur.updated_at);
   await saveVersioned(env, [
@@ -746,7 +748,7 @@ async function setTeamReady({ request, env, admin, params: [id] }) {
     touch(env, cur.contact_id, ts),
   ], "applicant", cur.id, body.updated_at);
   const applicant = await loadApplicant(env, cur.id);
-  return json({ applicant: parsed(applicant), team_ready: readyView(await readyRow(env, cur.id), applicant) });
+  return json({ applicant: parsed(applicant), team_ready: readyView(await readyRow(env, cur.id)) });
 }
 
 // §3.4: from Archived only, typing the contact's name. The history keeps each event's type, date and actor, without data.

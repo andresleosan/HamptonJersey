@@ -27,7 +27,9 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
   const before=(await door()).counts.applicants_ready;assert.equal(before,0);
   for(const width of [1280,390]){
    console.log('AUT18 width',width);
-   const name=`AUT18 Quarrington ${width}`,email=`aut18-${width}@example.test`;
+   const name=`AUT18 Quarrington ${width}`,email=`aut18-${width}@example.test`,home=`AUT18-${width}`;
+   // A home within the search, proposed to it when it is registered.
+   d1(`INSERT INTO listings(id,title,use,operation,availability,matchable,rent,rent_period,currency,bedrooms,published,created_at,updated_at,updated_by) VALUES('${home}','AUT18 ${width} home','residential','rent','to_let',1,1500,'month','GBP',2,0,'2026-11-16T10:00:00.000Z','2026-11-16T10:00:00.000Z','fixture');`);
    const made=await post('applicants',{name,email,operation:'rent',source:'phone',budget_max:2000,bedrooms_min:2});
    assert.equal(made.status(),201);const id=(await made.json()).id;
    const search=()=>d1(`SELECT stage,search_state,updated_at FROM applicants WHERE id=${id}`)[0];
@@ -48,12 +50,25 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    const panel=page.locator('section.team-ready');
    const button=label=>panel.getByRole('button',{name:label,exact:true});
    const status=text=>panel.getByRole('status').filter({hasText:text}).waitFor();
+   const reload=async()=>{await page.reload();await page.getByRole('heading',{name,exact:true}).waitFor();};
+   // A review decision on the proposed home, as the Matches tab makes it.
+   const reviewHome=async(from,to)=>{const [m]=d1(`SELECT id FROM matches WHERE applicant_id=${id} AND listing_id='${home}'`);
+    const r=await ctx.request.put(base+`api/admin/matches/${m.id}`,{headers:{origin},data:{from,status:to}});assert.equal(r.status(),200);};
 
-   // Not marked: what it does, and the one button.
+   // Not marked, with its proposal not reviewed yet: the button waits for a shortlisted home and says so.
    await open();
    await panel.getByRole('heading',{name:'Ready for the team',exact:true}).waitFor();
    await panel.getByText('Mark this search once its proposals are reviewed.',{exact:false}).waitFor();
+   const needs='Shortlist at least one proposed home in Matches before marking it ready for the team.';
+   await panel.getByText(needs,{exact:true}).waitFor();
+   assert.ok(await button('Ready for the team').isDisabled());
+   assert.equal(await button('Ready for the team').getAttribute('aria-describedby'),'team-ready-needs');
    assert.equal(await button('Done').count(),0);
+   await fits('Not reviewed');await shot('unreviewed');
+   await reviewHome('found','shortlisted');
+   await reload();
+   assert.equal(await panel.getByText(needs,{exact:true}).count(),0);
+   assert.ok(await button('Ready for the team').isEnabled());
    await fits('Not marked');await shot('unmarked');
 
    // By keyboard: the button takes the focus and Enter marks it; the focus goes to the section's heading.
@@ -90,11 +105,19 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    const edited=await ctx.request.put(base+`api/admin/applicants/${id}`,{headers:{origin},
     data:{updated_at:search().updated_at,budget_max:2500,criteria_confirmation:{confirmed:true}}});
    assert.equal(edited.status(),200);
-   await page.reload();await page.getByRole('heading',{name,exact:true}).waitFor();
-   await panel.locator('.badge',{hasText:'Criteria changed'}).waitFor();
-   await panel.getByText('The criteria changed after it was marked, so the summary leaves it out.',{exact:false}).waitFor();
-   await counted(0);
+   await reload();
+   const outOfDate=async()=>{await panel.locator('.badge',{hasText:'Out of date'}).waitFor();
+    await panel.getByText('The criteria or the reviewed proposals changed after it was marked, so the summary leaves it out.',{exact:false}).waitFor();
+    assert.equal(mark().length,1);await counted(0);};
+   await outOfDate();
    await fits('Out of date');await shot('out-of-date');
+   await button('Mark ready again').click();await status('Marked ready for the team.');
+   await counted(1);
+
+   // So does a proposal reviewed after the mark (moved back to Found and shortlisted again).
+   await reviewHome('shortlisted','found');await reviewHome('found','shortlisted');
+   await reload();
+   await outOfDate();
    await button('Mark ready again').click();await status('Marked ready for the team.');
    await counted(1);
 
@@ -114,7 +137,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
 
    // The history: each step, with ids only.
    assert.deepEqual(history().map(e=>e.type),['applicant.team_ready','applicant.team_ready_done','applicant.team_ready',
-    'applicant.team_ready_cleared','applicant.team_ready','applicant.team_ready','applicant.team_ready_done']);
+    'applicant.team_ready_cleared','applicant.team_ready','applicant.team_ready','applicant.team_ready','applicant.team_ready_done']);
    for(const e of history())for(const secret of [name,email])assert.ok(!String(e.data).includes(secret));
    await page.goto(base+`admin/#/applicants/${id}/timeline`);
    const timeline=page.locator('ol.timeline');

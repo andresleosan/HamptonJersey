@@ -424,7 +424,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const refreshMatches=async()=>{
     const generation=++detailGeneration.current,d=await api(`/admin/applicants/${id}`);
     if(generation!==detailGeneration.current)return null;
-    setData(x=>({...x,applicant:d.applicant,events:d.events,matchCounts:d.matchCounts,widen:d.widen,search_run:d.search_run}));
+    setData(x=>({...x,applicant:d.applicant,events:d.events,matchCounts:d.matchCounts,widen:d.widen,search_run:d.search_run,
+      team_ready:d.team_ready})); // AUT-18: a review after the mark leaves it out of date
     return d;
   };
 
@@ -488,7 +489,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       Log a conversation only after speaking with them.</p>}
     <SearchLifecycle applicant={a} dirty={dirty} busy={busy || reviewing} nameOf={nameOf} onReload={reloadSearch} onEditing={setDecisionDirty}
       onChanged={async applicant => { setData(d => ({ ...d, applicant })); onChange?.(); await fetchDetail(); }} />
-    {data.team_ready !== undefined && <TeamReady applicant={a} ready={data.team_ready} dirty={dirty} busy={busy || reviewing} nameOf={nameOf}
+    {data.team_ready !== undefined && <TeamReady applicant={a} ready={data.team_ready} shortlisted={data.matchCounts.shortlisted} dirty={dirty} busy={busy || reviewing} nameOf={nameOf}
       onReload={reloadSearch} onChanged={async d => { setData(x => ({ ...x, ...d })); onChange?.(); await fetchDetail(); }} />}
 
     <div className="filters">
@@ -696,11 +697,11 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
 
 // AUT-18: Ready for the team. The team marks a search once its proposals are reviewed; the 08:00 summary on Telegram
 // counts the marked searches, a number only. Done, or a stage change, takes the mark off; Done does not resolve the search.
-function TeamReady({ applicant: a, ready, dirty, busy, nameOf, onChanged, onReload }) {
+function TeamReady({ applicant: a, ready, shortlisted, dirty, busy, nameOf, onChanged, onReload }) {
   const [working, setWorking] = useState(false), [message, setMessage] = useState(null);
   const heading = useRef(null), refocus = useRef(false);
   useEffect(() => { if (refocus.current) { heading.current?.focus(); refocus.current = false; } }, [message]);
-  const disabled = dirty || busy || working, active = isActive(a);
+  const disabled = dirty || busy || working, active = isActive(a), unreviewed = !shortlisted;
   const send = async value => {
     setWorking(true); setMessage(null);
     let saved = false;
@@ -721,15 +722,17 @@ function TeamReady({ applicant: a, ready, dirty, busy, nameOf, onChanged, onRelo
   };
   return <section className="search-lifecycle team-ready" aria-labelledby="team-ready-h">
     <div className="inline"><h2 id="team-ready-h" ref={heading} tabIndex={-1}>Ready for the team</h2>
-      {ready && <span className={`badge ${ready.current ? "positive" : "attention"}`}>{ready.current ? "Ready" : "Criteria changed"}</span>}</div>
+      {ready && <span className={`badge ${ready.current ? "positive" : "attention"}`}>{ready.current ? "Ready" : "Out of date"}</span>}</div>
     {ready ? <p className="muted">Marked by {nameOf(ready.by)} · {fmtAgo(ready.at)}. {ready.current
       ? "The 08:00 team summary counts it, without names. Mark it Done once the team has taken it up."
-      : "The criteria changed after it was marked, so the summary leaves it out. Review the proposals and mark it again, or mark it Done."}</p>
+      : "The criteria or the reviewed proposals changed after it was marked, so the summary leaves it out. Review them and mark it again, or mark it Done."}</p>
       : <p className="muted">{active ? "Mark this search once its proposals are reviewed. The 08:00 team summary counts marked searches, without names."
         : "Only an active search can be marked ready for the team."}</p>}
     {dirty && <p className="muted">Save or discard your changes first.</p>}
+    {active && !ready?.current && unreviewed && <p id="team-ready-needs">Shortlist at least one proposed home in Matches before marking it ready for the team.</p>}
     <div className="inline">
-      {active && !ready?.current && <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => send(true)}>
+      {active && !ready?.current && <button type="button" className="btn ghost sm" disabled={disabled || unreviewed}
+        aria-describedby={unreviewed ? "team-ready-needs" : undefined} onClick={() => send(true)}>
         {ready ? "Mark ready again" : "Ready for the team"}</button>}
       {ready && <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => send(false)}>Done</button>}
     </div>

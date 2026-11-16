@@ -2,20 +2,35 @@
 // mark off, a criteria change leaves it out of date. Hermes's door counts the marked searches, a number only.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeEnv, call, adminCookie, T0 } from "./helpers.mjs";
+import { makeEnv, call, adminCookie, seedListing, T0 } from "./helpers.mjs";
 
 const ADMIN = "admin@example.test", OTHER = "colleague@example.test";
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
 const ON = { AUT18_TEAM_READY: "1" };
-const env0 = (flags = ON, schema) => Object.assign(makeEnv(schema), { HERMES_KEY: KEY }, flags);
+// Two homes every search below is proposed: one to let, one for sale.
+const env0 = (flags = ON, schema) => {
+  const env = Object.assign(makeEnv(schema), { HERMES_KEY: KEY }, flags);
+  seedListing(env, { id: "HE-R002", matchable: 1, operation: "rent", availability: "to_let", sale_price: null, rent: 1500,
+    rent_period: "month", bedrooms: 2 });
+  seedListing(env, { id: "HE-S003", matchable: 1, bedrooms: 3 });
+  return env;
+};
 const req = async (env, method, path, body, who = ADMIN) => call(env, method, path, { body, cookie: await adminCookie(who) });
 const door = env => call(env, "GET", "/hermes/status", { bearer: KEY, origin: null });
 const row = (env, sql, ...args) => ({ ...env.DB.raw.prepare(sql).get(...args) });
 const rows = (env, sql, ...args) => env.DB.raw.prepare(sql).all(...args).map(r => ({ ...r }));
-async function create(env, o = {}) {
+// A review decision on the search's proposed home, through the Matches route (it writes match.reviewed).
+const review = async (env, id, from, status, extra = {}) => {
+  const m = row(env, "SELECT id FROM matches WHERE applicant_id = ?", id);
+  const r = await req(env, "PUT", `/admin/matches/${m.id}`, { from, status, ...extra });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+};
+// A search with its proposed home shortlisted (reviewed), unless shortlist is false.
+async function create(env, o = {}, { shortlist = true } = {}) {
   const r = await req(env, "POST", "/admin/applicants", { name: "Zelda Quarrington", email: "zelda@private.je",
     phone: "07797 900321", source: "phone", operation: "rent", budget_max: 2000, bedrooms_min: 2, ...o });
   assert.equal(r.status, 201, JSON.stringify(r.data));
+  if (shortlist) await review(env, r.data.id, "found", "shortlisted");
   return r.data.id;
 }
 const applicant = (env, id) => row(env, "SELECT * FROM applicants WHERE id = ?", id);
@@ -146,7 +161,7 @@ test("the door counts the current marks of active searches, as a number and one 
   assert.equal(nothing.data.counts.applicants_ready, 0);
   assert.match(nothing.data.summary, /Nothing waiting\./);
   const a = await create(env), b = await create(env, { email: "b@private.je", phone: "07797 900322", operation: "buy",
-    budget_max: 500000 }), c = await create(env, { email: "c@private.je", phone: "07797 900323" });
+    budget_max: 900000 }), c = await create(env, { email: "c@private.je", phone: "07797 900323" });
   await mark(env, a, true);
   let { data } = await door(env);
   assert.equal(data.counts.applicants_ready, 1);
@@ -163,4 +178,55 @@ test("the door counts the current marks of active searches, as a number and one 
   for (const s of SECRETS) assert.ok(!text.includes(s), `status leaks ${s}`);
   for (const e of rows(env, "SELECT data FROM events WHERE type LIKE 'applicant.team_ready%'"))
     for (const s of SECRETS) assert.ok(!String(e.data).includes(s), `event leaks ${s}`);
+});
+
+test("marking needs a reviewed proposal: at least one proposed home shortlisted", async () => {
+  const env = env0(), id = await create(env, {}, { shortlist: false });
+  assert.equal(row(env, "SELECT status FROM matches WHERE applicant_id = ?", id).status, "found");
+  const none = await mark(env, id, true);
+  assert.equal(none.status, 409);
+  assert.match(none.data.error, /Shortlist at least one proposed home/);
+  assert.equal(ready(env, id), null);
+  assert.deepEqual(events(env, id), []);
+  // Rejected only is not a proposal for the team either.
+  await review(env, id, "found", "rejected", { reject_reason: "price" });
+  assert.equal((await mark(env, id, true)).status, 409);
+  await review(env, id, "rejected", "found");
+  await review(env, id, "found", "shortlisted");
+  const ok = await mark(env, id, true);
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal(ok.data.team_ready.current, true);
+});
+
+test("a proposal reviewed after the mark leaves it out of date until someone marks it again", async () => {
+  const env = env0(), id = await create(env);
+  await mark(env, id, true);
+  assert.equal((await door(env)).data.counts.applicants_ready, 1);
+  // Moving the shortlisted home back to Found and shortlisting it again: two review decisions after the mark.
+  await review(env, id, "shortlisted", "found");
+  assert.ok(ready(env, id), "kept, so the team sees it needs another look");
+  assert.equal((await req(env, "GET", `/admin/applicants/${id}`)).data.team_ready.current, false);
+  assert.equal((await door(env)).data.counts.applicants_ready, 0);
+  // With nothing shortlisted it cannot be marked again; once shortlisted it can.
+  assert.equal((await mark(env, id, true)).status, 409);
+  await review(env, id, "found", "shortlisted");
+  assert.equal((await req(env, "GET", `/admin/applicants/${id}`)).data.team_ready.current, false);
+  assert.equal((await door(env)).data.counts.applicants_ready, 0);
+  const again = await mark(env, id, true);
+  assert.equal(again.status, 200);
+  assert.equal(again.data.team_ready.current, true);
+  assert.equal((await door(env)).data.counts.applicants_ready, 1);
+});
+
+test("switched off, a stage change still takes an earlier mark off, so switching on again shows none", async () => {
+  const env = env0(), id = await create(env);
+  await mark(env, id, true);
+  delete env.AUT18_TEAM_READY;
+  const staged = await req(env, "PUT", `/admin/applicants/${id}`, { updated_at: applicant(env, id).updated_at, stage: "viewing" });
+  assert.equal(staged.status, 200, JSON.stringify(staged.data));
+  assert.equal(ready(env, id), null);
+  assert.deepEqual(events(env, id).map(e => e.type), ["applicant.team_ready", "applicant.team_ready_cleared"]);
+  env.AUT18_TEAM_READY = "1";
+  assert.equal((await req(env, "GET", `/admin/applicants/${id}`)).data.team_ready, null);
+  assert.equal((await door(env)).data.counts.applicants_ready, 0);
 });
