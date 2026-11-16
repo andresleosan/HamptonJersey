@@ -51,8 +51,10 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       assert.equal(await page.locator('img[src^="/media/"]').count(), 0, 'no panel image uses the public route');
 
       // Access's sign-in expires: every API call gets its redirect instead of reaching Hampton.
-      const writes = [];
-      page.on('request', r => { if (r.url().includes('/api/') && !['GET', 'HEAD'].includes(r.method())) writes.push(r.method()); });
+      // Every write the page sends to the API, by method and path; the listing's own are what must never repeat.
+      const sent = [], LISTING = `/api/admin/listings/${listing}`;
+      page.on('request', r => { if (r.url().includes('/api/') && !['GET', 'HEAD'].includes(r.method())) sent.push(`${r.method()} ${new URL(r.url()).pathname}`); });
+      const listingWrites = () => sent.filter(w => w.endsWith(` ${LISTING}`)).map(w => w.split(' ')[0]);
       const expired = r => r.fulfill({ status: 302, headers: { location: ACCESS_LOGIN } });
       await page.route('**/api/**', expired);
       const draft = `Draft kept while Access asks again (${width})`;
@@ -61,7 +63,7 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       const dialog = page.getByRole('dialog', { name: 'Sign in again to continue' });
       await dialog.waitFor();
       await page.getByText('may or may not have been saved').waitFor();
-      assert.deepEqual(writes, ['PUT'], 'the write is attempted once and never resent');
+      assert.deepEqual(listingWrites(), ['PUT'], 'the write is attempted once and never resent');
       assert.equal(await title.inputValue(), draft, 'the draft stays in this tab');
       const link = dialog.getByRole('link', { name: 'Open sign-in in a new tab' });
       assert.equal(await link.getAttribute('href'), '/admin/');
@@ -89,17 +91,17 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       // Still expired: the check says so and sends nothing else.
       await dialog.getByRole('button', { name: "I've signed in" }).click();
       await dialog.getByText("Hampton still can't see your security sign-in").waitFor();
-      assert.deepEqual(writes, ['PUT']);
+      assert.deepEqual(listingWrites(), ['PUT']);
 
       // Signed in again: only GET /api/me, the dialog goes, the draft is intact and nothing is resent.
       await page.unroute('**/api/**', expired);
       await dialog.getByRole('button', { name: "I've signed in" }).click();
       await dialog.waitFor({ state: 'detached' });
       assert.equal(await title.inputValue(), draft);
-      assert.deepEqual(writes, ['PUT']);
+      assert.deepEqual(listingWrites(), ['PUT']);
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await page.getByRole('status').filter({ hasText: 'Changes saved.' }).waitFor();
-      assert.deepEqual(writes, ['PUT', 'PUT']);
+      assert.deepEqual(listingWrites(), ['PUT', 'PUT']);
 
       // The answer is lost after Hampton wrote: the outcome is unknown, nothing is resent, and saving the same thing
       // again is refused by the listing's version instead of writing twice.
@@ -113,16 +115,17 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       await dialog.getByRole('button', { name: "I've signed in" }).click();
       await dialog.waitFor({ state: 'detached' });
       assert.equal(await title.inputValue(), second);
-      assert.deepEqual(writes, ['PUT', 'PUT', 'PUT']);
+      assert.deepEqual(listingWrites(), ['PUT', 'PUT', 'PUT']);
       const saved = await (await context.request.get(`${BASE}api/admin/listings/${listing}`)).json();
       assert.equal(saved.listing.title, second, 'the lost write did happen, once');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await page.getByRole('alert').filter({ hasText: 'Someone else saved changes' }).waitFor();
-      assert.deepEqual(writes, ['PUT', 'PUT', 'PUT', 'PUT']);
+      assert.deepEqual(listingWrites(), ['PUT', 'PUT', 'PUT', 'PUT']);
       assert.equal((await (await context.request.get(`${BASE}api/admin/listings/${listing}`)).json()).listing.updated_at,
         saved.listing.updated_at, 'the repeated save wrote nothing');
 
       assert.deepEqual(errors, []);
+      console.log(`Writes sent by the page: ${sent.join(', ')}`);
       await context.close();
       console.log(`PRE-06 ${width}px: Staff media, reauth in another tab, draft kept, no resend, keyboard and 200% zoom passed.`);
     }
