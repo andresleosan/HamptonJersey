@@ -17,6 +17,8 @@ CREATE TABLE market_sweep_attempts (
   attempted_at TEXT NOT NULL,
   outcome TEXT NOT NULL CHECK (outcome IN ('page','complete','rate_limited','access_denied','unavailable','invalid_response','no_reader')),
   records INTEGER CHECK (records IS NULL OR records BETWEEN 0 AND 10),
+  -- Adverts of the page left out because BUS-06 or BUS-09 would refuse them; the rest of the page is kept.
+  skipped INTEGER CHECK (skipped IS NULL OR skipped BETWEEN 1 AND 10),
   FOREIGN KEY (run_id, source_ref, channel_id) REFERENCES market_source_runs(run_id, source_ref, channel_id)
 ) WITHOUT ROWID;
 CREATE INDEX market_sweep_attempts_run ON market_sweep_attempts(run_id, source_ref, channel_id, attempted_at);

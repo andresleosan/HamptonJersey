@@ -37,7 +37,12 @@ const TASK_TYPE = 'market.sweep_review';
 const taskKey = runId => `bus08:sweep:${runId}`, entity = runId => `market-sweep:${runId}`;
 const later = (ts, seconds) => new Date(Date.parse(ts) + seconds * 1000).toISOString();
 const clockAt = ts => () => new Date(ts);
-const AUTOMATIC = "s.access_status='allowed' AND s.method='http'";
+// The channels the sweep reads: those claimSourcePage (BUS-06) would lease now, so one it would refuse is not taken
+// again and again, nor waited for. sr: the channel's row in the run.
+const AUTOMATIC = `s.access_status='allowed' AND s.method='http' AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
+  AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
+  AND EXISTS (SELECT 1 FROM market_runs r JOIN market_directory_manifests m ON m.revision=r.manifest_revision
+    WHERE r.id=sr.run_id AND s.directory_revision=r.manifest_revision AND m.status='accepted' AND m.sha256=r.manifest_sha256)`;
 
 // Due from the first tick at or after 01:00 Jersey time (a spring-forward day: the first instant after it), once per
 // Jersey day: market_runs keeps one daily run per day, so a repeated 01:00 or a later manifest makes no second one.
@@ -49,20 +54,20 @@ export function dailyRunDue(ts) {
 const dailyRun = (env, day) => env.DB.prepare(
   "SELECT id,status,version,jersey_day FROM market_runs WHERE kind='daily' AND jersey_day=?").bind(day).first();
 
-// Today's run, opened if due. Earlier daily runs still open are compared and closed first: a missed day is not
-// made up, and a day never overlaps another.
+// Today's run, opened if due. Earlier daily runs still open are compared and closed first, also when today's was
+// opened by hand: a missed day is not made up, and a day never overlaps another.
 async function openToday(env, ts) {
   const { due, jersey_day } = dailyRunDue(ts);
   if (!due) return (await env.DB.prepare(`SELECT id,status,version,jersey_day FROM market_runs
     WHERE kind='daily' AND status IN ('open','paused') ORDER BY jersey_day DESC LIMIT 1`).first());
-  const existing = await dailyRun(env, jersey_day);
-  if (existing) return existing;
   const { results: older } = await env.DB.prepare(`SELECT id,version,jersey_day FROM market_runs
     WHERE kind='daily' AND status IN ('open','paused') AND jersey_day<?`).bind(jersey_day).all();
   for (const run of older) {
     await compare(env, run, ts);
     try { await closeInventoryRun(env, { run_id: run.id, version: run.version }); } catch { /* moved meanwhile */ }
   }
+  const existing = await dailyRun(env, jersey_day); // also one a person opened by hand
+  if (existing) return existing;
   const manifest = await env.DB.prepare(`SELECT m.revision FROM market_directory_manifests m WHERE m.status='accepted'
     AND EXISTS (SELECT 1 FROM market_sources s WHERE s.directory_revision=m.revision AND s.source_kind='external')
     ORDER BY m.accepted_at DESC,m.revision DESC LIMIT 1`).first();
@@ -74,12 +79,13 @@ async function openToday(env, ts) {
   return dailyRun(env, jersey_day);
 }
 
-const attempt = (env, runId, c, ts, outcome, records = null) => env.DB.prepare(`INSERT INTO market_sweep_attempts
-  (id,run_id,source_ref,channel_id,attempted_at,outcome,records) VALUES (?,?,?,?,?,?,?)`)
-  .bind(crypto.randomUUID(), runId, c.source_ref, c.channel_id, ts, outcome, records);
+const attempt = (env, runId, c, ts, outcome, records = null, skipped = null) => env.DB.prepare(`INSERT INTO market_sweep_attempts
+  (id,run_id,source_ref,channel_id,attempted_at,outcome,records,skipped) VALUES (?,?,?,?,?,?,?,?)`)
+  .bind(crypto.randomUUID(), runId, c.source_ref, c.channel_id, ts, outcome, records, skipped);
 
 // A failed read keeps the inventory as it was. Access refused is not retried that day; a rate limit waits as asked
-// (60 s at least); a network or page failure is retried on later ticks, MAX_FAILURES times in all.
+// (60 s at least); a network or page failure, or a lease BUS-06 refuses, is retried on later ticks, MAX_FAILURES
+// times in all. lease: the one held, or null when none could be taken (then only an expired one is released).
 function failed(env, runId, c, lease, error, ts) {
   const code = error instanceof SourceReadError ? error.code : 'unavailable';
   const wait = code === 'rate_limited' ? Math.max(60, Number(error.retryAfterS) || 0) : 1200;
@@ -89,40 +95,56 @@ function failed(env, runId, c, lease, error, ts) {
         WHEN (SELECT COUNT(*) FROM market_sweep_attempts a WHERE a.run_id=market_source_runs.run_id
           AND a.source_ref=market_source_runs.source_ref AND a.channel_id=market_source_runs.channel_id
           AND a.outcome IN ('unavailable','invalid_response'))>=? THEN 'blocked' ELSE 'failed' END
-      WHERE run_id=? AND source_ref=? AND channel_id=? AND lease_token=?`)
-      .bind(later(ts, wait), code, code, MAX_FAILURES, runId, c.source_ref, c.channel_id, lease.token)]);
+      WHERE run_id=? AND source_ref=? AND channel_id=? AND status IN ('pending','running','failed')
+        AND (lease_token=? OR (? IS NULL AND (lease_token IS NULL OR lease_until<=?)))`)
+      .bind(later(ts, wait), code, code, MAX_FAILURES, runId, c.source_ref, c.channel_id, lease?.token ?? null,
+        lease?.token ?? null, ts)]);
 }
+
+const validKey = v => typeof v === 'string' && v.length > 0 && v.length <= 160 && !/[\u0000-\u001f\u007f]/.test(v);
+const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+const validTime = v => typeof v === 'string' && Number.isFinite(Date.parse(v)) && new Date(v).toISOString() === v;
 
 // The reader's answer as a BUS-06 page: observations normalised by BUS-09, the processing time as reading time.
 async function toPage(read, lease, ts) {
   if (!read || typeof read !== 'object' || !Array.isArray(read.records) || read.records.length > 10 ||
       typeof read.exhausted !== 'boolean') throw new SourceReadError('invalid_response');
-  let records;
-  try {
-    records = read.records.map(r => ({ external_key: r?.external_key, source_at: r?.source_at ?? ts, raw: r?.raw,
-      normalized: normalizeObservation({ ...r?.observation, observed_at: ts }) }));
-  } catch { throw new SourceReadError('invalid_response'); }
+  // An advert BUS-06 or BUS-09 would refuse is left out (and counted on the attempt), not the whole page with it.
+  const records = [], keys = new Set();
+  for (const r of read.records) {
+    try {
+      if (!validKey(r?.external_key) || keys.has(r.external_key) || !plain(r.raw) || !plain(r.observation) ||
+          (r.source_at !== undefined && !validTime(r.source_at)) ||
+          (r.raw.description !== undefined && (typeof r.raw.description !== 'string' || r.raw.description.length > 4000)))
+        throw new TypeError('Invalid advert');
+      const normalized = normalizeObservation({ ...r.observation, observed_at: ts });
+      records.push({ external_key: r.external_key, source_at: r.source_at ?? ts, raw: r.raw, normalized });
+      keys.add(r.external_key);
+    } catch { /* skipped */ }
+  }
   return { page_key: `c-${(await sha256(lease.cursor ?? '')).slice(0, 40)}`, cursor: lease.cursor,
-    next_cursor: read.exhausted ? null : read.next_cursor ?? null, exhausted: read.exhausted, observed_at: ts, records };
+    next_cursor: read.exhausted ? null : read.next_cursor ?? null, exhausted: read.exhausted, observed_at: ts, records,
+    skipped: read.records.length - records.length };
 }
 
 async function readChannel(env, run, c, readers, ts) {
   const reader = readers[c.source_ref];
   if (!reader) {
-    await env.DB.batch([attempt(env, run.id, c, ts, 'no_reader'), env.DB.prepare(`UPDATE market_source_runs SET status='blocked'
-      WHERE run_id=? AND source_ref=? AND channel_id=? AND lease_token IS NULL AND status IN ('pending','failed')`)
-      .bind(run.id, c.source_ref, c.channel_id)]);
+    await env.DB.batch([attempt(env, run.id, c, ts, 'no_reader'), env.DB.prepare(`UPDATE market_source_runs
+      SET status='blocked',lease_token=NULL,lease_until=NULL
+      WHERE run_id=? AND source_ref=? AND channel_id=? AND status IN ('pending','running','failed')
+        AND (lease_token IS NULL OR lease_until<=?)`).bind(run.id, c.source_ref, c.channel_id, ts)]);
     return 'no_reader';
   }
   let lease;
   try { lease = await claimSourcePage(env, { run_id: run.id, source_ref: c.source_ref, channel_id: c.channel_id }, clockAt(ts)); }
-  catch { return 'busy'; } // rate limited, paused or changed: a later tick
-  let page;
+  catch (error) { await failed(env, run.id, c, null, error, ts); return 'failed'; } // refused: counted, retried later
+  let page, skipped;
   try {
     const read = await reader.readPage({ source_ref: c.source_ref, channel_id: c.channel_id, cursor: lease.cursor,
       allowed_hosts: JSON.parse(c.allowed_hosts), allowed_paths: JSON.parse(c.allowed_paths),
       signal: AbortSignal.timeout(READ_TIMEOUT_MS) });
-    page = await toPage(read, lease, ts);
+    ({ skipped, ...page } = await toPage(read, lease, ts));
     // A first page that says the channel is empty when it had adverts is a broken reader, not a market with none.
     if (page.exhausted && !page.records.length && c.page_no === 0 && await env.DB.prepare(`SELECT 1 FROM
       market_latest_observations WHERE source_ref=? AND channel_id=? AND gone=0 LIMIT 1`).bind(c.source_ref, c.channel_id).first())
@@ -133,10 +155,11 @@ async function readChannel(env, run, c, readers, ts) {
   } catch (error) {
     // A page BUS-06 refuses counts as a failed read; a state that moved (pause, review) just ends this attempt.
     if ([400, 413].includes(error?.status)) { await failed(env, run.id, c, lease, new SourceReadError('invalid_response'), ts); return 'failed'; }
-    if (error?.status === 409) return 'busy'; // the lease expires; the other channels of the tick go on
+    // A state that moved under the read (pause, review): counted like a failed read; the other channels go on.
+    if (error?.status === 409) { await failed(env, run.id, c, lease, new SourceReadError('unavailable'), ts); return 'failed'; }
     throw error;
   }
-  await attempt(env, run.id, c, ts, page.exhausted ? 'complete' : 'page', page.records.length).run();
+  await attempt(env, run.id, c, ts, page.exhausted ? 'complete' : 'page', page.records.length, skipped || null).run();
   return page.exhausted ? 'complete' : 'page';
 }
 

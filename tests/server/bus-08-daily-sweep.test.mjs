@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { makeEnv, call, adminCookie } from './helpers.mjs';
+import { createInventoryRun } from '../../server/market-inventory-store.js';
 import worker from '../../server/jobs.js';
 import { CHANNELS_PER_TICK, MAX_FAILURES, RECOMPUTE_FLAGS, SourceReadError, dailyRunDue, marketSweepPass }
   from '../../server/market-daily-sweep.js';
@@ -30,9 +31,10 @@ function world({ sources = ['agency-a', 'agency-b'], revision = 'rev-1' } = {}) 
 }
 const manifest = (env, revision, acceptedAt) => env.DB.raw.prepare(
   "INSERT INTO market_directory_manifests VALUES (?,?,?,'fixture','accepted')").run(revision, 'a'.repeat(64), acceptedAt);
-// D1's own clock paces channels (60 s) and leases; between the test's ticks they are released as time would.
+// D1's own clock paces channels (60 s) and leases; between the test's ticks they are released as time would. A
+// channel told to wait keeps a wait (now past), so a test never hides one that is left without it.
 const rest = env => env.DB.raw.exec(`UPDATE market_source_activity SET last_acquired_at=NULL;
-  UPDATE market_source_runs SET next_due=NULL;`);
+  UPDATE market_source_runs SET next_due='2000-01-01T00:00:00.000Z' WHERE next_due IS NOT NULL;`);
 
 const advert = (key, amount = 150000) => ({ key, amount });
 const many = (prefix, count) => Array.from({ length: count }, (_, i) => advert(`${prefix}-${i + 1}`));
@@ -220,14 +222,83 @@ test('a pause or a source review during a read keeps the late page out', async (
   reader.readPage = async input => { const page = await review(input);
     env.DB.raw.exec("UPDATE market_sources SET policy_version=policy_version+1 WHERE source_ref='agency-a'"); return page; };
   rest(env);
-  assert.deepEqual((await marketSweepPass(env, at(0), { readers })).read, ['busy']);
+  assert.deepEqual((await marketSweepPass(env, at(0), { readers })).read, ['failed']);
   assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_observations'), 0);
+  // The refused page is an attempt, counted like a failed read, with a wait before the next one.
+  assert.equal(one(env, 'SELECT outcome FROM market_sweep_attempts').outcome, 'unavailable');
+  assert.deepEqual({ ...one(env, "SELECT status,next_due FROM market_source_runs WHERE source_ref='agency-a'") },
+    { status: 'failed', next_due: new Date(Date.parse(at(0)) + 1200000).toISOString() });
   reader.readPage = review;
   const run = runOf(env, at(0).slice(0, 10));
   env.DB.raw.prepare("UPDATE market_runs SET status='paused',version=version+1 WHERE id=?").run(run.id);
   env.DB.raw.exec('UPDATE market_source_runs SET lease_token=NULL,lease_until=NULL'); rest(env);
   assert.deepEqual((await marketSweepPass(env, at(0, 10), { readers })).read, []);
   assert.equal(reader.calls.length, 1);
+});
+
+test('a channel BUS-06 would refuse is not read again and again, and the day is still compared', async () => {
+  const env = world({ sources: ['agency-a', 'agency-b', 'agency-c', 'agency-d'] });
+  // agency-b: its review expired. agency-c: held by another run's lease that never ends, so every claim is refused.
+  env.DB.raw.exec(`UPDATE market_sources SET review_due_at='2001-01-01T00:00:00.000Z',policy_version=policy_version+1
+    WHERE source_ref='agency-b';
+    UPDATE market_source_activity SET lease_token='other-run',lease_until='2999-01-01T00:00:00.000Z' WHERE source_ref='agency-c';`);
+  const { readers, reader } = fixtures({ 'agency-a': many('A', 2), 'agency-b': many('B', 2), 'agency-c': many('C', 2),
+    'agency-d': many('D', 2) });
+  const outs = [];
+  for (let i = 0; i < 6 && !outs.at(-1)?.compared; i++) { rest(env); outs.push(await marketSweepPass(env, at(0, i * 10), { readers })); }
+  assert.equal(outs.at(-1).compared, true, JSON.stringify(outs.map(o => o.read)));
+  assert.ok(!reader.calls.some(([source]) => ['agency-b', 'agency-c'].includes(source)));
+  const run = runOf(env, at(0).slice(0, 10)).id;
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE source_ref='agency-b'"), 0);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE source_ref='agency-c' AND outcome='unavailable'"), MAX_FAILURES);
+  assert.deepEqual(rows(env, 'SELECT source_ref,status FROM market_source_runs WHERE run_id=? ORDER BY source_ref', run).map(r => r.status),
+    ['complete', 'pending', 'blocked', 'complete', 'pending']);
+  assert.match(task(env, run).task_reason, /1 sources not read in full/);
+});
+
+test('the review task opens the market inventory and can be marked done', async () => {
+  const env = world({ sources: ['agency-a'] }), cookie = await adminCookie();
+  rest(env); await marketSweepPass(env, at(0)); // no reader: one source not read in full
+  const id = task(env, runOf(env, at(0).slice(0, 10)).id).id;
+  const listed = (await call(env, 'GET', '/admin/notifications?box=action', { cookie })).data.notifications.find(t => t.id === id);
+  assert.deepEqual([listed.target_exists, listed.link], [true, '#/automations']);
+  const done = await call(env, 'PUT', `/admin/notification-tasks/${id}`, { cookie,
+    body: { operation_id: crypto.randomUUID(), revision: listed.revision, action: 'done' } });
+  assert.equal(done.status, 200, JSON.stringify(done.data));
+  assert.ok(one(env, 'SELECT resolved_at FROM notifications WHERE id=?', id).resolved_at);
+});
+
+test("yesterday's open run is compared and closed when today's was opened by hand", async () => {
+  const env = world({ sources: ['agency-a'] }), { readers } = fixtures({ 'agency-a': many('A', 2) });
+  rest(env); await marketSweepPass(env, at(0), { readers }); // day 0: read, left open
+  await createInventoryRun(env, { kind: 'daily', manifest_revision: 'rev-1', operation_id: crypto.randomUUID() },
+    'admin@example.test', () => new Date(at(1)));
+  rest(env); await marketSweepPass(env, at(1, 10), { readers });
+  assert.equal(runOf(env, at(0).slice(0, 10)).status, 'partial'); // agency-pending was never read
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_daily_sweeps WHERE jersey_day=?', at(0).slice(0, 10)), 1);
+  assert.equal(runOf(env, at(1).slice(0, 10)).status, 'open');
+});
+
+test('a channel with no reader left running with an expired lease is blocked once', async () => {
+  const env = world({ sources: ['agency-a'] }), { readers } = fixtures({ 'agency-a': many('A', 12) });
+  rest(env); await marketSweepPass(env, at(0), { readers }); // opens the day and reads the first page
+  rest(env); // a later tick took the lease and died
+  env.DB.raw.exec(`UPDATE market_source_runs SET status='running',lease_token='lost-tick',lease_until='2000-01-01T00:00:00.000Z'
+    WHERE source_ref='agency-a'`);
+  for (let i = 1; i < 4; i++) { rest(env); await marketSweepPass(env, at(0, i * 10), { readers: {} }); }
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE outcome='no_reader'"), 1);
+  assert.equal(one(env, "SELECT status FROM market_source_runs WHERE source_ref='agency-a'").status, 'blocked');
+  assert.equal(one(env, "SELECT lease_token FROM market_source_activity WHERE source_ref='agency-a'").lease_token, null);
+});
+
+test('one advert a source sends badly is left out, not the whole page', async () => {
+  const env = world({ sources: ['agency-a'] }), { readers, reader } = fixtures({ 'agency-a': many('A', 3) });
+  const read = reader.readPage;
+  reader.readPage = async input => { const page = await read(input);
+    page.records[1].observation.country_code = 'FR'; page.records[2] = { ...page.records[2], raw: 'not an object' }; return page; };
+  rest(env); await marketSweepPass(env, at(0), { readers });
+  assert.deepEqual(rows(env, 'SELECT external_key FROM market_observations'), [{ external_key: 'A-1' }]);
+  assert.deepEqual({ ...one(env, 'SELECT outcome,records,skipped FROM market_sweep_attempts') }, { outcome: 'complete', records: 1, skipped: 2 });
 });
 
 // Each D1 call counts once: a query, or a batch (one transaction) whatever it holds.
