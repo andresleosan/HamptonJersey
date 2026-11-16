@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **ADM-12, acceso del inquilino construido y apagado:** desde Rentals el equipo podrá crear un enlace con fecha de fin para que el inquilino, con un código por correo, reporte una avería (urgencia y descripción, sin fotos); una emergencia abre la tarea urgente del Inbox sin aprobar gasto. Espera la clave, tu decisión de abrirlo, el correo (AUT-17) y las migraciones 0046/0049. Progreso 139 → 139 de 214.
+
 16-nov-2026 · **PRE-12, dos piezas más:** al borrar una ficha se borran también sus notas privadas de retirada y queda anotado en su historial (activo ya). Y, apagado hasta aplicar 0111, el equipo podrá confirmar una a una qué visitas son de quien pide sus datos antes de meterlas en su copia. Progreso 139 → 139 de 214.
 
 16-nov-2026 · **Mensajes de Facebook construidos y apagados (MSG-01, PRE-08):** Messages tendrá una pestaña Facebook con las conversaciones de la página, unidas a un contacto, y el equipo responderá desde ahí dentro de las 24 horas de Meta. Cada aviso de Meta se verifica con su firma. Espera al trámite de Meta (PRE-02) y a que Luis encienda recibir (META_MESSAGES_READY) y enviar (META_SEND_READY). Progreso 139 → 139 de 214.
