@@ -111,8 +111,8 @@ BUS04_REMATCH_READY = "1"
 BUS17_REVIEW_READY = "1"
 PRE12_REQUESTS_READY = "1"
 # PRE-12: a team member confirms one by one which viewing requests matched only by email or phone belong to a privacy
-# request's contact; only those enter the copy (migration 0111). Off until 0111 is applied. Sends nothing.
-PRE12_VIEWING_REVIEW_READY = "0"
+# request's contact; only those enter the copy (migration 0111). Migration 0111 applied 16-nov-2026. Sends nothing.
+PRE12_VIEWING_REVIEW_READY = "1"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"
