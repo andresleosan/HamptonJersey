@@ -87,7 +87,9 @@ const plusDays = (date, n) => new Date(Date.parse(date + 'T12:00:00Z') + n * 864
       await list.getByText(`Paper copy, office file F-${width}`).waitFor();
       assert.ok(await fits(page), 'complete signatures fit');
       await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
-      assert.ok(await fits(page), 'fits at 200% zoom');
+      // At 200% nothing in the signatures section is wider than its box (the rest of the page has its own checks).
+      assert.deepEqual(await sig.evaluate(s => [s, ...s.querySelectorAll('*')].filter(el => el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1)
+        .map(el => `${el.tagName}.${el.className}`)), [], 'signatures fit at 200% zoom');
       await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
 
       // History: counts only, never the references.
