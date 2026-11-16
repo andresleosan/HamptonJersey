@@ -300,6 +300,7 @@ const HOMES = `WITH RECURSIVE
     LEFT JOIN decided d ON d.source_ref=lt.source_ref AND d.channel_id=lt.channel_id AND d.external_key=lt.external_key AND d.operation=lt.op
     LEFT JOIN roots r ON r.start=d.property_id),
   homes AS MATERIALIZED (SELECT home,operation,MAX(observed_at) AS observed_at,COUNT(*) AS adverts,
+      json_group_array(json_array(source_ref,channel_id,external_key)) AS members,
       ${['parish', 'bedrooms', 'bathrooms', 'pets', 'parking', 'price'].map(agree).join(',')},
       (SELECT k.listing_id FROM listing_market_links k JOIN roots r ON r.start=k.property_id WHERE r.id=adverts.home
         AND k.action='link' AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id)
@@ -377,11 +378,3 @@ export const readMarketHomesPage = gated(async (env, after, limit) => {
     open_sources: open.results[0].n, more: page.results.length > limit };
 });
 
-// BUS-04: the price of each [home, operation] as a search reads it (the one its adverts agree on, as
-// [amount_minor, currency, period] JSON text; null when they disagree or state none). Reading writes nothing.
-export const readMarketHomePrices = gated(async (env, pairs) => {
-  if (!pairs.length) return new Map();
-  const { results } = await primary(env.DB).prepare(`${HOMES} SELECT home,operation,price FROM homes WHERE (home,operation) IN
-    (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?))`).bind(JSON.stringify(pairs)).all();
-  return new Map(results.map(r => [JSON.stringify([r.home, r.operation]), r.price]));
-});

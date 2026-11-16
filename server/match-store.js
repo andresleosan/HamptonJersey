@@ -101,7 +101,9 @@ async function matchMarket(env, a) {
           (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?)) AND ${search}`)
         .bind(a.id, JSON.stringify(gone), ...guard)] : [])];
     if (writes.length) await env.DB.batch(writes);
-    return { state: !open_sources ? 'no_source' : capped ? 'incomplete' : 'searched', homes: evaluated.length };
+    // read: each evaluated home's price and adverts, for BUS-04 (market-rematch.js), so it reads the inventory no further.
+    return { state: !open_sources ? 'no_source' : capped ? 'incomplete' : 'searched', homes: evaluated.length,
+      read: homes.slice(0, MARKET_HOMES_LIMIT).map(h => ({ k: h.home, o: h.operation, price: h.price ?? null, members: h.members ?? null })) };
   } catch { console.error('Market matching not recorded'); return { state: 'failed', homes: 0 }; }
 }
 

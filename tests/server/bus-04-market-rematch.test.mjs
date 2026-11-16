@@ -9,6 +9,7 @@ import { normalizeObservation } from '../../server/market-extraction.js';
 import worker from '../../server/jobs.js';
 import { RECOMPUTE_FLAGS, marketSweepPass } from '../../server/market-daily-sweep.js';
 import { CHANGES_PER_TICK, classifyMarketChange, lowerPrice, marketRematchPass } from '../../server/market-rematch.js';
+import { recomputeForApplicant } from '../../server/search-state.js';
 
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const AT = '2026-11-16T10:00:00.000Z';
@@ -25,9 +26,10 @@ function world({ on = true } = {}) {
   for (const flag of RECOMPUTE_FLAGS) env[flag] = '1';
   if (on) env.BUS04_REMATCH_READY = '1';
   db.prepare("INSERT INTO market_directory_manifests VALUES (?,?,?,?,'accepted')").run('rev', 'a'.repeat(64), '2000-01-01T00:00:00.000Z', 'review');
-  db.prepare(`INSERT INTO market_sources(source_ref,channel_id,directory_revision,source_kind,source_class,access_status,method,
-    policy_version,evidence_ref,retention_ref,reviewed_at,review_due_at) VALUES ('agency-a','site','rev','external','general',
-    'allowed','manual',1,'evidence','retention','2000-01-01T00:00:00.000Z','2999-01-01T00:00:00.000Z')`).run();
+  for (const source of ['agency-a', 'agency-b']) db.prepare(`INSERT INTO market_sources(source_ref,channel_id,directory_revision,
+    source_kind,source_class,access_status,method,policy_version,evidence_ref,retention_ref,reviewed_at,review_due_at)
+    VALUES (?,'site','rev','external','general','allowed','manual',1,'evidence','retention','2000-01-01T00:00:00.000Z',
+    '2999-01-01T00:00:00.000Z')`).run(source);
   db.prepare(`INSERT INTO market_runs(id,kind,manifest_revision,manifest_sha256,operation_id,created_at,created_by)
     VALUES(?,'initial','rev',?,?,?,'fixture')`).run(id(100), 'a'.repeat(64), id(101), AT);
   env.seq = 0;
@@ -36,17 +38,17 @@ function world({ on = true } = {}) {
 // One reading of an advert, and its row in the change outbox as BUS-06 writes it (change: false for a reading that
 // changed nothing, which BUS-06 does not emit).
 function reading(env, key, { amount = 150000, period = 'month', operation = 'rent', title = `Advert ${key}`, bedrooms = 2,
-  currency = 'GBP', change = true } = {}) {
+  currency = 'GBP', change = true, source = 'agency-a' } = {}) {
   const seq = ++env.seq, page = id(1000 + seq), observation = id(2000 + seq), seen = new Date(Date.parse(AT) + seq * 1000).toISOString();
   const normalized = normalizeObservation({ country_code: 'JE', territory_evidence: 'Address on the listing: Jersey', operation,
     observed_at: seen, title, parish: 'St Helier', bedrooms, bathrooms: 1, financial_terms: [operation === 'sale'
       ? { kind: 'sale_price', amount_minor: amount, currency, period: 'sale' } : { kind: 'rent', amount_minor: amount, currency, period }] });
   env.DB.raw.prepare(`INSERT INTO market_pages(id,run_id,source_ref,channel_id,page_key,content_sha256,exhausted,observed_at,
-    committed_at,committed_by,lease_token,lease_generation,policy_version) VALUES(?,?,'agency-a','site',?,?,0,?,?,'fixture','fixture',1,1)`)
-    .run(page, id(100), `page-${seq}`, 'b'.repeat(64), seen, seen);
+    committed_at,committed_by,lease_token,lease_generation,policy_version) VALUES(?,?,?,'site',?,?,0,?,?,'fixture','fixture',1,1)`)
+    .run(page, id(100), source, `page-${seq}`, 'b'.repeat(64), seen, seen);
   env.DB.raw.prepare(`INSERT INTO market_observations(id,page_id,source_ref,channel_id,external_key,raw_json,normalized_json,
-    normalized_sha256,source_at,origin_sha256) VALUES(?,?,'agency-a','site',?,?,?,?,?,?)`).run(observation, page, key,
-    JSON.stringify({ listing_url: `https://agency-a.example.test/${key}` }), JSON.stringify(normalized), 'c'.repeat(64), seen, 'd'.repeat(64));
+    normalized_sha256,source_at,origin_sha256) VALUES(?,?,?,'site',?,?,?,?,?,?)`).run(observation, page, source, key,
+    JSON.stringify({ listing_url: `https://${source}.example.test/${key}` }), JSON.stringify(normalized), 'c'.repeat(64), seen, 'd'.repeat(64));
   if (change) env.DB.raw.prepare(`INSERT INTO market_change_outbox(id,observation_id,observation_version,kind)
     VALUES (?,?,1,'observation_changed')`).run(id(3000 + seq), observation);
   return observation;
@@ -75,12 +77,14 @@ async function drain(env) {
 const resolve = (env, noticeId) => env.DB.raw.prepare("UPDATE notifications SET resolved_at=?,resolved_by='admin@example.test' WHERE id=?").run(AT, noticeId);
 
 test('a change is material only when it touches what a search reads; a lower price only in the same terms', () => {
-  const base = { operation: 'rent', fields: { title: 'Flat', parish: 'St Helier', bedrooms: 2 },
+  const base = { operation: 'rent', observed_at: '2026-11-15T10:00:00.000Z', fields: { title: 'Flat', parish: 'St Helier', bedrooms: 2 },
     financial_terms: [{ kind: 'rent', amount_minor: 200000, currency: 'GBP', period: 'month' }] };
   const text = o => JSON.stringify(o);
   assert.deepEqual(classifyMarketChange({ before: null, after: text(base) }), { material: true, operations: ['rent'] });
   assert.equal(classifyMarketChange({ before: text(base), after: text({ ...base, fields: { ...base.fields, title: 'Bright flat' },
     observed_at: AT }) }).material, false);
+  // A reading that loses its time no longer counts towards its home's facts (BUS-01): material.
+  assert.equal(classifyMarketChange({ before: text(base), after: text({ ...base, observed_at: undefined }) }).material, true);
   assert.equal(classifyMarketChange({ before: text(base), after: text({ ...base, financial_terms: [{ ...base.financial_terms[0],
     amount_minor: 190000 }] }) }).material, true);
   assert.equal(classifyMarketChange({ before: text(base), after: text(base), gone: 1 }).material, true);
@@ -246,6 +250,87 @@ test('a search that fails to cross is tried again behind the others and dropped 
     assert.equal(one(env, 'SELECT attempts FROM market_rematch_queue WHERE applicant_id=?', a)?.attempts ?? 3, i);
   }
   assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_rematch_queue'), 0);
+});
+
+test('the baseline is taken once: a home a later save of the search brought in is new at the next crossing', async () => {
+  const env = world();
+  const a = await register(env);
+  reading(env, 'M-1');
+  await drain(env); // first crossing: baseline taken (nothing held), M-1 new
+  resolve(env, notices(env, a)[0].id);
+  reading(env, 'M-2', { change: false }); // no change emitted: only a save of the search or Recalculate all finds it
+  await recomputeForApplicant(env, a, 'admin@example.test');
+  assert.deepEqual(held(env, a).map(m => m.home_key), [home('M-1'), home('M-2')]);
+  reading(env, 'M-9', { amount: 900000 }); // an unrelated change crosses the search again
+  await drain(env);
+  assert.deepEqual(proposals(env, a).map(p => [p.home_key, p.reason]), [[home('M-1'), 'new'], [home('M-2'), 'new']]);
+  assert.equal(notices(env, a).length, 2);
+});
+
+test('a crossing whose market part failed is a failed attempt: old results are not proposed and it stays queued', async t => {
+  t.mock.method(console, 'error', () => {});
+  const env = world();
+  const a = await register(env);
+  reading(env, 'N-1');
+  env.DB.raw.exec("CREATE TRIGGER fixture_market_failure BEFORE INSERT ON market_matches BEGIN SELECT RAISE(ABORT,'fixture'); END");
+  assert.deepEqual((await marketRematchPass(env, tick())).crossed, ['failed']);
+  assert.equal(one(env, 'SELECT attempts FROM market_rematch_queue WHERE applicant_id=?', a).attempts, 1);
+  assert.equal(notices(env, a).length, 0);
+  env.DB.raw.exec('DROP TRIGGER fixture_market_failure');
+  assert.deepEqual((await marketRematchPass(env, tick())).crossed, ['crossed']);
+  assert.equal(notices(env, a).length, 1);
+});
+
+test('a backlog of changes neither keeps crossing the same searches nor saves one that always fails', async () => {
+  const env = world();
+  const [x, y, z] = [await register(env), await register(env), await register(env)];
+  env.DB.raw.exec(`CREATE TRIGGER fixture_x_failure BEFORE INSERT ON market_rematch_baselines WHEN NEW.applicant_id=${x}
+    BEGIN SELECT RAISE(ABORT,'fixture'); END`);
+  const crossedBy = [];
+  const left = [];
+  for (let i = 0; i < 3; i++) { // a new change every tick queues all three again
+    reading(env, `P-${i}`);
+    await marketRematchPass(env, tick());
+    left.push(rows(env, 'SELECT applicant_id,attempts FROM market_rematch_queue ORDER BY applicant_id').map(r => [r.applicant_id, r.attempts]));
+  }
+  // x fails every tick and is dropped at its third failure, though every tick queued it again; y and z take turns.
+  assert.deepEqual(left, [[[x, 1], [z, 0]], [[x, 2], [y, 0]], [[z, 0]]]);
+  assert.equal(notices(env, y).length, 1);
+  assert.equal(notices(env, z).length, 1);
+});
+
+test('a home whose adverts a person joins keeps what was proposed under its earlier key', async () => {
+  const env = world();
+  const a = await register(env);
+  const left = reading(env, 'Q-1');
+  await drain(env);
+  resolve(env, notices(env, a)[0].id);
+  const right = reading(env, 'Q-1', { source: 'agency-b', change: false }); // the same home on another site
+  ok(await req(env, 'POST', '/admin/market/identity/decisions', { action: 'same_property', left_observation_id: left,
+    right_observation_id: right, operation_id: crypto.randomUUID() }), 201);
+  reading(env, 'Q-9', { amount: 900000 }); // an unrelated change crosses the search again
+  await drain(env);
+  const keys = held(env, a).map(m => m.home_key);
+  assert.equal(keys.length, 1);
+  assert.notEqual(keys[0], home('Q-1')); // the home now has its decided key
+  assert.equal(notices(env, a).length, 1); // not proposed nor noticed again
+  assert.deepEqual(proposals(env, a).find(p => p.home_key === keys[0]).reason, 'new');
+  // A lower price under the new key is still a drop from what was proposed.
+  reading(env, 'Q-1', { amount: 140000 });
+  reading(env, 'Q-1', { amount: 140000, source: 'agency-b' });
+  await drain(env);
+  assert.equal(proposals(env, a).find(p => p.home_key === keys[0]).reason, 'lower_price');
+  assert.equal(notices(env, a).length, 2);
+});
+
+test('a crossing reads the inventory once: the prices come from the search itself', async () => {
+  const env = world();
+  await register(env);
+  reading(env, 'R-1');
+  const seen = [], prepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => { seen.push(sql); return prepare(sql); };
+  assert.deepEqual((await marketRematchPass(env, tick())).crossed, ['crossed']);
+  assert.equal(seen.filter(sql => /homes AS MATERIALIZED/.test(sql)).length, 1);
 });
 
 test('without the website rules in the clock it waits and consumes nothing', async () => {

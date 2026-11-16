@@ -10,7 +10,7 @@
 // enquiry or a negotiation does not stop the crossing: only the search's own state does (EST-09).
 // Nothing is sent, shortlisted or approved. Off (BUS04_REMATCH_READY not "1") nothing runs.
 import { activeSql } from './applicants.js';
-import { advertPrice, readMarketHomePrices } from './market-identity.js';
+import { advertPrice } from './market-identity.js';
 import { recomputeForApplicant } from './search-state.js';
 import { RECOMPUTE_FLAGS, RECOMPUTE_PER_TICK } from './market-daily-sweep.js';
 
@@ -22,9 +22,10 @@ export const EVENT = 'applicant.market_matched';
 const SEARCHES_OF = { rent: 'rent', sale: 'buy' };
 
 // What a search reads of an advert (marketHomeFacts): a change to anything else, a title, a text, a date, crosses nothing.
+// Whether it has a reading time at all counts: the facts of an undated reading do not count towards its home (BUS-01).
 const facts = n => { const f = n.fields ?? {};
   return JSON.stringify([n.operation ?? null, f.parish ?? null, f.bedrooms ?? null, f.bathrooms ?? null, f.pets ?? null,
-    f.parking ?? null, advertPrice(n)]); };
+    f.parking ?? null, advertPrice(n), n.observed_at == null]); };
 // One outbox change: before and after as their normalized JSON text (before null for a new advert), gone when the
 // reading withdraws the advert. A reading that cannot be read is material for both operations: never a missed search.
 export function classifyMarketChange({ before, after, gone }) {
@@ -47,7 +48,8 @@ export function lowerPrice(now, before) {
 }
 
 // A page of pending changes, oldest reading first, each with the reading it changed. The searches they affect are
-// queued and the changes marked consumed in one transaction.
+// queued and the changes marked consumed in one transaction. A search already queued keeps its place and its failed
+// attempts; its generation says a change arrived.
 async function consume(env, ts) {
   const { results } = await env.DB.prepare(`SELECT x.id,o.normalized_json AS after,o.deleted_tombstone AS gone,
       (SELECT p.normalized_json FROM market_observations p WHERE p.source_ref=o.source_ref AND p.channel_id=o.channel_id
@@ -64,7 +66,7 @@ async function consume(env, ts) {
     ...(searches.size ? [env.DB.prepare(`INSERT INTO market_rematch_queue(applicant_id,queued_at)
       SELECT a.id,? FROM applicants a WHERE ${activeSql('a')} AND a.search_category='residential'
         AND a.operation IN (SELECT value FROM json_each(?))
-      ON CONFLICT(applicant_id) DO UPDATE SET queued_at=excluded.queued_at,attempts=0`).bind(ts, JSON.stringify([...searches]))] : []),
+      ON CONFLICT(applicant_id) DO UPDATE SET generation=generation+1`).bind(ts, JSON.stringify([...searches]))] : []),
     env.DB.prepare(`UPDATE market_change_outbox SET consumer_state='consumed'
       WHERE consumer_state='pending' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(results.map(r => r.id))),
   ]);
@@ -76,26 +78,45 @@ const OPEN_NOTICE = `SELECT 1 FROM notifications n JOIN events x ON x.id=n.event
 const REASON = 'Homes from the market inventory newly fit this search, or came back at a lower price. ' +
   'See them in Automations, Market inventory. Nothing was sent, shortlisted or approved.';
 const PROPOSAL = 'applicant_id=? AND home_key=? AND operation=?';
+const INSERT = `INSERT INTO market_match_proposals(applicant_id,home_key,operation,reason,price,proposed_at,match_changed_at,adverts)
+  VALUES (?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`;
 
-// After a crossing: each meets or to-confirm result not proposed before is proposed; one proposed before is proposed
-// again only at a lower comparable price; otherwise the price it had is only recorded. A notice when anything was
-// proposed and the search has none open. Every write checks what was read, so a crossing that overlaps changes nothing twice.
-async function propose(env, id, ts) {
+// After a crossing: each meets or to-confirm result not proposed before is proposed. One proposed before, under this
+// key or under an earlier key of one of its adverts (BUS-10 joined or split them), is proposed again only at a lower
+// comparable price; otherwise only its price and adverts are recorded. read: what the crossing read of each home (price
+// and adverts), so the inventory is not read again. A notice when anything was proposed and the search has none open.
+// Every write checks what was read, so a crossing that overlaps changes nothing twice.
+async function propose(env, id, ts, read) {
   const { results: rows } = await env.DB.prepare(`SELECT m.home_key,m.operation,m.changed_at,p.price,p.match_changed_at,
       p.applicant_id IS NOT NULL AS known FROM market_matches m LEFT JOIN market_match_proposals p
       ON p.applicant_id=m.applicant_id AND p.home_key=m.home_key AND p.operation=m.operation
     WHERE m.applicant_id=? AND m.result IN ('meets','pending')
-      AND (p.applicant_id IS NULL OR p.price IS NULL OR m.changed_at>p.match_changed_at)`).bind(id).all();
+      AND (p.applicant_id IS NULL OR p.price IS NULL OR p.adverts IS NULL OR m.changed_at>p.match_changed_at)`).bind(id).all();
   if (!rows.length) return;
-  const prices = await readMarketHomePrices(env, rows.map(r => [r.home_key, r.operation])), stmts = [];
+  const homes = new Map(read.map(h => [JSON.stringify([h.k, h.o]), h])), earlier = new Map();
+  if (rows.some(r => !r.known)) {
+    const { results } = await env.DB.prepare(`SELECT p.operation,p.reason,p.price,p.proposed_at,a.value AS advert
+      FROM market_match_proposals p, json_each(p.adverts) a WHERE p.applicant_id=? AND p.adverts IS NOT NULL`).bind(id).all();
+    for (const e of results) earlier.set(JSON.stringify([e.advert, e.operation]), e);
+  }
+  const stmts = [];
   for (const r of rows) {
-    const key = [id, r.home_key, r.operation], price = prices.get(JSON.stringify([r.home_key, r.operation])) ?? null;
-    if (!r.known) stmts.push(env.DB.prepare(`INSERT INTO market_match_proposals(applicant_id,home_key,operation,reason,price,
-      proposed_at,match_changed_at) VALUES (?,?,?,'new',?,?,?) ON CONFLICT DO NOTHING`).bind(...key, price, ts, r.changed_at));
-    else if (lowerPrice(price, r.price)) stmts.push(env.DB.prepare(`UPDATE market_match_proposals SET reason='lower_price',
-      price=?,proposed_at=?,match_changed_at=? WHERE ${PROPOSAL} AND price=?`).bind(price, ts, r.changed_at, ...key, r.price));
-    else stmts.push(env.DB.prepare(`UPDATE market_match_proposals SET price=COALESCE(price,?),match_changed_at=?
-      WHERE ${PROPOSAL} AND price IS ? AND match_changed_at=?`).bind(price, r.changed_at, ...key, r.price, r.match_changed_at));
+    const key = [id, r.home_key, r.operation], home = homes.get(JSON.stringify([r.home_key, r.operation]));
+    const price = home?.price ?? null, adverts = home?.members ?? null;
+    let { known, price: before, match_changed_at: seen } = r;
+    const carried = !known && adverts ? JSON.parse(adverts)
+      .map(a => earlier.get(JSON.stringify([JSON.stringify(a), r.operation]))).find(Boolean) : null;
+    if (carried) {
+      stmts.push(env.DB.prepare(INSERT).bind(...key, carried.reason, carried.price, carried.proposed_at, r.changed_at, adverts));
+      [known, before, seen] = [1, carried.price, r.changed_at];
+    }
+    if (!known) stmts.push(env.DB.prepare(INSERT).bind(...key, 'new', price, ts, r.changed_at, adverts));
+    else if (lowerPrice(price, before)) stmts.push(env.DB.prepare(`UPDATE market_match_proposals SET reason='lower_price',
+      price=?,proposed_at=?,match_changed_at=?,adverts=COALESCE(?,adverts) WHERE ${PROPOSAL} AND price=?`)
+      .bind(price, ts, r.changed_at, adverts, ...key, before));
+    else stmts.push(env.DB.prepare(`UPDATE market_match_proposals SET price=COALESCE(price,?),match_changed_at=?,
+      adverts=COALESCE(?,adverts) WHERE ${PROPOSAL} AND price IS ? AND match_changed_at=?`)
+      .bind(price, r.changed_at, adverts, ...key, before, seen));
   }
   const fresh = reason => `SELECT COUNT(*) FROM market_match_proposals WHERE applicant_id=? AND proposed_at=? AND reason='${reason}'`;
   stmts.push(env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
@@ -111,24 +132,36 @@ async function propose(env, id, ts) {
   await env.DB.batch(stmts);
 }
 
-// A few queued searches, oldest first. What a search already held before this crossing is its baseline: never noticed.
-// A search queued again while it was crossed stays queued; one that fails waits behind the others, MAX_ATTEMPTS times.
+// A crossing whose market part could not be worked out is a failed attempt, not a crossing of the old results.
+const CROSSED = new Set(['searched', 'incomplete', 'no_source']);
+// A few queued searches, in queue order. The first crossing of a search takes its baseline, once. A search no longer
+// active and residential leaves the queue. One queued again while it was crossed, or that failed, goes to the back;
+// a failed one MAX_ATTEMPTS times in all.
 async function cross(env, ts) {
-  const { results } = await env.DB.prepare('SELECT applicant_id,queued_at FROM market_rematch_queue ORDER BY queued_at,applicant_id LIMIT ?')
-    .bind(RECOMPUTE_PER_TICK).all();
+  const { results } = await env.DB.prepare(`SELECT q.applicant_id,q.generation,
+      EXISTS (SELECT 1 FROM applicants a WHERE a.id=q.applicant_id AND ${activeSql('a')} AND a.search_category='residential') AS live
+    FROM market_rematch_queue q ORDER BY q.queued_at,q.applicant_id LIMIT ?`).bind(RECOMPUTE_PER_TICK).all();
   const out = [];
-  for (const { applicant_id: id, queued_at: queued } of results) {
+  for (const { applicant_id: id, generation, live } of results) {
+    if (!live) {
+      await env.DB.prepare('DELETE FROM market_rematch_queue WHERE applicant_id=? AND generation=?').bind(id, generation).run();
+      out.push('skipped'); continue;
+    }
     try {
-      await env.DB.prepare(`INSERT INTO market_match_proposals(applicant_id,home_key,operation,reason,price,proposed_at,match_changed_at)
-        SELECT applicant_id,home_key,operation,'baseline',NULL,?,changed_at FROM market_matches
-        WHERE applicant_id=? AND result IN ('meets','pending') ON CONFLICT DO NOTHING`).bind(ts, id).run();
-      await recomputeForApplicant(env, id, 'system');
-      await propose(env, id, ts);
-      await env.DB.prepare('DELETE FROM market_rematch_queue WHERE applicant_id=? AND queued_at=?').bind(id, queued).run();
+      await env.DB.batch([env.DB.prepare(`INSERT INTO market_match_proposals(applicant_id,home_key,operation,reason,price,
+          proposed_at,match_changed_at) SELECT applicant_id,home_key,operation,'baseline',NULL,?,changed_at FROM market_matches
+        WHERE applicant_id=? AND result IN ('meets','pending')
+          AND NOT EXISTS (SELECT 1 FROM market_rematch_baselines WHERE applicant_id=?) ON CONFLICT DO NOTHING`).bind(ts, id, id),
+        env.DB.prepare('INSERT INTO market_rematch_baselines(applicant_id,taken_at) VALUES (?,?) ON CONFLICT DO NOTHING').bind(id, ts)]);
+      const { market } = await recomputeForApplicant(env, id, 'system');
+      if (!CROSSED.has(market?.state)) throw new Error('Market part not crossed');
+      await propose(env, id, ts, market.read ?? []);
+      await env.DB.batch([env.DB.prepare('DELETE FROM market_rematch_queue WHERE applicant_id=? AND generation=?').bind(id, generation),
+        env.DB.prepare('UPDATE market_rematch_queue SET queued_at=?,attempts=0 WHERE applicant_id=?').bind(ts, id)]);
       out.push('crossed');
     } catch {
-      await env.DB.batch([env.DB.prepare(`UPDATE market_rematch_queue SET attempts=attempts+1,queued_at=?
-          WHERE applicant_id=? AND queued_at=?`).bind(ts, id, queued),
+      await env.DB.batch([env.DB.prepare('UPDATE market_rematch_queue SET attempts=attempts+1,queued_at=? WHERE applicant_id=?')
+          .bind(ts, id),
         env.DB.prepare('DELETE FROM market_rematch_queue WHERE applicant_id=? AND attempts>=?').bind(id, MAX_ATTEMPTS)]);
       out.push('failed');
     }
