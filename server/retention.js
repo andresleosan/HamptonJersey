@@ -164,6 +164,19 @@ export async function runRetention(env, ts) {
   await env.DB.prepare(`DELETE FROM channel_conversations WHERE id IN (SELECT id FROM channel_conversations
     WHERE last_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days') ORDER BY last_at, id LIMIT ${RETENTION_CAP})`)
     .bind(ts).run().catch(e => { if (!/no such table: channel_conversations/.test(String(e?.message))) throw e; });
+  // ADM-12: the tenant sign-in's leftovers (migration 0110) whatever its switch: sessions and codes 30 days after they
+  // expired (a code once no session or outcome points at it), each code email's outcome 90 days after it was sent, as
+  // the emails (30/90, email-retention.js). Links and repair receipts are records and stay. Before 0110, nothing to do.
+  const cut = days => `strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${days} days')`;
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM case_sessions WHERE token_hash IN (SELECT token_hash FROM case_sessions
+      WHERE expires_at < ${cut(KEEP_DAYS)} ORDER BY expires_at LIMIT ${RETENTION_CAP})`).bind(ts),
+    env.DB.prepare(`DELETE FROM case_auth_attempts WHERE id IN (SELECT id FROM case_auth_attempts
+      WHERE at < ${cut(90)} ORDER BY at LIMIT ${RETENTION_CAP})`).bind(ts),
+    env.DB.prepare(`DELETE FROM case_challenges WHERE id IN (SELECT c.id FROM case_challenges c WHERE c.expires_at < ${cut(KEEP_DAYS)}
+      AND NOT EXISTS (SELECT 1 FROM case_sessions s WHERE s.challenge_id = c.id)
+      AND NOT EXISTS (SELECT 1 FROM case_auth_attempts a WHERE a.challenge_id = c.id) ORDER BY c.expires_at LIMIT ${RETENTION_CAP})`).bind(ts),
+  ]).catch(e => { if (!/no such table: case_/.test(String(e?.message))) throw e; });
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes, chats: r[13].meta.changes };
 }
 

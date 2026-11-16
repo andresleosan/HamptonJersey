@@ -62,6 +62,7 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
       (SELECT COUNT(*) FROM case_auth_attempts WHERE day = ?3) AS everyone,
       (SELECT COUNT(*) FROM email_attempts WHERE day = ?3) < ${DAILY_LIMIT} AND ${SENDABLE.replace("?", "?4")} AS sendable`)
       .bind(g.id, minuteAgo, day, g.source_revision).first();
+    if (q.everyone >= ALL_PER_DAY) await capTask(env, day, clock());
     if (q.recent) fail(429, "A code was sent less than a minute ago. Please wait a minute before asking for another.");
     if (q.today >= PER_DAY) fail(429, "You have asked for 10 codes today. Please try again tomorrow or contact Hampton Estates.");
     if (q.everyone >= ALL_PER_DAY) fail(429, "We can send no more codes today. Please try again tomorrow or call Hampton Estates.");
@@ -88,6 +89,22 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
   await settle(env, g, id, attempt, status, messageId, error);
   if (status === "failed") fail(503, NO_EMAIL);
   return { challenge_id: id, expires_at: expires };
+}
+
+// The day's 30 codes used up: one Inbox task for the team that Jersey day (its task_key; closed, it stays closed), the
+// first time someone is refused. Only the day: no link, tenancy, address or code.
+const CAP = "case_codes.cap_reached";
+function capTask(env, day, ts) {
+  const entity = `case-codes:${day}`, key = `adm12:codes-cap:${day}`, none = "NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ?)";
+  return env.DB.batch([
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, 'system', 'collection', ?, '${CAP}', json_object('day', ?) WHERE ${none}`).bind(ts, entity, day, key),
+    env.DB.prepare(`INSERT INTO notifications (event_id, category, title, task_reason, action_required, created_at, task_key)
+      SELECT e.id, 'task', 'Tenant sign-in codes used up today', ?, 1, e.at, ? FROM events e WHERE e.entity_type = 'collection'
+      AND e.entity_id = ? AND e.type = '${CAP}' AND e.actor = 'system' AND ${none} ORDER BY e.id DESC LIMIT 1`)
+      .bind(`${day}: all ${ALL_PER_DAY} sign-in codes a day for tenant repair links were used. Tenants asking for one are told to try `
+        + "tomorrow or call. If a link is being misused, revoke it.", key, entity, key),
+  ]).catch(() => console.error("ADM-12: the daily code limit task could not be saved"));
 }
 
 async function settle(env, g, id, attempt, status, messageId, error) {
