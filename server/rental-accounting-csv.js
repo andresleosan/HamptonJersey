@@ -1,7 +1,8 @@
 // Pure encoding only: callers must separately establish financial authority and a stable snapshot.
 const COLUMNS = Object.freeze(['schema_version', 'record_type', 'record_id', 'tenancy_ref', 'date', 'kind', 'currency', 'amount_pence', 'direction', 'related_id', 'revision']);
 const TYPES = new Set(['rent_charges', 'rent_payments', 'rent_adjustments', 'landlord_statement_lines']);
-const MAX_ROWS = 50000;
+export const MAX_ROWS = 50000;
+const MAX_BYTES = 16 * 1024 * 1024;
 const MAX_PENCE = 100000000;
 
 function text(value) {
@@ -31,5 +32,7 @@ function encodeRow(row) {
 
 export function encodeAccountingCsv(rows) {
   if (!Array.isArray(rows) || rows.length > MAX_ROWS) throw new RangeError('Invalid accounting row count');
-  return new TextEncoder().encode([COLUMNS.join(','), ...Array.from(rows, encodeRow)].join('\r\n') + '\r\n');
+  const bytes = new TextEncoder().encode([COLUMNS.join(','), ...Array.from(rows, encodeRow)].join('\r\n') + '\r\n');
+  if (bytes.length > MAX_BYTES) throw new RangeError('Accounting export over 16 MB');
+  return bytes;
 }

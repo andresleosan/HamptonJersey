@@ -18,6 +18,7 @@ import Rentals, { Landlord, NewRental } from "./Rentals.jsx";
 import RentalDetail from "./RentalDetail.jsx";
 import RentImport from "./RentImport.jsx";
 import Statement from "./Statement.jsx";
+import RentalAccounting from "./RentalAccounting.jsx";
 import OwnerReport from "./OwnerReport.jsx";
 import OwnerRequests from "./OwnerRequests.jsx";
 import Insights from "./Insights.jsx";
@@ -139,6 +140,7 @@ export default function App() {
     : section === "rentals" && arg === "import" ? <RentImport onChange={loadCounts} />
     : section === "rentals" && arg === "statements"
       ? <Statement landlord={new URLSearchParams(query).get("landlord")} month={new URLSearchParams(query).get("month")} />
+    : section === "rentals" && arg === "accounting" ? <RentalAccounting />
     : section === "rentals" && arg === "landlords" && /^\d+$/.test(sub) ? <Landlord key={sub} id={sub} />
     : section === "rentals" && /^\d+$/.test(arg) ? <RentalDetail key={arg} id={arg} selection={query??''} onChange={loadCounts} />
     : section === "rentals" ? <Rentals requestedPayment={new URLSearchParams(query).get('payment')} unmatched={new URLSearchParams(query).get('payments')==='unmatched'} onChange={loadCounts} />
