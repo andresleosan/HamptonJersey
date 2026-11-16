@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError } from "./api.js";
+import { api, ApiError, accessReauth } from "./api.js";
 import { fmtDate } from "./format.js";
 
 // PUB-11: private PDFs for staff. Shown only when the server reports documents_enabled.
@@ -10,9 +10,11 @@ const size = n => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` :
 async function send(listingId, file) {
   let res;
   try {
-    res = await fetch(`/api/admin/listings/${listingId}/documents`, { method: "POST", credentials: "same-origin", body: file,
+    res = await fetch(`/api/admin/listings/${listingId}/documents`, { method: "POST", credentials: "same-origin", redirect: "manual", body: file,
       headers: { "content-type": "application/pdf", "x-document-label": encodeURIComponent(file.name.replace(/\.pdf$/i, "")) } });
   } catch { throw new ApiError(0, "Can't reach the server. Check your connection and try again."); }
+  const lost = await accessReauth(res, "POST");
+  if (lost) throw lost;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     if (res.status === 401) window.dispatchEvent(new Event("hs:signed-out"));

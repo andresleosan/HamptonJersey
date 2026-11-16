@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { accessReauth } from "./api.js";
 import { useFieldErrors } from "./Sales.jsx";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
 
@@ -20,7 +21,9 @@ export default function RentalAccounting() {
     if (busy) return;
     setBusy(true); setMsg(null); setErrors({});
     try {
-      const res = await fetch(`/api/admin/rental-accounting/export?${new URLSearchParams(f)}`, { credentials: "same-origin" });
+      const res = await fetch(`/api/admin/rental-accounting/export?${new URLSearchParams(f)}`, { credentials: "same-origin", redirect: "manual" });
+      const lost = await accessReauth(res);
+      if (lost) return setMsg({ text: lost.message });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         if (res.status === 401) window.dispatchEvent(new Event("hs:signed-out"));

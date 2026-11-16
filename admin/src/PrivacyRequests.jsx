@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "./api.js";
+import { api, accessReauth } from "./api.js";
 import { fmtDate, fmtDay } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { useFieldErrors } from "./Sales.jsx";
@@ -243,7 +243,9 @@ function Copy({ r, team, onSaved, reload }) {
   // Fetched rather than linked, so a refused download (data changed since the review) says why on this page.
   const download = async format => {
     setErr(null);
-    const res = await fetch(`/api/admin/privacy-requests/${r.id}/copy/download?format=${format}`, { credentials: "same-origin" }).catch(() => null);
+    const res = await fetch(`/api/admin/privacy-requests/${r.id}/copy/download?format=${format}`, { credentials: "same-origin", redirect: "manual" }).catch(() => null);
+    const lost = res && await accessReauth(res);
+    if (lost) { setErr(lost.message); return; }
     if (!res?.ok) {
       if (res?.status === 401) window.dispatchEvent(new Event("hs:signed-out"));
       setErr((await res?.json().catch(() => null))?.error ?? "Can't download the copy. Try again."); return;

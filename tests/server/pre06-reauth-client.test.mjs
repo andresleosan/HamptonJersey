@@ -51,3 +51,19 @@ test("everything else behaves as before", async () => {
   const conflict = await run(() => Response.json({ error: "Someone else changed it" }, { status: 409 }));
   assert.equal(conflict.error.status, 409); assert.equal(conflict.error.message, "Someone else changed it");
 });
+
+test("the panel's own fetch calls (downloads, uploads) use the same check", async () => {
+  const { accessReauth } = await import("../../admin/src/api.js");
+  events.length = 0;
+  assert.equal(await accessReauth(new Response(new Uint8Array([1, 2]), { headers: { "content-type": "image/png" } })), null);
+  assert.equal(await accessReauth(new Response("a,b", { headers: { "content-type": "text/csv" } })), null);
+  assert.equal(await accessReauth(Response.json({ error: "Gone" }, { status: 404 })), null);
+  assert.deepEqual(events, []);
+  const upload = await accessReauth(redirected(), "POST");
+  assert.equal(upload.code, "ACCESS_REAUTH_REQUIRED"); assert.equal(upload.outcome, "unknown");
+  const refused = Response.json({ error: "x", code: "access_required" }, { status: 403 });
+  assert.equal((await accessReauth(refused)).code, "ACCESS_REAUTH_REQUIRED");
+  assert.deepEqual(await refused.json(), { error: "x", code: "access_required" }, "the body is still readable");
+  assert.equal((await accessReauth(html())).code, "ACCESS_REAUTH_REQUIRED");
+  assert.deepEqual(events, ["hs:access-reauth", "hs:access-reauth", "hs:access-reauth"]);
+});

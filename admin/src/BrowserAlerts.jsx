@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {createBrowserAlerts} from './browser-alerts.js';
+import {accessReauth} from './api.js';
 
 export default function BrowserAlerts({paused,onOpen}) {
   const controller=useRef(null),open=useRef(onOpen);open.current=onOpen;
@@ -7,7 +8,7 @@ export default function BrowserAlerts({paused,onOpen}) {
   useEffect(()=>{
     if(paused)return;
     const c=createBrowserAlerts({Notification:window.Notification,locks:navigator.locks,BroadcastChannel:window.BroadcastChannel,document,
-      now:()=>Date.now(),setInterval:(fn,ms)=>window.setInterval(fn,ms),clearInterval:id=>window.clearInterval(id),fetch:(path,{signal})=>fetch('/api'+path,{credentials:'same-origin',signal}),
+      now:()=>Date.now(),setInterval:(fn,ms)=>window.setInterval(fn,ms),clearInterval:id=>window.clearInterval(id),fetch:(path,{signal})=>fetch('/api'+path,{credentials:'same-origin',redirect:'manual',signal}).then(async r=>{await accessReauth(r);return r;}),
       onOpen:()=>open.current(),onExpired:()=>window.dispatchEvent(new Event('hs:signed-out'))},setState);
     controller.current=c;c.start();return()=>{c.stop();controller.current=null;};
   },[paused]);

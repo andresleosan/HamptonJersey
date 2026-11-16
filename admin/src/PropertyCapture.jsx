@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "./api.js";
+import { api, accessReauth } from "./api.js";
 import { fmtDate, safeHref } from "./format.js";
 import { CONFIRMATION } from "./ConfirmedAvailability.jsx";
 import { zipBlob, entryName } from "./capture-zip.js";
@@ -53,7 +53,9 @@ export default function PropertyCapture({ listingId }) {
     try {
       const got = [], missing = [];
       for (const a of list) {
-        const r = await fetch(`${base}/files/${a.id}`, { credentials: "same-origin" }).catch(() => null);
+        const r = await fetch(`${base}/files/${a.id}`, { credentials: "same-origin", redirect: "manual" }).catch(() => null);
+        const lost = r && await accessReauth(r);
+        if (lost) return setMsg({ text: lost.message });
         const bytes = r?.ok ? new Uint8Array(await r.arrayBuffer()) : null;
         if (bytes && bytes.length === a.bytes) got.push({ name: entryName(a), bytes }); else missing.push(a.label || `Photo ${a.n}`);
       }

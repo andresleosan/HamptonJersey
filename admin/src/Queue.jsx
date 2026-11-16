@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "./api.js";
+import { api, accessReauth } from "./api.js";
 import { fmtDate, fmtAgo, OPERATION, priceText } from "./format.js";
 import { setUnsaved } from "./unsaved.js";
 import { createDraft } from "./createDraft.js";
@@ -112,7 +112,9 @@ function Proposal({ item, onClose }) {
   const kept = r.photos.filter(p => !out.has(p.id)), kind = kindsOf(kept.map(p => p.name));
   const photos = kept.map((p, i) => ({ name: p.name, kind: kind[i], label: labelFromName(p.name),
     load: async () => {
-      const res = await fetch(`/api/admin/queue/${item.id}/photo/${p.id}`, { credentials: "same-origin" });
+      const res = await fetch(`/api/admin/queue/${item.id}/photo/${p.id}`, { credentials: "same-origin", redirect: "manual" });
+      const lost = await accessReauth(res);
+      if (lost) throw lost;
       if (!res.ok) throw new Error("Google Drive didn't send it");
       return res.blob();
     } }));
