@@ -220,6 +220,15 @@ const NOT_INCLUDED = [
 ];
 const cols = (fields, alias) => fields.map(f => `${alias}.${f}`).join(", ");
 
+// REG-15: the website alerts this person confirmed (never their tokens). Only when there are any, so a copy someone
+// already reviewed keeps its hash; without migration 0107 there are none.
+async function propertyAlerts(env, contactId) {
+  try {
+    return (await env.DB.prepare(`SELECT criteria, created_at, confirmed_at FROM saved_searches
+      WHERE contact_id = ? AND status = 'active' ORDER BY id`).bind(contactId).all()).results;
+  } catch (e) { if (/no such table/.test(e?.message ?? "")) return []; throw e; }
+}
+
 async function buildCopy(env, r) {
   if (!COPY_KINDS.includes(r.kind)) fail(400, "Only access and portability requests have a copy");
   if (r.contact_id == null || !r.identity_method) fail(400, "Link the contact and check the identity first");
@@ -235,8 +244,9 @@ async function buildCopy(env, r) {
         ORDER BY p.purpose, p.channel`).bind(r.contact_id),
     ]);
   if (!contact) fail(404, "Contact not found");
+  const alerts = await propertyAlerts(env, r.contact_id);
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
-    matches, marketing_preferences: prefs, not_included: NOT_INCLUDED };
+    matches, marketing_preferences: prefs, ...(alerts.length ? { property_alerts: alerts } : {}), not_included: NOT_INCLUDED };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
 }
@@ -265,7 +275,7 @@ function toCsv(copy) {
   const rows = [["section", "record", "field", "value"]];
   const add = (section, record, obj) => { for (const [k, v] of Object.entries(obj)) rows.push([section, String(record), k, v == null ? "" : String(v)]); };
   add("contact", 1, copy.contact);
-  for (const s of ["searches", "offers", "matches", "marketing_preferences"]) copy[s].forEach((x, i) => add(s, i + 1, x));
+  for (const s of ["searches", "offers", "matches", "marketing_preferences", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
   copy.not_included.forEach((n, i) => rows.push(["not_included", String(i + 1), n.section,
     `${n.fields ? `${n.fields.join(" ")}: ` : ""}${n.reason}`]));
   return rows.map(r => r.map((v, i) => csvCell(i === 3 ? csvText(v) : v)).join(",")).join("\r\n") + "\r\n";

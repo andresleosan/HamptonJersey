@@ -455,3 +455,17 @@ test('the request detail gives each audit row its id', async () => {
   const { audit } = (await call(env, 'GET', `${BASE}/${made.id}`, { cookie })).data;
   assert.ok(Number.isInteger(audit[0].id));
 });
+
+test('REG-15: the copy lists the person\'s confirmed property alerts, and only when there are any', async () => {
+  const env = on(), cookie = await adminCookie();
+  const { request } = await verified(env, cookie);
+  const without = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.copy;
+  assert.equal('property_alerts' in without, false, 'same copy as before for someone without alerts');
+  const contact = env.DB.raw.prepare('SELECT contact_id FROM privacy_requests WHERE id = ?').get(request.id).contact_id;
+  env.DB.raw.prepare(`INSERT INTO saved_searches (status, email_hash, contact_id, criteria, notice_version, unsubscribe_token,
+    alerted_through, created_at, confirmed_at) VALUES ('active', ?, ?, '{"operation":"rent","budget_max":2500}', 'v1', ?, ?, ?, ?)`)
+    .run('a'.repeat(64), contact, 'b'.repeat(64), T, T, T);
+  const copy = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.copy;
+  assert.deepEqual(copy.property_alerts, [{ criteria: '{"operation":"rent","budget_max":2500}', created_at: T, confirmed_at: T }]);
+  assert.equal(JSON.stringify(copy).includes('b'.repeat(64)), false, 'never the unsubscribe token');
+});

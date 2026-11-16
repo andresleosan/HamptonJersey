@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Construido apagado (REG15_ALERTS_READY=0 en los dos wrangler.toml). Un visitante deja email y criterios con consentimiento explícito; confirma con doble opt-in; queda como contacto con el permiso PRE-10 property_alerts por email. El reloj cruza las casas nuevas o cambiadas con el mismo motor (evaluate) y deja un correo al día en la cola existente; cada alerta lleva baja. Migración 0107 escrita, sin aplicar.",
-  "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches. Antes de encender (revisión independiente 16-nov, menores): incluir saved_searches en el acceso de PRE-12; decidir si recibir alertas cuenta como actividad para la retención de 12 meses.",
+  "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches. Antes de encender (revisión independiente 16-nov, menores): decidir si recibir alertas cuenta como actividad para la retención de 12 meses.",
   "bloqueo": "Correo (AUT-17) · decisión de Luis · aviso PRE-09",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:222",
@@ -24,7 +24,8 @@
     "Decisión: pendientes 7 días y un correo por búsqueda y día; ninguna fuente lo fija, opción simple y reversible (skill §4.5).",
     "Encender: interruptor que recoge datos del público y envía, solo Luis (CONTINUIDAD-AVANZAR.md:31).",
     "Revisión independiente (16-nov): sin graves; corregidos: solo a la dirección que confirmó, sin suprimidas, una vez cada 24 h y tope de 40 confirmaciones al día (cupo común de 100). npm test en verde tras la corrección.",
-    "16-nov: la baja funciona con REG-15 apagada (PRE-10 encendido); el reloj cancela confirmaciones caducadas o con el formulario cerrado y alertas en cola al apagar, y borra las pendientes (savedSearchCleanup)."
+    "16-nov: la baja funciona con REG-15 apagada (PRE-10 encendido); el reloj cancela confirmaciones caducadas o con el formulario cerrado y alertas en cola al apagar, y borra las pendientes (savedSearchCleanup).",
+    "16-nov: la copia de acceso de PRE-12 incluye las alertas confirmadas (criterios y fechas, nunca los tokens) solo cuando existen."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
