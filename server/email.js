@@ -72,13 +72,17 @@ export async function prepareSummary(env, ts) {
 // An approved external row can be introduced only by a future authenticated workflow, never a public send route.
 // AGE-05: an enquiry email is claimed only while its own check (SQL from outbound, given by the clock) holds; without
 // one, never. Other templates are unaffected.
-// PRE-10: a promotional email (template "marketing.<purpose>") is claimed and sent only while PRE10_PURPOSE_READY is on,
-// the recipient is still the contact's email and that contact may receive that purpose by email, read again each time.
-// Off, the SQL never names marketing_preferences, so it runs before migration 0096 too.
-const PROMOTION = marketing => `(substr(outbound.template,1,${MARKETING_TEMPLATE.length}) <> '${MARKETING_TEMPLATE}'${
-  marketing ? ` OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER)
-    AND email = outbound.recipient) AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)",
-    `substr(outbound.template,${MARKETING_TEMPLATE.length + 1})`, "'email'")})` : ""})`;
+// PRE-10: switched on, deny by default. Only these transactional templates skip the marketing check; any other one is
+// promotional and is claimed and sent only while the recipient is still the contact's email and that contact may
+// receive its purpose ("marketing.<purpose>") by email, read again each time. Any other name never goes. A new
+// transactional template is added here. Off, the SQL never names marketing_preferences (it runs before 0096) and
+// only "marketing.*" is held, as before.
+const TRANSACTIONAL = ["team_summary", "enquiry"];
+const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
+  OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
+    AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
+      = '${MARKETING_TEMPLATE}' THEN substr(outbound.template,${MARKETING_TEMPLATE.length + 1}) END`, "'email'")}))`
+  : `substr(outbound.template,1,${MARKETING_TEMPLATE.length}) <> '${MARKETING_TEMPLATE}'`;
 const AUTHORIZED = (enquiry = "0", marketing = false) => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
   AND json_extract(es.value,'$.enabled') = 1
   AND (outbound.template <> 'team_summary' OR (json_extract(es.value,'$.summary') = 1

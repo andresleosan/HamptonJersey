@@ -106,3 +106,12 @@ test("an objection cancels the queued promotional email outright and records no 
   const data = env.DB.raw.prepare("SELECT group_concat(data) d FROM events").get().d;
   assert.ok(!data.includes(EMAIL) && !data.includes("+447700900777"));
 });
+
+test("review 5: switched on, any template that is not a known transactional one is held as promotional", async () => {
+  const { env, id } = setup();
+  for (const template of ["newsletter", "marketing", "Marketing.news", "synthetic"]) queue(env, template, id);
+  await emailPass(env, TS, clock);
+  assert.deepEqual(env.sent.map(m => m.to), ["team@example.test"], "the team summary still goes");
+  assert.deepEqual(statuses(env).filter(s => !s.startsWith("team_summary")),
+    ["newsletter:queued", "marketing:queued", "Marketing.news:queued", "synthetic:queued"]);
+});

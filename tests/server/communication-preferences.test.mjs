@@ -193,3 +193,72 @@ test('erasing the contact erases its preferences', async () => {
   assert.equal(contact(env, id), undefined);
   assert.equal(env.DB.raw.prepare('SELECT COUNT(*) n FROM marketing_preferences').get().n, 0);
 });
+
+test('review 1: a repeated objection fences a website opt-in request that arrived after the first one', async () => {
+  const env = on(), { id } = person(env), cookie = await adminCookie();
+  assert.equal((await object(env, id, {}, cookie)).status, 200);
+  await withTurnstile(() => call(env, 'POST', '/applicants', { body: { ...form, marketing: true } }));
+  const before = contact(env, id).updated_at;
+  const again = await object(env, id, { source: 'letter' }, cookie);
+  assert.equal(again.status, 200);
+  assert.equal(again.data.already_recorded, false);
+  assert.ok(contact(env, id).updated_at > before, 'the fence changes the version');
+  const fence = events(env, id, 'contact.consent_changed').at(-1);
+  assert.deepEqual(JSON.parse(fence.data), { before: { marketing_opt_in_at: null }, after: { marketing_opt_in_at: null },
+    objection_to_pending: true });
+  assert.equal(events(env, id, 'contact.marketing_preference').length, 1, 'no pair changed');
+  const regrant = await call(env, 'PUT', `/admin/contacts/${id}`, { cookie, body: { updated_at: contact(env, id).updated_at, marketing: true } });
+  assert.equal(regrant.status, 409);
+  assert.equal((await canSendForPurpose(env, { contact_id: id, purpose: 'news', channel: 'email' })).allowed, false);
+  // With nothing pending any more, the same objection again is a no-op.
+  assert.equal((await object(env, id, {}, cookie)).data.already_recorded, true);
+});
+
+test('review 2: an objection already recorded returns the whole contact and says so', async () => {
+  const env = on(), { id } = person(env), cookie = await adminCookie();
+  await object(env, id, {}, cookie);
+  const again = await object(env, id, {}, cookie);
+  assert.equal(again.status, 200);
+  assert.equal(again.data.already_recorded, true);
+  assert.deepEqual(again.data.contact, { ...contact(env, id) });
+  assert.equal(again.data.contact.name, form.name);
+});
+
+test('review 3: switched on, the panel new contact records no marketing opt-in; off, as before', async () => {
+  const cookie = await adminCookie(), body = { name: form.name, email: form.email, phone: form.phone, source: 'phone',
+    operation: 'rent', budget_max: 2000, privacy: true, marketing: true };
+  for (const [env, expected] of [[on(), null], [makeEnv(), 'set']]) {
+    const r = await call(env, 'POST', '/admin/applicants', { cookie, body });
+    assert.equal(r.status, 201, r.text);
+    const saved = env.DB.raw.prepare('SELECT marketing_opt_in_at, privacy_ack_at FROM contacts').get();
+    assert.equal(saved.marketing_opt_in_at === null ? null : 'set', expected);
+    assert.ok(saved.privacy_ack_at);
+    assert.equal((await call(env, 'GET', '/admin/marketing/purposes', { cookie })).status, expected === null ? 200 : 404);
+  }
+});
+
+test('review 4: the record says whether a website opt-in can be confirmed, as the save checks it', async () => {
+  const env = on(), { id, applicant } = person(env, { optIn: null }), cookie = await adminCookie();
+  const confirmable = async () => (await call(env, 'GET', `/admin/applicants/${applicant}`, { cookie })).data.marketing_confirmable;
+  assert.equal(await confirmable(), false);
+  await withTurnstile(() => call(env, 'POST', '/applicants', { body: { ...form, marketing: true } }));
+  assert.equal(await confirmable(), true);
+  // Over the history budget (64 events) the server cannot decide, so the panel must not offer the button.
+  const ins = env.DB.raw.prepare(`INSERT INTO events (at,actor,entity_type,entity_id,type,data)
+    VALUES (?,?,'contact',?,'contact.conversation',NULL)`);
+  for (let i = 0; i < 65; i++) ins.run(T, 'admin@example.test', String(id));
+  assert.equal(await confirmable(), false);
+  const version = contact(env, id).updated_at;
+  assert.equal((await call(env, 'PUT', `/admin/contacts/${id}`, { cookie, body: { updated_at: version, marketing: true } })).status, 409);
+});
+
+test('review 6: a tie or an unreadable time between objection and opt-in counts as objected', async () => {
+  const env = on(), { id } = person(env), cookie = await adminCookie();
+  await object(env, id, { purpose: 'news', channel: 'email' }, cookie);
+  const { updated_at } = env.DB.raw.prepare('SELECT updated_at FROM marketing_preferences WHERE contact_id=?').get(id);
+  const later = new Date(Date.parse(updated_at) + 1).toISOString();
+  for (const [optIn, allowed] of [[updated_at, false], ['not a time', false], [later, true]]) {
+    env.DB.raw.prepare('UPDATE contacts SET marketing_opt_in_at=? WHERE id=?').run(optIn, id);
+    assert.equal((await canSendForPurpose(env, { contact_id: id, purpose: 'news', channel: 'email' })).allowed, allowed, optIn);
+  }
+});

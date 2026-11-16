@@ -235,8 +235,12 @@ async function detail({ env, params: [id] }) {
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
     ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
-    ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id) }) });
+    ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id),
+      // The server's own answer to "can a website opt-in be confirmed now" (the same check as updateContact's).
+      marketing_confirmable: await pendingOptIn(env, contact.id) }) });
 }
+const pendingOptIn = async (env, id) => (await env.DB.prepare(`SELECT ${PENDING_MARKETING} AS decision FROM contacts
+  WHERE id = ?`).bind(id).first())?.decision === 1;
 
 // Widen inspects lightweight global pairs, independently of the visible page.
 async function widenFor(env,a,pairs) {
@@ -281,7 +285,10 @@ async function matchPage({request,env,params:[id]}) {
 }
 
 async function create({ request, env, admin }) {
-  const body = await readJson(request);
+  // PRE-10: switched on, consent comes only from the website with its notice version: the panel's new contact records
+  // no marketing opt-in (its tick is hidden). Off, as before.
+  const raw = await readJson(request);
+  const body = purposeReady(env) && raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw, marketing: false } : raw;
   let contact = null;
   if (body?.contact_id != null) {
     if (!Number.isInteger(Number(body.contact_id))) fail(400, "Invalid contact");
@@ -598,8 +605,7 @@ async function updateContact({ request, env, admin, params: [id] }) {
   if (!keys.length && !consent) return json({ contact: cur });
   // PRE-10: switched on, the panel never records an opt-in of its own: it confirms only one the website sent after the
   // last withdrawal (decision 1). A withdrawal meanwhile changes the contact's version, so the save below gets 409.
-  if (consent && marketing && purposeReady(env) && (await env.DB.prepare(`SELECT ${PENDING_MARKETING} AS decision
-    FROM contacts WHERE id = ?`).bind(cur.id).first())?.decision !== 1)
+  if (consent && marketing && purposeReady(env) && !await pendingOptIn(env, cur.id))
     fail(409, "There is no marketing opt-in from the website waiting to be confirmed. Reload the contact.");
   // The panel only confirms an opt-in the website sent again, so a consent with no source came from the web.
   const consent_source = marketing && cur.consent_source == null ? "web" : cur.consent_source;

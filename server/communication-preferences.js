@@ -15,10 +15,13 @@ export const MARKETING_TEMPLATE = "marketing.";
 
 // One rule, in SQL, for the panel, canSendForPurpose and the email pipeline. News by email: the website's opt-in
 // (contacts.marketing_opt_in_at) unless an objection was recorded since. Anything else: only a row 'granted'.
+// ponytail: "since" compares the two times, both written by this app's clock; a tie or a time julianday() cannot read
+// counts as objected (never sends). Order by event id if two writers' clocks ever disagree by more than a confirmation.
 export const ALLOWED = (contact, purpose, channel) => `EXISTS (SELECT 1 FROM contacts mc
   LEFT JOIN marketing_preferences mp ON mp.contact_id = mc.id AND mp.purpose = ${purpose} AND mp.channel = ${channel}
   WHERE mc.id = ${contact} AND CASE WHEN ${purpose} = 'news' AND ${channel} = 'email'
-    THEN mc.marketing_opt_in_at IS NOT NULL AND (mp.value IS NOT 'objected' OR mp.updated_at < mc.marketing_opt_in_at)
+    THEN mc.marketing_opt_in_at IS NOT NULL AND (mp.value IS NOT 'objected'
+      OR julianday(mp.updated_at) < julianday(mc.marketing_opt_in_at))
     ELSE mp.value IS 'granted' END)`;
 
 // Each pair's state for the panel: granted (may be sent), objected, or none (no consent recorded).
@@ -79,7 +82,13 @@ export async function setCommunicationPreference(env, { contact_id, purpose, cha
   const news = changed.some(([p, c]) => p === "news" && c === "email");
   const ts = now();
   const optIn = !news ? cur.marketing_opt_in_at : value === "objected" ? null : cur.marketing_opt_in_at ?? ts;
-  if (!changed.length) return { changed, contact: cur };
+  // Already objected, but a website opt-in request arrived since (decision 1): the objection fences it again, or the
+  // team could confirm it afterwards. Without one, the same objection again writes nothing.
+  const { PENDING_MARKETING } = await import("./routes/public.js");
+  const fence = value === "objected" && !news && pairs.some(([p, c]) => p === "news" && c === "email")
+    && (await env.DB.prepare(`SELECT ${PENDING_MARKETING} AS decision FROM contacts WHERE id = ?`).bind(id).first())?.decision === 1;
+  const full = () => env.DB.prepare("SELECT * FROM contacts WHERE id = ?").bind(id).first();
+  if (!changed.length && !fence) return { changed, written: false, contact: await full() ?? fail(404, "Contact not found") };
 
   const ref = { actor, entity_type: "contact", entity_id: String(id) };
   const stmts = [
@@ -93,10 +102,10 @@ export async function setCommunicationPreference(env, { contact_id, purpose, cha
         updated_by = excluded.updated_by, updated_at = excluded.updated_at`)
       .bind(id, p, c, value, source, notice_version, evidence_ref, actor, ts)),
     // The ledger keeps what changed, how it came and by whom; never a note or the person's details.
-    ...logEvent(env, { ...ref, type: "contact.marketing_preference", data: { value, source, pairs: changed } }),
+    ...(changed.length ? logEvent(env, { ...ref, type: "contact.marketing_preference", data: { value, source, pairs: changed } }) : []),
     // The same history the website's repeated registration and the panel already read (§3.3): an objection with no
     // opt-in on file still fences an earlier opt-in request, so it cannot be confirmed afterwards.
-    ...(news && (optIn !== cur.marketing_opt_in_at || value === "objected") ? logEvent(env, { ...ref, type: "contact.consent_changed", data: {
+    ...(fence || (news && (optIn !== cur.marketing_opt_in_at || value === "objected")) ? logEvent(env, { ...ref, type: "contact.consent_changed", data: {
       before: { marketing_opt_in_at: cur.marketing_opt_in_at }, after: { marketing_opt_in_at: optIn },
       ...(optIn === null && cur.marketing_opt_in_at === null && { objection_to_pending: true }) } }) : []),
     ...(value === "objected" && channels.includes("email") ? [env.DB.prepare(`UPDATE outbound SET status = 'cancelled',
@@ -110,7 +119,7 @@ export async function setCommunicationPreference(env, { contact_id, purpose, cha
     if (row.updated_at !== expected_revision) stale();
     throw e;
   }
-  return { changed, contact: await env.DB.prepare("SELECT * FROM contacts WHERE id = ?").bind(id).first() };
+  return { changed, written: true, contact: await full() };
 }
 
 // The panel records an objection received by phone, email, in person or by letter. It never records a consent.
@@ -118,11 +127,13 @@ async function recordObjection({ request, env, admin, params: [id] }) {
   const body = await readJson(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) fail(400, "Invalid format");
   if (body.source === "web") fail(400, "Choose how it was received");
-  const { contact } = await setCommunicationPreference(env, { contact_id: id, purpose: body.purpose, channel: body.channel,
+  const { written, contact } = await setCommunicationPreference(env, { contact_id: id, purpose: body.purpose, channel: body.channel,
     value: "objected", source: body.source, evidence_ref: body.evidence_ref ?? null, expected_revision: body.updated_at }, admin);
-  return json({ contact, marketing_preferences: await readPreferences(env, contact.id) });
+  return json({ contact, marketing_preferences: await readPreferences(env, contact.id), already_recorded: !written });
 }
 
 export default [
+  // Tells the panel the switch is on (404 when off), so the new-applicant form hides its marketing tick.
+  ["GET", /^\/admin\/marketing\/purposes$/, () => json({ purposes: PURPOSES, channels: CHANNELS }), true],
   ["POST", /^\/admin\/contacts\/(\d+)\/marketing-objection$/, recordObjection, true],
 ];
