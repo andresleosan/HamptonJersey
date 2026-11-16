@@ -133,9 +133,10 @@ async function verify({ request, env, admin, params: [id] }) {
 
 // The cleanup's own exceptions (server/retention.js), read for this contact: the same rule keeps the same people,
 // another open privacy request (not an erasure one) included.
-async function holds(env, contactId) {
+async function holds(env, contactId, requestId) {
+  const other = OPEN_PRIVACY_REQUEST.replace(/\)$/, " AND pr.id <> ?)"); // this request is not "another"
   const h = await env.DB.prepare(`SELECT NOT (${NO_SALE}) AS sale, ${HAS_OPEN_OFFER} AS open_offer, ${HAS_OPEN_SEARCH} AS open_search,
-    ${OPEN_PRIVACY_REQUEST} AS privacy_request FROM contacts c WHERE c.id = ?`).bind(contactId).first();
+    ${other} AS privacy_request FROM contacts c WHERE c.id = ?`).bind(requestId, contactId).first();
   return h ? ["sale", "open_offer", "open_search", "privacy_request"].filter(k => h[k]).map(code => ({ code })) : [];
 }
 
@@ -166,7 +167,7 @@ async function erasurePlan(env, contactId, kept) {
 
 async function detail({ env, params: [id] }) {
   const r = await current(env, id);
-  const kept = r.contact_id == null ? [] : await holds(env, r.contact_id);
+  const kept = r.contact_id == null ? [] : await holds(env, r.contact_id, r.id);
   const [{ results: audit }] = await env.DB.batch([env.DB.prepare(`SELECT id, revision, action, actor, at FROM privacy_request_audit
     WHERE request_id = ? ORDER BY id`).bind(id)]);
   return json({ request: output(r), holds: kept, audit,

@@ -410,6 +410,8 @@ test('another open request is a hold in the erasure plan', async () => {
   const d = (await call(env, 'GET', `${BASE}/${e.id}`, { cookie })).data;
   assert.deepEqual(d.holds.map(h => h.code), ['privacy_request']);
   assert.equal(d.erasure.can_delete, false);
+  // The access request itself is not "another" open request.
+  assert.deepEqual((await call(env, 'GET', `${BASE}/${a.id}`, { cookie })).data.holds, []);
 });
 
 test('deleting one of several searches waits while an access or portability request is open', async () => {
