@@ -18,6 +18,7 @@ import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
 import { withApplicationWrite, BackupMaintenanceError } from './backup-write-gate.js';
 import { backupStartPass } from './backup-start.js';
+import { spoolReady, stageInboundDuringBackup, replayBackupInbound } from './backup-mail-spool.js';
 import { calendarReady, calendarRetryTick } from './calendar-sync.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
@@ -29,6 +30,10 @@ const clock = {
     await env.DB.prepare(`INSERT INTO app_settings (key, value, updated_at, updated_by)
       VALUES ('clock', json_object('at', ?1), ?2, 'system')
       ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`).bind(ts, now()).run();
+    if (spoolReady(env)) { // PRE-14: email kept during the last backup window, now stored with its arrival time
+      try { const c = await replayBackupInbound(env); if (c.failed || c.rejected) console.error('Spooled email', c); }
+      catch { console.error('Spooled email pass failed'); }
+    }
     await retentionPass(env, ts); // G2: the first tick of each Jersey day deletes what is 12 months inactive.
     await demandRetentionPass(env, ts); // Separate claim, outcome and retry from the existing retention pass.
     try { await notificationsPass(env, now()); }
@@ -69,8 +74,9 @@ const clock = {
 };
 
 // PRE-14: the whole tick and each inbound email run inside one write permit. While the weekly backup has the gate
-// closed the tick does nothing (no write, no send; the next tick catches up) and an email is refused with a reason the
-// sender sees, until the encrypted spool (Task 5) takes it instead. With BACKUP_READY off this is the plain call.
+// closed the tick does nothing (no write, no send; the next tick catches up) and an email goes to the encrypted spool
+// (Task 5, server/backup-mail-spool.js); without it, or if it cannot take it, the email is refused with a reason the
+// sender sees. With BACKUP_READY off this is the plain call.
 // Task 4: after the tick, outside its permit, the clock starts the week's backup Workflow (server/backup-start.js);
 // with BACKUP_READY off that call returns at once and touches nothing.
 const maintenance = e => { if (!(e instanceof BackupMaintenanceError)) throw e; };
@@ -84,5 +90,9 @@ export default {
     }
   },
   email: (message, env) => withApplicationWrite(env, { operation_id: 'jobs:email' }, () => receiveEmail(message, env))
-    .catch(e => { maintenance(e); message.setReject('Hampton is saving its weekly backup. Please send this again in a few minutes.'); }),
+    .catch(async e => {
+      maintenance(e);
+      const staged = await stageInboundDuringBackup(message, env).catch(() => 'failed');
+      if (staged !== 'staged') message.setReject('Hampton is saving its weekly backup. Please send this again in a few minutes.');
+    }),
 };

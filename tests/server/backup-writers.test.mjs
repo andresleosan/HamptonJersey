@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 import {makeEnv, seedListing, seedMedia, adminCookie, ORIGIN} from './helpers.mjs';
 import {emailEnv, TS} from './email-helpers.mjs';
 import {handleApi} from '../../server/api.js';
-import {closeWriteGate} from '../../server/backup-write-gate.js';
+import {closeWriteGate, openWriteGate} from '../../server/backup-write-gate.js';
 import jobs from '../../server/jobs.js';
 import {EMAIL_REPLY_TO} from '../../server/email.js';
 import {onRequestGet as mediaFn} from '../../functions/media/[id].js';
@@ -181,6 +181,23 @@ test('correo entrante: apagado igual sin 0094; cerrada lo rechaza sin guardar; a
   assert.equal(m2.rejected, null);
   assert.equal(inbox(open), 1);
   assert.deepEqual(permits(open), [{operation: 'jobs:email', open: false}]);
+});
+
+test('con spool, el correo durante la copia se guarda cifrado y el primer tick con la compuerta abierta lo procesa', async () => {
+  const objects = new Map();
+  const INBOUND_SPOOL = {async put(k, b) { objects.set(k, b); }, async get(k) { const b = objects.get(k); return b && {arrayBuffer: async () => b.slice().buffer}; },
+    async delete(k) { objects.delete(k); },
+    async list() { return {objects: [...objects.keys()].sort().map(key => ({key, size: objects.get(key).byteLength})), truncated: false}; }};
+  const env = {...emailEnv(), BACKUP_READY: '1', INBOUND_SPOOL, BACKUP_SPOOL_KEY: Buffer.alloc(32, 3).toString('base64')}, m = mail();
+  await closeWriteGate(env, {run_id: RUN});
+  await jobs.email(m, env);
+  assert.equal(m.rejected, null, 'aceptado: queda en el spool');
+  assert.equal([objects.size, inbox(env)].join(), '1,0');
+  await tick(env);
+  assert.equal(inbox(env), 0, 'cerrada: el tick no procesa nada');
+  await openWriteGate(env, {run_id: RUN, epoch: 1, now: new Date().toISOString()});
+  await tick(env);
+  assert.equal([objects.size, inbox(env)].join(), '0,1');
 });
 
 // media.js y seo.js quedan fuera de la compuerta: solo leen. Se comprueba con un D1 que solo admite SELECT y un R2 que
