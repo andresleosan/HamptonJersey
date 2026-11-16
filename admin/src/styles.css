@@ -612,3 +612,5 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
   border-radius:var(--r-sm);padding:12px;font-size:12px}
 .privacy .copy-preview:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
 @media (max-width:760px){.privacy .btn{min-height:44px}}
+/* PRE-06: the security sign-in dialog; its two actions reach 44px on a phone (DESIGN.md). */
+@media (max-width:760px),(pointer:coarse){.access-reauth .btn{min-height:44px}}

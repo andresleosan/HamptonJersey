@@ -15,7 +15,7 @@ export default function AccessReauth({ onDone }) {
     }
   };
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="access-reauth-title">
-    <section className="card login">
+    <section className="card login access-reauth">
       <h1 id="access-reauth-title">Sign in again to continue</h1>
       <p>Your security sign-in has expired. Open it in a new tab, sign in, then come back here. What you were editing is
         still in this tab.</p>
