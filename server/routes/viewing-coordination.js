@@ -10,10 +10,11 @@ import { cycleOn } from "../viewing-cycle.js";
 import { calendarBusyCheck, afterViewingChange } from "../viewing-calendar.js";
 import { change } from "./inbox.js";
 import { coordinationOn, validRequired, validateResponse, coordinationState, clientFit, allAcceptedSql, searchesSql,
-  searchArgs, operationFits } from "../viewing-coordination.js";
+  searchArgs, operationFits, unchanged, unchangedSql } from "../viewing-coordination.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const STALE = "Someone else changed this proposal. Reload to see it (your change was not saved).";
+const CHANGED = "This viewing was moved or confirmed since this time was proposed. Propose another time.";
 const idOf = (v, what) => (/^[1-9]\d{0,15}$/.test(v) && Number.isSafeInteger(Number(v)) ? Number(v) : fail(400, `Invalid ${what} ID`));
 const windowsOf = s => (s ? JSON.parse(s) : null);
 
@@ -40,6 +41,8 @@ async function readState(env, v) {
   const { state, missing } = coordinationState(p, acceptances), windows = windowsOf(linked?.viewing_availability);
   return {
     coordination_state: state, revision: p?.revision ?? 0, missing, acceptances, windows,
+    // The viewing changed by another path since this open proposal: its answers can no longer confirm it.
+    stale: p?.state === "open" && !unchanged(v, p),
     proposal: p && { id: p.id, revision: p.revision, state: p.state, negotiator_id: p.negotiator_id, negotiator_name: p.negotiator_name,
       date: p.date, time: p.time, end_time: p.end_time, required: JSON.parse(p.required), applicant_id: p.applicant_id,
       notice_confirmed: p.notice_confirmed === 1, created_at: p.created_at, created_by: p.created_by, closed_at: p.closed_at,
@@ -92,14 +95,17 @@ async function propose({ request, env, admin, params: [vid] }) {
   // at once, the second gets 409. The partial unique index keeps one open proposal per viewing whatever writes it.
   const ts = now(), exp = body.expected_revision;
   const cond = `(SELECT COALESCE(MAX(revision), 0) FROM viewing_proposals WHERE viewing_id = ?) = ?
-    AND EXISTS (SELECT 1 FROM viewing_requests WHERE id = ? AND status IN ('requested', 'confirmed'))`, condArgs = [id, exp, id];
+    AND EXISTS (SELECT 1 FROM viewing_requests WHERE id = ? AND status IN ('requested', 'confirmed') AND status = ?
+      AND negotiator_id IS ? AND date = ? AND time = ?)`, condArgs = [id, exp, id, cur.status, cur.negotiator_id, cur.date, cur.time];
   const [, made] = await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_proposals SET state = 'superseded', closed_at = ?, closed_by = ?
       WHERE viewing_id = ? AND state = 'open' AND ${cond}`).bind(ts, admin, id, ...condArgs),
+    // from_*: the viewing as read now, and still so (the confirming write requires it unchanged).
     env.DB.prepare(`INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id, date, time, end_time, required,
-        notice_confirmed, created_at, created_by) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${cond}`)
-      .bind(id, exp + 1, search?.id ?? null, nid, body.date, body.time, end, JSON.stringify(required), notice.confirmed ? 1 : 0, ts, admin,
-        ...condArgs),
+        notice_confirmed, from_status, from_negotiator_id, from_date, from_time, created_at, created_by)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${cond}`)
+      .bind(id, exp + 1, search?.id ?? null, nid, body.date, body.time, end, JSON.stringify(required), notice.confirmed ? 1 : 0,
+        cur.status, cur.negotiator_id, cur.date, cur.time, ts, admin, ...condArgs),
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: String(id), type: "viewing.proposed",
       data: { revision: exp + 1, negotiator_id: nid, date: body.date, time: body.time, required, ...(search ? { search_linked: true } : {}),
         ...(notice.confirmed ? { notice_confirmed: true } : {}), ...(cal?.reviewed ? { calendar_reviewed: true } : {}) } }, null,
@@ -120,16 +126,25 @@ async function respond({ request, env, admin, params: [vid, pid], waitUntil }) {
   if (!p) fail(404, "Proposal not found");
   if (p.state !== "open" || body.revision !== p.revision) fail(409, STALE);
   if (!ACTIVE.includes(cur.status)) notActive(cur);
-  const r = validateResponse(body, { required: JSON.parse(p.required), now: Date.now(), since: cur.created_at });
+  // Moved, confirmed or reassigned by another path since the proposal (or while the switch was off): its answers are old.
+  if (!unchanged(cur, p)) fail(409, CHANGED);
+  const r = validateResponse(body, { required: JSON.parse(p.required), now: Date.now(), since: p.created_at });
   if (r.errors) return fields(r.errors);
   const v = r.value, ts = now(), ref = { entity_type: "viewing", entity_id: String(id) };
-  let commit = null;
+  let commit = null, cal = null;
   if (v.response === "accepted") {
     commit = await change(env, "reschedule", { negotiator_id: p.negotiator_id, date: p.date, time: p.time,
       notice_confirmed: p.notice_confirmed === 1 }, cur, jerseyNow(), admin, await cycleOn(env, cur), ts);
     if (commit.errors) fail(409, commit.errors.notice_confirmed ?? commit.errors.listing_id
       ?? "The proposed time can no longer be booked. Propose another time.");
+    // VIS-12: the negotiator's Google Calendar again, as any acceptance may be the one that confirms.
+    cal = await calendarBusyCheck(env, { viewing_id: id, negotiator_id: p.negotiator_id, date: p.date, time: p.time,
+      end_time: commit.set.end_time }, { reviewed: body.calendar_reviewed });
+    if (cal?.error) return json({ error: cal.error, code: cal.code }, 409);
   }
+  // The write after the answer's event happens only if this request recorded the answer (never behind a 409 for a
+  // repeated one): right after logEvent, changes() = 1 only when its event, and so the answer, was inserted.
+  const mine = "changes() = 1";
   const stmts = [
     env.DB.prepare(`INSERT INTO viewing_acceptances (proposal_id, participant, response, channel, answered_at, answered_by,
         recorded_at, recorded_by)
@@ -140,8 +155,7 @@ async function respond({ request, env, admin, params: [vid, pid], waitUntil }) {
       data: { revision: p.revision, participant: v.participant, response: v.response, channel: v.channel } }, null, { ifInserted: true }),
   ];
   if (v.response === "declined") stmts.push(env.DB.prepare(`UPDATE viewing_proposals SET state = 'declined', closed_at = ?, closed_by = ?
-    WHERE id = ? AND state = 'open' AND EXISTS (SELECT 1 FROM viewing_acceptances WHERE proposal_id = ? AND response = 'declined')`)
-    .bind(ts, admin, p.id, p.id));
+    WHERE id = ? AND state = 'open' AND ${mine}`).bind(ts, admin, p.id));
   let at = -1;
   if (commit) {
     const cols = Object.keys(commit.set), guards = [commit.guard, commit.property].filter(Boolean);
@@ -151,13 +165,14 @@ async function respond({ request, env, admin, params: [vid, pid], waitUntil }) {
       env.DB.prepare(`UPDATE viewing_requests SET ${cols.map(c => `${c} = ?`).join(", ")}, status = 'confirmed', updated_at = ?, updated_by = ?
         WHERE id = ? AND status IN ('requested', 'confirmed')${guards.map(g => ` AND ${g.sql}`).join("")}
           AND EXISTS (SELECT 1 FROM viewing_proposals vp WHERE vp.id = ? AND vp.viewing_id = viewing_requests.id AND vp.state = 'open'
-            AND ${allAcceptedSql("vp")})`)
+            AND ${unchangedSql("viewing_requests", "vp")} AND ${allAcceptedSql("vp")}) AND ${mine}`)
         .bind(...Object.values(commit.set), ts, admin, id, ...guards.flatMap(g => g.binds), p.id),
       ...(commit.snapshot ? [commit.snapshot] : []), // VIS-09: the margins it was booked with, only if it wrote
       env.DB.prepare(`UPDATE viewing_proposals SET state = 'confirmed', closed_at = ?, closed_by = ? WHERE id = ? AND state = 'open'
         AND EXISTS (SELECT 1 FROM viewing_requests WHERE id = ? AND updated_at = ? AND updated_by = ? AND status = 'confirmed')`)
         .bind(ts, admin, p.id, id, ts, admin),
-      ...logEvent(env, { actor: admin, ...ref, type, data: { ...commit.data, revision: p.revision, coordinated: true } }, null, { ifInserted: true }),
+      ...logEvent(env, { actor: admin, ...ref, type, data: { ...commit.data, revision: p.revision, coordinated: true,
+        ...(cal?.reviewed ? { calendar_reviewed: true } : {}) } }, null, { ifInserted: true }),
       touchByViewing(env, cur, ts), // G2: a confirmed or moved viewing is activity on the contact (after its event)
       ...(type === "viewing.confirmed" ? [resolveNotices(env, { ...ref, category: "viewing" }, admin, { ifEvent: type })] : []),
     );

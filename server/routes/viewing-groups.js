@@ -9,6 +9,7 @@ import { viewingPolicyReady, reservationPolicyGuard, DEFAULT_VIEWING_POLICY } fr
 import { noticeCheck } from "../house-rules.js";
 import { cycleOn } from "../viewing-cycle.js";
 import { COUNTS, inOpenGroupSql, holds, places } from "../viewing-groups.js";
+import { coordinationOn, closeOpenProposal } from "../viewing-coordination.js";
 import { runAction } from "./inbox.js";
 import { afterViewingChange, calendarBusyCheck } from "../calendar-sync.js";
 
@@ -161,6 +162,8 @@ async function reserveGroupPlace(env, admin, group, { id, updated_at }, { cycle,
     ...logEvent(env, { actor: admin, entity_type: "viewing", entity_id: String(id), type: "viewing.group_place",
       data: { group_id: group.id, negotiator_id: group.negotiator_id, date: group.date, time: group.time,
         ...(notice.confirmed ? { notice_confirmed: true } : {}) } }, null, { ifInserted: true }),
+    // VIS-17: moved to the group's time, its open proposal (another time being agreed) is superseded; only if it moved.
+    ...(await coordinationOn(env) ? [closeOpenProposal(env, { id, state: "superseded", ts, admin })] : []),
   ]);
   if (ins.meta.changes) return null;
   return refusal(env, group, { id, updated_at });

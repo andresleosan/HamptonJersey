@@ -15,15 +15,15 @@
     "server/routes/viewing-coordination.js",
     "server/routes/inbox.js (runAction: Confirm bloqueado con propuesta abierta; cierre de la propuesta al mover, cancelar o cerrar)",
     "admin/src/ViewingCoordination.jsx, admin/src/Viewings.jsx",
-    "tests/server/vis-17-coordination.test.mjs: 11/11 (incluye apagado y encendido sin 0114 = mismo SQL)",
+    "tests/server/vis-17-coordination.test.mjs: 17/17 (incluye apagado y encendido sin 0114 = mismo SQL, y las correcciones de la revisión)",
     "tests/vis17-coordination.e2e.cjs: navegador aislado a 1280 y 390 en verde (16-nov-2026)",
-    "npm test: 3293/3293 node + 29/29 Python; npm run build en verde (16-nov-2026)",
     "Decisión: la propuesta no reserva hueco propio; la visita conserva su hora (Requested o Confirmed bloquea como hoy) y la confirmación revalida el hueco dentro del UPDATE · fuente: spec 2026-11-08 §2 (cita vieja hasta el commit) + skill §4.5",
     "Decisión: la confirmación va en el batch de la última aceptación, sin botón Commit aparte; si el hueco se ocupó antes queda «blocked» y se propone otra hora · fuente: plan VIS-17 tarea 2 + skill §4.5",
     "Decisión: participantes cliente, anunciante o agencia y negociador; keyholder no se modela aparte (VIS-10 ya dice quién enseña la casa) · fuente: spec §2 + skill §4.5",
     "Decisión: la búsqueda vinculada vive en viewing_proposals.applicant_id, sin tabla viewing_context aparte; solo búsquedas abiertas de la misma persona (cruce SAP-08) y operación compatible · fuente: spec §2 + skill §4.5",
     "Decisión: evidencia = canal, fecha y hora de la respuesta, quién respondió (opcional) y quién la anotó; nunca en eventos · fuente: spec §2 y plan (PII fuera de eventos)",
-    "Decisión: Google Calendar (VIS-12) se comprueba al proponer, no otra vez al confirmar · fuente: skill §4.5; endurecimiento en MEJORAS"
+    "Revisión independiente 16-nov corregida: una plaza de open viewing (VIS-14) cierra la propuesta abierta; repetir una respuesta en una propuesta «blocked» ya no escribe nada tras su 409; Confirm comprueba la propuesta abierta también dentro de su UPDATE; Google Calendar (VIS-12) se comprueba al proponer y en cada aceptación, con calendar_reviewed desde el panel; la propuesta guarda estado, negociador, fecha y hora de la visita (from_*) y la confirmación exige que sigan iguales (una propuesta de antes de apagar y volver a encender no mueve nada); la respuesta no puede ser anterior a la propuesta (al minuto)",
+    "npm test completo y npm run build en verde tras las correcciones de la revisión (16-nov-2026); e2e aislado 1280 y 390 en verde de nuevo"
   ],
   "modulo": "M09",
   "deps": [

@@ -16,6 +16,9 @@ CREATE TABLE viewing_proposals (
   applicant_id INTEGER REFERENCES applicants(id) ON DELETE SET NULL,
   negotiator_id INTEGER NOT NULL REFERENCES negotiators(id),
   date TEXT NOT NULL, time TEXT NOT NULL, end_time TEXT NOT NULL,
+  -- The viewing as it was when proposed: the confirming write requires it unchanged, so a move or confirmation made
+  -- meanwhile by any other path (or while the switch was off) never lets old answers move it.
+  from_status TEXT NOT NULL, from_negotiator_id INTEGER, from_date TEXT NOT NULL, from_time TEXT NOT NULL,
   -- Who must accept: a JSON array of 'client', 'advertiser', 'staff', always with 'client'.
   required TEXT NOT NULL CHECK (json_valid(required) AND json_type(required) = 'array'),
   -- VIS-10: staff said access is agreed with the tenant for a time sooner than the house's notice.
@@ -36,7 +39,8 @@ WHEN (OLD.state <> 'open' AND (NEW.state IS NOT OLD.state OR NEW.closed_at IS NO
     OR NEW.closed_by IS NOT OLD.closed_by))
   OR NEW.viewing_id IS NOT OLD.viewing_id OR NEW.revision IS NOT OLD.revision
   OR NEW.negotiator_id IS NOT OLD.negotiator_id OR NEW.date IS NOT OLD.date OR NEW.time IS NOT OLD.time
-  OR NEW.end_time IS NOT OLD.end_time OR NEW.required IS NOT OLD.required
+  OR NEW.end_time IS NOT OLD.end_time OR NEW.required IS NOT OLD.required OR NEW.from_status IS NOT OLD.from_status
+  OR NEW.from_negotiator_id IS NOT OLD.from_negotiator_id OR NEW.from_date IS NOT OLD.from_date OR NEW.from_time IS NOT OLD.from_time
 BEGIN SELECT RAISE(ABORT, 'Viewing proposal is closed or fixed'); END;
 
 -- Each required person's answer to one proposal, once: accepted or declined, how (channel) and when they gave it
