@@ -23,7 +23,8 @@ const MAIN = { sale: 'sale_price', rent: 'rent', business: 'business_price' };
 // "St. Helier", "Saint Helier" and "st helier" compare equal; nothing is guessed beyond spelling.
 const plain = text => typeof text === 'string' ? text.toLowerCase().replace(/\bsaint\b/g, 'st').replace(/[^a-z0-9]+/g, ' ').trim() : '';
 
-function price(n) {
+// BUS-04 reads an advert's price by the same rule (advertPrice).
+export function advertPrice(n) {
   const terms = (n.financial_terms ?? []).filter(t => t.kind === MAIN[n.operation] && t.amount_minor != null && t.currency);
   if (terms.length !== 1) return null;
   return n.operation === 'rent' && n.monthly_rent_minor != null
@@ -36,7 +37,7 @@ function publication(row) {
   return { observation_id: row.id, source_ref: row.source_ref, channel_id: row.channel_id, external_key: row.external_key,
     listing_url: typeof row.listing_url === 'string' && row.listing_url.startsWith('https://') ? row.listing_url : null,
     operation: n.operation, title: f.title ?? null, parish: f.parish ?? null, bedrooms: f.bedrooms ?? null,
-    bathrooms: f.bathrooms ?? null, price: price(n), location: n.territory_evidence ?? null, observed_at: n.observed_at ?? null };
+    bathrooms: f.bathrooms ?? null, price: advertPrice(n), location: n.territory_evidence ?? null, observed_at: n.observed_at ?? null };
 }
 const pair = (a, b) => a < b ? `${a}|${b}` : `${b}|${a}`;
 // The latest reading of each listing of a source open now; a listing its source withdrew is left out.
@@ -374,4 +375,13 @@ export const readMarketHomesPage = gated(async (env, after, limit) => {
   }
   return { homes: shown.map(h => ({ ...h, publications: pubs.get(JSON.stringify([h.home, h.operation])) ?? [] })),
     open_sources: open.results[0].n, more: page.results.length > limit };
+});
+
+// BUS-04: the price of each [home, operation] as a search reads it (the one its adverts agree on, as
+// [amount_minor, currency, period] JSON text; null when they disagree or state none). Reading writes nothing.
+export const readMarketHomePrices = gated(async (env, pairs) => {
+  if (!pairs.length) return new Map();
+  const { results } = await primary(env.DB).prepare(`${HOMES} SELECT home,operation,price FROM homes WHERE (home,operation) IN
+    (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?))`).bind(JSON.stringify(pairs)).all();
+  return new Map(results.map(r => [JSON.stringify([r.home, r.operation]), r.price]));
 });
