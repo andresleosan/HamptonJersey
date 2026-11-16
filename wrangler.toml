@@ -117,6 +117,11 @@ PRE12_REQUESTS_READY = "1"
 # PRE-12: a team member confirms one by one which viewing requests matched only by email or phone belong to a privacy
 # request's contact; only those enter the copy (migration 0111). Migration 0111 applied 16-nov-2026. Sends nothing.
 PRE12_VIEWING_REVIEW_READY = "1"
+# PRE-12 (Q05): an email notice in a contact's 12th month without activity; the retention pass deletes a contact with an
+# email only a month after its notice was accepted, and a failed, uncertain or answered one keeps it with an Inbox task
+# (migration 0112; needs EMAIL_SERVICE_READY to send). Sends messages: only Luis switches it on, once he has approved
+# its text. Must match the other wrangler.toml.
+PRE12_RETENTION_NOTICE_READY = "0"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"

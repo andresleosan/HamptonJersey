@@ -1,5 +1,6 @@
 import { now } from "./http.js";
-import { retentionPass } from "./retention.js";
+import { retentionPass, retentionNoticesReady } from "./retention.js";
+import { retentionNoticePass } from "./retention-notices.js";
 import { demandRetentionPass } from "./demand-retention.js";
 import { emailPass } from "./email.js";
 import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
@@ -40,6 +41,10 @@ const clock = {
       catch { console.error('Spooled email pass failed'); }
     }
     await retentionPass(env, ts); // G2: the first tick of each Jersey day deletes what is 12 months inactive.
+    if (retentionNoticesReady(env)) { // PRE-12 (Q05): the notice before that deletion, up to 50 a tick; sent below
+      try { await retentionNoticePass(env, now()); }
+      catch { console.error('Retention notice pass failed'); }
+    }
     await demandRetentionPass(env, ts); // Separate claim, outcome and retry from the existing retention pass.
     try { await notificationsPass(env, now()); }
     catch { console.error('Notification pass failed'); } // No source/customer data in operational logs.

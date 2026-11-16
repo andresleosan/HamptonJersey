@@ -286,8 +286,9 @@ test('a co-listed listing is enquired about only through AGE-03', () => {
     .map(f => [`${dir}/${f}`, readFileSync(new URL(`../../${dir}/${f}`, import.meta.url), 'utf8')]);
   const code = [...files('server'), ...files('functions'), ...files('jobs').filter(([f]) => !f.includes('node_modules'))];
   // REG-15 queues email only to a website visitor who saved a search, never to an advertiser (it reads no contacts of one).
+  // PRE-12's retention notice goes only to an applicant contact's own address, never to an advertiser.
   assert.deepEqual(code.filter(([, s]) => /INSERT INTO outbound/i.test(s)).map(([f]) => f).sort(),
-    ['server/consultations.js', 'server/email.js', 'server/saved-searches.js']);
+    ['server/consultations.js', 'server/email.js', 'server/retention-notices.js', 'server/saved-searches.js']);
   assert.deepEqual(code.filter(([, s]) => /advertisers/.test(s) && /\.contacts\b|\$\.contacts/.test(s)).map(([f]) => f).sort(),
     ['server/advertiser-privacy.js', 'server/consultations.js', 'server/routes/advertisers.js']);
   // email.js queues only the team summary, to the team's own recipients.
