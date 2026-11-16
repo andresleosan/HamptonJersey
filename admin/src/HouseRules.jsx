@@ -94,7 +94,8 @@ export default function HouseRules({ listingId, occupancy }) {
         onChange={set("notice_hours")} {...invalid("notice_hours")} />{error("notice_hours")}</label>
       <label>Who shows it<select value={form.who} onChange={set("who")} {...invalid("who")}>
         <option value="">Not set</option>
-        {assigned && <option value={`n:${house.negotiator_id}`}>{house.negotiator_name} (inactive)</option>}
+        {/* Not in the active list: inactive, or the list still loading (the rules say which, not the list). */}
+        {assigned && <option value={`n:${house.negotiator_id}`}>{house.negotiator_name}{house.negotiator_active ? "" : " (inactive)"}</option>}
         {people.map(p => <option key={p.id} value={`n:${p.id}`}>{p.name}</option>)}
         {Object.entries(WHO).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
       </select>{error("who")}</label>
