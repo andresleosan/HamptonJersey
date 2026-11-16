@@ -133,6 +133,7 @@ async function readChannel(env, run, c, readers, ts) {
   } catch (error) {
     // A page BUS-06 refuses counts as a failed read; a state that moved (pause, review) just ends this attempt.
     if ([400, 413].includes(error?.status)) { await failed(env, run.id, c, lease, new SourceReadError('invalid_response'), ts); return 'failed'; }
+    if (error?.status === 409) return 'busy'; // the lease expires; the other channels of the tick go on
     throw error;
   }
   await attempt(env, run.id, c, ts, page.exhausted ? 'complete' : 'page', page.records.length).run();

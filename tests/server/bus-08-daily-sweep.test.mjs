@@ -213,6 +213,23 @@ test('reading resumes from the saved cursor, never repeats a page, and a channel
   assert.equal(n(bare, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE outcome='no_reader'"), 2);
 });
 
+test('a pause or a source review during a read keeps the late page out', async () => {
+  const env = world({ sources: ['agency-a'] });
+  const { readers, reader } = fixtures({ 'agency-a': many('A', 3) });
+  const review = reader.readPage;
+  reader.readPage = async input => { const page = await review(input);
+    env.DB.raw.exec("UPDATE market_sources SET policy_version=policy_version+1 WHERE source_ref='agency-a'"); return page; };
+  rest(env);
+  assert.deepEqual((await marketSweepPass(env, at(0), { readers })).read, ['busy']);
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_observations'), 0);
+  reader.readPage = review;
+  const run = runOf(env, at(0).slice(0, 10));
+  env.DB.raw.prepare("UPDATE market_runs SET status='paused',version=version+1 WHERE id=?").run(run.id);
+  env.DB.raw.exec('UPDATE market_source_runs SET lease_token=NULL,lease_until=NULL'); rest(env);
+  assert.deepEqual((await marketSweepPass(env, at(0, 10), { readers })).read, []);
+  assert.equal(reader.calls.length, 1);
+});
+
 // Each D1 call counts once: a query, or a batch (one transaction) whatever it holds.
 test('a tick stays bounded: at most three channels and a fixed number of D1 calls', async () => {
   const sources = ['s-1', 's-2', 's-3', 's-4', 's-5'];
