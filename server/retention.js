@@ -51,6 +51,21 @@ export const NOTICE_ANSWERED = `EXISTS (SELECT 1 FROM email_inbound i WHERE i.re
   OR i.outbound_id IN (SELECT o.id FROM outbound o WHERE o.ref = n.outbound_ref)
   OR EXISTS (SELECT 1 FROM outbound o WHERE o.ref = n.outbound_ref AND o.message_id IS NOT NULL
     AND (instr(i.in_reply_to, o.message_id) > 0 OR instr(i.references_header, o.message_id) > 0))))`;
+// What became of each notice email, and whether it was answered: recorded on the notice itself, so an answer still counts
+// after its email's content is cleared (30 days, cleanEmail). Run by every retention pass before that clearing, whatever
+// the switch (a reply while it is off must not be forgotten), and by the notice pass.
+export const noticeOutcomeStatements = (env, ts) => [
+  env.DB.prepare(`UPDATE retention_notices SET state = COALESCE((SELECT CASE o.status WHEN 'accepted' THEN 'accepted'
+      WHEN 'failed' THEN 'failed' WHEN 'unknown' THEN 'unknown' WHEN 'cancelled' THEN 'not_sent' END
+      FROM outbound o WHERE o.ref = retention_notices.outbound_ref), 'not_sent'),
+    sent_at = (SELECT o.updated_at FROM outbound o WHERE o.ref = retention_notices.outbound_ref AND o.status = 'accepted'),
+    updated_at = ?1
+    WHERE state = 'queued' AND NOT EXISTS (SELECT 1 FROM outbound o WHERE o.ref = retention_notices.outbound_ref
+      AND o.status IN ('draft', 'queued', 'sending'))`).bind(ts),
+  env.DB.prepare(`UPDATE retention_notices SET state = 'replied', updated_at = ?1 WHERE id IN (SELECT n.id FROM retention_notices n
+    JOIN contacts c ON c.id = n.contact_id AND c.last_activity_at = n.activity_at WHERE n.state = 'accepted' AND ${NOTICE_ANSWERED})`)
+    .bind(ts),
+];
 const NOTICE_OF = "SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id AND n.activity_at = c.last_activity_at";
 const NOTICE_KEPT = `EXISTS (${NOTICE_OF} AND (n.state <> 'accepted' OR n.delete_after > ?2
   OR n.sent_at >= strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-1 months') OR ${NOTICE_ANSWERED}))`;
@@ -110,10 +125,12 @@ export const touchByViewing = (env, { email, phone }, ts) => env.DB.prepare(
 export async function runRetention(env, ts) {
   // A failed counter prune (e.g. switched on before 0108) must never stop the deletion of personal data below.
   if (searchStatsReady(env)) await pruneSearchMetrics(env, new Date(ts)).catch(() => console.error('Search metrics prune failed'));
+  // PRE-12 (Q05): one look for migration 0112 per pass; with it, answers and outcomes are recorded before cleanEmail.
+  const hasNotices = !!(await noticeTable(env));
+  if (hasNotices) await env.DB.batch(noticeOutcomeStatements(env, ts));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
-  // PRE-12 (Q05): one look for migration 0112 per pass.
-  const notices = await noticeTable(env) ? (retentionNoticesReady(env) ? "given" : "kept") : null;
+  const notices = hasNotices ? (retentionNoticesReady(env) ? "given" : "kept") : null;
   const CONTACTS = contactsDue(privacyHolds(env), notices), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([

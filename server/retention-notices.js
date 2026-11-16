@@ -1,6 +1,6 @@
 import { sha256 } from "./http.js";
 import { jerseyToday } from "./viewings.js";
-import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, expiringSql, noticeTable, privacyHolds, retentionNoticesReady }
+import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, noticeOutcomeStatements, expiringSql, noticeTable, privacyHolds, retentionNoticesReady }
   from "./retention.js";
 import { SITE, readEmailSettings, serviceReady } from "./email.js";
 
@@ -49,18 +49,7 @@ export async function retentionNoticePass(env, ts) {
   const OBSOLETE = `SELECT n.id FROM retention_notices n WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.id = n.contact_id
     AND c.last_activity_at = n.activity_at AND (n.state <> 'queued' OR (${EXEMPT}${held})))`;
   await env.DB.batch([
-    // What became of each email: accepted (when), failed, unknown, or never sent (cancelled, or already gone).
-    env.DB.prepare(`UPDATE retention_notices SET state = COALESCE((SELECT CASE o.status WHEN 'accepted' THEN 'accepted'
-        WHEN 'failed' THEN 'failed' WHEN 'unknown' THEN 'unknown' WHEN 'cancelled' THEN 'not_sent' END
-        FROM outbound o WHERE o.ref = retention_notices.outbound_ref), 'not_sent'),
-      sent_at = (SELECT o.updated_at FROM outbound o WHERE o.ref = retention_notices.outbound_ref AND o.status = 'accepted'),
-      updated_at = ?1
-      WHERE state = 'queued' AND NOT EXISTS (SELECT 1 FROM outbound o WHERE o.ref = retention_notices.outbound_ref
-        AND o.status IN ('draft', 'queued', 'sending'))`).bind(ts),
-    // An answer (NOTICE_ANSWERED in retention.js), kept here once the email's content is cleared after 30 days.
-    env.DB.prepare(`UPDATE retention_notices SET state = 'replied', updated_at = ?1 WHERE id IN (SELECT n.id FROM retention_notices n
-      JOIN contacts c ON c.id = n.contact_id AND c.last_activity_at = n.activity_at WHERE n.state = 'accepted' AND ${NOTICE_ANSWERED})`)
-      .bind(ts),
+    ...noticeOutcomeStatements(env, ts), // also run by every retention pass, before email content is cleared
     env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ?1 WHERE status = 'queued' AND template = '${TEMPLATE}'
       AND ref IN (SELECT outbound_ref FROM retention_notices WHERE id IN (${OBSOLETE}))`).bind(ts),
     env.DB.prepare(`DELETE FROM retention_notices WHERE id IN (${OBSOLETE})`),
