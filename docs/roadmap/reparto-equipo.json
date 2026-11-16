@@ -37,8 +37,8 @@
       "states": {
         "replanteado": 8,
         "hecho": 21,
-        "pendiente": 11,
-        "parcial": 14,
+        "pendiente": 10,
+        "parcial": 15,
         "bloqueado": 4,
         "descartado": 3
       }
@@ -3730,9 +3730,9 @@
       "titulo": "Marca «Ready for the team» en la ficha del aplicante, anunciada en el resumen de las 8:00 del canal",
       "origen": "plan",
       "fase": "—",
-      "estado": "pendiente",
-      "responsable": "desarrollo",
-      "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad. Parte de la app construida (16-nov), apagada con AUT18_TEAM_READY (en código, no en wrangler.toml): migración aditiva 0102 (tabla applicant_team_ready: fecha, quién y match_inputs_revision al marcar; se borra con el aplicante). Ficha del aplicante: sección «Ready for the team» con botón del mismo nombre y «Done»; se marca sobre la versión vista (updated_at, 409 si otro guardó; una respuesta tardía no vuelve a marcar tras Done), solo búsquedas activas y con una propuesta revisada (al menos una casa propuesta en Shortlisted; si no, 409 y el panel lo dice con el botón desactivado). Done quita la marca sin resolver la búsqueda. La quitan también, en su mismo lote y con el evento applicant.team_ready_cleared (reason stage_changed, search_resolved, search_reopened, archived o restored): un cambio de etapa desde la ficha o desde Sales (oferta, aceptación, venta completada o caída), resolver, reabrir, archivar y restaurar; también con el interruptor apagado si la tabla existe. La marca queda «Out of date» (no se cuenta) hasta marcarla otra vez si cambian los criterios (match_inputs_revision), si se revisa una propuesta después de marcarla (evento match.reviewed posterior) o si ya no queda ninguna en Shortlisted. Historial: applicant.team_ready (datos: solo match_inputs_revision), applicant.team_ready_done y applicant.team_ready_cleared (datos: solo reason), sin datos personales. Puerta: GET /api/hermes/status añade counts.applicants_ready (búsquedas activas con marca vigente) y la línea fija «N applicants with proposals ready for the team» en summary, solo número; apagado o sin migración, /status es idéntico (sin clave ni línea). Pruebas: tests/server/aut18-team-ready.test.mjs y e2e tests/aut18-ready.e2e.cjs a 1280 y 390.",
+      "estado": "parcial",
+      "responsable": "Luis",
+      "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad. Parte de la app construida (16-nov), apagada con AUT18_TEAM_READY (en código, no en wrangler.toml): migración aditiva 0102 (tabla applicant_team_ready: fecha, quién y match_inputs_revision al marcar; se borra con el aplicante). Ficha del aplicante: sección «Ready for the team» con botón del mismo nombre y «Done»; se marca sobre la versión vista (updated_at, 409 si otro guardó; una respuesta tardía no vuelve a marcar tras Done), solo búsquedas activas y con una propuesta revisada (al menos una casa propuesta en Shortlisted; si no, 409 y el panel lo dice con el botón desactivado). Done quita la marca sin resolver la búsqueda. La quitan también, en su mismo lote y con el evento applicant.team_ready_cleared (reason stage_changed, search_resolved, search_reopened, archived o restored): un cambio de etapa desde la ficha o desde Sales (oferta, aceptación, venta completada o caída), resolver, reabrir, archivar y restaurar; también con el interruptor apagado si la tabla existe. La marca queda «Out of date» (no se cuenta) hasta marcarla otra vez si cambian los criterios (match_inputs_revision), si se revisa una propuesta después de marcarla (evento match.reviewed posterior) o si ya no queda ninguna en Shortlisted. Historial: applicant.team_ready (datos: solo match_inputs_revision), applicant.team_ready_done y applicant.team_ready_cleared (datos: solo reason), sin datos personales. Puerta: GET /api/hermes/status añade counts.applicants_ready (búsquedas activas con marca vigente) y la línea fija «N applicants with proposals ready for the team» en summary, solo número; apagado o sin migración, /status es idéntico (sin clave ni línea). Pruebas: tests/server/aut18-team-ready.test.mjs y e2e tests/aut18-ready.e2e.cjs a 1280 y 390. Encendida el 16-nov-2026: 0102 aplicada en remoto (marcador Time Travel previo en el relevo privado) y AUT18_TEAM_READY=\"1\" en wrangler.toml; dos revisiones independientes sin graves, sus menores corregidos.",
       "falta": "Avisador del VPS (/root/hampton-hermes, fuera del repo): su línea fija en mensajeResumen leyendo counts.applicants_ready (o el summary de /status), con el enlace al panel que pone él mismo, sin nombres ni texto libre (R21), con su prueba; necesita el OK de Luis. Aplicar la migración 0102 en D1 y encender AUT18_TEAM_READY. Las propuestas del mercado que no son matches (BUS-01) no cuentan como propuestas revisadas: solo la tabla matches. Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
       "bloqueo": "",
       "evidencia": [
@@ -3748,7 +3748,8 @@
         "docs/superpowers/plans/2026-11-09-aut-18-human-ready-marker-and-summary-count-closure.md",
         "Decisión: tabla aparte en vez de columnas en applicants, para no tocar la copia de privacidad (server/privacy-requests.js clasifica cada columna de applicants); la marca es dato interno del equipo",
         "Decisión: nombre counts.applicants_ready, el del plan (status.applicants_ready), dentro de counts como gone_quiet de AUT-14",
-        "Decisión (plan: mark_requires_reviewed_proposals, new_material_revision_requires_review): propuesta revisada = match en shortlisted; revisión posterior = evento match.reviewed con fecha posterior a la marca, sin columna ni migración nueva"
+        "Decisión (plan: mark_requires_reviewed_proposals, new_material_revision_requires_review): propuesta revisada = match en shortlisted; revisión posterior = evento match.reviewed con fecha posterior a la marca, sin columna ni migración nueva",
+        "16-nov-2026: e2e aut18-ready y vecinos (sap08, est01, sap02, msg-05-draft, pre12) PASS con el interruptor encendido; npm test 3038/3038."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -3763,7 +3764,7 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "",
+      "externalBlocker": "OK de Luis para añadir al avisador del VPS la línea «N applicants with proposals ready for the team» (la app ya la manda en /status)",
       "resources": [
         "applicants-schema",
         "telegram-notifier",
@@ -7865,8 +7866,8 @@
       "origen": "plan",
       "fase": "F5-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Construido el 16-nov-2026 tras el interruptor ADM19_SIGNATURE_READY (apagado por defecto en código; wrangler.toml no lo enciende) y la migración aditiva 0103_tenancy_signature_evidence.sql: en cada contrato de Rentals, la evidencia externa de firma revisada por una persona. Quién firmó por rol (Landlord y cada inquilino, Tenant 1…10, sin nombres), el día, dónde consta (referencia de texto al sistema externo, sin subir ni abrir documentos), y quién del equipo lo revisó y cuándo (sesión y reloj del servidor, nunca el cuerpo). La ficha del contrato muestra «Signed externally, reviewed by … on …» o qué falta («Still to sign or to check: …»), y «Out of date» si la referencia del contrato firmado de ADM-06 cambia después de la revisión. Guardado por revisión (compare-and-set) y re-leyendo dentro del lote la revisión del contrato firmado de ADM-06: un cambio concurrente responde 409 sin escribir. Una firma sin cambios conserva su revisión; una nueva o cambiada se revisa de nuevo. History de Rentals registra tenancy.signatures_reviewed solo con ids y recuentos. Solo sesión de staff; con el interruptor apagado las rutas responden 404 y la ficha no muestra nada. Traído de ADM-20 (16-nov): con las reglas de 2025 encendidas (ADM20_TENANCY_LAW_READY) y todas las firmas revisadas, la ficha propone el día de la última firma como agreement_on del contrato, solo cuando no tiene ninguna registrada (nunca sustituye una fecha ya puesta); es solo una propuesta (guardar firmas nunca la escribe) y se registra únicamente cuando una persona la acepta, por el guardado propio del contrato (comprobaciones de ADM-20, etiqueta de régimen, historial tenancy.updated y control por updated_at), comprobando además la revisión de firmas y la fecha que vio (409 si cambiaron), con una guarda sobre la revisión de firmas dentro del mismo lote de escritura (un guardado de firmas concurrente da 409 sin escribir). Guardar las firmas sin cambios no escribe nada ni añade historial.",
+      "responsable": "Luis",
+      "hecho": "Construido el 16-nov-2026 tras el interruptor ADM19_SIGNATURE_READY (apagado por defecto en código; wrangler.toml no lo enciende) y la migración aditiva 0103_tenancy_signature_evidence.sql: en cada contrato de Rentals, la evidencia externa de firma revisada por una persona. Quién firmó por rol (Landlord y cada inquilino, Tenant 1…10, sin nombres), el día, dónde consta (referencia de texto al sistema externo, sin subir ni abrir documentos), y quién del equipo lo revisó y cuándo (sesión y reloj del servidor, nunca el cuerpo). La ficha del contrato muestra «Signed externally, reviewed by … on …» o qué falta («Still to sign or to check: …»), y «Out of date» si la referencia del contrato firmado de ADM-06 cambia después de la revisión. Guardado por revisión (compare-and-set) y re-leyendo dentro del lote la revisión del contrato firmado de ADM-06: un cambio concurrente responde 409 sin escribir. Una firma sin cambios conserva su revisión; una nueva o cambiada se revisa de nuevo. History de Rentals registra tenancy.signatures_reviewed solo con ids y recuentos. Solo sesión de staff; con el interruptor apagado las rutas responden 404 y la ficha no muestra nada. Traído de ADM-20 (16-nov): con las reglas de 2025 encendidas (ADM20_TENANCY_LAW_READY) y todas las firmas revisadas, la ficha propone el día de la última firma como agreement_on del contrato, solo cuando no tiene ninguna registrada (nunca sustituye una fecha ya puesta); es solo una propuesta (guardar firmas nunca la escribe) y se registra únicamente cuando una persona la acepta, por el guardado propio del contrato (comprobaciones de ADM-20, etiqueta de régimen, historial tenancy.updated y control por updated_at), comprobando además la revisión de firmas y la fecha que vio (409 si cambiaron), con una guarda sobre la revisión de firmas dentro del mismo lote de escritura (un guardado de firmas concurrente da 409 sin escribir). Guardar las firmas sin cambios no escribe nada ni añade historial. Encendida el 16-nov-2026: 0103 aplicada en remoto y ADM19_SIGNATURE_READY=\"1\" en wrangler.toml; revisión independiente sin graves, sus menores corregidos (76b07d4).",
       "falta": "Referencias del inquilino: no existen las referencias por email con enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, el acceso de caso de ADM-12 y la entidad de solicitud de ADM-18, aún pendiente); el plan las ata a esa solicitud, así que tampoco se construyó un registro manual de referencias recibidas sobre el contrato. Contrato de plantilla: la plantilla necesita la revisión de un abogado de Jersey (PRE-33); sin ella no hay tenancy_contracts, hashes de borrador/firmado ni emisión. Firma: no hay proveedor de firma electrónica ni callbacks (plan maestro: la firma se hace fuera). Activación de la evidencia de firma: aplicar 0103 en D1 de producción y encender ADM19_SIGNATURE_READY. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11). Traído de ADM-20 (15-nov): el contrato de plantilla toma agreement_on y law_scope del contrato y no se genera con ámbito o fecha de acuerdo desconocidos; la propuesta de agreement_on desde la firma ya está construida; el resto queda para la plantilla. Traído de ADM-15 (15-nov): la plantilla validada de la carta de aviso de renta no existe ni tiene dónde registrarse; si esta tarea crea el registro de plantillas legales validadas, la carta de ADM-15 debe salir de ahí.",
       "bloqueo": "",
       "evidencia": [
@@ -7878,7 +7879,8 @@
         "server/routes/tenancy-signatures.js",
         "admin/src/TenancySignatures.jsx",
         "tests/server/adm-19-signatures-d1.test.mjs (12/12 en D1 local con Miniflare: apagado = 404, solo staff, revisor de la sesión, 409 por revisión y por cambio del contrato firmado de ADM-06 a mitad de escritura, propuesta de agreement_on que solo se registra al aceptarla, sin sustituir una fecha registrada, aceptación atómica frente a un guardado de firmas concurrente, guardado sin cambios sin escritura)",
-        "tests/adm19-signature.e2e.cjs (navegador aislado, 1280 y 390 px)"
+        "tests/adm19-signature.e2e.cjs (navegador aislado, 1280 y 390 px)",
+        "16-nov-2026: e2e adm19-signature, adm09, adm10 PASS con el interruptor encendido; npm test 3038/3038."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -7914,7 +7916,7 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Correo (AUT-17) para enviar referencias · plantilla de contrato revisada por un abogado de Jersey.",
+      "externalBlocker": "Referencias por email: AUT-17 (correo), el acceso de caso de ADM-12 y la solicitud de ADM-18 (tras PRE-29); plantilla de contrato: abogado de Jersey (PRE-33)",
       "resources": [
         "rentals-contract",
         "rentals-ui",
