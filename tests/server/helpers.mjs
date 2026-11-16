@@ -46,6 +46,24 @@ export function makeDb({ through = Infinity, skip = [] } = {}) {
   };
 }
 
+const lit = v => v === null ? 'NULL' : typeof v === 'number' || typeof v === 'bigint' ? String(v)
+  : v instanceof Uint8Array ? `X'${Buffer.from(v).toString('hex')}'` : `'${String(v).replaceAll("'", "''")}'`;
+// PRE-14: volcado al estilo de la exportación de D1: tablas, filas y después índices, vistas y triggers.
+export function dumpD1(db) {
+  const objs = db.prepare(`SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL
+    AND name NOT LIKE 'sqlite_%' ORDER BY rowid`).all();
+  const out = ['PRAGMA defer_foreign_keys=TRUE;'];
+  for (const t of objs.filter(o => o.type === 'table')) {
+    out.push(`${t.sql};`);
+    const cols = db.prepare(`SELECT name FROM pragma_table_info('${t.name}')`).all().map(c => `"${c.name}"`);
+    for (const r of db.prepare(`SELECT ${cols.join(', ')} FROM "${t.name}"`).all()) {
+      out.push(`INSERT INTO "${t.name}" (${cols.join(', ')}) VALUES (${Object.values(r).map(lit).join(', ')});`);
+    }
+  }
+  for (const o of objs.filter(o => o.type !== 'table')) out.push(`${o.sql};`);
+  return out.join('\n');
+}
+
 export function makeBucket() {
   const store = new Map();
   return {

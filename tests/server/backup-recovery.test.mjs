@@ -13,7 +13,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {encryptBackupEntry, signBackupCertificate, keyFingerprint} from '../../server/backup-crypto.js';
 import {recoveryInspect, restoreTest, dirSource, commitKey, parseArgs} from '../../scripts/backup-recovery.mjs';
-import {makeDb, T0} from './helpers.mjs';
+import {makeDb, T0, dumpD1 as dump} from './helpers.mjs';
 
 const SCRIPT = fileURLToPath(new URL('../../scripts/backup-recovery.mjs', import.meta.url));
 const REPO = path.resolve(path.dirname(SCRIPT), '..');
@@ -63,24 +63,6 @@ function sourceDb({orphan = false} = {}) {
   db.prepare(`INSERT INTO listing_documents (id, listing_id, r2_key, bytes, sha256, status, created_at, created_by)
     VALUES ('d1', 'HE-T001', ?, 65, ?, 'stored', ?, 'admin@example.test')`).run(DOC, sha(OBJECTS[DOC]), T0);
   return db;
-}
-
-const lit = v => v === null ? 'NULL' : typeof v === 'number' || typeof v === 'bigint' ? String(v)
-  : v instanceof Uint8Array ? `X'${Buffer.from(v).toString('hex')}'` : `'${String(v).replaceAll("'", "''")}'`;
-// Volcado al estilo de la exportación de D1: tablas, filas y después índices, vistas y triggers.
-function dump(db) {
-  const objs = db.prepare(`SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL
-    AND name NOT LIKE 'sqlite_%' ORDER BY rowid`).all();
-  const out = ['PRAGMA defer_foreign_keys=TRUE;'];
-  for (const t of objs.filter(o => o.type === 'table')) {
-    out.push(`${t.sql};`);
-    const cols = db.prepare(`SELECT name FROM pragma_table_info('${t.name}')`).all().map(c => `"${c.name}"`);
-    for (const r of db.prepare(`SELECT ${cols.join(', ')} FROM "${t.name}"`).all()) {
-      out.push(`INSERT INTO "${t.name}" (${cols.join(', ')}) VALUES (${Object.values(r).map(lit).join(', ')});`);
-    }
-  }
-  for (const o of objs.filter(o => o.type !== 'table')) out.push(`${o.sql};`);
-  return out.join('\n');
 }
 
 // --- «bucket» local con la disposición que escribirá la captura (Task 3) ---

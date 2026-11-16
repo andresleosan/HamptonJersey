@@ -7,7 +7,7 @@ CREATE TABLE backup_runs (
   week_start TEXT NOT NULL UNIQUE,
   policy_hash TEXT NOT NULL CHECK (length(policy_hash) = 64),
   status TEXT NOT NULL DEFAULT 'queued'
-    CHECK (status IN ('queued','draining','capturing','sealed','complete','failed','unknown')),
+    CHECK (status IN ('queued','draining','capturing','sealed','complete','failed','unknown','purged')),
   attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt BETWEEN 0 AND 3),
   attempt_id TEXT CHECK (attempt_id IS NULL OR length(attempt_id) = 36),
   fence_epoch INTEGER,
@@ -24,6 +24,8 @@ CREATE TABLE backup_runs (
   signing_key_id TEXT,
   recovery_key_id TEXT,
   reason_code TEXT CHECK (reason_code IS NULL OR length(reason_code) <= 64),
+  -- Task 3: una copia en revisión de restauración no se purga aunque salga de las 12 semanas.
+  recovery_hold INTEGER NOT NULL DEFAULT 0 CHECK (recovery_hold IN (0, 1)),
   version INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
