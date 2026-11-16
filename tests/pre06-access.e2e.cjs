@@ -44,7 +44,7 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       await title.waitFor();
       const photo = await staffPhoto;
       assert.equal(photo.status(), 200);
-      assert.equal(photo.headers()['cache-control'], 'no-store');
+      assert.equal(photo.headers()['cache-control'], 'private, max-age=3600', 'kept only in this browser, for an hour');
       const img = page.locator(`img[src="/api/admin/media/${photoId}/content?thumb"]`);
       await img.waitFor();
       await page.waitForFunction(id => [...document.images].some(i => i.src.includes(id) && i.naturalWidth > 0), photoId);

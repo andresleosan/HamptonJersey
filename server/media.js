@@ -116,9 +116,11 @@ async function serveMediaOnce(request, env, id) {
   return new Response(body, { headers });
 }
 
-// PRE-06: the panel's way to a file (photos, plans, PDFs), behind Staff and, when on, Access. Never cached; anything
-// that is not a plain image downloads instead of opening. Private listing documents keep their own route (PUB-11).
+// PRE-06: the panel's way to a file (photos, plans, PDFs), behind Staff and, when on, Access. A plain image stays in
+// that browser's own cache for an hour, so the panel's thumbnails are not downloaded on every list; anything else
+// downloads instead of opening and is never cached. Private listing documents keep their own route (PUB-11).
 const INLINE = /^image\/(?:jpeg|png|webp|gif|avif)$/;
+export const STAFF_IMAGE_CACHE = "private, max-age=3600";
 export async function serveStaffMedia(request, env, id) {
   const row = await env.DB.prepare("SELECT r2_key, thumb_key, content_type FROM media WHERE id = ?").bind(id).first();
   if (!row?.r2_key || [row.r2_key, row.thumb_key].some(key => key?.startsWith(PRIVATE_DOCS))) return notFound();
@@ -127,11 +129,11 @@ export async function serveStaffMedia(request, env, id) {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   if (!headers.get("content-type") && row.content_type) headers.set("content-type", row.content_type);
-  if (!INLINE.test((headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase()))
-    headers.set("content-disposition", "attachment");
+  const image = INLINE.test((headers.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase());
+  if (!image) headers.set("content-disposition", "attachment");
   headers.set("etag", obj.httpEtag);
   headers.set("x-content-type-options", "nosniff");
-  headers.set("cache-control", "private, no-store");
+  headers.set("cache-control", image ? STAFF_IMAGE_CACHE : "private, no-store");
   if (request.method === "HEAD") { await cancelBody(obj.body); return new Response(null, { headers }); }
   return new Response(obj.body, { headers });
 }

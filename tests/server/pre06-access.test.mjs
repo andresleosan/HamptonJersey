@@ -287,22 +287,28 @@ test("switched on: private media is not served on the public /media route, even 
   assert.equal(withJwt.status, 404, "the public route never falls back to a staff session while Access is on");
 });
 
-test("Staff media route: GET/HEAD, private, no-store, nosniff, PDFs as attachments, private documents never", async () => {
+test("Staff media route: GET/HEAD, images in the browser's own cache for an hour, everything else no-store, nosniff, PDFs as attachments, private documents never", async () => {
   for (const env of [world(), world(on())]) {
     const cookie = await adminCookie(), jwt = env.PRE06_ACCESS_READY ? await assertion() : undefined;
     const pub = await api(env, "GET", "/admin/media/PUB1/content", { cookie, jwt });
     assert.equal(pub.status, 200); assert.equal(pub.headers.get("content-type"), "image/jpeg");
-    assert.equal(pub.headers.get("cache-control"), "no-store");
+    assert.equal(pub.headers.get("cache-control"), "private, max-age=3600", "never a shared cache, an hour in the browser");
     assert.equal(pub.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(pub.headers.get("content-disposition"), null);
     const priv = await api(env, "GET", "/admin/media/PRIV1/content?thumb", { cookie, jwt });
-    assert.equal(priv.status, 200);
+    assert.equal(priv.status, 200); assert.equal(priv.headers.get("cache-control"), "private, max-age=3600");
     const head = await api(env, "HEAD", "/admin/media/PRIV1/content", { cookie, jwt });
     assert.equal(head.status, 200);
     const pdf = await api(env, "GET", "/admin/media/DOC1/content", { cookie, jwt });
     assert.equal(pdf.status, 200); assert.match(pdf.headers.get("content-disposition"), /^attachment/);
-    assert.equal((await api(env, "GET", "/admin/media/SEC1/content", { cookie, jwt })).status, 404);
-    assert.equal((await api(env, "GET", "/admin/media/NOPE/content", { cookie, jwt })).status, 404);
-    assert.equal((await api(env, "GET", "/admin/media/PRIV1/content", { jwt })).status, 401);
+    assert.equal(pdf.headers.get("cache-control"), "no-store", "documents and downloads are never cached");
+    for (const [path, status, auth] of [["/admin/media/SEC1/content", 404, true], ["/admin/media/NOPE/content", 404, true],
+      ["/admin/media/PRIV1/content", 401, false]]) {
+      const r = await api(env, "GET", path, auth ? { cookie, jwt } : { jwt });
+      assert.equal(r.status, status, path); assert.equal(r.headers.get("cache-control"), "no-store", path);
+    }
+    // Any other admin answer keeps no-store, even if a route set the image value itself.
+    assert.equal((await api(env, "GET", "/admin/listings", { cookie, jwt })).headers.get("cache-control"), "no-store");
   }
 });
 

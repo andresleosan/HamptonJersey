@@ -75,6 +75,7 @@ test("switched on: Hermes needs its service assertion and still its key", async 
   const env = world(ON);
   const none = await api(env, "GET", "/hermes/status");
   assert.equal(none.status, 403); assert.equal(none.data.code, "access_required");
+  assert.doesNotMatch(none.data.error, /staff|sign-in/i, "a service's own wording, not the panel's");
   const ok = await api(env, "GET", "/hermes/status", { jwt: await token() });
   assert.equal(ok.status, 200);
   assert.equal((await api(env, "GET", "/hermes/status", { jwt: await token(), bearer: null })).status, 401, "the key is still required");
@@ -125,6 +126,7 @@ test("switched on without a service's configuration that service stays closed (5
   const env = world({ ...ON, ACCESS_HERMES_AUD: undefined });
   const r = await api(env, "GET", "/hermes/status", { jwt: await token() });
   assert.equal(r.status, 503); assert.equal(r.data.code, "access_unavailable");
+  assert.doesNotMatch(r.data.error, /staff|sign-in/i);
   assert.equal((await api(env, "GET", "/listings", { bearer: null })).status, 200, "public API unaffected");
   // Two Client IDs, comma separated, both accepted.
   const two = world({ ...ON, ACCESS_HERMES_CLIENT_IDS: `${STRANGER},${HERMES_ID}` });

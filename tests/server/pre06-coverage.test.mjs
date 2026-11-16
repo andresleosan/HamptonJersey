@@ -27,7 +27,8 @@ async function panel(env, path, token, host = "hampton.test") {
   let served = 0;
   const request = new Request(`https://${host}${path}`, { headers: token ? { [ACCESS_HEADER]: token } : {} });
   const res = await onRequest({ request, env, next: async () => { served++; return new Response("<!doctype html>panel"); } });
-  return { status: res.status, served, body: await res.text(), cache: res.headers.get("cache-control") };
+  return { status: res.status, served, body: await res.text(), cache: res.headers.get("cache-control"),
+    frame: res.headers.get("x-frame-options"), robots: res.headers.get("x-robots-tag") };
 }
 
 test("panel files: off they are served as before; on only with a valid assertion for this host", async () => {
@@ -37,7 +38,8 @@ test("panel files: off they are served as before; on only with a valid assertion
       assert.deepEqual([r.status, r.served, r.body], [200, 1, "<!doctype html>panel"], `off ${path}`);
     }
     const none = await panel(ON, path);
-    assert.deepEqual([none.status, none.served, none.cache], [403, 0, "no-store"], `on, no assertion ${path}`);
+    assert.deepEqual([none.status, none.served, none.cache, none.frame, none.robots], [403, 0, "no-store", "DENY", "noindex"],
+      `on, no assertion ${path}`);
     assert.doesNotMatch(none.body, /doctype/);
     assert.equal((await panel(ON, path, "garbage")).served, 0);
     assert.equal((await panel(ON, path, await jwt(), "hampton-preview.pages.dev")).status, 403);
@@ -45,7 +47,7 @@ test("panel files: off they are served as before; on only with a valid assertion
     assert.deepEqual([ok.status, ok.served], [200, 1], `on, valid ${path}`);
   }
   const broken = await panel({ ...ON, ACCESS_TEAM_DOMAIN: "" }, "/admin/", await jwt());
-  assert.deepEqual([broken.status, broken.served], [503, 0], "misconfigured: closed");
+  assert.deepEqual([broken.status, broken.served, broken.frame, broken.robots], [503, 0, "DENY", "noindex"], "misconfigured: closed");
 });
 
 test("Pages routes /admin/* to Functions, and only the paths it routed before besides it", () => {

@@ -9,7 +9,8 @@ export async function onRequest({ request, env, next }) {
     if (!(e instanceof AccessError)) throw e;
     return new Response(e.status === 503 ? "Staff sign-in is unavailable right now. Please try again in a few minutes."
       : "Sign in through Hampton's security sign-in to open the Staff panel.",
-    { status: e.status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+    { status: e.status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store",
+      "x-frame-options": "DENY", "x-robots-tag": "noindex" } });
   }
   return next();
 }
