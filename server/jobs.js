@@ -20,6 +20,7 @@ import { withApplicationWrite, BackupMaintenanceError, backupReady, purgeClosedW
 import { backupStartPass } from './backup-start.js';
 import { spoolReady, stageInboundDuringBackup, replayBackupInbound } from './backup-mail-spool.js';
 import { calendarReady, calendarRetryTick } from './calendar-sync.js';
+import { savedSearchesReady, savedSearchPass } from './saved-searches.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -69,6 +70,10 @@ const clock = {
     if (calendarReady(env)) { // VIS-12: viewings Google Calendar did not take yet, up to 50 a tick
       try { await calendarRetryTick(env, { limit: 50 }); }
       catch { console.error('Calendar retry pass failed'); }
+    }
+    if (savedSearchesReady(env)) { // REG-15: a visitor's saved search, at most one email a day of new homes that fit
+      try { await savedSearchPass(env, now()); }
+      catch { console.error('Saved search pass failed'); }
     }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.

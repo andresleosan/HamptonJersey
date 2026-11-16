@@ -5,7 +5,7 @@ import { ALLOWED, MARKETING_TEMPLATE, purposeReady } from "./communication-prefe
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
 export const DAILY_LIMIT = 100;
-const SITE = "https://www.hamptonestatesjersey.com";
+export const SITE = "https://www.hamptonestatesjersey.com";
 const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Jersey", year: "numeric", month: "2-digit",
   day: "2-digit", hour: "2-digit", hourCycle: "h23" });
 export function emailDay(ts) {
@@ -70,6 +70,8 @@ export async function prepareSummary(env, ts) {
 
 // This SQL is evaluated afresh on the claim and immediately before the provider call. No network transaction.
 // An approved external row can be introduced only by a future authenticated workflow, never a public send route.
+// REG-15 is the one exception: a saved search's double opt-in confirmation (saved_search_confirm), queued by its public
+// route behind Turnstile and daily caps, approved in advance by whoever opened that form (app_settings.saved_searches).
 // AGE-05: an enquiry email is claimed only while its own check (SQL from outbound, given by the clock) holds; without
 // one, never. Other templates are unaffected.
 // PRE-10: switched on, deny by default. Only these transactional templates skip the marketing check; any other one is
@@ -77,7 +79,7 @@ export async function prepareSummary(env, ts) {
 // receive its purpose ("marketing.<purpose>") by email, read again each time. Any other name never goes. A new
 // transactional template is added here. Off, the SQL never names marketing_preferences (it runs before 0096) and
 // only "marketing.*" is held, as before.
-const TRANSACTIONAL = ["team_summary", "enquiry"];
+const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm"];
 const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
   OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})

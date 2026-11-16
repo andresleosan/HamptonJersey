@@ -18,6 +18,7 @@ import { contentFromStored } from '../listing-content.js';
 import { rentalClosureEnabled, rentalClosureVisibleSql, noUnresolvedRentalClosureSql, closureOrOff } from '../rental-closure.js';
 import { readHouseRules, noticeShort, noticeCheck } from '../house-rules.js';
 import { posterQrEnabled, countQrOpen } from "../poster-qr.js";
+import { savedSearchPolicy } from "../saved-searches.js";
 
 export const groupBy = (rows, key) => rows.reduce((a, r) => ((a[r[key]] ||= []).push(r), a), {});
 
@@ -89,7 +90,9 @@ const listPublic = async ({ env }) => {
 };
 
 // chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.
-const config = async ({ request, env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY, chat: await chatOn(env, request) }, 200,
+// savedSearches: present only while the website offers «Save this search» (REG-15); off, the answer is as before.
+const config = async ({ request, env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY, chat: await chatOn(env, request),
+  ...(await savedSearchPolicy(env) ? { savedSearches: true } : {}) }, 200,
   { "cache-control": "public, max-age=300" });
 
 // ?from=YYYY-MM-DD&days=N of an availability request, shared with the panel's (which starts from today).

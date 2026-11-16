@@ -21,10 +21,10 @@
       "openCount": 12,
       "states": {
         "hecho": 41,
-        "parcial": 7,
+        "parcial": 8,
         "pendiente": 3,
         "replanteado": 6,
-        "bloqueado": 2
+        "bloqueado": 1
       }
     },
     {
@@ -6928,14 +6928,25 @@
       "titulo": "Alertas «Save this search» para visitantes de la web",
       "origen": "plan",
       "fase": "F0",
-      "estado": "bloqueado",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "No existe. Falta que un visitante deje solo su email y sus criterios y reciba por correo las casas nuevas que encajen, con el mismo motor de matching.",
-      "bloqueo": "Correo (AUT-17)",
+      "hecho": "Construido apagado (REG15_ALERTS_READY=0 en los dos wrangler.toml). Un visitante deja email y criterios con consentimiento explícito; confirma con doble opt-in; queda como contacto con el permiso PRE-10 property_alerts por email. El reloj cruza las casas nuevas o cambiadas con el mismo motor (evaluate) y deja un correo al día en la cola existente; cada alerta lleva baja. Migración 0107 escrita, sin aplicar.",
+      "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches.",
+      "bloqueo": "Correo (AUT-17) · decisión de Luis · aviso PRE-09",
       "evidencia": [
-        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:242",
-        "site/index.html:628-629"
+        "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:222",
+        "docs/roadmap/work/REG-15/plan.md",
+        "server/saved-searches.js",
+        "migrations/0107_saved_searches.sql",
+        "tests/server/reg-15-saved-searches.test.mjs: 11/11 pasan",
+        "tests/reg15-alerts.e2e.cjs: PASS en contenedor aislado (Chromium, 390 y 1280, datos ficticios)",
+        "Decisión: solo email y criterios, y el visitante pasa a contacto (arquitectura:222).",
+        "Decisión: consentimiento y baja con setCommunicationPreference, propósito property_alerts (server/communication-preferences.js:9 y :67).",
+        "Decisión: formulario abierto solo con app_settings.saved_searches, patrón de PUB-10 (server/owner-requests.js:21).",
+        "Decisión: envío por outbound; confirmación transaccional (server/email.js:82) y alertas marketing.property_alerts con la comprobación de PRE-10 (server/email.js:83-87).",
+        "Decisión: Turnstile tras validar y topes en SQL, como el registro y countStat (server/routes/public.js:156, :183-197).",
+        "Decisión: pendientes 7 días y un correo por búsqueda y día; ninguna fuente lo fija, opción simple y reversible (skill §4.5).",
+        "Encender: interruptor que recoge datos del público y envía, solo Luis (CONTINUIDAD-AVANZAR.md:31)."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -6957,7 +6968,8 @@
         "marketing-preferences",
         "public-forms"
       ],
-      "nextStep": "Construir alertas por criterios y email con matching y preferencias, activables cuando AUT-17 esté operativo."
+      "nextStep": "Cuando Luis decida abrirlo y AUT-17 esté activo: aplicar 0107, escribir app_settings.saved_searches con la versión del aviso PRE-09 y encender REG15_ALERTS_READY en los dos wrangler.toml.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "REG-16",

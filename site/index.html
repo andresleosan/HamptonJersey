@@ -589,6 +589,9 @@ const SITE = new URL($('meta[name="site-url"]')?.content || $('link[rel="canonic
 const short = (n, op) => op === "rent" ? `£${n.toLocaleString("en-GB")} pcm` : n >= 1e6 ? `£${n / 1e6}m` : `£${n / 1e3}k`;
 // Turnstile loads async; forms render the widget once it is ready.
 let TS_KEY = null, TOURS = [];
+// REG-15: «Save this search» is offered only while /api/config says so.
+let SAVED_SEARCHES = false;
+const savedSearchLink = () => SAVED_SEARCHES ? '<a class="btn ghost" href="#/alerts">Email me new homes</a>' : "";
 const tsReady = new Promise(r => { window.onTurnstile = r; });
 // I3: one count per listing and metric until the page reloads, with no cookies; a failed count is ignored.
 // Disabled until the privacy notice, retention policy, D1 schema and operating cost are approved.
@@ -853,7 +856,7 @@ function home() {
       <a class="btn ghost" href="/properties">View all properties</a></div>
     <div class="grid" id="grid"></div>
     <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
-      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
+      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a>${savedSearchLink()}</div>
   </div></section>
 
   ${spots.map((p, i) => `<section class="feature${i % 2 ? " flip" : ""}"><img src="${esc(p.thumb || p.image)}" alt="${esc(p.title)}" loading="lazy">
@@ -966,7 +969,7 @@ function properties() {
     <p class="count" aria-live="polite"><span id="count" class="num"></span><button class="linkbtn" type="button" id="show-all" hidden>Show all properties</button></p>
     <div class="grid" id="grid"></div>
     <div class="reg-cta"><p>Not seeing the right home? Register your search and our team will be in touch.</p>
-      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a></div>
+      <a class="btn ghost" href="#/apply">Tell us what you're looking for</a>${savedSearchLink()}</div>
   </div></section>`;
   const fillMax = () => {
     const list = MAX[filter.op] || [];
@@ -1274,8 +1277,8 @@ const reveal = () => io && document.querySelectorAll("#app .head, #app .card, #a
   .forEach(el => { if (el.classList.contains("rv")) return; el.classList.add("rv"); el.style.transitionDelay = `${([...el.parentElement.children].indexOf(el) % 4) * 80}ms`;
     el.addEventListener("transitionend", () => { el.style.transitionDelay = ""; }, {once: true}); io.observe(el); });
 // Register your search and the privacy notice live in apply.js, fetched only when one of them opens (spec §5).
-const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root), "#/demand": (m, root) => m.renderDemand(root), "#/owners": (m, root) => m.renderOwner(root, {tsKey: TS_KEY, tsReady})};
-const sidePage = h => import(h === "#/demand" ? "/demand.js" : h === "#/owners" ? "/owner.js" : "/apply.js").then(m => { if (location.hash !== h) return; clearTourGate(); clearTourGate = () => {}; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
+const SIDE_PAGES = {"#/apply": (m, root) => m.renderApply(root, {esc, tsKey: TS_KEY, tsReady}), "#/privacy": (m, root) => m.renderPrivacy(root), "#/demand": (m, root) => m.renderDemand(root), "#/owners": (m, root) => m.renderOwner(root, {tsKey: TS_KEY, tsReady}), "#/alerts": (m, root) => m.renderAlerts(root, {tsKey: TS_KEY, tsReady})};
+const sidePage = h => import(h === "#/demand" ? "/demand.js" : h === "#/owners" ? "/owner.js" : h === "#/alerts" ? "/alerts.js" : "/apply.js").then(m => { if (location.hash !== h) return; clearTourGate(); clearTourGate = () => {}; clearGallery(); SIDE_PAGES[h](m, $("#app")); scrollTo({top: 0, behavior: "instant"}); })
   .catch(() => {
     if (location.hash !== h) return;
     clearTourGate(); clearTourGate = () => {}; clearGallery();
@@ -1341,6 +1344,7 @@ const arr = v => (Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
 Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSON("/api/config"), getJSON("/api/tours")]).then(([p, t, c, tr]) => {
   // Before the listings check: Register your search still opens (with its anti-spam key) when they fail.
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
+  SAVED_SEARCHES = c.status === "fulfilled" && c.value?.savedSearches === true;
   bootChat(c.status === "fulfilled" && c.value?.chat === true);
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};

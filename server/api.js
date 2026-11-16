@@ -58,6 +58,7 @@ import marketingPreferenceRoutes, { purposeReady } from "./communication-prefere
 import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.js";
 import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
+import savedSearchRoutes, { savedSearchesReady } from "./saved-searches.js";
 import { calendarRoutes, calendarOffRoutes, calendarReady } from "./viewing-calendar.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 import backupRoutes, { BACKUP_ADMIN } from "./routes/backups.js";
@@ -150,6 +151,7 @@ async function route(request, env, segments, waitUntil) {
     if (chatContactReady(env)) routes = [...routes, ...chatContactRoutes]; // MSG-03: needs migration 0093
     if (chatApplicantReady(env)) routes = [...routes, ...chatApplicantRoutes]; // MSG-05: needs migrations 0093 and 0098
     if (purposeReady(env)) routes = [...routes, ...marketingPreferenceRoutes]; // PRE-10: needs migration 0096
+    if (savedSearchesReady(env)) routes = [...routes, ...savedSearchRoutes]; // REG-15: needs migrations 0096 and 0107
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094

@@ -111,6 +111,8 @@ AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"
 EMAIL_SERVICE_READY = "false"
+# REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
+REG15_ALERTS_READY = "0"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
 TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"
