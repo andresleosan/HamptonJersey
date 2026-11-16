@@ -40,7 +40,7 @@ function people(env) {
     title: "Viewing request: Ottoline Pryke", type: "viewing.requested" });
   return { applicant, viewing, n1, n2 };
 }
-const SECRETS = ["Zelda", "Quarrington", "zelda@", "900321", "Ottoline", "Pryke", "otto@", "900654"];
+const SECRETS = ["Yorick", "Fennimore", "yorick@", "Zelda", "Quarrington", "zelda@", "900321", "Ottoline", "Pryke", "otto@", "900654"];
 
 test("the door opens only with the key", async () => {
   const env = env0();
@@ -75,9 +75,17 @@ test("status: the panel's counts, the listings to confirm and a fixed summary, w
   seedListing(env, { id: "HE-R001", title: "Le Bernage", confirmed_at: "2026-01-01T00:00:00.000Z" });
   seedListing(env, { id: "HE-R002", title: "Fresh one", confirmed_at: "2026-10-30T00:00:00.000Z" });
   people(env);
+  // AUT-14: a contact the retention pass deletes within a month (11 months without activity, nothing that keeps it).
+  insert(env, "contacts", { name: "Yorick Fennimore", email: "yorick@private.je", last_activity_at: "2025-11-10T09:00:00.000Z",
+    created_at: "2025-11-10T09:00:00.000Z", updated_at: "2025-11-10T09:00:00.000Z" });
   const { status, data } = await door(env, "GET", "/status");
   assert.equal(status, 200);
   assert.equal(data.counts.new_applicant, 1);
+  // AUT-14: numbers only. The website applicant's search (made on T0) has had no contact for over 14 days (EST-11).
+  assert.equal(data.counts.expiring, 1);
+  assert.equal(data.counts.gone_quiet, 1);
+  assert.match(data.summary, /- 1 contact expiring within a month/);
+  assert.match(data.summary, /- 1 search gone quiet/);
   assert.equal(data.counts.viewing, 1);
   assert.equal(data.counts.to_confirm, 1);
   assert.equal(data.drafts_waiting, 0);
@@ -94,6 +102,7 @@ test("status: the panel's counts, the listings to confirm and a fixed summary, w
 test("status with nothing waiting says so", async () => {
   const { data } = await door(env0(), "GET", "/status");
   assert.match(data.summary, /Nothing waiting\./);
+  assert.deepEqual([data.counts.expiring, data.counts.gone_quiet], [0, 0]);
 });
 
 test("news: a fixed text and a panel link per new website notice, never who", async () => {

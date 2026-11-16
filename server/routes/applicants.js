@@ -77,8 +77,8 @@ async function saveVersioned(env, stmts, entity, id, seen) {
 
 const ACTIVE = activeSql("s");
 // EST-11 (L3): an active search, Paused included, with no real contact for more than 14 days. Bind: the cutoff.
-const QUIET = `${activeSql("a")} AND COALESCE(c.last_contact_at, c.created_at) < ?`;
-const quietCutoff = () => new Date(Date.now() - 14 * 864e5).toISOString();
+export const QUIET = `${activeSql("a")} AND COALESCE(c.last_contact_at, c.created_at) < ?`;
+export const quietCutoff = () => new Date(Date.now() - 14 * 864e5).toISOString();
 const PARISHES = OPTIONS.parishes.map(([v]) => v), SOURCES = OPTIONS.sources.map(([v]) => v);
 
 // B13: the applicant's work queue, one label in this order: New properties found (found ones created after the first
