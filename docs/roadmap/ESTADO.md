@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **AGE-12 y EST-19 encendidas por decisión de Luis:** `/presentation` ya acepta las respuestas de clientes con enlace privado, y Listings › Trash puede purgar por lotes de 20 las fotos de referencia externas de fichas con seis meses en papelera. Siguen sin cerrar hasta la prueba real de cada una. Progreso 139 → 139 de 211.
+
 16-nov-2026 · **PRE-14, un paso más (apagada):** si una escritura queda abierta por un fallo, un admin puede verla y cerrarla desde la API aunque la copia semanal tenga la web en pausa (`/admin/backups/permits`). Sin cambio visible en el panel. Progreso 139 → 139 de 211.
 
 16-nov-2026 · **VIS-14 hecha:** cuando varias personas piden ver la misma casa, Viewings lo avisa y ofrece proponerles horas seguidas con un negociador o crear un open viewing con plazas (de 1 a 50, una por persona, sin sobreventa); el open viewing cuenta como una cita para las reglas del negociador y el calendario ocupado muestra sus plazas sin nombres. Migración 0104. **VIS-12 construida y apagada:** la cita confirmada puede ir al Google Calendar del negociador (en la cola de Luis: credenciales de Google y migraciones 0105 y 0106). **PRE-14:** disparo semanal de la copia y aviso en el Inbox construidos, apagados. Progreso 138 → 139.
