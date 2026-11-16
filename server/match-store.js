@@ -16,14 +16,14 @@ const candidates = (use, operations) => `archived_at IS NULL AND matchable = 1 A
 export const CANDIDATES_SQL = candidates('residential', "'sale','rent'");
 export const LISTING_OPERATION = { rent: "rent", buy: "sale" };
 // BUS-12: a commercial search is offered commercial listings only; a business transfer, businesses only.
-const COMMERCIAL_SQL = candidates('commercial', "'sale','rent','business'");
+export const COMMERCIAL_SQL = candidates('commercial', "'sale','rent','business'");
 const commercial = a => a.search_category === 'commercial';
 // EST-15: a listing whose confirmation in force says not available is not offered either, for the operation it
 // covers. Nothing here lifts that: only a person's newer confirmation does, and its recompute proposes it again.
 // ponytail: a recompute already reading when the confirmation lands can still store its Found; the listing's own
 // recompute right after the confirmation, or the search's next one, removes it. Guard the INSERT if that ever shows.
 const candidatesFor = (env, a) => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_SQL) + notConfirmedUnavailable(env);
-const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
+export const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
 
 // BUS-01: with BUS01_MARKET_MATCHING_READY (and BUS10's identity, which decides what one home is), a residential search
 // also crosses the homes of the common market inventory, after its listings and apart from them: nothing of the market
@@ -133,7 +133,7 @@ export const matchSnapshotMessage = reason => reason==='snapshot_too_large'
   ? MATCH_SNAPSHOT_LIMIT_MESSAGE : MATCH_SNAPSHOT_INVALID_MESSAGE;
 
 // Only the columns evaluate() reads (never the listing's text: B10), plus whether the listing is a candidate.
-const offeredListing = env => `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
+export const offeredListing = env => `COALESCE((SELECT version FROM listing_match_inputs WHERE listing_id=listings.id),0) AS match_inputs_revision, id, operation, availability, archived_at, bedrooms, bathrooms, parish, published, sale_price, rent, rent_period, currency,
   feat_pets, feat_parking, feat_furnished, feat_outdoor, feat_type, feat_evidence, tenure_type, housing_category, restriction,
   use, premium, interior_area_sqft, property_type, (((${CANDIDATES_SQL}) OR (${COMMERCIAL_SQL}))${notConfirmedUnavailable(env)}) AS candidate`;
 export const LISTING = offeredListing(); // as before EST-15: what the listing itself says

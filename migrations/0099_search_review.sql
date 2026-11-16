@@ -3,11 +3,13 @@
 -- (server/search-review.js). Read and written only with BUS17_REVIEW_READY=1.
 -- Additive: four new tables and two indexes; no existing row or table changes.
 
--- The clock's own progress: when the module was first switched on (a search registered before that has no evidenced
--- history, so its absence starts when the clock first sees it) and the page cursor over the searches. One row.
+-- The clock's own progress: when the module was last switched on (a search registered before that has no evidenced
+-- history, so its absence starts when the clock first sees it), its last tick (a gap of over an hour means it was off:
+-- every absence restarts from the resumption, as nothing was watched meanwhile) and the page cursor. One row.
 CREATE TABLE search_review_progress (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   enabled_at TEXT NOT NULL,
+  last_tick_at TEXT,
   after_id INTEGER NOT NULL DEFAULT 0
 );
 
@@ -16,7 +18,8 @@ CREATE TABLE search_review_progress (
 -- of an earlier absence never counts for this one. source: what evidences no_full_since (activation: registered or
 -- reactivated with none; last_full_lost: the last complete option went; legacy_baseline: registered before the clock).
 -- last_closed_at: when this episode's last review was closed (the next is due 7 days later). revision: every write
--- checks it, so two ticks never act twice. Deleted with its search.
+-- checks it, so two ticks never act twice; write_token: the last write's own token, which the same batch checks before acting.
+-- Deleted with its search.
 CREATE TABLE search_review_cycles (
   applicant_id INTEGER PRIMARY KEY REFERENCES applicants(id) ON DELETE CASCADE,
   state TEXT NOT NULL CHECK (state IN ('absent', 'held', 'inactive')),
@@ -25,6 +28,7 @@ CREATE TABLE search_review_cycles (
   source TEXT CHECK (source IS NULL OR source IN ('activation', 'last_full_lost', 'legacy_baseline')),
   last_closed_at TEXT,
   revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
+  write_token TEXT,
   updated_at TEXT NOT NULL,
   CHECK ((state = 'absent') = (no_full_since IS NOT NULL AND source IS NOT NULL))
 );
@@ -50,12 +54,15 @@ CREATE TABLE search_reviews (
 );
 CREATE UNIQUE INDEX search_reviews_one_open ON search_reviews(applicant_id) WHERE closed_at IS NULL;
 
--- A rejected match's price as the clock first saw it, or as it was when a drop was last noticed: a later price at
--- least 5% lower in the same terms opens an Inbox task for a person to look again. The match stays rejected.
--- price: [amount, currency, period]. Deleted with its match.
+-- A rejected match's price as the clock first saw it after that rejection, or as it was when a drop was last noticed:
+-- a later price at least 5% lower in the same terms opens an Inbox task for a person to look again (one open per match).
+-- The match stays rejected. rejected_at: the rejection it belongs to (matches.reviewed_at); a new rejection, a match no
+-- longer rejected, or another currency or kind of price starts again. price: [amount, currency, period]. Deleted with
+-- its match.
 CREATE TABLE search_rejected_prices (
   match_id INTEGER PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,
   applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+  rejected_at TEXT,
   price TEXT NOT NULL CHECK (json_valid(price)),
   seen_at TEXT NOT NULL
 );

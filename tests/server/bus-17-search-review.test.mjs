@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { makeEnv, seedListing, call, adminCookie, T0 } from './listing-client.mjs';
 import worker from '../../server/jobs.js';
 import { recomputeForApplicant } from '../../server/search-state.js';
-import { ALTERNATIVES_LIMIT, buildAlternatives, materialDrop, plan, searchAvailability, searchReviewPass } from '../../server/search-review.js';
+import { ALTERNATIVES_LIMIT, OPENS_PER_TICK, buildAlternatives, materialDrop, plan, searchAvailability, searchReviewPass as tickAt } from '../../server/search-review.js';
 
 const run = (env, sql, ...a) => env.DB.raw.prepare(sql).run(...a);
 const rows = (env, sql, ...a) => env.DB.raw.prepare(sql).all(...a).map(r => ({ ...r }));
@@ -17,9 +17,14 @@ const ok = (r, status = 200) => { assert.equal(r.status, status, JSON.stringify(
 const req = async (env, method, path, body) => call(env, method, path, { body, cookie: await adminCookie() });
 const later = (iso, ms) => new Date(Date.parse(iso) + ms).toISOString();
 const DAY = 86400000, TICK = 600000;
+// The clock ran every 10 minutes up to ts (no gap): a tick that skips days in a test is not a clock that was off.
+const searchReviewPass = (env, ts) => {
+  try { env.DB.raw.prepare('UPDATE search_review_progress SET last_tick_at=? WHERE id=1').run(later(ts, -TICK)); } catch { /* off */ }
+  return tickAt(env, ts);
+};
 // T0 is 11:00 in Jersey (BST) on 7 October; 21 calendar days later is 11:00 GMT on 28 October, across the clock change.
 const DUE = '2026-10-28T11:00:00.000Z';
-const FLAGS = { EST01_SEARCH_STATE_READY: '1', EST16_AVAILABILITY_READY: '1' };
+const FLAGS = { EST01_SEARCH_STATE_READY: '1', EST16_AVAILABILITY_READY: '1', EST15_UNAVAILABILITY_READY: '1' };
 const PRIORITIES = JSON.stringify({ version: 1, values: { budget: 'must', bedrooms: 'must' }, unknown: [] });
 
 function world({ on = true, recorded = true } = {}) {
@@ -286,6 +291,142 @@ test('switched off, the clock, the Inbox and the website do exactly what they di
   assert.deepEqual(off.seen, absent.seen);
   assert.ok(!off.seen.some(sql => /search_review|search_rejected/.test(sql)));
   assert.deepEqual([off.detail, absent.detail], [false, false]);
+});
+
+// Review findings (16-nov): each with the behaviour it fixes.
+const move = (env, listing, to, from, reason) => req(env, 'PUT', `/admin/matches/${one(env, 'SELECT id FROM matches WHERE listing_id=?', listing).id}`,
+  { status: to, from, ...(reason && { reject_reason: reason }) });
+
+test('stale stored matches never certify absence nor a complete option', async () => {
+  // A new home that fits arrived and its own recompute did not run: unknown, nothing opens.
+  let env = world();
+  await search(env);
+  seedListing(env, { id: 'HE-R003', title: 'New fitting flat', operation: 'rent', availability: 'to_let', rent: 1700, rent_period: 'month',
+    sale_price: null, bedrooms: 2, bathrooms: 1, housing_category: 'registered', matchable: 1, parish: 'St Helier', location: 'St Helier' });
+  await searchReviewPass(env, later(DUE, -TICK));
+  await searchReviewPass(env, DUE);
+  assert.deepEqual([cycle(env), reviews(env)], [undefined, []]);
+  await search(env); // the recompute stores it: the absence is certified again
+  await searchReviewPass(env, later(DUE, TICK));
+  assert.equal(reviews(env).length, 1);
+  // A confirmed home let since, before its recompute: not taken as complete.
+  env = world();
+  await search(env);
+  ok(await confirm(env, 'HE-R002', 'available', '2026-10-08T09:00:00.000Z'), 201);
+  run(env, "UPDATE listings SET availability='let' WHERE id='HE-R002'");
+  await searchReviewPass(env, later(T0, DAY));
+  assert.equal(cycle(env), undefined);
+  // A ranking not yet current: unknown.
+  env = world();
+  await search(env);
+  run(env, 'UPDATE applicants SET match_ranking_version=0 WHERE id=?', env.applicant);
+  await searchReviewPass(env, DUE);
+  assert.equal(cycle(env), undefined);
+  // The predicate itself refuses a home no longer offered.
+  const s = { id: 7, match_inputs_revision: 3, recorded: 7, last_attempt_at: T0, last_success_at: later(T0, 1000), last_failure_at: null };
+  const m = { listing_id: 'HE-R002', version: 1, requirements_rank: 0, status: 'found', available_ref: 4, client_choice: null };
+  assert.equal(searchAvailability(s, [{ ...m, listing_availability: 'let' }], '1', DUE), 'absent');
+  assert.equal(searchAvailability(s, [{ ...m, listing_archived: T0 }], '1', DUE), 'absent');
+});
+
+test('a clock off for over an hour restarts every absence from its resumption', async () => {
+  const env = world();
+  await search(env);
+  await searchReviewPass(env, later(T0, DAY));
+  assert.equal(cycle(env).source, 'activation');
+  const back = later(DUE, 10 * DAY); // nothing ran for 30 days
+  await tickAt(env, back);
+  assert.deepEqual(cycle(env), { state: 'absent', episode: 1, no_full_since: back, source: 'legacy_baseline', last_closed_at: null });
+  assert.deepEqual(reviews(env), []);
+  assert.equal(one(env, 'SELECT enabled_at FROM search_review_progress').enabled_at, back);
+  await searchReviewPass(env, later(back, 21 * DAY - TICK));
+  assert.deepEqual(reviews(env), []);
+});
+
+test('a rejected home: a new rejection starts again, and one open drop task per match', async () => {
+  const env = world();
+  await search(env);
+  ok(await move(env, 'HE-R001', 'rejected', 'found', 'price'));
+  await searchReviewPass(env, later(T0, DAY));
+  ok(await move(env, 'HE-R001', 'found', 'rejected'));
+  await searchReviewPass(env, later(T0, 2 * DAY));
+  assert.equal(one(env, 'SELECT COUNT(*) AS n FROM search_rejected_prices').n, 0);
+  run(env, "UPDATE listings SET rent=2300 WHERE id='HE-R001'");
+  await search(env);
+  ok(await move(env, 'HE-R001', 'rejected', 'found', 'price'));
+  await searchReviewPass(env, later(T0, 3 * DAY));
+  assert.deepEqual(tasks(env), []); // rejected again at £2,300: no drop from £2,500
+  run(env, "UPDATE listings SET rent=2150 WHERE id='HE-R001'");
+  await searchReviewPass(env, later(T0, 4 * DAY));
+  run(env, "UPDATE listings SET rent=2000 WHERE id='HE-R001'");
+  await searchReviewPass(env, later(T0, 5 * DAY));
+  assert.equal(tasks(env).length, 1); // the second drop waits for the open task
+  await done(env, tasks(env)[0].id);
+  run(env, "UPDATE listings SET rent=1850 WHERE id='HE-R001'");
+  await searchReviewPass(env, later(T0, 6 * DAY));
+  assert.equal(tasks(env).length, 2);
+  assert.match(tasks(env)[1].task_reason, /was rejected at £2,000 a month; it is now £1,850 a month/);
+});
+
+test('rejected prices are recorded in one batch per search', async () => {
+  const env = world();
+  for (const [id, rent] of [['HE-R003', 2600], ['HE-R004', 2700]]) seedListing(env, { id, title: id, operation: 'rent', availability: 'to_let',
+    rent, rent_period: 'month', sale_price: null, bedrooms: 2, bathrooms: 1, housing_category: 'registered', matchable: 1, parish: 'St Helier' });
+  await search(env);
+  for (const id of ['HE-R001', 'HE-R003', 'HE-R004']) ok(await move(env, id, 'rejected', 'found', 'price'));
+  const batches = [], singles = [], batched = new WeakSet(), batch = env.DB.batch.bind(env.DB), prepare = env.DB.prepare.bind(env.DB);
+  env.DB.batch = stmts => { batches.push(stmts.map(s => s.sql)); stmts.forEach(s => batched.add(s)); return batch(stmts); };
+  env.DB.prepare = sql => { const st = prepare(sql); return { ...st, bind: (...a) => { const b = st.bind(...a);
+    const out = { ...b, run() { if (!batched.has(out)) singles.push(sql); return b.run(); } }; return out; } }; };
+  await searchReviewPass(env, later(T0, DAY));
+  assert.equal(one(env, 'SELECT COUNT(*) AS n FROM search_rejected_prices').n, 3);
+  assert.equal(batches.filter(b => b.some(sql => /INTO search_rejected_prices/.test(sql))).length, 1);
+  assert.ok(!singles.some(sql => /search_rejected_prices/.test(sql)));
+});
+
+test('day 21 says 21 days across the spring clock change', async () => {
+  const env = world();
+  run(env, "UPDATE applicants SET created_at='2026-03-20T10:00:00.000Z' WHERE id=?", env.applicant);
+  run(env, "UPDATE search_review_progress SET enabled_at='2026-01-01T00:00:00.000Z'");
+  await search(env);
+  const due = '2026-04-10T09:00:00.000Z'; // 10:00 GMT on 20 March is 10:00 BST on 10 April
+  await searchReviewPass(env, later(due, -TICK));
+  assert.deepEqual(reviews(env), []);
+  await searchReviewPass(env, due);
+  assert.match(tasks(env)[0].task_reason, /^No home has met every must-have with availability confirmed by a person for 21 days\./);
+});
+
+test('a review task reopened after its Done is closed by its source when the next one opens', async () => {
+  const env = world();
+  await search(env);
+  await searchReviewPass(env, later(DUE, -TICK));
+  await searchReviewPass(env, DUE);
+  const first = tasks(env)[0];
+  await done(env, first.id);
+  await searchReviewPass(env, later(DUE, DAY));
+  const { revision } = one(env, 'SELECT revision FROM notifications WHERE id=?', first.id);
+  ok(await req(env, 'PUT', `/admin/notification-tasks/${first.id}`, { operation_id: crypto.randomUUID(), revision, action: 'reopen' }));
+  const closedAt = one(env, 'SELECT last_closed_at FROM search_review_cycles').last_closed_at;
+  await searchReviewPass(env, new Date(Math.ceil((Date.parse(closedAt) + 7 * DAY) / TICK) * TICK).toISOString());
+  assert.deepEqual(tasks(env).map(t => [t.title.slice(0, 13), t.resolved_at === null, t.closed_by_source]),
+    [['21-day search', false, 1], ['Search review', true, 0]]);
+});
+
+test('reviews due together open at most 10 a tick; the rest on the next round', async () => {
+  const env = world();
+  for (let i = 0; i < 11; i++) {
+    const c = run(env, `INSERT INTO contacts (name,email,last_activity_at,created_at,updated_at) VALUES (?,?,?,?,?)`,
+      `Fixture ${i}`, `bus17-${i}@example.test`, T0, T0, T0);
+    const id = Number(run(env, `INSERT INTO applicants (contact_id,operation,stage,source,budget_max,bedrooms_min,pets,household_adults,
+      household_children,household_total,created_at,updated_at,requirement_priorities) VALUES (?,'rent','searching','phone',2000,2,
+      '[{"kind":"none"}]',2,0,2,?,?,?)`, Number(c.lastInsertRowid), T0, T0, PRIORITIES).lastInsertRowid);
+    await recomputeForApplicant(env, id, 'system');
+  }
+  await searchReviewPass(env, later(DUE, -TICK));
+  const out = await searchReviewPass(env, DUE);
+  assert.deepEqual([out.opened, out.deferred], [OPENS_PER_TICK, 1]);
+  assert.equal((await searchReviewPass(env, later(DUE, TICK))).opened, 1);
+  assert.equal(reviews(env).length, 11);
 });
 
 const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');

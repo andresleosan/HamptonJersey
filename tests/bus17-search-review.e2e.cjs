@@ -14,7 +14,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
  const {searchReviewPass}=await import('../server/search-review.js');
  const {getPlatformProxy}=await import('wrangler');
  const proxy=await getPlatformProxy({configPath:'wrangler.toml',persist:{path:join(process.env.E2E_PERSIST,'v3')}});
- const clock={...proxy.env,BUS17_REVIEW_READY:'1',EST01_SEARCH_STATE_READY:'1',EST16_AVAILABILITY_READY:'1'};
+ const clock={...proxy.env,BUS17_REVIEW_READY:'1',EST01_SEARCH_STATE_READY:'1',EST16_AVAILABILITY_READY:'1',EST15_UNAVAILABILITY_READY:'1'};
  // The local D1 file is shared with the website's dev server: a tick that meets its lock is tried again, as the next tick would.
  const pass=async()=>{for(let i=0;;i++)try{return await searchReviewPass(clock,new Date().toISOString());}
   catch(e){if(i>=5||!/SQLITE_BUSY|commit token/.test(String(e?.stack)))throw e;await new Promise(r=>setTimeout(r,500));}};
