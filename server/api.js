@@ -45,6 +45,7 @@ import { missingPaymentsReady } from "./missing-payments.js";
 import legalRoutes, { legalTermsReady } from "./legal-terms.js";
 import presentationRoutes from "./presentation-access.js";
 import trashRoutes from "./property-photo-purge.js";
+import chatContactRoutes, { chatContactReady } from "./chat-contact.js";
 
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
@@ -85,6 +86,7 @@ async function route(request, env, segments, waitUntil) {
     if (arrearsReady(env)) routes = [...routes, ...writeoffRoutes]; // ADM-09: needs migration 0045
     if (renewalReady(env)) routes = [...routes, ...renewalRoutes]; // ADM-14: no migration
     if (statementsReady(env)) routes = [...routes, ...closingRoutes]; // ADM-10: needs migration 0090
+    if (chatContactReady(env)) routes = [...routes, ...chatContactRoutes]; // MSG-03: needs migration 0093
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     for (const [m, re, handler, auth] of routes) {

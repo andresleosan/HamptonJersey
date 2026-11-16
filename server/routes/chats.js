@@ -1,6 +1,7 @@
 import { json, fail, readJson, now } from "../http.js";
 import { conversation, messageText, TEAM_MAX, CHAT_DB_NOW, chatKeyCurrent } from "../chat.js";
 import { applicantDraftFromChat } from "../chat-applicant.js";
+import { chatContactReady, chatContactLink } from "../chat-contact.js";
 
 // MSG-02 (spec 2026-11-06): the panel's Messages screen. Waiting chats first, oldest wait first (C7).
 const STATUSES = ["waiting", "answered", "handled"];
@@ -26,7 +27,9 @@ async function detail({ env, params: [id] }) {
   if (!c) deleted();
   const { listing_id, title, ...chat } = c;
   const { messages } = await conversation(env, c.id, { team: true }) ?? deleted(); // deleted in between
-  return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages });
+  // MSG-03: the linked contact and suggestions, only when switched on (migration 0093).
+  const contact_link = chatContactReady(env) ? await chatContactLink(env, c.id) ?? deleted() : undefined;
+  return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages, ...(contact_link && { contact_link }) });
 }
 
 async function applicantDraft({ request, env, params: [id] }) {
