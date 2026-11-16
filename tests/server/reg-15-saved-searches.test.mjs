@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { call, makeDb, seedListing } from "./helpers.mjs";
 import { emailEnv } from "./email-helpers.mjs";
 import { dispatchEmail } from "../../server/email.js";
-import { alertFits, savedSearchPass, validateSavedSearch, PENDING_DAYS } from "../../server/saved-searches.js";
+import { alertFits, savedSearchPass, savedSearchCleanup, validateSavedSearch, PENDING_DAYS } from "../../server/saved-searches.js";
 import worker from "../../server/jobs.js";
 
 // REG-15: «Save this search». Synthetic visitors and homes only; Turnstile and the email provider are test doubles.
@@ -42,7 +42,9 @@ test("switched off, nothing is reachable, the clock skips it and the config answ
     assert.equal((await call(env, "GET", "/saved-searches/availability")).status, 404);
     assert.equal((await call(env, "POST", "/saved-searches", { body: form() })).status, 404);
     assert.equal((await call(env, "GET", "/saved-searches/confirm?token=" + "a".repeat(64))).status, 404);
-    assert.equal((await call(env, "POST", "/saved-searches/unsubscribe?token=" + "a".repeat(64))).status, 404);
+    // With PRE-10 on, the unsubscribe link of an alert already sent keeps working after REG-15 is switched off.
+    assert.equal((await call(env, "POST", "/saved-searches/unsubscribe?token=" + "a".repeat(64))).status,
+      env.PRE10_PURPOSE_READY === "1" ? 200 : 404);
     assert.equal((await call(env, "GET", "/config")).data.savedSearches, undefined);
   }
   // A database without migration 0107: the pass and the clock run with the switch off and touch nothing.
@@ -148,8 +150,24 @@ test("an existing contact with that email is reused; an expired confirmation doe
   const stale = new Date(Date.now() - (PENDING_DAYS + 1) * 864e5).toISOString();
   old.DB.raw.prepare("UPDATE saved_searches SET created_at = ?").run(stale);
   assert.match((await call(old, "POST", `/saved-searches/confirm?token=${confirmToken(old)}`)).text, /no longer valid/);
-  await savedSearchPass(old);
+  await savedSearchCleanup(old);
   assert.equal(one(old, "SELECT COUNT(*) n FROM saved_searches").n, 0);
+  assert.equal(one(old, "SELECT status FROM outbound WHERE template = 'saved_search_confirm'").status, "cancelled",
+    "its unsent confirmation does not go out later");
+});
+
+test("switched off after use: queued alerts and confirmations are cancelled, unsubscribing still works", async () => {
+  const env = world();
+  await confirmed(env);
+  seedListing(env, { ...RENT, currency: "GBP" });
+  await savedSearchPass(env, LATER);
+  const token = one(env, "SELECT unsubscribe_token t FROM saved_searches").t;
+  await call(env, "POST", "/saved-searches", { body: form({ email: "second@example.test" }) });
+  env.REG15_ALERTS_READY = "0";
+  await savedSearchCleanup(env, LATER);
+  assert.deepEqual(rows(env, "SELECT template, status FROM outbound WHERE status = 'queued'"), []);
+  assert.match((await call(env, "POST", `/saved-searches/unsubscribe?token=${token}`)).text, /stopped/);
+  assert.equal(one(env, "SELECT COUNT(*) n FROM saved_searches WHERE status = 'active'").n, 0);
 });
 
 test("the engine: a stated criterion that fails excludes a home, unknown does not", () => {

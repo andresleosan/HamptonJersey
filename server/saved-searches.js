@@ -169,7 +169,9 @@ const unsubscribePage = ({ request }) => linkToken(request)
 // The objection (PRE-10) also cancels queued alerts; the contact's saved searches are deleted.
 async function unsubscribe({ request, env }) {
   const raw = linkToken(request);
-  const s = raw && await env.DB.prepare("SELECT id, contact_id FROM saved_searches WHERE unsubscribe_token = ?").bind(raw).first();
+  let s;
+  try { s = raw && await env.DB.prepare("SELECT id, contact_id FROM saved_searches WHERE unsubscribe_token = ?").bind(raw).first(); }
+  catch (e) { if (!/no such table/.test(e?.message ?? "")) throw e; } // 0107 not applied: nothing was ever sent
   if (!s) return page("Property alerts stopped", "You will not receive property alerts from this search.");
   if (s.contact_id != null) {
     const c = await env.DB.prepare("SELECT updated_at FROM contacts WHERE id = ?").bind(s.contact_id).first();
@@ -196,9 +198,23 @@ const alertText = (criteria, homes, unsubscribeToken) => ["New homes for your sa
 
 // The clock: pending searches go after PENDING_DAYS; then each active search whose contact still allows property alerts
 // by email gets, at most once a Jersey day, one email with the website's homes published or changed since its last one.
+// Runs while PRE-10 is on, even with REG-15 switched off afterwards: expired requests go with their unsent
+// confirmation; with the form closed no confirmation waits in the queue, and with the switch off no alert does either.
+export async function savedSearchCleanup(env, ts = now()) {
+  if (!purposeReady(env)) return;
+  const open = !!(await savedSearchPolicy(env)), cut = ago(ts, PENDING_DAYS);
+  try {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ?1 WHERE status = 'queued' AND (template = ?2
+        AND (?3 = 0 OR entity_id IN (SELECT CAST(id AS TEXT) FROM saved_searches WHERE status = 'pending' AND created_at < ?4))
+        OR template = ?5 AND ?6 = 0)`).bind(ts, CONFIRM_TEMPLATE, open ? 1 : 0, cut, ALERT_TEMPLATE, savedSearchesReady(env) ? 1 : 0),
+      env.DB.prepare("DELETE FROM saved_searches WHERE status = 'pending' AND created_at < ?").bind(cut),
+    ]);
+  } catch (e) { if (!/no such table/.test(e?.message ?? "")) throw e; } // 0107 not applied: nothing was ever saved
+}
+
 export async function savedSearchPass(env, ts = now()) {
   if (!savedSearchesReady(env)) return;
-  await env.DB.prepare("DELETE FROM saved_searches WHERE status = 'pending' AND created_at < ?").bind(ago(ts, PENDING_DAYS)).run();
   const policy = await savedSearchPolicy(env);
   if (!policy) return;
   // Each search at most once in 24 h, never to a suppressed address: neither can hold the 50 a tick for everyone else.
@@ -237,11 +253,15 @@ export async function savedSearchPass(env, ts = now()) {
   }
 }
 
+// Mounted on its own while PRE-10 is on and REG-15 is off: a link in an alert already sent always works.
+export const unsubscribeRoutes = [
+  ["GET", /^\/saved-searches\/unsubscribe$/, unsubscribePage],
+  ["POST", /^\/saved-searches\/unsubscribe$/, unsubscribe],
+];
 export default [
   ["GET", /^\/saved-searches\/availability$/, availability],
   ["POST", /^\/saved-searches$/, create],
   ["GET", /^\/saved-searches\/confirm$/, confirmPage],
   ["POST", /^\/saved-searches\/confirm$/, confirm],
-  ["GET", /^\/saved-searches\/unsubscribe$/, unsubscribePage],
-  ["POST", /^\/saved-searches\/unsubscribe$/, unsubscribe],
+  ...unsubscribeRoutes,
 ];
