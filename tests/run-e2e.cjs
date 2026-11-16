@@ -47,6 +47,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/pre10-purpose.e2e.cjs" ? { PRE10_PURPOSE_READY: "1" } : {}),
       // The panel opt-in it walks through exists only with PRE-10 off.
       ...(process.env.E2E_SCRIPT === "tests/pre10-objection.e2e.cjs" ? { PRE10_PURPOSE_READY: "0" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/pre12-requests.e2e.cjs" ? { PRE12_REQUESTS_READY: "1" } : {}),
       PUB21_DRIVE_READY: "1", // Properties Queue's Drive imports: tested switched on, off in production (master plan)
       ...(process.env.E2E_SCRIPT === "tests/adm-06-tenancy-origin.e2e.cjs" ? { ADM06_TENANCY_ORIGIN_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-16-tenancy-exit.e2e.cjs" ? { ADM16_TENANCY_EXIT_READY: "1" } : {}),

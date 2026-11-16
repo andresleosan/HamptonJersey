@@ -9,6 +9,7 @@ import { retentionPass, EXPIRING, RETENTION_REVIEW } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 import { readLegal } from "../legal-terms.js";
+import { privacyRequestsReady, openPrivacyCount } from "../privacy-requests.js";
 
 // NOT-09 (switched on): a snoozed task waits in the Feed until its time.
 const OPEN = on => `n.action_required = 1 AND n.resolved_at IS NULL${on ? ` AND NOT ${snoozedSql()}` : ""}`;
@@ -25,6 +26,7 @@ const CATEGORIES = TASK_CATEGORIES;
 // own counts, not part of action. outbound: {at, by} while sending is paused (AUT-13, H11), else null. stalled: how many
 // automations are stopped, the clock or Hermes (AUT-01, A3). chats: the website's chats waiting (MSG-02).
 // legal (ADM-17, with its switch): whether the legal periods behind the compliance dates are estimated or validated.
+// privacy (PRE-12, with its switch): the privacy requests still open.
 // snooze: leave snoozed tasks out (NOT-09). The clock's summary asks for it whatever the switch; without migration 0088
 // it is as if no task were snoozed.
 export async function openCounts(env, legal, snooze = inboxActionsReady(env)) {
@@ -54,7 +56,8 @@ async function counted(env, legal, snooze) {
   const at = Object.fromEntries(seen.map(r => [r.key, r.at])), stopped = stoppedFlags(at.clock, at.hermes, Date.now());
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
     expiring: expiring.n, retention_review: retentionReview.n, to_confirm: toConfirm.n, chats: chats.n,
-    outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes, ...(legal.terms ? { legal: legal.terms.status } : {}) };
+    outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes, ...(legal.terms ? { legal: legal.terms.status } : {}),
+    ...(privacyRequestsReady(env) ? { privacy: await openPrivacyCount(env) } : {}) };
 }
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case

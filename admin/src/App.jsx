@@ -30,6 +30,7 @@ import Tours from "./Tours.jsx";
 import Automations from "./Automations.jsx";
 import Messages from "./Messages.jsx";
 import LegalTerms from "./LegalTerms.jsx";
+import PrivacyRequests from "./PrivacyRequests.jsx";
 import { confirmLeave } from "./unsaved.js";
 import { fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
@@ -58,10 +59,10 @@ function useHash(pending, onBlocked) {
 // AUT-01: stalled, how many automations have stopped, is counted on the button and on Automations.
 const SETTINGS = [["availability", "Availability"], ["tours", "3D tours"], ["users", "Users"], ["automations", "Automations"]];
 const stoppedCount = n => n > 0 && <span className="count">{n}<span className="sr"> stopped</span></span>;
-// ADM-17: Legal terms joins the menu when the counts say its switch is on (legal).
-function SettingsMenu({ current, stalled, legal }) {
+// ADM-17: Legal terms joins the menu when the counts say its switch is on (legal); PRE-12's Privacy requests the same (privacy).
+function SettingsMenu({ current, stalled, legal, privacy }) {
   const [open, setOpen] = useState(false), box = useRef(null), button = useRef(null);
-  const pages = legal ? [...SETTINGS, ["legal", "Legal terms"]] : SETTINGS;
+  const pages = [...SETTINGS, ...(legal ? [["legal", "Legal terms"]] : []), ...(privacy !== undefined ? [["privacy", "Privacy requests"]] : [])];
   useEffect(() => {
     if (!open) return;
     const away = e => { if (!box.current.contains(e.target)) setOpen(false); };
@@ -75,7 +76,8 @@ function SettingsMenu({ current, stalled, legal }) {
     <button ref={button} type="button" aria-expanded={open} aria-controls="settings-menu"
       aria-current={pages.some(([k]) => k === current) ? "true" : undefined} onClick={() => setOpen(o => !o)}>Settings{stoppedCount(stalled)}</button>
     <div id="settings-menu" className="menu" hidden={!open}>{pages.map(([k, t]) => <a key={k} href={`#/${k}`}
-      aria-current={current === k ? "page" : undefined} onClick={() => { setOpen(false); button.current.focus(); }}>{t}{k === "automations" && stoppedCount(stalled)}</a>)}</div>
+      aria-current={current === k ? "page" : undefined} onClick={() => { setOpen(false); button.current.focus(); }}>{t}{k === "automations" && stoppedCount(stalled)}{k === "privacy" && privacy > 0
+      && <span className="count">{privacy}<span className="sr"> open</span></span>}</a>)}</div>
   </div>;
 }
 
@@ -96,7 +98,7 @@ export default function App() {
 
   const [path, query] = hash.replace(/^#\/?/, "").split("?");
   const [section, arg, sub] = path.split("/");
-  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["advertisers", "email", "messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations", "legal"].includes(section) ? section : "";
+  const current = (section === "p" && arg) || section === "queue" ? "listings" : ["advertisers", "email", "messages", "applicants", "review", "listings", "viewings", "sales", "rentals", "insights", "availability", "users", "tours", "automations", "legal"].includes(section) || (section === "privacy" && "privacy" in counts) ? section : "";
   // The Inbox counter in the navigation: every 30 s while signed in and the tab is visible. On the Inbox itself,
   // the page's own poll brings the counts (onCounts).
   const loadCounts = useCallback(() => api("/admin/notifications/counts").then(setCounts, () => {}), []);
@@ -147,6 +149,7 @@ export default function App() {
     : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")} paused={expired} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "legal" ? <LegalTerms onChange={loadCounts} />
+    : section === "privacy" && "privacy" in counts ? <PrivacyRequests key={arg ?? ""} id={/^[0-9a-f-]{36}$/.test(arg ?? "") ? arg : null} />
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
     : <Inbox paused={expired} onCounts={setCounts} me={me} onPending={setTaskPending} />;
   const leave = e => {
@@ -181,7 +184,7 @@ export default function App() {
         <a href="#/rentals" aria-current={current === "rentals" ? "page" : undefined}>Rentals{counts.rentals > 0
           && <span className="count">{counts.rentals}<span className="sr"> to do</span></span>}</a>
         <a href="#/insights" aria-current={current === "insights" ? "page" : undefined}>Insights</a>
-        <SettingsMenu current={current} stalled={counts.stalled} legal={counts.legal} />
+        <SettingsMenu current={current} stalled={counts.stalled} legal={counts.legal} privacy={counts.privacy} />
       </nav>
       <a href="/" className="home">View website</a>
       <span className="who">{me}</span>

@@ -602,3 +602,9 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .search-progress{margin:16px 0}.search-progress p{margin:0 0 8px}.search-progress-compact{font-size:12px;margin:8px 0}
 .search-progress-reload{min-height:32px;margin-bottom:8px}.search-progress-reload[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 @media (max-width:760px){.search-progress-reload{min-height:44px}}
+
+/* PRE-12: the copy a person reviews before it is handed over. */
+.privacy .copy-preview{margin:0;max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--mist);
+  border-radius:var(--r-sm);padding:12px;font-size:12px}
+.privacy .copy-preview:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+@media (max-width:760px){.privacy .btn{min-height:44px}}
