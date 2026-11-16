@@ -36,7 +36,8 @@ EST16_AVAILABILITY_READY = "1"
 BUS17_REVIEW_READY = "1"
 PRE12_REQUESTS_READY = "1"
 # PRE-12 (Q05): the notice before the retention pass deletes a contact (migration 0112). Sends messages: only Luis
-# switches it on. Must match the other wrangler.toml.
+# switches it on. Apply 0112 before switching on, and switch on (or off) in both wrangler.toml files at once. Must match
+# the other wrangler.toml.
 PRE12_RETENTION_NOTICE_READY = "0"
 VIS14_BLOCK_READY = "1"
 EMAIL_SERVICE_READY = "false"

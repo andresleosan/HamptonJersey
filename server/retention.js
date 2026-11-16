@@ -35,33 +35,46 @@ export const privacyHolds = env => env?.PRE12_REQUESTS_READY === "1";
 export const OPEN_PRIVACY_REQUEST = `EXISTS (SELECT 1 FROM privacy_requests pr WHERE pr.contact_id = c.id AND pr.state = 'open'
   AND pr.kind <> 'erasure')`;
 export const expiringSql = env => (privacyHolds(env) ? `${EXPIRING} AND NOT ${OPEN_PRIVACY_REQUEST}` : EXPIRING);
-// PRE-12 (Q05): with its switch on (and so migration 0112), a contact with an email is deleted only once the notice of
-// its activity episode (server/retention-notices.js) was accepted by the email service a month before, the date it gave
-// has come and nothing has arrived from that address since. A contact with no email goes as before. Switched off, no
-// statement names that table. For contactsDue below: ?1 the pass's ISO time, ?2 its Jersey date.
+// PRE-12 (Q05): the notice before the pass deletes a contact (server/retention-notices.js, migration 0112). With its
+// switch on, a contact with an email is deleted only once the notice of its activity episode was accepted by the email
+// service a month before, the date it gave has come and nothing has answered it; a contact with no email goes as before.
+// Once 0112 exists, whatever the switch (turned off again, or the website and the clock briefly different during a
+// deploy), no contact goes against its episode's notice: one not accepted (waiting, failed, unknown, not sent,
+// answered), or whose month or date has not come. Without 0112, no statement names that table. For contactsDue below:
+// ?1 the pass's ISO time, ?2 its Jersey date.
 export const retentionNoticesReady = env => env?.PRE12_RETENTION_NOTICE_READY === "1";
-const NOTICE_GIVEN = `(c.email IS NULL OR EXISTS (SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id
-  AND n.activity_at = c.last_activity_at AND n.state = 'accepted' AND n.delete_after <= ?2
-  AND n.sent_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-1 months')
-  AND NOT EXISTS (SELECT 1 FROM email_inbound i WHERE i.sender = c.email AND i.received_at >= n.created_at)))`;
+export const noticeTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'retention_notices'").first();
+// Anything received since notice n that may answer it: from contact c's address (envelope or From), quoting the notice's
+// reference, threaded to its message or linked to it on arrival (server/email-inbound.js). When in doubt, it counts.
+export const NOTICE_ANSWERED = `EXISTS (SELECT 1 FROM email_inbound i WHERE i.received_at >= n.created_at AND (i.sender = c.email
+  OR i.header_from = c.email OR instr(lower(i.subject), '[he-out-' || n.outbound_ref || ']') > 0
+  OR i.outbound_id IN (SELECT o.id FROM outbound o WHERE o.ref = n.outbound_ref)
+  OR EXISTS (SELECT 1 FROM outbound o WHERE o.ref = n.outbound_ref AND o.message_id IS NOT NULL
+    AND (instr(i.in_reply_to, o.message_id) > 0 OR instr(i.references_header, o.message_id) > 0))))`;
+const NOTICE_OF = "SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id AND n.activity_at = c.last_activity_at";
+const NOTICE_KEPT = `EXISTS (${NOTICE_OF} AND (n.state <> 'accepted' OR n.delete_after > ?2
+  OR n.sent_at >= strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-1 months') OR ${NOTICE_ANSWERED}))`;
+const NOTICE_GIVEN = `(c.email IS NULL OR EXISTS (${NOTICE_OF}))`;
 // The email pipeline's claim and its check right before the call (server/email.js): a notice goes only while it is the
 // waiting notice of its contact's current episode, to that contact's address, and the pass would still delete them.
-// Switched off, none goes.
-export const noticeClaimSql = env => (retentionNoticesReady(env) ? `(outbound.template <> 'retention_notice'
+// Switched off or without 0112, none goes (and the SQL is as before).
+export const NO_NOTICE = "outbound.template <> 'retention_notice'";
+export const noticeClaimSql = async env => (retentionNoticesReady(env) && await noticeTable(env) ? `(${NO_NOTICE}
   OR EXISTS (SELECT 1 FROM retention_notices n JOIN contacts c ON c.id = n.contact_id WHERE n.outbound_ref = outbound.ref
     AND n.state = 'queued' AND n.activity_at = c.last_activity_at AND c.email = outbound.recipient AND ${EXEMPT}${
-  privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}))` : "outbound.template <> 'retention_notice'");
+  privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}))` : NO_NOTICE);
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts
 // nothing it depends on changes inside the batch (their searches have no sales nor open offers), so each statement acts
 // on the same contacts.
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
-// PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too; with the
-// notices' switch (NOTICE_GIVEN above), one whose notice is not settled.
-const contactsDue = (held, noticed) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
+// PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too. notices (Q05,
+// above): null without 0112; "kept" with 0112, a contact kept by its notice stays; "given", switched on too, a contact
+// with an email needs its notice as well.
+const contactsDue = (held, notices) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
   AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}${
-  noticed ? ` AND ${NOTICE_GIVEN}` : ""}
+  notices ? ` AND NOT ${NOTICE_KEPT}${notices === "given" ? ` AND ${NOTICE_GIVEN}` : ""}` : ""}
   ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
 const eventsOf = (type, set) =>
@@ -99,7 +112,9 @@ export async function runRetention(env, ts) {
   if (searchStatsReady(env)) await pruneSearchMetrics(env, new Date(ts)).catch(() => console.error('Search metrics prune failed'));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
-  const CONTACTS = contactsDue(privacyHolds(env), retentionNoticesReady(env)), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+  // PRE-12 (Q05): one look for migration 0112 per pass.
+  const notices = await noticeTable(env) ? (retentionNoticesReady(env) ? "given" : "kept") : null;
+  const CONTACTS = contactsDue(privacyHolds(env), notices), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs

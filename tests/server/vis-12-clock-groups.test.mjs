@@ -69,7 +69,8 @@ test("the sync module the clock imports never reaches the panel's session (auth.
 
 test("switched off, the tick runs exactly the SQL it ran before migration 0105 and calls nobody", async t => {
   const runs = [];
-  for (const schema of [{ through: 104 }, {}]) {
+  // Without 0112: once applied, the retention pass keeps contacts by their PRE-12 notice whatever that switch says.
+  for (const schema of [{ through: 104 }, { skip: [112] }]) {
     const { env, google } = await world(t, { ready: false, schema });
     if (schema.through == null) env.DB.raw.prepare(`INSERT INTO calendar_event_links (viewing_id, negotiator_id, calendar_id, external_id,
       op, wanted, state, updated_at) VALUES (99, 1, 'primary', ?, 'x', 'confirmed', 'unknown', ?)`).run("a".repeat(64), T0);

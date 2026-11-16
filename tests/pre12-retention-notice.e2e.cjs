@@ -7,10 +7,8 @@ const {join,dirname}=require('node:path');
 const {parseEnv}=require('node:util');
 const {execFileSync}=require('node:child_process');
 const {chromium,webkit}=require(process.env.PW||'playwright-core');
-const KEEP=' The deletion is on hold and nothing was deleted. Contact the person: log the conversation to keep their record or, if they agree, delete it. Marking this task done deletes nothing.';
-const TASKS={1280:['failed','Retention notice failed','The email service could not deliver the notice telling this contact that their details will be deleted after 12 months without activity.'+KEEP],
- 390:['replied','Reply to a retention notice','This contact sent an email after their retention notice; read it in Email.'+KEEP]};
 (async()=>{
+ const {REVIEW}=await import('../server/retention-notices.js'),TASKS={1280:['failed',...REVIEW.failed],390:['replied',...REVIEW.replied]};
  assert.equal(process.env.HAMPTON_E2E_ISOLATED,'1');assert.equal(process.env.E2E_PRODUCTION_READONLY,'0');
  const vars=parseEnv(readFileSync(process.env.E2E_VARS,'utf8')),{signSession,COOKIE}=await import('../server/auth.js');
  const base=process.env.BASE.replace('127.0.0.1','localhost'),origin=new URL(base).origin,ADMIN='admin@example.test';
@@ -43,7 +41,7 @@ const TASKS={1280:['failed','Retention notice failed','The email service could n
    await page.goto(base+'admin/#/');
    await page.getByRole('heading',{name:'Inbox',exact:true}).waitFor();
    await page.locator('.inbox-list').getByRole('button').filter({hasText:title}).click();
-   const detail=page.locator('.task-reason').filter({hasText:'nothing was deleted'});
+   const detail=page.locator('.task-reason').filter({hasText:'Nothing has been deleted.'});
    await detail.waitFor();assert.equal(await detail.textContent(),text);
    await fits('Inbox');await shot('inbox');
    await page.getByRole('link',{name:'Open applicant',exact:true}).click();

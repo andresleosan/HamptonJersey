@@ -1,18 +1,20 @@
 import { sha256 } from "./http.js";
 import { jerseyToday } from "./viewings.js";
-import { EXEMPT, OPEN_PRIVACY_REQUEST, expiringSql, privacyHolds, retentionNoticesReady } from "./retention.js";
+import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, expiringSql, noticeTable, privacyHolds, retentionNoticesReady }
+  from "./retention.js";
 import { SITE, readEmailSettings, serviceReady } from "./email.js";
 
 // PRE-12 (Q05): the notice before the retention pass deletes a contact for 12 months without activity. In the contact's
 // 12th month (Expiring, with its holds) the clock queues one email per activity episode in the existing pipeline
-// (server/email.js), at most 50 a tick, giving the date from which the details may go: the end of the 12 months, and
-// never less than a month away. The pass then deletes a contact with an email only once that notice was accepted a
-// month before, the date has come and nothing has arrived from the address since (NOTICE_GIVEN in retention.js). A
-// failed, uncertain, unsent or answered notice keeps the contact and opens one Inbox task; a person decides, and the
-// task's Done authorises nothing. New activity ends the episode: its notice goes, and its email if still waiting. A
-// contact with no email goes as before. Nothing here moves last_activity_at or closes a search.
-// The text is fixed and needs no review per email: Luis approves it once and turning PRE12_RETENTION_NOTICE_READY on is
-// that approval, written as the email's approver. Off, nothing here runs.
+// (server/email.js), at most 50 a tick (and 20 sent a Jersey day, NOTICE_DAILY_LIMIT there), giving the date from which
+// the details may go: the end of the 12 months, and never less than a month away. The pass then deletes a contact with
+// an email only once that notice was accepted a month before, the date has come and nothing has answered it (NOTICE_KEPT
+// and NOTICE_GIVEN in retention.js). A failed, uncertain, unsent or answered notice keeps the contact and opens one Inbox
+// task; a person decides, and the task's Done authorises nothing. New activity ends the episode: its notice goes, and
+// its email if still waiting. A contact with no email goes as before. Nothing here moves last_activity_at or closes a
+// search. The text is fixed and needs no review per email: Luis approves it once and turning
+// PRE12_RETENTION_NOTICE_READY on is that approval, written as the email's approver. Off, or before 0112, nothing here
+// runs.
 export const NOTICES_PER_TICK = 50;
 const TEMPLATE = "retention_notice", VERSION = 1, APPROVAL = "PRE12_RETENTION_NOTICE_READY";
 const SUBJECT = "Your details with Hampton Estates will be deleted";
@@ -27,9 +29,10 @@ const text = date => ["Hello,", "",
   "", "Hampton Estates", "42 Bath Street, St Helier, Jersey JE2 4ST", "Contact: francopropertiesjersey@gmail.com",
   `Privacy notice: ${SITE}/#/privacy`].join("\n");
 
+// True whichever way the notice ends: a notice confirmed sent later still lets the pass delete a month after.
 const ABOUT = "the notice telling this contact that their details will be deleted after 12 months without activity";
-const KEEP = " The deletion is on hold and nothing was deleted. Contact the person: log the conversation to keep their record or, if they agree, delete it. Marking this task done deletes nothing.";
-const REVIEW = {
+const KEEP = " Nothing has been deleted. The retention pass deletes this record only once a notice has been confirmed sent and a month has passed. To keep it, contact the person and log the conversation; if they agree, delete it. Marking this task done changes nothing.";
+export const REVIEW = {
   failed: ["Retention notice failed", `The email service could not deliver ${ABOUT}.${KEEP}`],
   unknown: ["Retention notice result unknown", `It is not known whether the email service accepted ${ABOUT}.${KEEP}`],
   not_sent: ["Retention notice not sent", `${ABOUT[0].toUpperCase()}${ABOUT.slice(1)} was not sent: its address is suppressed, it was cancelled or email sending is off.${KEEP}`],
@@ -38,7 +41,7 @@ const REVIEW = {
 const TASK_KEY = "'retention_notice:' || c.id || ':' || c.last_activity_at";
 
 export async function retentionNoticePass(env, ts) {
-  if (!retentionNoticesReady(env)) return;
+  if (!retentionNoticesReady(env) || !await noticeTable(env)) return; // off, or switched on before 0112: nothing to do
   const day = jerseyToday(new Date(ts)), held = privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : "";
   // A notice of an episode that ended (new activity, which an address change is too) goes; so does one still waiting for
   // a contact the pass would no longer delete (a search or offer opened, a privacy request), its email unsent. The
@@ -54,10 +57,10 @@ export async function retentionNoticePass(env, ts) {
       updated_at = ?1
       WHERE state = 'queued' AND NOT EXISTS (SELECT 1 FROM outbound o WHERE o.ref = retention_notices.outbound_ref
         AND o.status IN ('draft', 'queued', 'sending'))`).bind(ts),
-    // Anything from the address after the notice is an answer, kept here once its email's content is cleared.
-    env.DB.prepare(`UPDATE retention_notices SET state = 'replied', updated_at = ?1 WHERE state = 'accepted' AND EXISTS (
-      SELECT 1 FROM contacts c JOIN email_inbound i ON i.sender = c.email WHERE c.id = retention_notices.contact_id
-        AND c.last_activity_at = retention_notices.activity_at AND i.received_at >= retention_notices.created_at)`).bind(ts),
+    // An answer (NOTICE_ANSWERED in retention.js), kept here once the email's content is cleared after 30 days.
+    env.DB.prepare(`UPDATE retention_notices SET state = 'replied', updated_at = ?1 WHERE id IN (SELECT n.id FROM retention_notices n
+      JOIN contacts c ON c.id = n.contact_id AND c.last_activity_at = n.activity_at WHERE n.state = 'accepted' AND ${NOTICE_ANSWERED})`)
+      .bind(ts),
     env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ?1 WHERE status = 'queued' AND template = '${TEMPLATE}'
       AND ref IN (SELECT outbound_ref FROM retention_notices WHERE id IN (${OBSOLETE}))`).bind(ts),
     env.DB.prepare(`DELETE FROM retention_notices WHERE id IN (${OBSOLETE})`),

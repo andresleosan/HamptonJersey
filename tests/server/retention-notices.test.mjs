@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { makeEnv, T0 } from "./helpers.mjs";
 import { emailEnv } from "./email-helpers.mjs";
-import { dispatchEmail } from "../../server/email.js";
+import { dispatchEmail, emailPass, NOTICE_DAILY_LIMIT } from "../../server/email.js";
 import { sha256 } from "../../server/http.js";
 import { runRetention } from "../../server/retention.js";
 import { retentionNoticePass, NOTICES_PER_TICK } from "../../server/retention-notices.js";
@@ -50,7 +50,9 @@ test("switched off: no notice, no table named, and the pass deletes as before", 
   legacy.DB.prepare = sql => { seen.push(sql); return prepare(sql); };
   await retentionNoticePass(legacy, NOTICE); // without migration 0112 too
   assert.equal((await runRetention(legacy, BEFORE_MONTH)).contacts, 1);
-  assert.equal(seen.some(sql => /retention_notices/.test(sql)), false);
+  // Only the one look for the table, once per pass.
+  assert.equal(seen.filter(sql => /retention_notices/.test(sql) && !/sqlite_master/.test(sql)).length, 0);
+  assert.equal(seen.filter(sql => /sqlite_master/.test(sql)).length, 1);
   assert.equal((await runRetention(env, BEFORE_MONTH)).contacts, 1);
   assert.deepEqual([exists(env, c), exists(legacy, d)], [false, false]);
   // A notice left queued from a time it was on is never sent while it is off.
@@ -222,4 +224,106 @@ test("the clock prepares and sends the notice in its tick", async t => {
   contact(env, "jane@example.je");
   await worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.parse(NOTICE) }, env, { waitUntil() {} });
   assert.deepEqual(env.sent.map(m => m.to), ["jane@example.je"]);
+});
+
+// Review fixes (GRAVE 1): an answer counts however it arrives; when in doubt, the contact stays.
+const noticeOf = (env, id) => one(env, "SELECT id, ref, message_id FROM outbound WHERE template = 'retention_notice' AND entity_id = ?", String(id));
+let inboundKey = 0;
+const inbound = (env, o) => insert(env, "email_inbound", { dedupe_key: `k${++inboundKey}`, sender: "someone@example.je",
+  header_from: "someone@example.je", recipient: "replies@app.hamptonestatesjersey.com", subject: "Re", text: "Please keep my details",
+  html_only: 0, truncated: 0, received_at: "2026-11-26T09:00:00.000Z", ...o });
+
+test("an answer from another address, a rewritten envelope, a thread or a linked reply keeps the contact", async () => {
+  const env = world();
+  const quoted = contact(env, "jane@work.je"), rewritten = contact(env, "tom@corp.je"), threaded = contact(env, "ann@example.je");
+  const linked = contact(env, "bob@example.je"), unrelated = contact(env, "sue@example.je");
+  await retentionNoticePass(env, NOTICE);
+  await send(env, NOTICE);
+  await retentionNoticePass(env, "2026-10-26T09:10:00.000Z");
+  inbound(env, { sender: "jane.home@gmail.com", header_from: "jane.home@gmail.com",
+    subject: `Fwd: Your details [HE-OUT-${noticeOf(env, quoted).ref.toUpperCase()}]` });
+  inbound(env, { sender: "prvs=123abc=tom@corp.je", header_from: "tom@corp.je" });
+  inbound(env, { references_header: `<other@example.je> <${noticeOf(env, threaded).message_id}>` });
+  inbound(env, { outbound_id: noticeOf(env, linked).id });
+  inbound(env, { subject: "Something else" }); // from nobody on file, about nothing sent: changes nothing
+  // Before the clock has read them, and after.
+  assert.equal((await runRetention(env, AFTER)).contacts, 1);
+  assert.deepEqual([quoted, rewritten, threaded, linked, unrelated].map(id => exists(env, id)), [true, true, true, true, false]);
+  await retentionNoticePass(env, "2026-11-26T09:40:00.000Z");
+  assert.deepEqual([quoted, rewritten, threaded, linked].map(id => state(env, id)), ["replied", "replied", "replied", "replied"]);
+  assert.deepEqual(tasks(env).map(t => JSON.parse(t.data).reason), ["replied", "replied", "replied", "replied"]);
+});
+
+// Review fixes (GRAVE 2): once 0112 exists, whatever the switch says (turned off again, or the website and the clock
+// briefly different during a deploy), no contact goes against its notice.
+test("switched off again, a contact is never deleted against its notice's promise", async () => {
+  const env = world();
+  const replied = contact(env, "replied@example.je"), unknown = contact(env, "unknown@example.je");
+  const waiting = contact(env, "waiting@example.je"), suppressed = contact(env, "suppressed@example.je");
+  const settled = contact(env, "settled@example.je"), none = contact(env, "none@example.je");
+  const late = contact(env, "late@example.je", { last_activity_at: "2025-11-10T10:00:00.000Z" }); // promised 26 November
+  insert(env, "email_suppressions", { address_hash: await sha256("suppressed@example.je"), created_at: T0, reason: "team" });
+  await retentionNoticePass(env, NOTICE);
+  env.EMAIL.send = async m => {
+    if (m.to === "unknown@example.je") throw new Error("timeout");
+    if (m.to === "waiting@example.je") throw Object.assign(new Error("slow"), { code: "E_RATE_LIMIT_EXCEEDED" });
+    env.sent.push(m); return { messageId: `provider-${env.sent.length}` };
+  };
+  await send(env, NOTICE);
+  await retentionNoticePass(env, "2026-10-26T09:10:00.000Z");
+  inbound(env, { sender: "replied@example.je", header_from: "replied@example.je", received_at: "2026-10-27T09:00:00.000Z" });
+  await retentionNoticePass(env, "2026-10-27T09:10:00.000Z");
+  assert.deepEqual([replied, unknown, waiting, suppressed, settled, late].map(id => state(env, id)),
+    ["replied", "unknown", "queued", "not_sent", "accepted", "accepted"]);
+  env.DB.raw.prepare("DELETE FROM retention_notices WHERE contact_id = ?").run(none); // no notice on file, as before the switch
+  env.PRE12_RETENTION_NOTICE_READY = "0";
+  assert.equal((await runRetention(env, "2026-11-20T09:00:00.000Z")).contacts, 0); // late: its 12 months are over, not its date
+  assert.equal((await runRetention(env, AFTER)).contacts, 3); // settled, late and the contact with no notice: as today
+  assert.deepEqual([replied, unknown, waiting, suppressed, settled, late, none].map(id => exists(env, id)),
+    [true, true, true, true, false, false, false]);
+});
+
+// Review fixes (MENOR 4): switched on before 0112 is applied, everything works as today.
+test("switched on without migration 0112: email and the retention pass work as today", async t => {
+  t.mock.method(console, "error", () => {});
+  const env = Object.assign(makeEnv({ skip: [112] }), ON, { EMAIL_SERVICE_READY: "true" });
+  env.sent = [];
+  env.EMAIL = { async send(m) { env.sent.push(m); return { messageId: `provider-${env.sent.length}` }; } };
+  env.DB.raw.prepare("INSERT INTO app_settings (key, value, updated_at, updated_by) VALUES ('email', ?, ?, ?)")
+    .run(JSON.stringify({ enabled: true, summary: true, recipients: ["team@example.test"], revision: 1,
+      approved_by: "admin@example.test", approved_at: T0 }), T0, "admin@example.test");
+  const c = contact(env, "jane@example.je");
+  await retentionNoticePass(env, NOTICE);
+  await emailPass(env, NOTICE, () => NOTICE);
+  assert.deepEqual(env.sent.map(m => m.to), ["team@example.test"]);
+  assert.equal((await runRetention(env, AFTER)).contacts, 1);
+  assert.equal(exists(env, c), false);
+});
+
+// Review fixes (MENOR 3): notices take at most NOTICE_DAILY_LIMIT of the day's 100 sends; the rest wait for the next day.
+test("notices take at most 20 of a Jersey day's sends, so the team's emails still go", async () => {
+  const env = world();
+  for (let i = 0; i < 30; i++) contact(env, `p${i}@example.je`);
+  await retentionNoticePass(env, NOTICE);
+  for (const at of ["2026-10-26T09:01:00.000Z", "2026-10-26T09:02:00.000Z", "2026-10-26T09:03:00.000Z"]) await send(env, at);
+  assert.equal(env.sent.length, NOTICE_DAILY_LIMIT);
+  await emailPass(env, "2026-10-26T09:04:00.000Z", () => "2026-10-26T09:04:00.000Z");
+  assert.deepEqual(env.sent.slice(NOTICE_DAILY_LIMIT).map(m => m.to), ["team@example.test"]);
+  await send(env, "2026-10-27T09:00:00.000Z");
+  assert.equal(env.sent.filter(m => m.to !== "team@example.test").length, 30);
+});
+
+// Review fixes (MENOR 5): the task says what is true whichever way the notice ends.
+test("the task's text holds whether the notice later goes or not", async () => {
+  const env = world();
+  contact(env, "jane@example.je");
+  await retentionNoticePass(env, NOTICE);
+  await retentionNoticePass(env, "2026-11-26T00:05:00.000Z"); // no result by the date it gave
+  const [task] = all(env, "SELECT task_reason FROM notifications WHERE task_key LIKE 'retention_notice:%'");
+  assert.match(task.task_reason, /Nothing has been deleted\./);
+  assert.match(task.task_reason, /only once a notice has been confirmed sent and a month has passed/);
+  assert.doesNotMatch(task.task_reason, /on hold/);
+  await send(env, "2026-11-26T00:10:00.000Z"); // sent after all: a month later the pass may delete, as the task said
+  await retentionNoticePass(env, "2026-11-26T00:20:00.000Z");
+  assert.equal((await runRetention(env, "2026-12-27T09:00:00.000Z")).contacts, 1);
 });

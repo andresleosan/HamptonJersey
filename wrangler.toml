@@ -120,7 +120,8 @@ PRE12_VIEWING_REVIEW_READY = "1"
 # PRE-12 (Q05): an email notice in a contact's 12th month without activity; the retention pass deletes a contact with an
 # email only a month after its notice was accepted, and a failed, uncertain or answered one keeps it with an Inbox task
 # (migration 0112; needs EMAIL_SERVICE_READY to send). Sends messages: only Luis switches it on, once he has approved
-# its text. Must match the other wrangler.toml.
+# its text. Apply 0112 before switching on, and switch on (or off) in both wrangler.toml files at once. Must match the
+# other wrangler.toml.
 PRE12_RETENTION_NOTICE_READY = "0"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"

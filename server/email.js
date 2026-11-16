@@ -1,11 +1,13 @@
 import { logEvent } from "./events.js";
 import { now, sha256 } from "./http.js";
 import { ALLOWED, MARKETING_TEMPLATE, purposeReady } from "./communication-preferences.js";
-import { noticeClaimSql } from "./retention.js";
+import { NO_NOTICE, noticeClaimSql } from "./retention.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
 export const DAILY_LIMIT = 100;
+// PRE-12: retention notices take at most this many of a Jersey day's sends, so the others still go.
+export const NOTICE_DAILY_LIMIT = 20;
 export const SITE = "https://www.hamptonestatesjersey.com";
 const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Jersey", year: "numeric", month: "2-digit",
   day: "2-digit", hour: "2-digit", hourCycle: "h23" });
@@ -117,9 +119,15 @@ export async function dispatchEmail(env, clock = now, enquiry) {
   await env.DB.prepare(`UPDATE outbound SET status='cancelled', updated_at=? WHERE status='queued'
     AND template='team_summary' AND entity_id < ?`).bind(ts, day).run();
   if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
+  // PRE-12: a retention notice goes only while its check holds, and at most NOTICE_DAILY_LIMIT of them a Jersey day,
+  // counted like the day's quota inside the claim. day is emailDay's output: digits and dashes only.
+  const notice = await noticeClaimSql(env);
+  const capped = day => notice === NO_NOTICE ? notice : `${notice} AND (outbound.template <> 'retention_notice'
+    OR (SELECT COUNT(*) FROM email_attempts na JOIN outbound nr ON nr.id = na.outbound_id
+      WHERE na.day = '${day}' AND nr.template = 'retention_notice') < ${NOTICE_DAILY_LIMIT})`;
   // ponytail: 20 candidates per tick is the current team maximum; move to a larger bounded batch if volume needs it.
   const { results } = await env.DB.prepare(`SELECT id FROM outbound WHERE status='queued' AND attempts < 3
-    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${AUTHORIZED(enquiry, purposeReady(env), noticeClaimSql(env))} ORDER BY id LIMIT 20`).bind(ts).all();
+    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${AUTHORIZED(enquiry, purposeReady(env), capped(day))} ORDER BY id LIMIT 20`).bind(ts).all();
   for (const { id } of results) {
     // Network calls can cross midnight. Read the current day for every claim, not once for the entire batch.
     const ts=clock(),day=emailDay(ts);
@@ -130,13 +138,13 @@ export async function dispatchEmail(env, clock = now, enquiry) {
       env.DB.prepare(`UPDATE outbound SET status='sending', claim_token=?, claimed_at=?, attempts=attempts+1, updated_at=?
         WHERE id=? AND status='queued' AND attempts < 3 AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
         AND (template<>'team_summary' OR entity_id=?)
-        AND ${AUTHORIZED(enquiry, purposeReady(env), noticeClaimSql(env))} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
+        AND ${AUTHORIZED(enquiry, purposeReady(env), capped(day))} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
         .bind(token, ts, ts, id, ts, day,day),
       env.DB.prepare(`INSERT INTO email_attempts(token,outbound_id,day,at)
         SELECT ?,id,?,? FROM outbound WHERE id=? AND claim_token=? AND status='sending'`).bind(token, day, ts, id, token),
     ]);
     const row = await env.DB.prepare(`SELECT * FROM outbound WHERE id=? AND claim_token=? AND status='sending'
-      AND ${AUTHORIZED(enquiry, purposeReady(env), noticeClaimSql(env))}`).bind(id, token).first();
+      AND ${AUTHORIZED(enquiry, purposeReady(env), notice)}`).bind(id, token).first();
     if (!row) {
       // A setting changed after the claim. The reservation stays used; a pause leaves the same snapshot queued.
       await env.DB.prepare(`UPDATE outbound SET status=CASE WHEN attempts < 3 THEN 'queued' ELSE 'failed' END,
