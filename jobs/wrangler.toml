@@ -48,6 +48,11 @@ AGE05_SEND_READY = "0"
 BACKUP_READY = "0"
 # PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.
 PRE10_PURPOSE_READY = "1"
+# VIS-12: the clock retries the viewings Google Calendar did not take yet (migration 0105). Off. Switch on together with
+# the website's (absent there means "0"); the invitation flag must be equal in both files too, and the clock needs the
+# same three secrets GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET and GOOGLE_CALENDAR_TOKEN_KEY.
+VIS12_CALENDAR_READY = "0"
+VIS12_CALENDAR_INVITES_READY = "0"
 
 [triggers]
 crons = ["*/10 * * * *"]

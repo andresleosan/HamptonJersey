@@ -18,6 +18,7 @@ import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
 import { withApplicationWrite, BackupMaintenanceError } from './backup-write-gate.js';
 import { backupStartPass } from './backup-start.js';
+import { calendarReady, calendarRetryTick } from './calendar-sync.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -55,6 +56,10 @@ const clock = {
     if (reviewReady(env)) { // BUS-17: the internal review of a search with no complete option for 21 days, then each 7
       try { await searchReviewPass(env, now()); }
       catch { console.error('Search review pass failed'); }
+    }
+    if (calendarReady(env)) { // VIS-12: viewings Google Calendar did not take yet, up to 50 a tick
+      try { await calendarRetryTick(env, { limit: 50 }); }
+      catch { console.error('Calendar retry pass failed'); }
     }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.

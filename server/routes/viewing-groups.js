@@ -10,6 +10,7 @@ import { noticeCheck } from "../house-rules.js";
 import { cycleOn } from "../viewing-cycle.js";
 import { COUNTS, inOpenGroupSql, holds, places } from "../viewing-groups.js";
 import { runAction } from "./inbox.js";
+import { afterViewingChange } from "../calendar-sync.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -190,12 +191,14 @@ async function refusal(env, group, { id, updated_at }) {
   return [409, "The negotiator's viewing rules or another viewing no longer allow this time, or the open viewing has passed."];
 }
 
-// Gives places to the requests chosen, one by one. Resolves to {placed, refused}.
-async function reserveAll(env, admin, group, refs, confirmed) {
+// Gives places to the requests chosen, one by one. Resolves to {placed, refused}. VIS-12: a confirmed viewing moved to
+// the group's time moves its Google Calendar event too (a request has none: nothing happens).
+async function reserveAll(env, admin, group, refs, confirmed, waitUntil) {
   const placed = [], refused = [], cycle = await cycleOn(env), clock = jerseyNow();
   for (const ref of refs) {
     const no = await reserveGroupPlace(env, admin, group, ref, { cycle, clock, confirmed });
-    if (no) refused.push({ id: ref.id, status: no[0], error: no[1] }); else placed.push(ref.id);
+    if (no) refused.push({ id: ref.id, status: no[0], error: no[1] });
+    else { placed.push(ref.id); afterViewingChange(env, waitUntil, ref.id); }
   }
   return { placed, refused };
 }
@@ -203,7 +206,7 @@ async function reserveAll(env, admin, group, refs, confirmed) {
 // An open viewing: a free time of one negotiator at this property, capacity 1 to 50, and the requests chosen given a
 // place each. The time is checked as a new booking is (slot, saved rules, property hours, notice); slotGuard counts
 // other open groups as appointments too. The group keeps the parish and margins it was created with, like a booking.
-async function create({ request, env, admin }) {
+async function create({ request, env, admin, waitUntil }) {
   const body = (await readJson(request)) ?? {}, clock = jerseyNow();
   const { wrong, slot } = readSlot(body, clock), refs = readRefs(body.viewings, 50);
   const capacity = Number.isInteger(body.capacity) && body.capacity >= 1 && body.capacity <= 50 ? body.capacity : null;
@@ -241,7 +244,7 @@ async function create({ request, env, admin }) {
   ]);
   if (!ins.meta.changes) return taken();
   const group = { id: ins.meta.last_row_id, ...slot, end_time: end };
-  return json({ id: group.id, ...(await reserveAll(env, admin, group, refs, confirmed)) }, 201);
+  return json({ id: group.id, ...(await reserveAll(env, admin, group, refs, confirmed, waitUntil)) }, 201);
 }
 
 const groupOf = async (env, id) => {
@@ -251,11 +254,11 @@ const groupOf = async (env, id) => {
 };
 
 // More requests into an open group. 200 when at least one got a place; else the first refusal.
-async function addPlaces({ request, env, admin, params: [id] }) {
+async function addPlaces({ request, env, admin, params: [id], waitUntil }) {
   const body = (await readJson(request)) ?? {}, refs = readRefs(body.viewings, 50);
   if (!refs?.length) return fields({ viewings: "Choose one or more requests" });
   const group = await groupOf(env, id);
-  const r = await reserveAll(env, admin, group, refs, body.notice_confirmed === true);
+  const r = await reserveAll(env, admin, group, refs, body.notice_confirmed === true, waitUntil);
   return r.placed.length ? json(r) : json({ error: r.refused[0].error, ...r }, r.refused[0].status);
 }
 
