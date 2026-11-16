@@ -41,6 +41,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/ana10-poster-qr.e2e.cjs" ? { ANA10_QR_OPENS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana06-agency-times.e2e.cjs" ? { ANA06_AGENCY_TIMES_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/msg03-contact-link.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "0" } : {}),
+      // SAP-08: the applicant's Messages tab lists the chats linked to its contact (MSG-03, on in wrangler.toml).
+      ...(process.env.E2E_SCRIPT === "tests/sap08-tabs.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1" } : {}),
       // MSG-05: Create applicant from a chat, switched on; the read-only draft's test keeps it off.
       ...(process.env.E2E_SCRIPT === "tests/msg-05-create.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/msg-05-draft.e2e.cjs" ? { MSG05_CREATE_READY: "0" } : {}),

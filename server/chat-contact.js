@@ -70,12 +70,13 @@ async function search({ request, env }) {
   return json({ contacts });
 }
 
-// The contact's record: its linked chats, newest first. No message text.
+// The contact's linked chats, newest first. No message text. Also the applicant record's Messages tab (SAP-08).
+export const linkedChats = async (env, contactId) => (await env.DB.prepare(`SELECT id, status, created_at, last_at
+  FROM chats WHERE contact_id = ? ORDER BY last_at DESC, id DESC LIMIT 50`).bind(Number(contactId)).all()).results;
+
 async function contactChats({ env, params: [id] }) {
   if (!(await env.DB.prepare("SELECT 1 FROM contacts WHERE id = ?").bind(Number(id)).first())) fail(404, "Contact not found");
-  const { results: chats } = await env.DB.prepare(`SELECT id, status, created_at, last_at FROM chats WHERE contact_id = ?
-    ORDER BY last_at DESC, id DESC LIMIT 50`).bind(Number(id)).all();
-  return json({ chats });
+  return json({ chats: await linkedChats(env, id) });
 }
 
 export default [

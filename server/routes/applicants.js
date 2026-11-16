@@ -16,6 +16,7 @@ import { jerseyToday } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
 import { PENDING_MARKETING } from "./public.js";
+import { BY_EMAIL, BY_PHONE, viewingArgs } from "./applicant-tabs.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
@@ -210,17 +211,12 @@ async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
   const contact = await loadContact(env, applicant.contact_id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  // ponytail: a viewing matches when its phone, without spaces, dashes or brackets, ends in the contact's last
-  // 9 digits. Catches "07797 123 456" for +447797123456; a foreign number sharing those 9 digits would match too,
-  // and dots are not stripped. F3 links viewings to contacts for real (G4).
-  const last9 = contact.phone ? contact.phone.slice(1).slice(-9) : null;
   const [events, viewings, duplicates, totals, [retention], pairs] = (await env.DB.batch([
     q(`SELECT e.*, (SELECT title FROM listings WHERE id=json_extract(e.data,'$.listing_id')) AS listing_title FROM events e WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
     q(`SELECT v.*, COALESCE(l.title, v.listing_title_snapshot) AS listing_title
        FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id
-       WHERE lower(v.email) = ? OR (? IS NOT NULL AND replace(replace(replace(replace(v.phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE '%' || ?)
-       ORDER BY v.created_at DESC, v.id DESC`, contact.email, last9, last9),
+       WHERE ${BY_EMAIL} OR ${BY_PHONE} ORDER BY v.created_at DESC, v.id DESC`, ...viewingArgs(contact)), // G4, as the Viewings tab (SAP-08)
     // active_search_id: the contact's active search with the submitted operation; null = "Create second search" applies.
     q(`SELECT n.id, n.title, n.created_at, e.id AS event_id, e.data,
          (SELECT s.id FROM applicants s WHERE s.contact_id = ? AND ${ACTIVE}

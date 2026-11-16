@@ -13,6 +13,7 @@ import tourRoutes from "./routes/tours.js";
 import notificationRoutes from "./routes/notifications.js";
 import notificationTaskRoutes from "./routes/notification-tasks.js";
 import applicantRoutes from "./routes/applicants.js";
+import applicantTabRoutes from "./routes/applicant-tabs.js";
 import matchRoutes from "./routes/matches.js";
 import negotiatorRoutes from "./routes/negotiators.js";
 import insightRoutes from "./routes/insights.js";
@@ -53,7 +54,7 @@ import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.j
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
+const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.

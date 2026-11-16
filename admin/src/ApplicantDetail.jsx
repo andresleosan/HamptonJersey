@@ -15,7 +15,7 @@ import SearchLifecycle from "./SearchLifecycle.jsx";
 import { areaCopy } from "./area-copy.js";
 import { marketingHistory } from "./marketing-history.js";
 import RegistrationEssentials from "./RegistrationEssentials.jsx";
-import { ContactChats } from "./ChatContact.jsx";
+import { ApplicantMessages, ApplicantViewings } from "./ApplicantTabs.jsx";
 import MarketingPreferences from "./MarketingPreferences.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
@@ -25,7 +25,7 @@ const SEARCH = Object.keys(toForm()).filter(k => !CONTACT.includes(k));
 // only these two.
 const COPY = [...SEARCH.filter(k => !["operation", "search_category"].includes(k)), "preferred_channel", "best_time"];
 // Offers only on To Buy searches (V1).
-const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"]];
+const TABS = [["requirements", "Requirements"], ["matches", "Matches"], ["offers", "Offers"], ["timeline", "Timeline"], ["messages", "Messages"], ["viewings", "Viewings"]];
 
 const LABEL = { requirement_priorities:"Requirement priorities", household_children_ages:"Children’s ages", household_ages_at:"Ages declared",  viewing_availability: "Usual viewing availability", operation: "To Let or To Buy", stage: "Stage", lost_reason: "Why it was lost", assigned_to: "Assigned to",
   source: "Source", budget_max: "Maximum budget", budget_min: "Minimum budget", budget_stretch: "Can stretch to",
@@ -553,7 +553,6 @@ export default function ApplicantDetail({ id, tab, onChange }) {
           </div> : <button type="button" className="btn ghost sm" disabled={busy || !!contactChanged.length || archived}
             onClick={openObjection}>Record marketing objection</button>)}
       </section>
-      <ContactChats contactId={c.id} />
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         {/* Archived: read only until restored. */}
         <fieldset className="sections plain" disabled={archived}>
@@ -596,6 +595,12 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     </div>}
     <div role="tabpanel" id="panel-timeline" aria-labelledby="tab-timeline" hidden={cur !== "timeline"} tabIndex={0}>
       <Timeline events={data.events} viewings={data.viewings} matches={[]} offers={offers?.offers} by={by} nameOf={nameOf} />
+    </div>
+    <div role="tabpanel" id="panel-messages" aria-labelledby="tab-messages" hidden={cur !== "messages"} tabIndex={0}>
+      <ApplicantMessages id={id} active={cur === "messages"} />
+    </div>
+    <div role="tabpanel" id="panel-viewings" aria-labelledby="tab-viewings" hidden={cur !== "viewings"} tabIndex={0}>
+      <ApplicantViewings id={id} active={cur === "viewings"} />
     </div>
 
     <div className="actionbar" role="region" aria-label="Actions">

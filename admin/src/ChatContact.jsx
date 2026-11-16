@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { fmtAgo, fmtDate } from "./format.js";
 
 // MSG-03: which contact a website chat belongs to. A person links or unlinks it; a contact with the visitor's email or
 // phone is only suggested. Shown only when the server sends contact_link (MSG03_CONTACT_LINK_READY, migration 0093).
@@ -53,25 +52,5 @@ export function ChatContact({ chatId, link, onLinked, action = "Review chat cont
       : `No contact matches. To add one, use ${action}.`)}</p>
     {others?.length > 0 && <ul className="plain-list" aria-label="Contacts found">{others.map(pick)}</ul>}
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
-  </section>;
-}
-
-const STATUS = { waiting: "Waiting", answered: "Answered", handled: "Handled" };
-// The contact's record: its linked website chats. Nothing shows while switched off (the route answers 404).
-export function ContactChats({ contactId }) {
-  const [chats, setChats] = useState(null);
-  useEffect(() => {
-    let live = true;
-    setChats(null);
-    api(`/admin/contacts/${contactId}/chats`).then(d => { if (live) setChats(d.chats); }, () => {});
-    return () => { live = false; };
-  }, [contactId]);
-  if (!chats) return null;
-  return <section className="card" aria-labelledby="h-contact-chats">
-    <h2 id="h-contact-chats">Website chats</h2>
-    {chats.length ? <ul className="plain-list">{chats.map(c => <li key={c.id}>
-      <a href={`#/messages?chat=${c.id}`}>Chat started {fmtDate(c.created_at)}</a>
-      <span className="muted">{STATUS[c.status]} · last message {fmtAgo(c.last_at)}</span></li>)}</ul>
-      : <p className="muted">No website chats linked. Link one from Messages.</p>}
   </section>;
 }
