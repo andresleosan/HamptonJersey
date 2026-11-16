@@ -24,7 +24,7 @@ export function ChatContact({ chatId, link, onLinked }) {
   const find = async e => {
     e.preventDefault();
     if (q.trim().length < 2) { setMsg({ text: "Type at least 2 characters of a name, email or phone." }); return; }
-    setBusy(true); setMsg(null);
+    setBusy(true); setMsg(null); setFound(null); // the same count twice is announced again
     try { setFound((await api(`/admin/contacts?q=${encodeURIComponent(q.trim())}`)).contacts); }
     catch (err) { setMsg({ text: err.message }); }
     finally { setBusy(false); }
