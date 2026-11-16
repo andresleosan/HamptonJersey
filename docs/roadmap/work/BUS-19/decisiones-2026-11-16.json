@@ -1,0 +1,1902 @@
+{
+ "reviewed_at": "2026-11-16T12:00:00.000Z",
+ "actor": "claude-por-encargo-de-luis",
+ "decisions": [
+  {
+   "source_ref": "src-192-com-jersey",
+   "channel_id": "bus19-review-85860fefe0dce5ab",
+   "url": "https://192.com/atoz/business/jersey/estate--agents",
+   "name": "192.com Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-192-com-jersey",
+   "channel_id": "bus19-review-ceef1ccb82f905da",
+   "url": "https://www.192.com/atoz/business/jersey/estate--agents/",
+   "name": "192.com Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-86219d005d18e0f2",
+   "url": "https://aplacecalledyours.com/jersey",
+   "name": "A Place Called Yours Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-00abf9c11ad90080",
+   "url": "https://aplacecalledyours.com/jersey/",
+   "name": "A Place Called Yours Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-abode2-directory",
+   "channel_id": "bus19-review-f6acbbb744734c90",
+   "url": "https://abode2.com/directory-categories/uk-estate-agents",
+   "name": "Abode2 Directory",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-abode2-directory",
+   "channel_id": "bus19-review-ae17d13540d163c1",
+   "url": "https://www.abode2.com/directory/wilsons-knight-frank-2/",
+   "name": "Abode2 Directory",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-accommodation-centre-jersey",
+   "channel_id": "bus19-review-e036c1e614ead95d",
+   "url": "https://www.acjersey.com/",
+   "name": "The Accommodation Centre",
+   "status": "pending (sin cambio)",
+   "reason": "Web no responde: revisar más adelante"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-68fd6dc5dc55bb84",
+   "url": "https://apm.je/",
+   "name": "Advanced Property Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-67715ea293c6c272",
+   "url": "https://www.apm.je/",
+   "name": "Advanced Property Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-9e90cd272e78a4a4",
+   "url": "https://www.apm.je/lettings/",
+   "name": "Advanced Property Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-alexander-carmine-estates",
+   "channel_id": "bus19-review-916437844cbaf5e6",
+   "url": "https://alexandercarmine.com/",
+   "name": "Alexander Carmine Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-allagents",
+   "channel_id": "bus19-review-37cd3a73fb774b79",
+   "url": "https://allagents.co.uk/thompsonestates.com",
+   "name": "allAgents",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-allagents",
+   "channel_id": "bus19-review-deeacb24b824082e",
+   "url": "https://www.allagents.co.uk/thompsonestates.com",
+   "name": "allAgents",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-3573cfd755b57d9b",
+   "url": "https://andiumhomes.je/",
+   "name": "Andium Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-b5c76d9a830dddbc",
+   "url": "https://www.andiumhomes.je/yourhome/rent-with-andium-homes/",
+   "name": "Andium Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-aa1170ca8509df09",
+   "url": "https://atelierproperty.je/",
+   "name": "Atelier Property",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-13c19775489b17b3",
+   "url": "https://atelierproperty.je/properties/",
+   "name": "Atelier Property",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-aviva-directory-jersey",
+   "channel_id": "bus19-review-b702f85234139c7d",
+   "url": "https://avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals",
+   "name": "Aviva Directory Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-aviva-directory-jersey",
+   "channel_id": "bus19-review-bc06390bb1dc1a36",
+   "url": "https://www.avivadirectory.com/Regional/Europe/Channel-Islands/Bailiwick-of-Jersey/Jersey/Saint-Helier/Property-Sales-Rentals/",
+   "name": "Aviva Directory Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-aw-properties",
+   "channel_id": "bus19-review-f505ff6f9bd55138",
+   "url": "https://awproperties.je/",
+   "name": "AW Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-bck-lettings",
+   "channel_id": "bus19-review-ddfd381d349166b6",
+   "url": "",
+   "name": "BCK Lettings",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-benest-estates",
+   "channel_id": "bus19-review-f7a1728c9a765ee6",
+   "url": "https://best.je/",
+   "name": "Benest Estates",
+   "status": "pending (sin cambio)",
+   "reason": "Necesita permiso escrito antes de copiar contenido"
+  },
+  {
+   "source_ref": "src-bricks-mortar-jersey",
+   "channel_id": "bus19-review-97eef5f60b34cb6d",
+   "url": "https://bricksandmortarjersey.com/",
+   "name": "Bricks & Mortar Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-fc684b545946dafc",
+   "url": "https://bridle.je/",
+   "name": "Bridle Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-3276139713dd8361",
+   "url": "https://www.bridle.je/properties.aspx",
+   "name": "Bridle Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-aeb18d039861bccd",
+   "url": "https://www.bridle.je/properties.aspx?mode=1",
+   "name": "Bridle Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-254ab1b437fd3984",
+   "url": "https://broadlandsjersey.com/properties",
+   "name": "Broadlands",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-5138def769c0453c",
+   "url": "https://broadlandsjersey.com/rent",
+   "name": "Broadlands",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-broadlands-commercial",
+   "channel_id": "bus19-review-edcbd75d85794698",
+   "url": "https://broadlandscommercial.com/",
+   "name": "Broadlands Commercial",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-bull-co",
+   "channel_id": "bus19-review-40431feaeb394e72",
+   "url": "https://bullandcompany.com/",
+   "name": "Bull & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-61855fd977237b32",
+   "url": "https://businesshub.je/",
+   "name": "BusinessHub Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-359dbfed2b62094a",
+   "url": "https://businesshub.je/businesses-for-sale-1/blog-post-title-four-lr658-tcthp-337dp-rwgzm-n2bsd-dgb6h-a2p4n",
+   "name": "BusinessHub Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-buy-sell-jersey",
+   "channel_id": "bus19-review-3238cce3da6dba2f",
+   "url": "",
+   "name": "Buy + Sell Jersey",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-430004f704bf4516",
+   "url": "https://cpc.je/",
+   "name": "Carter Property Consultancy",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-db8310a0488d2b22",
+   "url": "https://cpc.je/properties/",
+   "name": "Carter Property Consultancy",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-castletree-homes",
+   "channel_id": "bus19-review-1edf4ba5eb5e87b3",
+   "url": "https://castletreehomes.je/",
+   "name": "Castletree Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-2841f43006bbe490",
+   "url": "https://catterson-wood.com/project/alexander-house/",
+   "name": "Catterson Wood",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-dc580c4be3cbae2e",
+   "url": "https://catterson-wood.com/projects",
+   "name": "Catterson Wood",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-b595216310d38957",
+   "url": "https://catterson-wood.com/projects/",
+   "name": "Catterson Wood",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-cbre-jersey",
+   "channel_id": "bus19-review-6884fa6ff9acb34f",
+   "url": "",
+   "name": "CBRE Jersey",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-choice-properties",
+   "channel_id": "bus19-review-fb408838fbcfcd05",
+   "url": "",
+   "name": "Choice Properties",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-christies-international-real-estate",
+   "channel_id": "bus19-review-93501239ecff7b77",
+   "url": "https://christiesrealestate.com/network/christies-international-real-estate-hunt-estates/166",
+   "name": "Christies International Real Estate",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-f4a62393734cdf27",
+   "url": "https://csps.je/",
+   "name": "Clyde Smith Property Services",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-c75dc67b098bc9c9",
+   "url": "https://csps.je/to-let/",
+   "name": "Clyde Smith Property Services",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-columbia-estates",
+   "channel_id": "bus19-review-ad8b5271da2a0af7",
+   "url": "https://columbiaestates.je/",
+   "name": "Columbia Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-87bc144113eb721b",
+   "url": "https://connections.je/",
+   "name": "Connections",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-8fc9dfa2348c3ccf",
+   "url": "https://www.connections.je/property-search-results/",
+   "name": "Connections",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-8943d7d2a11278d6",
+   "url": "https://countrylife.co.uk/tag/channel-islands-properties",
+   "name": "Country Life Property",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-465d139c2b313d10",
+   "url": "https://www.countrylife.co.uk/property/a-dozen-delightful-properties-for-sale-as-seen-in-country-life",
+   "name": "Country Life Property",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-fcb830dd42b130d3",
+   "url": "https://ctjhousingtrust.org.je/estates",
+   "name": "CTJ Housing Trust",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-943b03f39a589b83",
+   "url": "https://www.ctjhousingtrust.org.je/estates",
+   "name": "CTJ Housing Trust",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-cylex-jersey",
+   "channel_id": "bus19-review-d01e676f77e0c187",
+   "url": "https://st-helier.cylex-uk.co.uk/estate-agents",
+   "name": "Cylex Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-cylex-jersey",
+   "channel_id": "bus19-review-323803daff26104f",
+   "url": "https://st-helier.cylex-uk.co.uk/estate-agents/",
+   "name": "Cylex Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-0851d0ed5735a146",
+   "url": "https://d2re.co.uk/",
+   "name": "D2 Real Estate",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-109627a60ca3a946",
+   "url": "https://d2re.co.uk/all-properties/",
+   "name": "D2 Real Estate",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-7dba2b39c91cd0b8",
+   "url": "https://dandararentals.com/",
+   "name": "Dandara Rentals",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-010b6421bcb48ab9",
+   "url": "https://dandararentals.com/location/jersey/",
+   "name": "Dandara Rentals",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-0dfe61a0cfd2c4ad",
+   "url": "https://dandara.com/locations/jersey",
+   "name": "Dandara Sales",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-db2075f3fd556bcc",
+   "url": "https://www.dandara.com/locations/jersey/",
+   "name": "Dandara Sales",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-de-vere-estate-agents",
+   "channel_id": "bus19-review-7a373b1d97369099",
+   "url": "",
+   "name": "De Vere Estate Agents",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-4d032711597edc99",
+   "url": "https://dicasahomes.com/",
+   "name": "DiCasa Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-ec4e245806eae442",
+   "url": "https://www.dicasahomes.com/collections/frontpage",
+   "name": "DiCasa Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-a4abe889f4570b4c",
+   "url": "https://digital.je/membership/member-directory",
+   "name": "Digital Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-059bff35b8f60740",
+   "url": "https://www.digital.je/digital-jersey-hubs/dj-hub/office-rental/",
+   "name": "Digital Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-dusted-jersey",
+   "channel_id": "bus19-review-8bf23caf9ceb6048",
+   "url": "https://dusted.je/",
+   "name": "Dusted Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-facebook-marketplace-jersey",
+   "channel_id": "bus19-review-726dbff59a0009fe",
+   "url": "https://facebook.com/marketplace",
+   "name": "Facebook Marketplace – Jersey",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-falcon-consultants",
+   "channel_id": "bus19-review-abf4dec08812da29",
+   "url": "https://falcon.je/",
+   "name": "Falcon Consultants",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-falles-properties",
+   "channel_id": "bus19-review-bb9fe0d1a37b7cdd",
+   "url": "https://fallesproperties.com/",
+   "name": "Falles Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-find-je",
+   "channel_id": "bus19-review-cb257958902a0cbe",
+   "url": "https://find.je/",
+   "name": "Find.je",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-find-je",
+   "channel_id": "bus19-review-7b1be4efbb0379a8",
+   "url": "https://find.je/find-a-business-results?directory_type=business&q=estate+agent",
+   "name": "Find.je",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-find-je",
+   "channel_id": "bus19-review-34f037e480963462",
+   "url": "https://find.je/single-category/estate-agents",
+   "name": "Find.je",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-find-the-best-st-helier",
+   "channel_id": "bus19-review-093f67b3f034e130",
+   "url": "https://find-the-best.co.uk/estate-agents/st-helier",
+   "name": "Find The Best St Helier",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-finders-keepers",
+   "channel_id": "bus19-review-80c56218cd849626",
+   "url": "https://finderskeepers.je/",
+   "name": "Finders Keepers",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-fine-country-jersey",
+   "channel_id": "bus19-review-2b3d7ab2a9bf9d46",
+   "url": "https://fineandcountry.co.uk/jersey-estate-agents",
+   "name": "Fine & Country Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-flatfee-je",
+   "channel_id": "bus19-review-e33e5f01c4392ed5",
+   "url": "https://flatfee.je/",
+   "name": "Flatfee.je",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-decbe2b460cbb289",
+   "url": "https://forty-eight.co.uk/",
+   "name": "Forty-Eight",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-69ad1ac0dc87e89c",
+   "url": "https://www.forty-eight.co.uk/branches/jersey",
+   "name": "Forty-Eight",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-bee6eff620bf6d44",
+   "url": "https://gaudin.je/property-for-sale/in/jersey",
+   "name": "Gaudin & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-1571ffe57d7cfee0",
+   "url": "https://gaudin.je/residential-for-rent",
+   "name": "Gaudin & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-gaudin-co-facebook",
+   "channel_id": "bus19-review-109be9684a2c3810",
+   "url": "https://facebook.com/gaudinandco",
+   "name": "Gaudin & Co – Facebook",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-government-of-jersey",
+   "channel_id": "bus19-review-4c8f5d3f95fb2b43",
+   "url": "https://gov.je/Government/Departments/InfrastructureEnvironment/Pages/property.aspx",
+   "name": "Government of Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-government-of-jersey",
+   "channel_id": "bus19-review-3600a3172465473b",
+   "url": "https://gov.je/lifeevents/movingtojersey/preparingtomove/pages/arrangeaccommodation.aspx",
+   "name": "Government of Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-2f4a122021f8b307",
+   "url": "https://grangedevelopments.co.uk/our-developments",
+   "name": "Grange Developments",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-d57fa98d06b18d7e",
+   "url": "https://www.grangedevelopments.co.uk/our-developments/",
+   "name": "Grange Developments",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hampton-estates",
+   "channel_id": "bus19-review-ae69cb1f0325090b",
+   "url": "https://hamptonestatesjersey.com/",
+   "name": "Hampton Estates",
+   "status": "denied",
+   "reason": "Web propia de Hampton: sus fichas ya están en el catálogo"
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-5914a94bfc9fbbc9",
+   "url": "https://hardinggreen.com/",
+   "name": "Harding Green",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-b98ce5efa37538b8",
+   "url": "https://hardinggreen.com/location/international-property-search",
+   "name": "Harding Green",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-99797e80631757f9",
+   "url": "https://hearthstones.je/",
+   "name": "Hearthstones",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-08df9856d20e8286",
+   "url": "https://hearthstones.je/about",
+   "name": "Hearthstones",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hector-mac-homes",
+   "channel_id": "bus19-review-1ca68a0f68bf2a3a",
+   "url": "https://hectormac.je/",
+   "name": "Hector Mac Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-1944af7a0f7a994b",
+   "url": "https://hiizzy.com/",
+   "name": "Hiizzy",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-b399ac707f7f342f",
+   "url": "https://hiizzy.com/buying",
+   "name": "Hiizzy",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-homely-je",
+   "channel_id": "bus19-review-38f8b06dc9fafa1c",
+   "url": "https://homely.je/",
+   "name": "Homely.je",
+   "status": "denied",
+   "reason": "Homely: excluida por el plan maestro"
+  },
+  {
+   "source_ref": "src-homely-je",
+   "channel_id": "bus19-review-25b2a7e6a9f11c9f",
+   "url": "https://homely.je/for-sale",
+   "name": "Homely.je",
+   "status": "denied",
+   "reason": "Homely: excluida por el plan maestro"
+  },
+  {
+   "source_ref": "src-homely-je",
+   "channel_id": "bus19-review-d0799091f722d4f3",
+   "url": "https://homely.je/to-rent",
+   "name": "Homely.je",
+   "status": "denied",
+   "reason": "Homely: excluida por el plan maestro"
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-168ac661da65e7f7",
+   "url": "https://homesearch.co.uk/properties-for-sale/jersey/",
+   "name": "Homesearch Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-7cc91e6b79668b15",
+   "url": "https://homesearch.co.uk/properties-to-rent/je3/",
+   "name": "Homesearch Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-7c1a22d67e367d94",
+   "url": "https://huelinhomes.com/",
+   "name": "Huelin Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-ebe5e8c1433f4fcc",
+   "url": "https://www.huelinhomes.com/lettings",
+   "name": "Huelin Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-d44ad6baa68a1706",
+   "url": "https://www.huelinhomes.com/property-sale",
+   "name": "Huelin Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-hunt-estates",
+   "channel_id": "bus19-review-2bb4bd0cb21deb65",
+   "url": "https://huntestates.com/",
+   "name": "Hunt Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-indigo-estates",
+   "channel_id": "bus19-review-aaa6ff9f5faf120c",
+   "url": "https://indigo.je/",
+   "name": "Indigo Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-isle-sell-it",
+   "channel_id": "bus19-review-06fb71f57a3acd43",
+   "url": "",
+   "name": "Isle Sell It",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-802c06c8a1bc5213",
+   "url": "https://jamesedition.com/real_estate/jersey",
+   "name": "JamesEdition Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-1b0c1a372738ce67",
+   "url": "https://www.jamesedition.com/real_estate/jersey",
+   "name": "JamesEdition Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-319d1f04f3c79235",
+   "url": "https://jers3y.com/homes",
+   "name": "jers3y Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-a20baca37e96c708",
+   "url": "https://jers3y.com/homes?mode=rent",
+   "name": "jers3y Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jers3y-rooms",
+   "channel_id": "bus19-review-d2ff2e84e7eeee2a",
+   "url": "https://jers3y.com/rooms",
+   "name": "jers3y Rooms",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-anything-for-sale",
+   "channel_id": "bus19-review-041b079d569065c7",
+   "url": "",
+   "name": "Jersey Anything for Sale",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jersey-c-i-rooms-for-rent-and-other-accommodation",
+   "channel_id": "bus19-review-4d0e1d877239465e",
+   "url": "",
+   "name": "Jersey (C.I.) Rooms For Rent (And Other Accommodation)",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jersey-chamber-of-commerce",
+   "channel_id": "bus19-review-6a9ab1aac4af0374",
+   "url": "https://jerseychamber.com/membership-directory/corporate",
+   "name": "Jersey Chamber of Commerce",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-jersey-chamber-of-commerce",
+   "channel_id": "bus19-review-3fd0b143fd3ff2ac",
+   "url": "https://jerseychamber.com/membership-directory/corporate/2103888",
+   "name": "Jersey Chamber of Commerce",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-efddf1fdd1bcb48e",
+   "url": "https://horizon.je/register-for-new-jdc-developments",
+   "name": "Jersey Development Company",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-9f143b7819e9095d",
+   "url": "https://jerseydevelopment.je/",
+   "name": "Jersey Development Company",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-7b55d8a256cd44b6",
+   "url": "https://www.westward.je/apartments",
+   "name": "Jersey Development Company",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-estate-agents-association",
+   "channel_id": "bus19-review-0d1ebd608a6af8a8",
+   "url": "https://jeaa.je/members",
+   "name": "Jersey Estate Agents Association",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-699f92c4f50a9894",
+   "url": "https://property.jerseyeveningpost.com/find-agent?submit=all",
+   "name": "Jersey Evening Post Property",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-87af92bdc8d109f5",
+   "url": "https://property.jerseyeveningpost.com/home",
+   "name": "Jersey Evening Post Property",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-cd531f7969509c10",
+   "url": "https://property.jerseyeveningpost.com/search?page=1&rent=1",
+   "name": "Jersey Evening Post Property",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-0695063cc07ce186",
+   "url": "https://jerseyhomestrust.org.je/estates",
+   "name": "Jersey Homes Trust",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-c9db1381250cd67e",
+   "url": "https://www.jerseyhomestrust.org.je/estates",
+   "name": "Jersey Homes Trust",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-b62b4b1240b1a2b3",
+   "url": "https://jerseyinsight.com/search/all/1/estate%20agents",
+   "name": "Jersey Insight Classifieds",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-7732eb04b481cf51",
+   "url": "https://www.jerseyinsight.com/classifieds/search/1/-/-/6025",
+   "name": "Jersey Insight Classifieds",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-e4582a3e65d3a979",
+   "url": "https://www.jerseyinsight.com/classifieds/search/1/-/-/6027",
+   "name": "Jersey Insight Classifieds",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jersey-property-app-raven",
+   "channel_id": "bus19-review-e24bffc19a0d9506",
+   "url": "https://apps.apple.com/us/app/jersey-property-app/id6762444379",
+   "name": "Jersey Property App · Raven Consultancy",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-jersey-property-for-rent",
+   "channel_id": "bus19-review-52ecac16c5ce61a5",
+   "url": "",
+   "name": "Jersey Property for Rent",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jersey-property-rentals",
+   "channel_id": "bus19-review-590ca276132d8243",
+   "url": "",
+   "name": "Jersey Property Rentals",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jersey-rentals",
+   "channel_id": "bus19-review-866e6f3b9f48ef8a",
+   "url": "",
+   "name": "Jersey Rentals",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jersey-stuff-for-sale",
+   "channel_id": "bus19-review-01a53ca595b761b3",
+   "url": "",
+   "name": "Jersey Stuff for Sale",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-jerseyweb",
+   "channel_id": "bus19-review-8dadc901104a533c",
+   "url": "https://jerseyweb.je/directory/estate-agents",
+   "name": "JerseyWeb",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-jlp-management",
+   "channel_id": "bus19-review-05beb111e68c9499",
+   "url": "https://jlp.je/",
+   "name": "JLP Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-jsy-social",
+   "channel_id": "bus19-review-b38f270a2f5e315a",
+   "url": "https://jsysocial.com/",
+   "name": "JSY Social",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-8105e8e3c982fe05",
+   "url": "https://keys.je/",
+   "name": "Keys Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-cc87c42d6eaf517a",
+   "url": "https://www.keys.je/properties-to-rent-st-helier.htm",
+   "name": "Keys Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-68481174aea6f2ca",
+   "url": "https://kingsmanoffices.com/",
+   "name": "Kingsman Offices",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-96f7ecef3c9c481b",
+   "url": "https://www.kingsmanoffices.com/private-offices",
+   "name": "Kingsman Offices",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-knight-frank-jersey",
+   "channel_id": "bus19-review-3190556942f66d72",
+   "url": "https://knightfrank.je/",
+   "name": "Knight Frank Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-le-gallais-real-estates",
+   "channel_id": "bus19-review-f18f034b1df3b511",
+   "url": "https://legallais.co.uk/real-estate",
+   "name": "Le Gallais Real Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-le-maistre-estates",
+   "channel_id": "bus19-review-e8ede2ed43c76804",
+   "url": "https://estates.je/",
+   "name": "Le Maistre Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-le-masurier",
+   "channel_id": "bus19-review-9970d113cfd5c663",
+   "url": "https://lemasurier.co.uk/",
+   "name": "Le Masurier",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-213d842965f16f8d",
+   "url": "https://lerestates.com/",
+   "name": "Le Rossignol Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-0781d488e3bb88aa",
+   "url": "https://www.lerestates.com/",
+   "name": "Le Rossignol Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-62cd5fbbf69e4019",
+   "url": "https://www.lerestates.com/sale",
+   "name": "Le Rossignol Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-da88b33be9f307e2",
+   "url": "https://lesvauxhousingtrust.org.je/",
+   "name": "Les Vaux Housing Trust",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-8e68ca9deb0522db",
+   "url": "https://www.lesvauxhousingtrust.org.je/",
+   "name": "Les Vaux Housing Trust",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-d014e549991c6fb2",
+   "url": "https://www.lesvauxhousingtrust.org.je/estates/",
+   "name": "Les Vaux Housing Trust",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-livingroom-estate-agents",
+   "channel_id": "bus19-review-05c963bae89aad1c",
+   "url": "https://livingroomproperty.com/",
+   "name": "Livingroom Estate Agents",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-3912aaa2d7044c44",
+   "url": "https://loopnet.co.uk/search/commercial-property/channel-islands-county--united-kingdom/for-sale",
+   "name": "LoopNet Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-5b2f8008e2af7500",
+   "url": "https://www.loopnet.co.uk/search/commercial-property/jersey-cid--united-kingdom/for-rent/",
+   "name": "LoopNet Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-38611203c040622e",
+   "url": "https://lyonsestates.co.uk/",
+   "name": "Lyons Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-d6331af4785d0c2a",
+   "url": "https://lyonsestates.co.uk/properties-to-rent-jersey.htm",
+   "name": "Lyons Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1b27421b42f5128b",
+   "url": "https://maillardandco.com/",
+   "name": "Maillard & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1417a9acb978e455",
+   "url": "https://maillardandco.com/residential/lettings",
+   "name": "Maillard & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-1eddb5a1c2797fa6",
+   "url": "https://www.mansionglobal.com/buy/jersey",
+   "name": "Mansion Global Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-41b9c137b75d66b1",
+   "url": "https://www.mansionglobal.com/rent/jersey",
+   "name": "Mansion Global Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-marks-estate-agents",
+   "channel_id": "bus19-review-f44349a2db2f4bd8",
+   "url": "",
+   "name": "Marks Estate Agents",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-52013b7d345d3a81",
+   "url": "https://melrosehomes.je/",
+   "name": "Melrose Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-ea8be83bea8b8b66",
+   "url": "https://www.melrosehomes.je/",
+   "name": "Melrose Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-moore-properties",
+   "channel_id": "bus19-review-fed5cc428cb0726a",
+   "url": "",
+   "name": "Moore Properties",
+   "status": "pending (sin cambio)",
+   "reason": "Sin URL o red social: fuera de esta etapa"
+  },
+  {
+   "source_ref": "src-mulberry-property-management",
+   "channel_id": "bus19-review-baf0c82738cd09c0",
+   "url": "https://mulberry.co.je/",
+   "name": "Mulberry Property Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-nd-estates",
+   "channel_id": "bus19-review-d4b84add91c6018c",
+   "url": "https://ndestates.com/",
+   "name": "ND Estates",
+   "status": "pending (sin cambio)",
+   "reason": "Necesita permiso escrito antes de copiar contenido"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-92eb3dff8339fdec",
+   "url": "https://onthemarket.com/agents/jersey",
+   "name": "OnTheMarket – Jersey",
+   "status": "manual_only",
+   "reason": "OnTheMarket §2.2: prohíbe guardar su contenido sin consentimiento escrito (corregido tras la primera revisión)"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-5eb86307d09617ab",
+   "url": "https://onthemarket.com/for-sale/property/jersey",
+   "name": "OnTheMarket – Jersey",
+   "status": "manual_only",
+   "reason": "OnTheMarket §2.2: prohíbe guardar su contenido sin consentimiento escrito (corregido tras la primera revisión)"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-b1fd2499a1732b8e",
+   "url": "https://onthemarket.com/to-rent/property/channel-islands",
+   "name": "OnTheMarket – Jersey",
+   "status": "manual_only",
+   "reason": "OnTheMarket §2.2: prohíbe guardar su contenido sin consentimiento escrito (corregido tras la primera revisión)"
+  },
+  {
+   "source_ref": "src-opendi-jersey",
+   "channel_id": "bus19-review-c9b0bf4d56a81c15",
+   "url": "https://jersey.opendi.co.uk/",
+   "name": "Opendi Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-59b1aa9062ceefa2",
+   "url": "https://honeycombjersey.com/",
+   "name": "Palladium Group",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-b44a3167caf12b3f",
+   "url": "https://honeycombjersey.com/offices",
+   "name": "Palladium Group",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-200fd7d57f599d86",
+   "url": "https://palladiumgroupci.com/",
+   "name": "Palladium Group",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-pinnacle-estates",
+   "channel_id": "bus19-review-723550b18e31beae",
+   "url": "https://pinnacle.je/",
+   "name": "Pinnacle Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-5e2c05496dd56f80",
+   "url": "https://places.je/",
+   "name": "Places.je",
+   "status": "pending",
+   "reason": "Places.je: conector posterior (PRE-01)"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-c3eb1028928505c0",
+   "url": "https://places.je/buy",
+   "name": "Places.je",
+   "status": "pending",
+   "reason": "Places.je: conector posterior (PRE-01)"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-9e32c8fe1bead5df",
+   "url": "https://places.je/rent",
+   "name": "Places.je",
+   "status": "pending",
+   "reason": "Places.je: conector posterior (PRE-01)"
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-5357de7144a0c833",
+   "url": "https://polygon-servicedoffices.co/",
+   "name": "Polygon Serviced Offices",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-8d427b952848df1c",
+   "url": "https://www.polygon-servicedoffices.co/office-space/",
+   "name": "Polygon Serviced Offices",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f0ed97a34935440a",
+   "url": "https://prestige.je/",
+   "name": "Prestige Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f70da01038515399",
+   "url": "https://www.prestige.je/about-us.htm",
+   "name": "Prestige Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-primelocation-jersey-channel-isles",
+   "channel_id": "bus19-review-76e4e3f8e77d3c9b",
+   "url": "https://primelocation.com/for-sale/property/jersey",
+   "name": "PrimeLocation – Jersey / Channel Isles",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-primeresi-directory",
+   "channel_id": "bus19-review-cd5922ef73be3445",
+   "url": "https://directory.primeresi.com/companies",
+   "name": "PrimeResi Directory",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-primeresi-directory",
+   "channel_id": "bus19-review-618c893a3fb38a20",
+   "url": "https://directory.primeresi.com/companies/catterson-wood",
+   "name": "PrimeResi Directory",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-properstar",
+   "channel_id": "bus19-review-e462999c858f267a",
+   "url": "https://properstar.com/",
+   "name": "Properstar",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-9cc69077957e9db1",
+   "url": "https://properties.je/buy",
+   "name": "Properties.je",
+   "status": "pending",
+   "reason": "Properties.je: conector posterior, permiso escrito"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-0254c182544e4981",
+   "url": "https://properties.je/rent",
+   "name": "Properties.je",
+   "status": "pending",
+   "reason": "Properties.je: conector posterior, permiso escrito"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-082cdb3d1e84ad03",
+   "url": "https://www.properties.je/",
+   "name": "Properties.je",
+   "status": "pending",
+   "reason": "Properties.je: conector posterior, permiso escrito"
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-78891c6e6b69e152",
+   "url": "https://propertyladder.je/",
+   "name": "Property Ladder Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-815755c8a205f5d0",
+   "url": "https://propertyladder.je/agencies",
+   "name": "Property Ladder Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-property-store-jersey-psj",
+   "channel_id": "bus19-review-d2be17b26c489608",
+   "url": "https://psj.je/",
+   "name": "Property Store Jersey / PSJ",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-propertymanagementco-jersey",
+   "channel_id": "bus19-review-70b9a3c390dfaa3c",
+   "url": "https://propertymanagementco.co.uk/jersey",
+   "name": "PropertyManagementCo Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-propertymanagementco-jersey",
+   "channel_id": "bus19-review-5616a0da14d39a4c",
+   "url": "https://www.propertymanagementco.co.uk/jersey",
+   "name": "PropertyManagementCo Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-propertymark",
+   "channel_id": "bus19-review-8a042375efa55d03",
+   "url": "https://propertymark.co.uk/find-an-expert.html?q=Jersey",
+   "name": "Propertymark",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-propertymark",
+   "channel_id": "bus19-review-d28a5d1eaa506a08",
+   "url": "https://www.propertymark.co.uk/find-an-expert.html?q=Jersey",
+   "name": "Propertymark",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-dfa5ed173b8d0f6b",
+   "url": "https://propertyskipper.com/jersey/jersey-estate-agents",
+   "name": "Propertyskipper Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-0cd782ecf407d35e",
+   "url": "https://propertyskipper.com/jersey/properties/all/tender_type/rental",
+   "name": "Propertyskipper Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-9b09bd64bac8e8c9",
+   "url": "https://propertyskipper.com/jersey/properties/all/tender_type/sale",
+   "name": "Propertyskipper Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-1adba8fa190e0638",
+   "url": "https://quemard.je/",
+   "name": "Quemard Estates",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-e2bb1c04a4599978",
+   "url": "https://www.quemard.je/properties-for-sale-st-helier.htm",
+   "name": "Quemard Estates",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-d6da79716fcced73",
+   "url": "https://www.quemard.je/properties.aspx?menuID=31&mode=1",
+   "name": "Quemard Estates",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-64f7fbb65376439e",
+   "url": "https://queree.je/",
+   "name": "Quérée Property Consultants",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-c1e771d39c19e643",
+   "url": "https://queree.je/property_action_category/sales/",
+   "name": "Quérée Property Consultants",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-20dccd297e7e51d4",
+   "url": "https://queree.je/property_action_category/to-let/",
+   "name": "Quérée Property Consultants",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-r-a-d-property-management",
+   "channel_id": "bus19-review-fe9bab319f325e25",
+   "url": "https://radmanagement.je/",
+   "name": "R.A.D. Property Management",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-a2f63fb82dd638c2",
+   "url": "https://redproperties.je/",
+   "name": "Red Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-c40ae7fcedca0091",
+   "url": "https://www.redproperties.je/properties-for-sale",
+   "name": "Red Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-63e92ef34fca8cbb",
+   "url": "https://www.redproperties.je/properties-to-let",
+   "name": "Red Properties",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-4baacd0ef49f6683",
+   "url": "https://regus.com/en/gb/1389",
+   "name": "Regus Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-b281666e35bdc326",
+   "url": "https://www.regus.com/en/gb/1389",
+   "name": "Regus Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-20533e68c6941b82",
+   "url": "https://reside.je/",
+   "name": "Reside",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-201e738ec1ad0402",
+   "url": "https://reside.je/advanced-search/",
+   "name": "Reside",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-0f9419738d30b523",
+   "url": "https://reside.je/lettings-search/",
+   "name": "Reside",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-rics-find-a-surveyor-jersey",
+   "channel_id": "bus19-review-1e3a483cc7b40226",
+   "url": "https://ricsfirms.com/Surveyors/GB/Jersey_33737",
+   "name": "RICS Find a Surveyor Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-rics-find-a-surveyor-jersey",
+   "channel_id": "bus19-review-50624df0755845e3",
+   "url": "https://www.ricsfirms.com/Surveyors/GB/Jersey_33737",
+   "name": "RICS Find a Surveyor Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-f2e1830227d76040",
+   "url": "https://rightmove.co.uk/estate-agents/channel-islands.html",
+   "name": "Rightmove – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-8fae7260c424a8bd",
+   "url": "https://rightmove.co.uk/property-for-sale/Jersey.html",
+   "name": "Rightmove – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-82d6f88c77c53e68",
+   "url": "https://rightmove.co.uk/property-to-rent/Jersey.html",
+   "name": "Rightmove – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-738a7ed0f8cc43c2",
+   "url": "https://rockproperty.co.uk/",
+   "name": "Rockproperty",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-eb85e29b9594897c",
+   "url": "https://rockproperty.co.uk/properties-to-rent-st-helier.htm",
+   "name": "Rockproperty",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-rolland-estates",
+   "channel_id": "bus19-review-48095ebd0cebf393",
+   "url": "https://rollandestates.je/",
+   "name": "Rolland Estates",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-sarre-co",
+   "channel_id": "bus19-review-aa528a1925eacac2",
+   "url": "https://sarreandco.com/",
+   "name": "Sarre & Co",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-savills-jersey",
+   "channel_id": "bus19-review-9078f47b3d3973d4",
+   "url": "https://savills.je/",
+   "name": "Savills Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-80075b4d8c7fd1ca",
+   "url": "https://selectpropertyjersey.com/",
+   "name": "Select Property Management & Lettings",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-260b60b147f6368f",
+   "url": "https://www.selectpropertyjersey.com/",
+   "name": "Select Property Management & Lettings",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-slomans",
+   "channel_id": "bus19-review-389d36a0bcc9de2b",
+   "url": "https://slomans.co.uk/",
+   "name": "Slomans",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-solo-solo-property-solutions",
+   "channel_id": "bus19-review-6710e5cf11bb9ce6",
+   "url": "https://solo.je/",
+   "name": "Solo / Solo Property Solutions",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-spareroom-jersey",
+   "channel_id": "bus19-review-bf8b88ce4f90cb27",
+   "url": "https://spareroom.co.uk/flatmate/channel_isles/jersey",
+   "name": "SpareRoom – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-spiffy",
+   "channel_id": "bus19-review-146f90295d7d64f7",
+   "url": "https://spiffy.je/",
+   "name": "Spiffy",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-swoop-jersey",
+   "channel_id": "bus19-review-ef53cd1a50515df4",
+   "url": "https://swoop.je/buyers-guide",
+   "name": "Swoop Jersey",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-d087de2be9c890cf",
+   "url": "https://coworker.com/jersey",
+   "name": "The Instant Group Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-c94505a561d55f13",
+   "url": "https://www.coworker.com/jersey",
+   "name": "The Instant Group Jersey",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-the-property-ombudsman",
+   "channel_id": "bus19-review-0b752d426db1d526",
+   "url": "https://tpos.co.uk/business-search/indigo-estates",
+   "name": "The Property Ombudsman",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-the-property-ombudsman",
+   "channel_id": "bus19-review-acd3cab45551fbde",
+   "url": "https://www.tpos.co.uk/business-search/indigo-estates/",
+   "name": "The Property Ombudsman",
+   "status": "denied",
+   "reason": "Directorio o referencia: no publica anuncios propios"
+  },
+  {
+   "source_ref": "src-thompson-lettings",
+   "channel_id": "bus19-review-24b4776e03a6472f",
+   "url": "https://thompsonlettings.je/",
+   "name": "Thompson Lettings",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-3ddb13ea8700c668",
+   "url": "https://troysjersey.com/",
+   "name": "Troys Estate Agents",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-53c9ffdd1bd060da",
+   "url": "https://www.troysjersey.com/",
+   "name": "Troys Estate Agents",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-94b7b236de1350f6",
+   "url": "https://www.troysjersey.com/properties/lettings",
+   "name": "Troys Estate Agents",
+   "status": "manual_only",
+   "reason": "Bloquea bots (robots.txt o HTTP 401/403)"
+  },
+  {
+   "source_ref": "src-watson-homes",
+   "channel_id": "bus19-review-d84779bad13d65b3",
+   "url": "https://watsonhomes.je/",
+   "name": "Watson Homes",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-wezoo-jersey",
+   "channel_id": "bus19-review-7ae30c24817eb80d",
+   "url": "https://wezoo.com/insights/office-space-jersey",
+   "name": "Wezoo Jersey",
+   "status": "allowed",
+   "reason": "robots.txt permite el canal y los términos no prohíben la lectura automatizada"
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-2e110c9b9e4b134b",
+   "url": "https://zoopla.co.uk/for-sale/property/jersey",
+   "name": "Zoopla – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-bbfc39055f161064",
+   "url": "https://zoopla.co.uk/to-rent/property/jersey",
+   "name": "Zoopla – Jersey",
+   "status": "manual_only",
+   "reason": "Sus términos prohíben el acceso automatizado"
+  }
+ ]
+}

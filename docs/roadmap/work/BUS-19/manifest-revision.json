@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "documentary_review_only_not_executable",
+  "acceptance": {
+    "path": "docs/roadmap/work/BUS-23/registro-aceptacion-BUS-23.json",
+    "sha256": "43b04fdf2c5e6f836f9b4493a63e7c742df8812c81fbfdc4f09191c58a84d49b"
+  },
+  "handoff": {
+    "path": "docs/roadmap/work/BUS-23/property-directory-inventory-handoff.csv",
+    "sha256": "6b510a0f8d8fa2a333e7360e959206590596731c238554fb2bceea392de2c36c",
+    "rows": 237
+  },
+  "legal_evidence": {
+    "path": "docs/roadmap/work/BUS-19/evidencia-condiciones-2026-11-13.md",
+    "sha256": "5d4aa6ef3d1b0224e46277a3f488c4f9ae50a2958aaa85b05d5056b68e2b8aeb"
+  },
+  "decisions": {
+    "path": "docs/roadmap/work/BUS-19/access-decisions.json",
+    "sha256": "0275e2ff1cdfeefeed295c2adf6855fc9ed164a5c3e8eae7774e30baa07d5bcf",
+    "rows": 237
+  },
+  "queue": {
+    "path": "docs/roadmap/work/BUS-19/access-review-queue.csv",
+    "sha256": "78c841d8b006d00992baa420f363636ce840aec5ff13bf8411ee348867c7bbd1",
+    "rows": 237
+  },
+  "review_state_counts": {
+    "automation_and_reuse_review": 3,
+    "automation_restricted_review": 3,
+    "channel_url_missing": 4,
+    "deferred_connector": 6,
+    "excluded_by_project": 3,
+    "historical_reference": 2,
+    "identity_and_rights_review": 3,
+    "manual_review_required": 3,
+    "reference_only": 34,
+    "social_manual_out_of_scope": 10,
+    "specific_restriction_review": 11,
+    "terms_and_method_review": 155
+  }
+}

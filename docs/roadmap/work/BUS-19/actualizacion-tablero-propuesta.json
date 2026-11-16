@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "task_id": "BUS-19",
+  "status": "partial_documentary_review_not_integrated",
+  "local_progress": "Revisión documental por 237 registros fuente/ruta de 141 IDs; restricciones heredadas y condiciones seleccionadas, sin políticas ejecutables ni lectores activados.",
+  "evidence": "docs/roadmap/work/BUS-19/review.md",
+  "runtime_policy_integrated": false,
+  "source_readers_activated": false,
+  "dependency": "BUS-06:source-schema no se encontró en las dos copias consultadas; BUS-06 conserva además dependencia de integración AGE-04.",
+  "github_checklist_observed_2026-11-13": {"completed": 60, "applicable": 221, "percent": 27.1, "blob_sha": "fad0121d98119f14da060db20580030321985d9f", "BUS-19": "pendiente"},
+  "deployed_board_checked_this_session": false,
+  "remote_event_recorded": false,
+  "next_step": "Preparar BUS-06:source-schema sobre una base reconciliada; después persistir y aplicar políticas BUS-19 con las pruebas y autorizaciones correspondientes."
+}
