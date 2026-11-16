@@ -14,7 +14,8 @@ const METHODS = { photo_id: "Photo ID seen", details_on_record: "Confirmed throu
 const RESULTS = { fulfilled: "Done", partially_fulfilled: "Partly done", refused: "Refused", withdrawn: "Withdrawn by the person" };
 const HOLDS = { sale: "Has a sale, in any state: kept.", open_offer: "Has an open offer: kept while the negotiation lasts.",
   open_search: "Has an active search, or one under review: resolve and archive it first.",
-  privacy_request: "Has another open privacy request (not an erasure one): close it first." };
+  privacy_request: "Has another open privacy request (not an erasure one): close it first.",
+  running_tenancy: "Linked as the tenant of a running tenancy: kept while it runs, or remove the link if it is not theirs." };
 const REMOVE = { contact: "Contact record", searches: "Searches", offers: "Offers", matches: "Matches",
   marketing_preferences: "Marketing preferences" };
 const ACTIONS = { created: "Recorded", updated: "Details changed", contact_linked: "Contact linked", identity_verified: "Identity checked",

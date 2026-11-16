@@ -251,3 +251,55 @@ test('only signed-in team members link; a closed request or one without a contac
   assert.equal((await call(env, 'POST', `${BASE}/${r.id}/tenancies/${t}`, { cookie, body: { linked: true } })).status, 409);
   assert.deepEqual(links(env), []);
 });
+
+// Review fixes (16-nov): the erasure plan's holds, and writes checked again inside their own batch.
+test('the erasure plan names a running linked tenancy as a hold, only with the switch', async () => {
+  const cookie = await adminCookie();
+  for (const [flag, ended, expected] of [['1', null, true], ['1', '2026-11-01', false], ['0', null, false]]) {
+    const env = on(), c = contact(env, { search: 'resolved' }), t = tenancy(env, { ended });
+    await setLink(env, cookie, t, c.id, true);
+    env.PRE12_TENANCY_LINK_READY = flag;
+    const r = await request(env, cookie, c.id, 'erasure');
+    const d = (await call(env, 'GET', `${BASE}/${r.id}`, { cookie })).data;
+    assert.equal(d.holds.some(h => h.code === 'running_tenancy'), expected, `${flag} ${ended}`);
+    assert.equal(d.erasure.can_delete, !expected);
+    assert.deepEqual(d.holds.filter(h => h.code === 'running_tenancy'), expected ? [{ code: 'running_tenancy' }] : []);
+  }
+  // Switched on before 0113: no hold and no failure.
+  const env = on({ skip: [113] }), c = contact(env, { search: 'resolved' }), r = await request(env, cookie, c.id, 'erasure');
+  const d = await call(env, 'GET', `${BASE}/${r.id}`, { cookie });
+  assert.equal(d.status, 200, d.text);
+  assert.deepEqual(d.data.holds, []);
+});
+
+test("a link made while the applicant's Delete runs stops it inside its batch", async () => {
+  const env = on(), cookie = await adminCookie(), c = contact(env, { search: 'resolved' }), t = tenancy(env);
+  env.DB.raw.prepare('UPDATE applicants SET archived_at = ? WHERE id = ?').run(T, c.applicant);
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => {
+    if (stmts.some(s => /DELETE FROM contacts/.test(s.sql))) env.DB.raw.prepare(`INSERT INTO tenancy_contact_links
+      (tenancy_id, contact_id, linked, tenant_revision, actor, at) VALUES (?, ?, 1, ?, 'colleague@example.test', ?)`).run(t, c.id, 'a'.repeat(64), T);
+    return batch(stmts);
+  };
+  const del = await call(env, 'DELETE', `/admin/applicants/${c.applicant}`, { cookie, body: { confirm: 'Synthetic Tenant' } });
+  assert.equal(del.status, 409, del.text);
+  assert.ok(env.DB.raw.prepare('SELECT 1 FROM contacts WHERE id = ?').get(c.id));
+  assert.ok(env.DB.raw.prepare('SELECT 1 FROM applicants WHERE id = ?').get(c.applicant));
+});
+
+test('a tenancy decision from a request closed or relinked meanwhile is refused and writes nothing', async () => {
+  const cookie = await adminCookie();
+  for (const change of ["UPDATE privacy_requests SET state = 'closed', result = 'withdrawn', closed_at = updated_at", 'UPDATE privacy_requests SET contact_id = ?']) {
+    const env = on(), c = contact(env), t = tenancy(env), r = await request(env, cookie, c.id);
+    const other = contact(env, { email: 'another@example.test', phone: '+447700900777' });
+    const batch = env.DB.batch.bind(env.DB);
+    env.DB.batch = stmts => {
+      if (stmts.some(s => /INSERT INTO tenancy_contact_links/.test(s.sql)))
+        env.DB.raw.prepare(change).run(...(change.includes('?') ? [other.id] : []));
+      return batch(stmts);
+    };
+    const res = await call(env, 'POST', `${BASE}/${r.id}/tenancies/${t}`, { cookie, body: { linked: true } });
+    assert.equal(res.status, 409, res.text);
+    assert.deepEqual(links(env), []);
+  }
+});

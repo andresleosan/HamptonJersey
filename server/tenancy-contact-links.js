@@ -81,18 +81,22 @@ export async function tenancyItems(env, contactId) {
 
 // One decision, appended with the tenant's details as read; written only if they are still the same. The person's copy
 // changes, so the review of any open request of theirs (for the copy as it was) is cleared, as a viewing decision does.
-export async function setTenancyLink(env, tenancyId, contactId, linked, admin) {
+// From a privacy request (requestId), only while it is still open and still on that contact.
+export async function setTenancyLink(env, tenancyId, contactId, linked, admin, requestId = null) {
   const t = await env.DB.prepare("SELECT id, tenant_name, tenant_email, tenant_phone FROM tenancies WHERE id = ?").bind(tenancyId).first();
   if (!t) fail(404, "Tenancy not found");
   if (!(await contactsFor(env, t)).some(c => c.id === contactId)) fail(404, "This contact is not a possible tenant of this tenancy");
   try {
     const [{ meta }] = await env.DB.batch([
       env.DB.prepare(`INSERT INTO tenancy_contact_links (tenancy_id, contact_id, linked, tenant_revision, actor, at)
-        SELECT id, ?, ?, ?, ?, ? FROM tenancies WHERE id = ? AND tenant_name = ? AND tenant_email IS ? AND tenant_phone IS ?`)
-        .bind(contactId, linked ? 1 : 0, await tenantRevision(t), admin, now(), t.id, t.tenant_name, t.tenant_email, t.tenant_phone),
+        SELECT id, ?, ?, ?, ?, ? FROM tenancies WHERE id = ? AND tenant_name = ? AND tenant_email IS ? AND tenant_phone IS ?${requestId
+          ? " AND EXISTS (SELECT 1 FROM privacy_requests WHERE id = ? AND state = 'open' AND contact_id = ?)" : ""}`)
+        .bind(contactId, linked ? 1 : 0, await tenantRevision(t), admin, now(), t.id, t.tenant_name, t.tenant_email, t.tenant_phone,
+          ...(requestId ? [requestId, contactId] : [])),
       env.DB.prepare(`UPDATE privacy_requests SET copy_hash = NULL, copy_reviewed_by = NULL, copy_reviewed_at = NULL
         WHERE contact_id = ? AND state = 'open' AND copy_hash IS NOT NULL AND changes() = 1`).bind(contactId)]);
-    if (!meta.changes) fail(409, "The tenant's details changed meanwhile. Reload and check again.");
+    if (!meta.changes) fail(409, requestId ? "This request or the tenant's details changed meanwhile. Reload and check again."
+      : "The tenant's details changed meanwhile. Reload and check again.");
   } catch (e) { if (missing(e)) fail(404, "Not found"); throw e; }
 }
 

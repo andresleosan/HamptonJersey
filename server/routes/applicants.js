@@ -775,9 +775,11 @@ async function remove({ request, env, admin, params: [id] }) {
   const held = "This contact has an open privacy request that this deletion would affect. Close it first.";
   if (privacy && await env.DB.prepare(heldBy).bind(contact.id).first()) fail(409, held);
   // PRE-12 (D4, with its switch and migration 0113): nor while a team member's link makes it the tenant of a running tenancy.
-  if (!others.n && tenancyLinkReady(env) && await linkTable(env) && await env.DB.prepare(`SELECT 1 FROM contacts c
-    WHERE c.id = ?1 AND ${RUNNING_TENANCY}`).bind(contact.id, jerseyToday()).first())
-    fail(409, "This contact is linked as the tenant of a running tenancy. Remove the link on the rental first.");
+  // A guard in the batch aborts it if such a link is made meanwhile (its NULL tenancy_id fails the NOT NULL).
+  const tenant = !others.n && tenancyLinkReady(env) && !!(await linkTable(env));
+  const tenantHeld = `SELECT 1 FROM contacts c WHERE c.id = ?1 AND ${RUNNING_TENANCY}`;
+  const tenantMsg = "This contact is linked as the tenant of a running tenancy. Remove the link on the rental first.";
+  if (tenant && await env.DB.prepare(tenantHeld).bind(contact.id, jerseyToday()).first()) fail(409, tenantMsg);
   const ts = now();
   const refs = [{ entity_type: "applicant", entity_id: String(cur.id) },
     ...(others.n ? [] : [{ entity_type: "contact", entity_id: String(contact.id) }])];
@@ -787,6 +789,8 @@ async function remove({ request, env, admin, params: [id] }) {
     ...(privacy ? [env.DB.prepare(`INSERT INTO privacy_request_audit (request_id, revision, action, actor, at)
       SELECT NULL, 0, 'closed', ?, ? WHERE EXISTS (${heldBy})`)
       .bind(admin, ts, contact.id)] : []),
+    ...(tenant ? [env.DB.prepare(`INSERT INTO tenancy_contact_links (tenancy_id, contact_id, linked, tenant_revision, actor, at)
+      SELECT NULL, ?1, 0, '${"0".repeat(64)}', ?3, ?4 WHERE EXISTS (${tenantHeld})`).bind(contact.id, jerseyToday(), admin, ts)] : []),
     ...refs.map(ref => resolveNotices(env, ref, admin)),
     env.DB.prepare(`UPDATE notifications SET title = 'Deleted applicant', task_reason = NULL WHERE event_id IN (SELECT id FROM events WHERE ${ofRefs})`)
       .bind(...refArgs),
@@ -795,7 +799,11 @@ async function remove({ request, env, admin, params: [id] }) {
     env.DB.prepare("DELETE FROM applicants WHERE id = ?").bind(cur.id),
     ...(others.n ? [touch(env, contact.id, ts)] : [env.DB.prepare("DELETE FROM contacts WHERE id = ?").bind(contact.id)]),
     ...refs.flatMap(ref => logEvent(env, { actor: admin, ...ref, type: `${ref.entity_type}.deleted` })),
-  ]).catch(e => { if (privacy && /NOT NULL constraint failed: privacy_request_audit/.test(String(e?.message))) fail(409, held); throw e; });
+  ]).catch(e => {
+    if (privacy && /NOT NULL constraint failed: privacy_request_audit/.test(String(e?.message))) fail(409, held);
+    if (tenant && /NOT NULL constraint failed: tenancy_contact_links/.test(String(e?.message))) fail(409, tenantMsg);
+    throw e;
+  });
   return json({ ok: true });
 }
 

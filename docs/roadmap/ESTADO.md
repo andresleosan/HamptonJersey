@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **PRE-12, alquileres unidos a contactos (apagado):** en cada alquiler el equipo podrá confirmar a qué contacto pertenece el inquilino (nunca solo por coincidir el email); así una solicitud de acceso incluye sus alquileres (identidad, dirección y fechas) y un alquiler en curso impide borrar a esa persona. Las 6 decisiones del plan se tomaron según lo recomendado. Espera 0113 y el interruptor. Progreso 139 → 139 de 214.
+
 16-nov-2026 · **Migraciones aditivas aplicadas sin encender nada:** 0107 (alertas REG-15), 0108 (tendencias ANA-04), 0109 (Facebook MSG-01), 0110 (acceso del inquilino ADM-12) y 0112 (aviso de PRE-12). Cada función queda a un interruptor de distancia. Progreso 139 → 139 de 214.
 
 16-nov-2026 · **PRE-12, aviso antes de borrar por inactividad (apagado):** antes de borrar a alguien por 12 meses sin actividad se le enviará un correo; si responde (desde cualquier dirección o en el mismo hilo) o el aviso no sale con certeza, no se borra y el equipo recibe una tarea. Máximo 20 avisos al día. Espera AUT-17, tu OK al texto, aplicar 0112 y que enciendas PRE12_RETENTION_NOTICE_READY en los dos wrangler. Progreso 139 → 139 de 214.
