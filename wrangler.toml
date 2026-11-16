@@ -106,6 +106,7 @@ MSG05_CREATE_READY = "1"
 BUS04_REMATCH_READY = "1"
 # BUS-17: one internal Inbox review of an active search 21 days without a complete option (every must-have met and availability confirmed by a person), then 7 days after each closed review, with up to 20 explained alternatives; and a task when a rejected home's price drops 5% (migration 0099). Sends nothing and changes no criteria or match. Needs EST01_SEARCH_STATE_READY, EST16_AVAILABILITY_READY and EST15_UNAVAILABILITY_READY in both files. Must match the other wrangler.toml.
 BUS17_REVIEW_READY = "1"
+PRE12_REQUESTS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
