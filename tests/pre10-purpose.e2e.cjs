@@ -16,10 +16,16 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     const request=async(method,path,data)=>{const r=await fetchApi(method,path,data);assert.ok(r.ok(),`${method} ${path}: ${r.status()}`);return r.json();};
     let serial=0;const seed=async()=>{
       const n=serial++,name=`PRE10 purpose ${width}-${Date.now()}-${n}`;
-      const made=await request('POST','/admin/applicants',{name,email:`q${width}-${Date.now()}-${n}@example.test`,
-        phone:`+447701${String(width*1000+n).padStart(6,'0')}`,source:'phone',operation:'rent',budget_max:2000,marketing:true});
-      const detail=await request('GET',`/admin/applicants/${made.id}`);
-      return {id:made.id,contactId:detail.contact.id,name};
+      const email=`q${width}-${Date.now()}-${n}@example.test`,phone=`+447701${String(width*1000+n).padStart(6,'0')}`;
+      // Switched on, the panel records no opt-in of its own: the consent comes from the website and the team confirms it.
+      const made=await request('POST','/admin/applicants',{name,email,phone,source:'phone',operation:'rent',budget_max:2000,marketing:true});
+      const added=await request('GET',`/admin/applicants/${made.id}`);
+      assert.equal(added.contact.marketing_opt_in_at,null);
+      await request('POST','/applicants',{name,email,phone,operation:'rent',budget_max:2000,bedrooms_min:1,privacy:true,
+        marketing:true,turnstile:'fixture'});
+      assert.equal((await request('GET',`/admin/applicants/${made.id}`)).marketing_confirmable,true);
+      await request('PUT',`/admin/contacts/${added.contact.id}`,{updated_at:added.contact.updated_at,marketing:true});
+      return {id:made.id,contactId:added.contact.id,name};
     };
     const first=await seed(),other=await seed();
     const errors=[];ctx.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));const page=await ctx.newPage();
@@ -81,6 +87,24 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     await grid.getByText('Email: Objected · Phone calls: Objected · Text messages: Objected',{exact:true}).nth(2).waitFor();
     assert.equal(await row('Valuation offers').textContent(),'Email: Objected · Phone calls: Objected · Text messages: Objected');
     assert.equal((await request('GET',`/admin/applicants/${first.id}`)).events.filter(e=>e.type==='contact.marketing_preference').length,2);
+    // The same objection again: said as already recorded, and the record keeps its contact.
+    await open().click();await panel.getByRole('combobox',{name:/^How it was received/}).selectOption('email');await submit().click();
+    await panel.getByRole('status').filter({hasText:'This objection was already recorded. Nothing changed.'}).waitFor();
+    assert.equal(await page.locator('#a-name').inputValue(),first.name);
+    await page.getByRole('heading',{name:first.name,exact:true}).waitFor();
+    assert.ok(await open().isEnabled());
+    // The Timeline names the objection.
+    await page.getByRole('tab',{name:'Timeline',exact:true}).click();
+    await page.locator('#panel-timeline').getByText('Marketing objection recorded',{exact:false}).first().waitFor();
+    await page.getByRole('tab',{name:'Requirements',exact:true}).click();
+    // Switched on, a contact added from the panel has no marketing tick: consent comes only from the website.
+    const fresh=await ctx.newPage();
+    const ready=fresh.waitForResponse(r=>r.url().endsWith('/api/admin/marketing/purposes'));
+    await fresh.goto(BASE+'admin/#/applicants/new');assert.equal((await ready).status(),200);
+    await fresh.getByText('They were told how we use their details and accept the privacy notice',{exact:true}).waitFor();
+    await fresh.waitForTimeout(250);
+    assert.equal(await fresh.getByText('They agree to hear about new homes and news from Hampton Estates (optional)',{exact:true}).count(),0);
+    await fresh.close();
 
     // A late answer after moving to another record is not shown there, and the other contact is untouched.
     const late=await seed(),p2=await ctx.newPage();await p2.goto(BASE+`admin/#/applicants/${late.id}`);

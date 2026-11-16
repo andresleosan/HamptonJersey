@@ -55,7 +55,8 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",
   "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded",
   "applicant.presentation_answered": "Client answered on their private presentation",
-  "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked" };
+  "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked",
+  "contact.marketing_preference": "Marketing objection recorded" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -258,7 +259,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     if(generation!==detailGeneration.current)return;
     // A new stage can close or reopen the search, which recomputes its matches.
     setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matchCounts: d.matchCounts,
-      retention: d.retention, widen: d.widen, search_run: d.search_run }));
+      retention: d.retention, widen: d.widen, search_run: d.search_run, marketing_confirmable: d.marketing_confirmable }));
     onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
@@ -374,19 +375,21 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     catch(error) { if(generation===marketingGeneration.current)setMarketing({phase:"idle",error:error.message}); }
   };
   // PRE-10: an objection by purpose and channel was saved. Same history refresh as the objection above.
-  const preferencesRecorded = async ({contact, marketing_preferences}) => {
+  const preferencesRecorded = async ({contact, marketing_preferences, already_recorded}) => {
     const generation=++marketingGeneration.current, contactId=contact.id;
     const current=()=>generation===marketingGeneration.current;
     setData(d=>d && d.contact.id===contactId ? {...d,contact,marketing_preferences} : d);
+    requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
+    if(already_recorded) { setMarketing({phase:"idle",status:"This objection was already recorded. Nothing changed."}); return; }
     setMarketingHistoryReady(false);
     setMarketing({phase:"idle",status:"Marketing objection recorded."});
-    requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
     onChange?.();
     const detail=++detailGeneration.current;
     try {
       const d=await api(`/admin/applicants/${id}`);
       if(current() && detail===detailGeneration.current) {
-        setData(x=>x && x.contact.id===contactId ? {...x,events:d.events,duplicates:d.duplicates,retention:d.retention} : x);
+        setData(x=>x && x.contact.id===contactId ? {...x,events:d.events,duplicates:d.duplicates,retention:d.retention,
+          ...("marketing_confirmable" in d && {marketing_confirmable:d.marketing_confirmable})} : x);
         setMarketingHistoryReady(true);
       }
     } catch { if(current())setMarketing({phase:"idle",status:"Marketing objection recorded. History could not be refreshed."}); }
@@ -504,7 +507,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     <Message m={note} onReload={load} />
 
     {data.duplicates.map(d => <Duplicate key={d.id} dup={d} stored={{ ...a, ...c }} contactId={c.id} nameOf={nameOf}
-      archived={archived} lastWithdrawalId={lastWithdrawalId} marketingHistoryReady={marketingHistoryUsable}
+      archived={archived} lastWithdrawalId={lastWithdrawalId} marketingHistoryReady={marketingHistoryUsable} confirmable={data.marketing_confirmable}
       onCopy={copy} onConfirmMarketing={confirmMarketing} onDismiss={dismiss} />)}
 
     {proposal && <section className="warn dup" aria-labelledby="proposal-h">
@@ -615,7 +618,8 @@ const Message = ({ m, onReload }) => m && <p role={m.ok ? "status" : "alert"} cl
   {m.stale && <> <button type="button" className="btn ghost sm" onClick={onReload}>Reload</button></>}</p>;
 
 // §3.3: a pending "registered again" from the website. Shows what they sent that differs from what is saved.
-export function Duplicate({ dup, stored, contactId, nameOf, archived, lastWithdrawalId=0, marketingHistoryReady=true, onCopy, onConfirmMarketing, onDismiss }) {
+// confirmable: the server's answer (PRE-10, switched on); undefined when off.
+export function Duplicate({ dup, stored, contactId, nameOf, archived, lastWithdrawalId=0, marketingHistoryReady=true, confirmable, onCopy, onConfirmMarketing, onDismiss }) {
   const original = dup.data ?? {};
   const sent = { ...original, operation: original.search_operation ?? original.operation };
   stored = { ...stored, operation: stored.search_operation ?? stored.operation };
@@ -629,7 +633,7 @@ export function Duplicate({ dup, stored, contactId, nameOf, archived, lastWithdr
     && (sent.search_category ?? "residential") === stored.search_category && COPY.some(differs);
   const pendingOptIn = sent.marketing === true && stored.marketing_opt_in_at == null;
   const staleOptIn = pendingOptIn && (!Number.isSafeInteger(dup.event_id) || dup.event_id <= lastWithdrawalId);
-  const optIn = pendingOptIn && marketingHistoryReady && !staleOptIn;
+  const reviewable = pendingOptIn && marketingHistoryReady && !staleOptIn, optIn = reviewable && confirmable !== false;
   return <section className="warn dup" aria-labelledby={`dup-${dup.id}`}>
     <h2 id={`dup-${dup.id}`} tabIndex={-1}>{dup.title}</h2>
     <p className="muted">{fmtAgo(dup.created_at)} · {keys.length ? "What they sent that differs from what is saved:" : "What they sent matches what is saved."}</p>
@@ -638,6 +642,7 @@ export function Duplicate({ dup, stored, contactId, nameOf, archived, lastWithdr
       <dd><span className="muted">Saved:</span> {show(k, stored[k], nameOf)} <span className="muted">· Sent:</span> {show(k, sent[k], nameOf)}</dd></div>)}</dl>}
     {optIn && <p>They agreed to marketing this time. The website doesn't check who sent this. Confirm with them before you record it.</p>}
     {staleOptIn && marketingHistoryReady && <p>This marketing response was received before the last withdrawal.</p>}
+    {reviewable && !optIn && <p>This marketing response can't be confirmed from the panel.</p>}
     {pendingOptIn && !marketingHistoryReady && <p>Refresh marketing history before reviewing this response.</p>}
     <div className="inline">
       {copyable && <button type="button" className="btn sm" disabled={archived} onClick={() => onCopy(sent)}>Copy fields</button>}

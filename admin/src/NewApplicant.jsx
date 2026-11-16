@@ -19,6 +19,13 @@ export default function NewApplicant({ contactId, chatId }) {
   // A 409: the email or phone is a saved contact ({contact_id}) or that contact already has this search ({applicant_id}).
   const [found, setFound] = useState(null);
   const formRef = useRef(null), baseline = useRef(BLANK);
+  // PRE-10: switched on (the route answers), consent comes only from the website, so the marketing tick goes away.
+  const [websiteConsentOnly, setWebsiteConsentOnly] = useState(false);
+  useEffect(() => {
+    let live = true;
+    api("/admin/marketing/purposes").then(() => { if (live) { setWebsiteConsentOnly(true); setExtra(x => ({ ...x, marketing: false })); } }, () => {});
+    return () => { live = false; };
+  }, []);
   // Editing the form after a 409 takes back the offer: the email or phone may no longer be that contact's.
   const change = f => { setForm(f); setFound(null); };
   useEffect(() => {
@@ -126,7 +133,7 @@ export default function NewApplicant({ contactId, chatId }) {
         <p className="muted">Tick only what they agreed to. A box left unticked records nothing.</p>
         <div className="choices">
           {tick("privacy", "They were told how we use their details and accept the privacy notice")}
-          {tick("marketing", "They agree to hear about new homes and news from Hampton Estates (optional)")}</div>
+          {!websiteConsentOnly && tick("marketing", "They agree to hear about new homes and news from Hampton Estates (optional)")}</div>
       </section>}
 
       </fieldset>
