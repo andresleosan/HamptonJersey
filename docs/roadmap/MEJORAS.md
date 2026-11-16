@@ -203,3 +203,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 
 - ADM-21 (16-nov-2026): adaptar el CSV de contabilidad al programa que use Hampton (Xero, Sage, QuickBooks) si su importación pide otro formato; hoy es un CSV genérico documentado en docs/roadmap/work/ADM-21/columns.md.
 - Rentals (16-nov-2026, visto en ADM-19): a 390 px con zoom al 200 % la página de Rentals se desborda en horizontal (lista de cumplimiento y tarjeta de Repairs); los e2e de ADM-16 y ADM-06 lo detectan (también antes de ADM-19). Ajustar su maquetación.
+- VIS-14 (16-nov-2026): avisos o tareas del Inbox para los open viewings (plazas llenas, grupo cancelado); NOT-11 ya está hecha.

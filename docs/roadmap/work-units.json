@@ -2102,7 +2102,7 @@
       "preferredSlot": "vscode",
       "priority": 155,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
