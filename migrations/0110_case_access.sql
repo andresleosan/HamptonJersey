@@ -4,12 +4,15 @@
 -- keeps only its hash (source_revision), so a new email ends the grant. Rows are never deleted by the app.
 
 -- A link for one purpose on one case, dormant until a person records sending it, until the start of the Jersey day after
--- expires_on (chosen by the team, no default), revoked by a person.
+-- expires_on (chosen by the team, no default), revoked by a person. It works only while its purpose's policy (ADM-18,
+-- migration 0046) is approved at the revision it was made under. closed: a check found its recipient email changed, its
+-- tenancy ended or its property archived; it stays closed even if that is undone.
 CREATE TABLE case_grants (
   id TEXT PRIMARY KEY CHECK (length(id) = 36),
   case_kind TEXT NOT NULL CHECK (case_kind IN ('rental','tenancy','sale','rental_application')),
   case_id INTEGER NOT NULL CHECK (case_id > 0),
   purpose TEXT NOT NULL CHECK (purpose IN ('repair_report','rental_application','tenancy_reference','renewal_response')),
+  policy_revision INTEGER NOT NULL CHECK (policy_revision > 0),
   party_ref TEXT NOT NULL CHECK (length(party_ref) BETWEEN 1 AND 60),
   recipient_ref TEXT NOT NULL CHECK (length(recipient_ref) BETWEEN 1 AND 60),
   source_revision TEXT NOT NULL CHECK (length(source_revision) = 64),
@@ -19,7 +22,10 @@ CREATE TABLE case_grants (
   status TEXT NOT NULL CHECK (status IN ('dormant','active','revoked','closed')),
   created_at TEXT NOT NULL, created_by TEXT NOT NULL,
   sent_at TEXT, sent_by TEXT,
-  revoked_at TEXT, revoked_by TEXT
+  revoked_at TEXT, revoked_by TEXT,
+  closed_at TEXT,
+  closed_reason TEXT CHECK (closed_reason IS NULL OR closed_reason IN ('recipient_changed','tenancy_ended','property_archived')),
+  CHECK ((status = 'closed') = (closed_at IS NOT NULL AND closed_reason IS NOT NULL))
 ) WITHOUT ROWID;
 CREATE INDEX case_grants_case ON case_grants(case_kind, case_id, created_at);
 
@@ -36,7 +42,8 @@ CREATE TABLE case_challenges (
 ) WITHOUT ROWID;
 CREATE INDEX case_challenges_grant ON case_challenges(grant_id, status);
 
--- One email per code, its quota (1 a minute, 10 a Jersey day per grant) and its outcome; never the code, body or address.
+-- One email per code, its quota (1 a minute and 10 a Jersey day per grant, 30 a day for all grants together) and its
+-- outcome; never the code, body or address.
 CREATE TABLE case_auth_attempts (
   id TEXT PRIMARY KEY CHECK (length(id) = 36),
   challenge_id TEXT NOT NULL UNIQUE REFERENCES case_challenges(id),
@@ -50,6 +57,7 @@ CREATE TABLE case_auth_attempts (
   expires_at TEXT NOT NULL
 ) WITHOUT ROWID;
 CREATE INDEX case_auth_attempts_grant ON case_auth_attempts(grant_id, day, at);
+CREATE INDEX case_auth_attempts_day ON case_auth_attempts(day);
 
 -- A 30-minute session after the right code, for the grant's purpose and recipient only.
 CREATE TABLE case_sessions (

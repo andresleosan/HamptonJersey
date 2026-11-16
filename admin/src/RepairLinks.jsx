@@ -7,10 +7,14 @@ import { jerseyToday, plusDays } from "../../server/viewings.js";
 // private link for the tenant to report a repair. The team chooses the last day it works (no default), copies it (shown
 // once) and sends it themselves; it works once "I have sent it" is pressed and until it is revoked. The tenant opens it
 // with a code sent to the tenancy's email; each report arrives in Repairs as Reported: nothing is approved or ordered,
-// and no photos come through it. Hidden while the server does not answer (switched off, or not set up).
+// and no photos come through it. A new tenant email, the end of the tenancy or archiving the property closes a link for
+// good. Every link that may still work is listed; of the rest, the 20 newest. Hidden while the server does not answer
+// (switched off, or not set up).
+const CLOSED = { recipient_changed: "The tenant's email changed after the link was created: create another if needed.",
+  tenancy_ended: "The tenancy ended.", property_archived: "The property was archived." };
 const state = g => g.status === "revoked" ? ["attention", "Revoked", `Revoked by ${g.revoked_by}, ${fmtDate(g.revoked_at)}.`]
+  : g.status === "closed" ? ["neutral", "Closed", `${CLOSED[g.closed_reason]} It stopped working ${fmtDate(g.closed_at)}.`]
   : g.expired ? ["neutral", "Expired", `It worked until the end of ${fmtDay(g.expires_on)}.`]
-  : g.email_changed ? ["attention", "Stopped", "The tenant's email changed after the link was created: revoke it and create another."]
   : g.status === "active" ? ["positive", "Working", `Sent by ${g.sent_by}, ${fmtDate(g.sent_at)}. Works until the end of ${fmtDay(g.expires_on)}.`]
   : ["neutral", "Not sent yet", `It does not work until you record sending it. Would work until the end of ${fmtDay(g.expires_on)}.`];
 
@@ -62,12 +66,12 @@ export function RepairLinks({ id }) {
     {link && <NewLink link={link} />}
     {msg && <p role="alert" className="err">{msg}</p>}
     {data.links.length > 0 && <ul className="confirmations">{data.links.map(g => { const [kind, badge, text] = state(g);
-      const open = g.status !== "revoked" && !g.expired;
+      const open = ["dormant", "active"].includes(g.status) && !g.expired;
       return <li key={g.id}>
         <p><strong>Link created by {g.created_by}, {fmtDate(g.created_at)}</strong> <span className={`badge ${kind}`}>{badge}</span>
           <br /><span className="muted">{text} {g.reports === 1 ? "1 report" : `${g.reports} reports`} through it.</span></p>
         {open && <div className="inline">
-          {g.status === "dormant" && !g.email_changed && <button type="button" className="btn ghost sm" disabled={busy}
+          {g.status === "dormant" && <button type="button" className="btn ghost sm" disabled={busy}
             onClick={() => act(`/admin/case-grants/${g.id}/sent`, {})}>I have sent it</button>}
           <button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => act(`/admin/case-grants/${g.id}/revoke`, {})}>
             Revoke link</button>

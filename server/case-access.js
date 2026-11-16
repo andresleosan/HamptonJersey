@@ -3,8 +3,9 @@
 // that purpose and case (server/case-capabilities.js, migrations 0046 and 0049), dormant until a person records sending
 // the link, and in force until the Jersey day after the date the team chose starts (R04: required, no default). With the
 // link the party asks for a code (case-auth-email.js); the right code gives a 30-minute session for that grant only.
-// Every read and write checks the grant again: revoked, expired, a new recipient email, an ended tenancy or an archived
-// property end it. Without the operator's key (CASE_CHALLENGE_HMAC_KEY) or before 0110, every route answers 503.
+// Every read and write checks the grant again: revoked, expired, its purpose's policy revoked or approved anew, a new
+// recipient email, an ended tenancy or an archived property end it, the last three for good (closeStale). Without the
+// operator's key (CASE_CHALLENGE_HMAC_KEY) or before 0110, every route answers 503.
 import { fail, now, sha256 } from "./http.js";
 import { getCookie } from "./auth.js";
 import { emailAddress } from "./email.js";
@@ -36,27 +37,49 @@ export const keyed = handler => async ctx => {
   catch (e) { if (/no such table/.test(e?.message ?? "")) fail(503, NOT_READY); throw e; }
 };
 
-// A grant in force: sent, not revoked, before its expiry, on a tenancy still running in a property not archived, whose
-// tenant's email is still the one the link was made for (its hash, source_revision). In a batch the email is bound as read.
+// A grant in force: sent, not revoked or closed, before its expiry, on a tenancy still running in a property not archived,
+// whose tenant's email is still the one the link was made for (its hash, source_revision), while its purpose's policy is
+// approved and in force at the revision the grant was made under (a new approval is a new revision: old grants stay
+// ended). In a batch the email is bound as read.
 const FROM = "case_grants g JOIN tenancies t ON t.id = g.case_id JOIN rentals r ON r.id = t.rental_id";
 const LIVE = `g.case_kind = 'tenancy' AND g.status = 'active' AND g.expires_at > ? AND (t.ended_on IS NULL OR t.ended_on > ?)
-  AND r.archived_at IS NULL`;
+  AND r.archived_at IS NULL AND EXISTS (SELECT 1 FROM case_purpose_policies p WHERE p.purpose = g.purpose
+    AND p.revision = g.policy_revision AND p.status = 'approved' AND p.valid_from <= ? AND (p.expires_at IS NULL OR p.expires_at > ?))`;
 const day = ts => jerseyToday(new Date(ts));
+const live = ts => [ts, day(ts), ts, ts];
 export async function grantInForce(env, where, value, ts) {
   const g = await env.DB.prepare(`SELECT g.id, g.case_kind, g.case_id, g.purpose, g.party_ref, g.source_revision, g.expires_on,
-    g.expires_at, t.tenant_email, t.rental_id, r.address FROM ${FROM} WHERE ${where} AND ${LIVE}`).bind(value, ts, day(ts)).first();
+    g.expires_at, t.tenant_email, t.rental_id, r.address FROM ${FROM} WHERE ${where} AND ${LIVE}`).bind(value, ...live(ts)).first();
   const email = g && emailAddress(g.tenant_email ?? "");
-  return email && await sha256(email) === g.source_revision ? { ...g, email } : null;
+  if (email && await sha256(email) === g.source_revision) return { ...g, email };
+  // Not in force: when it is because of its tenancy, that is recorded so it never comes back.
+  const open = g ?? await env.DB.prepare(`SELECT g.case_id FROM case_grants g WHERE ${where} AND g.case_kind = 'tenancy'
+    AND g.status IN ('dormant', 'active')`).bind(value).first();
+  if (open) await closeStale(env, open.case_id, ts);
+  return null;
 }
 // Inside a batch: fails it (NOT NULL, like ensureChanged) unless that grant is still in force with the same email.
 export const stillInForce = (env, g, ts) => env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL WHERE NOT EXISTS
-  (SELECT 1 FROM ${FROM} WHERE g.id = ? AND t.tenant_email = ? AND ${LIVE})`).bind(g.id, g.tenant_email, ts, day(ts));
+  (SELECT 1 FROM ${FROM} WHERE g.id = ? AND t.tenant_email = ? AND ${LIVE})`).bind(g.id, g.tenant_email, ...live(ts));
+
+// Spec «cambio receptor invalida hijos»: a tenancy's open grants whose recipient email changed, or all of them once the
+// tenancy ended or its property was archived, are closed for good with the reason, so putting the old email back,
+// moving the move-out or restoring the property revives neither them nor their sessions.
+export async function closeStale(env, tenancyId, ts) {
+  const t = await env.DB.prepare(`SELECT t.tenant_email, t.ended_on, r.archived_at FROM tenancies t JOIN rentals r ON r.id = t.rental_id
+    WHERE t.id = ?`).bind(tenancyId).first();
+  const email = emailAddress(t?.tenant_email ?? ""), archived = !!t?.archived_at, ended = !t || (!!t.ended_on && t.ended_on <= day(ts));
+  await env.DB.prepare(`UPDATE case_grants SET status = 'closed', closed_at = ?, closed_reason = ? WHERE case_kind = 'tenancy'
+    AND case_id = ? AND status IN ('dormant', 'active') AND (? OR source_revision <> ?)`)
+    .bind(ts, archived ? "property_archived" : ended ? "tenancy_ended" : "recipient_changed", tenancyId, archived || ended ? 1 : 0,
+      email ? await sha256(email) : "").run();
+}
 
 const denied = () => fail(403, "You are not authorised to give this access on this case.");
 async function capability(env, g, actor) {
   const request = { caseRef: g.caseRef, capability: "case_data_write", purpose: g.purpose };
   const snapshot = await requireCaseCapability(env, request, actor).catch(e => (e?.status === 403 ? denied() : Promise.reject(e)));
-  return { request, guard: await prepareCaseCapabilityGuard(env, request, actor, snapshot) };
+  return { request, snapshot, guard: await prepareCaseCapabilityGuard(env, request, actor, snapshot) };
 }
 
 // A dormant grant; its link token is returned this once and kept only as its hash.
@@ -66,13 +89,14 @@ export async function createCaseGrant(env, { caseRef, purpose, party_ref, recipi
   const today = jerseyToday();
   if (!realDate(expires_on) || expires_on < today || expires_on > plusDays(today, MAX_DAYS))
     fail(400, "Choose the last day the link works: today or a later day, within a year.");
-  const { request, guard } = await capability(env, { caseRef, purpose }, actor);
+  const { request, snapshot, guard } = await capability(env, { caseRef, purpose }, actor);
   const id = crypto.randomUUID(), token = makeCaseToken(), ts = now();
   try {
-    await env.DB.batch([guard.assertion, env.DB.prepare(`INSERT INTO case_grants (id, case_kind, case_id, purpose, party_ref, recipient_ref,
-      source_revision, token_hash, expires_on, expires_at, status, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dormant', ?, ?)`)
-      .bind(id, caseRef.kind, caseRef.id, purpose, party_ref, recipient_ref, source_revision, await hashCaseToken(token), expires_on,
-        caseExpiresAt(expires_on), ts, actor), guard.release]);
+    await env.DB.batch([guard.assertion, env.DB.prepare(`INSERT INTO case_grants (id, case_kind, case_id, purpose, policy_revision, party_ref,
+      recipient_ref, source_revision, token_hash, expires_on, expires_at, status, created_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dormant', ?, ?)`)
+      .bind(id, caseRef.kind, caseRef.id, purpose, snapshot.policyRevision, party_ref, recipient_ref, source_revision,
+        await hashCaseToken(token), expires_on, caseExpiresAt(expires_on), ts, actor), guard.release]);
   } catch (e) { await requireCaseCapability(env, request, actor).catch(denied); throw e; }
   return { id, token };
 }
@@ -85,7 +109,7 @@ export async function markCaseGrant(env, id, action, actor) {
   if (action === "revoke") {
     const r = await env.DB.prepare(`UPDATE case_grants SET status = 'revoked', revoked_at = ?, revoked_by = ?
       WHERE id = ? AND status IN ('dormant', 'active')`).bind(ts, actor, id).run();
-    if (!r.meta.changes) fail(409, "This link was already revoked.");
+    if (!r.meta.changes) fail(409, "This link was already revoked or no longer works.");
     return g;
   }
   const { request, guard } = await capability(env, { caseRef: { kind: g.case_kind, id: g.case_id }, purpose: g.purpose }, actor);
@@ -127,6 +151,13 @@ export async function verifyCaseChallenge(env, { challenge_id, code } = {}) {
     ]);
   } catch { fail(410, EXPIRED); }
   return { token, expires_at: new Date(expires).toISOString(), max_age: Math.floor((expires - Date.parse(ts)) / 1000) };
+}
+
+// Sign out: the session behind this request's case cookie ends in the database at once (the route clears the cookie).
+export async function endCaseSession(env, request) {
+  const token = getCookie(request, COOKIE), ts = now();
+  if (token && TOKEN.test(token)) await env.DB.prepare("UPDATE case_sessions SET expires_at = ? WHERE token_hash = ? AND expires_at > ?")
+    .bind(ts, await hashCaseToken(token), ts).run();
 }
 
 // The party behind this request's case cookie, for this purpose, case (if given) and operation; null otherwise. Derived
