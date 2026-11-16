@@ -38,8 +38,9 @@ export default function SlotPicker({ value, onChange, own, listingId, refresh = 
   // Previous days stay read while paging, but only a response for the current property and request offers slots.
   const paging = response?.request !== request;
   const slotsOf = date => data?.days.find(d => d.date === date)?.slots[nid] ?? [];
+  // VIS-14: an open viewing's time is never offered, whatever the slot says.
   const stateOf = (date, s) => (own && own.negotiator_id === nid && own.date === date && own.time === s.time ? "current"
-    : s.booked ? "booked" : "free");
+    : s.booked || groupAt(date, s.time) ? "booked" : "free");
   // VIS-14: an open viewing at that time (the server sends them switched on): its places, never who holds them.
   const groupAt = (date, time) => data?.groups?.find(g => g.negotiator_id === nid && g.date === date && g.time === time);
   const freeCount = date =>(date > last ? 0 : slotsOf(date).filter(s => stateOf(date, s) === "free").length);

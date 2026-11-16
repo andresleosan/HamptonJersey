@@ -149,10 +149,12 @@ test("a stale request, another property, or a time someone else holds is refused
     { cookie, body: { viewings: [{ id: a, updated_at: "2026-01-01T00:00:00.000Z" }] } });
   assert.equal(stale.status, 409);
   assert.equal((await place(env, cookie, g.data.id, other)).status, 409);
-  // Someone books the empty slot individually: it is no longer the group's to give.
+  // Even empty, the group holds its time: nobody books it individually (M1).
   const booked = await call(env, "POST", "/admin/viewings", { cookie, body: { listing_id: "HE-R002", negotiator_id: 2,
     kind: "In person", date: WED, time: "15:00", name: "Walk In", phone: "07797 000000" } });
-  assert.equal(booked.status, 201);
+  assert.equal(booked.status, 409);
+  // A viewing already at that time (written before the group, say) leaves no place to give.
+  request(env, { listing_id: "HE-R002", listing_ref: "HE-R002", negotiator_id: 2, date: WED, time: "15:00", end_time: "15:30" });
   const clash = await place(env, cookie, g.data.id, a);
   assert.equal(clash.status, 409);
   assert.equal(members(env, g.data.id), 0);
@@ -206,4 +208,134 @@ test("cancelling an open viewing cancels its viewings and closes it to new place
   const cal = await call(env, "GET", `/admin/availability?from=${WED}&days=1`, { cookie });
   assert.deepEqual(cal.data.groups, []);
   assert.equal((await call(env, "POST", `/admin/viewing-groups/${g.data.id}/cancel`, { cookie, body: {} })).status, 409);
+});
+
+// Review of 16-nov: the group's time is one appointment of the negotiator under VIS-09's rules, and a place repeats
+// every check a booking at that time makes.
+const rules = (env, o = {}, revision = 1) => {
+  const p = { negotiator_id: 2, duration_minutes: 30, buffer_minutes: 15, parish_extra_minutes: 15, max_daily: 8, ...o };
+  if (revision === 1) env.DB.raw.prepare(`INSERT INTO viewing_policy_settings (negotiator_id, duration_minutes, buffer_minutes,
+    parish_extra_minutes, max_daily, revision, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 1, ?, 'fixture')`)
+    .run(p.negotiator_id, p.duration_minutes, p.buffer_minutes, p.parish_extra_minutes, p.max_daily, T0);
+  else env.DB.raw.prepare("UPDATE viewing_policy_settings SET max_daily = ?, revision = ? WHERE negotiator_id = ?")
+    .run(p.max_daily, revision, p.negotiator_id);
+};
+const walkIn = (env, cookie, time, listing = "HE-R002") => call(env, "POST", "/admin/viewings", { cookie, body: {
+  listing_id: listing, negotiator_id: 2, kind: "In person", date: WED, time, name: "Walk In", phone: "07797 000000" } });
+const slotAt = async (env, cookie, time) => (await call(env, "GET", `/admin/availability?from=${WED}&days=1&negotiator_id=2`, { cookie }))
+  .data.days[0].slots[2].find(s => s.time === time);
+const parishes = env => env.DB.raw.exec(`UPDATE listings SET parish = 'St Saviour' WHERE id = 'HE-R001';
+  UPDATE listings SET parish = 'Trinity' WHERE id = 'HE-R002'`);
+
+test("M1: with the rules on, an open viewing is one appointment of the day, whatever its places", async t => {
+  const { env, cookie } = await world(t, { policy: true });
+  parishes(env); rules(env, { max_daily: 3 });
+  const g = await open(env, cookie, [request(env), request(env), request(env)]);
+  assert.equal(g.data.placed.length, 3, JSON.stringify(g.data));
+  assert.equal((await walkIn(env, cookie, "10:00")).status, 201, "group (1) + this = 2");
+  assert.equal((await walkIn(env, cookie, "11:00")).status, 201, "group (1) + 2 = 3");
+  assert.equal((await walkIn(env, cookie, "12:00")).status, 409, "the fourth appointment of the day");
+});
+
+test("M1: completed or no-show places still leave the open viewing as one appointment", async t => {
+  const { env, cookie } = await world(t, { policy: true });
+  parishes(env); rules(env, { max_daily: 2 });
+  const a = request(env), b = request(env);
+  const g = await open(env, cookie, [a, b]);
+  assert.equal(g.data.placed.length, 2, JSON.stringify(g.data));
+  env.DB.raw.prepare("UPDATE viewing_requests SET status = 'completed' WHERE id = ?").run(a);
+  env.DB.raw.prepare("UPDATE viewing_requests SET status = 'no_show' WHERE id = ?").run(b);
+  assert.equal((await walkIn(env, cookie, "10:00")).status, 201);
+  assert.equal((await walkIn(env, cookie, "11:00")).status, 409);
+});
+
+test("M1/M6: an empty open viewing blocks its time and the negotiator's margins, with the rules on or off", async t => {
+  for (const policy of [true, false]) {
+    const { env, cookie } = await world(t, { policy });
+    parishes(env);
+    assert.equal((await open(env, cookie, [], { time: "15:00" })).status, 201);
+    assert.equal((await slotAt(env, cookie, "15:00")).booked, true, `policy ${policy}: the group's time`);
+    assert.equal((await slotAt(env, cookie, "15:30")).booked, true, `policy ${policy}: inside the margin`);
+    assert.equal((await walkIn(env, cookie, "15:00")).status, 409);
+    assert.equal((await walkIn(env, cookie, "15:30")).status, 409);
+    assert.equal((await walkIn(env, cookie, "16:00")).status, 201, "after margin and parish extra");
+    // Back-to-back never lands on it either.
+    const ids = [request(env), request(env)];
+    const r = await call(env, "POST", "/admin/viewing-groups/consecutive", { cookie, body: { listing_id: ID,
+      negotiator_id: 2, date: WED, time: "14:00", viewings: ids.map(id => ref(env, id)) } });
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.moved.every(m => !["14:30", "15:00", "15:30", "16:00"].includes(m.time)), JSON.stringify(r.data.moved));
+    t.mock.timers.reset();
+  }
+});
+
+test("M2: a place is refused once the day's maximum would be passed, and records the margins it was given with", async t => {
+  const { env, cookie } = await world(t, { policy: true });
+  parishes(env); rules(env, { max_daily: 2 });
+  const g = await open(env, cookie, [request(env)]);
+  assert.equal((await walkIn(env, cookie, "10:00")).status, 201, "group + walk-in = 2");
+  const snap = env.DB.raw.prepare("SELECT * FROM viewing_policy_snapshots WHERE viewing_id = ?").get(g.data.placed[0]);
+  assert.deepEqual([snap?.parish, snap?.buffer_minutes, snap?.policy_revision], ["St Saviour", 15, 1], "policySnapshot on a place");
+  assert.equal((await place(env, cookie, g.data.id, request(env))).status, 200, "a place adds no appointment");
+  rules(env, { max_daily: 1 }, 2);
+  const over = await place(env, cookie, g.data.id, request(env));
+  assert.equal(over.status, 409, JSON.stringify(over.data));
+  assert.equal(members(env, g.data.id), 2);
+});
+
+test("M3: an open viewing that has started cannot be cancelled", async t => {
+  const { env, cookie } = await world(t);
+  const a = request(env);
+  const g = await open(env, cookie, [a], { time: "10:00" });
+  t.mock.timers.setTime(Date.parse("2026-10-21T09:05:00.000Z")); // Wednesday 10:05 in Jersey
+  const later = await adminCookie(); // the day before's session has expired
+  const r = await call(env, "POST", `/admin/viewing-groups/${g.data.id}/cancel`, { cookie: later, body: {} });
+  assert.equal(r.status, 409);
+  assert.match(r.data.error, /started/);
+  assert.equal(row(env, a).status, "requested");
+  assert.equal(env.DB.raw.prepare("SELECT status FROM viewing_groups").get().status, "open");
+});
+
+test("M5: one place per person as the interest count joins them (Counted twice)", async t => {
+  const { env, cookie } = await world(t);
+  const a = request(env, { email: "first@example.je" }), b = request(env, { email: "second@example.je" });
+  env.DB.raw.prepare("UPDATE viewing_requests SET interest_same_as = 'first@example.je' WHERE id = ?").run(b);
+  const g = await open(env, cookie, [a]);
+  const again = await place(env, cookie, g.data.id, b);
+  assert.equal(again.status, 409);
+  assert.match(again.data.error, /already has a place/);
+});
+
+test("M7: a place repeats the property's viewings switch, hours and notice", async t => {
+  const { env, cookie } = await world(t);
+  env.VIS10_HOUSE_RULES_READY = "1";
+  const g = await open(env, cookie, [], { time: "15:00" });
+  const a = request(env);
+  env.DB.raw.prepare("UPDATE listings SET viewings_enabled = 0 WHERE id = ?").run(ID);
+  assert.equal((await place(env, cookie, g.data.id, a)).status, 409, "viewings disabled");
+  env.DB.raw.prepare(`UPDATE listings SET viewings_enabled = 1, viewing_hours = '[{"day":3,"start":"09:00","end":"12:00"}]' WHERE id = ?`).run(ID);
+  assert.equal((await place(env, cookie, g.data.id, a)).status, 409, "outside the house's hours");
+  env.DB.raw.prepare("UPDATE listings SET viewing_hours = NULL, occupancy = 'tenanted' WHERE id = ?").run(ID);
+  env.DB.raw.prepare("INSERT INTO listing_viewing_rules (listing_id, notice_hours, updated_at, updated_by) VALUES (?, 48, ?, 'fixture')").run(ID, T0);
+  const short = await place(env, cookie, g.data.id, a);
+  assert.equal(short.status, 409);
+  assert.match(short.data.error, /access is agreed/i);
+  assert.equal(members(env, g.data.id), 0);
+  const agreed = await call(env, "POST", `/admin/viewing-groups/${g.data.id}/places`,
+    { cookie, body: { viewings: [ref(env, a)], notice_confirmed: true } });
+  assert.equal(agreed.status, 200, JSON.stringify(agreed.data));
+});
+
+test("M8: requests already planned back-to-back say so while they keep that time", async t => {
+  const { env, cookie } = await world(t);
+  const ids = [request(env), request(env)];
+  await call(env, "POST", "/admin/viewing-groups/consecutive", { cookie, body: { listing_id: ID, negotiator_id: 2,
+    date: WED, time: "10:00", viewings: ids.map(id => ref(env, id)) } });
+  const o = await call(env, "GET", "/admin/viewing-groups", { cookie });
+  assert.deepEqual(o.data.requests.map(r => [r.id, r.back_to_back, r.negotiator_name]), ids.map(id => [id, 1, "Joshua Franco"]));
+  const v = row(env, ids[0]);
+  await call(env, "PUT", `/admin/viewings/${ids[0]}`, { cookie, body: { action: "reschedule", updated_at: v.updated_at,
+    negotiator_id: 1, date: "2026-10-23", time: "10:00" } });
+  const after = await call(env, "GET", "/admin/viewing-groups", { cookie });
+  assert.deepEqual(after.data.requests.map(r => [r.id, r.back_to_back]).sort((x, y) => x[0] - y[0]), [[ids[0], 0], [ids[1], 1]]);
 });

@@ -100,6 +100,10 @@ const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execut
       assert.deepEqual(after.map(v => [v.status, v.negotiator_id, v.date]), ids.map(() => ['requested', josh, b2b.day]));
       assert.equal(after[0].time, b2b.time);
       assert.ok(after.every((v, i) => i === 0 || v.time >= after[i - 1].end_time), `back-to-back, never overlapping: ${after.map(v => v.time)}`);
+      // The card says they are planned, not waiting for a plan.
+      await house.getByText('4 requests planned back-to-back.', { exact: false }).waitFor();
+      await house.getByText(`${names[0]} · back-to-back`, { exact: false }).waitFor();
+      assert.equal(await house.getByText('open requests for this house').count(), 0);
 
       // Open viewing: one time with Gilberto, five places; each request gets one and stays pending.
       await house.getByRole('button', { name: 'Create open viewing' }).click();

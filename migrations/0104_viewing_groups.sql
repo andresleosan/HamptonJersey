@@ -14,7 +14,15 @@ CREATE TABLE viewing_groups (
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'cancelled')),
   created_at TEXT NOT NULL, created_by TEXT NOT NULL,
   cancelled_at TEXT, cancelled_by TEXT,
+  -- VIS-09: the group's time is ONE appointment of the negotiator (daily maximum, margins). Like
+  -- viewing_policy_snapshots, the parish and margins it was created with; NULL when the rules were off (defaults apply).
+  parish TEXT,
+  buffer_minutes INTEGER CHECK (buffer_minutes IS NULL OR (typeof(buffer_minutes) = 'integer' AND buffer_minutes BETWEEN 0 AND 120)),
+  parish_extra_minutes INTEGER CHECK (parish_extra_minutes IS NULL
+    OR (typeof(parish_extra_minutes) = 'integer' AND parish_extra_minutes BETWEEN 0 AND 120)),
+  policy_revision INTEGER CHECK (policy_revision IS NULL OR (typeof(policy_revision) = 'integer' AND policy_revision >= 0)),
   CHECK (time < end_time),
+  CHECK ((policy_revision IS NULL) = (buffer_minutes IS NULL) AND (policy_revision IS NULL) = (parish_extra_minutes IS NULL)),
   CHECK ((status = 'cancelled') = (cancelled_at IS NOT NULL))
 );
 -- The panel's calendar reads a negotiator's groups by date.

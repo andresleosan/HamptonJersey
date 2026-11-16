@@ -2,6 +2,7 @@ import { fail, now as stamp } from "./http.js";
 import { daySlots, addMinutes, plusDays, weekday, SLOT_MINUTES, BUFFER_MINUTES, ACTIVE, propertyAllows } from "./viewings.js";
 import { rentalClosureEnabled, noUnresolvedRentalClosureSql } from './rental-closure.js';
 import { viewingPolicyReady, canReserveViewing, reservationPolicyGuard, DEFAULT_VIEWING_POLICY } from './viewing-policy.js';
+import { vis14Ready, collapsedSql, groupBooking } from './viewing-groups.js';
 
 const ACTIVE_SQL = ACTIVE.map(s => `'${s}'`).join(", ");
 export const PUBLIC_BOOKING_BLOCKED_SQL = "'sold','let_agreed','let','withdrawn'";
@@ -15,6 +16,7 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
   for (let d = from; dates.length < days; d = plusDays(d, 1)) if (!fromTomorrow || weekday(d) !== "sun") dates.push(d);
   const who = [includeInactive ? "1" : "active = 1", ...(negotiatorId == null ? [] : ["id = ?"])].join(" AND ");
   const args = negotiatorId == null ? [] : [negotiatorId], range = [dates[0], dates.at(-1)], ready = viewingPolicyReady(env);
+  const groups = vis14Ready(env);
   const results = await env.DB.batch([
     env.DB.prepare(`SELECT id, name, role, active, hours FROM negotiators WHERE ${who} ORDER BY id`).bind(...args),
     env.DB.prepare(`SELECT negotiator_id, date, kind, start_time, end_time FROM negotiator_exceptions
@@ -34,17 +36,24 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
       env.DB.prepare(`SELECT v.id, v.negotiator_id, v.date, v.time, v.end_time, v.status, s.parish, s.buffer_minutes,
           s.parish_extra_minutes, s.policy_revision FROM viewing_requests v LEFT JOIN viewing_policy_snapshots s ON s.viewing_id = v.id
         WHERE v.negotiator_id IN (SELECT id FROM negotiators WHERE ${who})
-          AND v.date BETWEEN ? AND ? AND v.status IS NOT 'cancelled'${excludeId == null ? "" : " AND v.id <> ?"}`)
+          AND v.date BETWEEN ? AND ? AND v.status IS NOT 'cancelled'${excludeId == null ? "" : " AND v.id <> ?"}${
+            groups ? ` AND NOT ${collapsedSql("v")}` : ""}`)
         .bind(...args, plusDays(range[0], -1), plusDays(range[1], 1), ...(excludeId == null ? [] : [excludeId])),
     ] : []),
+    // VIS-14: the open groups of those negotiators, one appointment each (an empty one still holds its time).
+    ...(groups ? [env.DB.prepare(`SELECT id, negotiator_id, date, time, end_time, parish, buffer_minutes, parish_extra_minutes,
+        policy_revision FROM viewing_groups WHERE status = 'open' AND negotiator_id IN (SELECT id FROM negotiators WHERE ${who})
+        AND date BETWEEN ? AND ?`).bind(...args, plusDays(range[0], -1), plusDays(range[1], 1))] : []),
   ]).then(r => r.map(x => x.results));
+  const open = groups ? results.pop() : [];
   const [people, exceptions, bookings] = results, properties = listingId == null ? undefined : results[3];
   const [settings = [], nearby = []] = ready ? results.slice(listingId == null ? 3 : 4) : [];
   if (listingId != null && !properties.length) fail(404, "Unknown property");
   const property = properties?.[0];
   if (property) property.viewing_hours = property.viewing_hours == null ? null : JSON.parse(property.viewing_hours);
   const byDay = rows => rows.reduce((a, r) => ((a[`${r.negotiator_id} ${r.date}`] ||= []).push(r), a), {});
-  const ex = byDay(exceptions), booked = byDay(bookings);
+  const ex = byDay(exceptions), booked = byDay([...bookings, ...open]);
+  if (groups) nearby.push(...open.map(groupBooking));
   const hours = Object.fromEntries(people.map(p => [p.id, JSON.parse(p.hours)]));
   // Master plan (10-Nov-2026): a negotiator without saved rules has the plan's defaults (30, 15, +15 between parishes,
   // 8 a day; revision 0), not the bare fixed slot. reservationPolicyGuard reads a missing row as these same values.
@@ -68,13 +77,15 @@ export async function loadAvailability(env, { from, days, now, fromTomorrow, inc
 // C6: an active viewing of the same negotiator that day overlapping [time, time + SLOT_MINUTES) with BUFFER_MINUTES
 // either side (daySlots' rule). The bounds come from addMinutes, never SQLite's time(), which wraps at midnight.
 // excludeId: the viewing being moved, which never clashes with itself. Bind `binds` where `sql` goes.
-export function clash({ negotiator_id, date, time }, excludeId) {
-  const end = addMinutes(time, SLOT_MINUTES);
+// groups (VIS-14 on): an open viewing group of the negotiator at that time clashes too, even with no place taken.
+export function clash({ negotiator_id, date, time }, excludeId, { groups = false } = {}) {
+  const end = addMinutes(time, SLOT_MINUTES), span = [negotiator_id, date, addMinutes(end, BUFFER_MINUTES), addMinutes(time, -BUFFER_MINUTES)];
   return {
-    sql: `EXISTS (SELECT 1 FROM viewing_requests o WHERE o.negotiator_id = ? AND o.date = ? AND o.status IN (${ACTIVE_SQL})
-      AND o.time < ? AND o.end_time > ?${excludeId == null ? "" : " AND o.id <> ?"})`,
-    binds: [negotiator_id, date, addMinutes(end, BUFFER_MINUTES), addMinutes(time, -BUFFER_MINUTES),
-      ...(excludeId == null ? [] : [excludeId])],
+    sql: `(EXISTS (SELECT 1 FROM viewing_requests o WHERE o.negotiator_id = ? AND o.date = ? AND o.status IN (${ACTIVE_SQL})
+      AND o.time < ? AND o.end_time > ?${excludeId == null ? "" : " AND o.id <> ?"})${groups ? `
+      OR EXISTS (SELECT 1 FROM viewing_groups og WHERE og.negotiator_id = ? AND og.date = ? AND og.status = 'open'
+        AND og.time < ? AND og.end_time > ?)` : ""})`,
+    binds: [...span, ...(excludeId == null ? [] : [excludeId]), ...(groups ? span : [])],
   };
 }
 
@@ -98,9 +109,10 @@ export function propertyViewingGuard({ listing_id, date, time }, { publicOnly = 
 // been saved meanwhile. actor: a panel write's admin, who must still be one.
 export function slotGuard(env, v, { policy = null, parish = null, actor = null, excludeId = null } = {}) {
   const ready = viewingPolicyReady(env);
+  const groups = vis14Ready(env);
   const g = policy ? reservationPolicyGuard({ negotiator_id: v.negotiator_id, date: v.date, time: v.time,
-    listing_id: v.listing_id ?? null, parish }, policy, { excludeViewingId: excludeId }) : null;
-  const c = g ? null : clash(v, excludeId);
+    listing_id: v.listing_id ?? null, parish }, policy, { excludeViewingId: excludeId, groups }) : null;
+  const c = g ? null : clash(v, excludeId, { groups });
   const sql = g ? g.sql : `NOT ${c.sql}${ready ? " AND NOT EXISTS (SELECT 1 FROM viewing_policy_settings WHERE negotiator_id = ?)" : ""}`;
   return {
     sql: ready && actor ? `${sql} AND EXISTS (SELECT 1 FROM admins WHERE email = ?)` : sql,

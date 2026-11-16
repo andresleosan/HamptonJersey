@@ -40,7 +40,9 @@ export default function ViewingGroups({ listing, onChanged }) {
     r => `Gave ${plural(r.placed.length, "place")} in the open viewing of ${fmtDay(g.date, true)} at ${g.time}.${notMoved(r.refused)}`);
   const cancel = g => confirm(`Cancel the open viewing of ${fmtDay(g.date, true)} at ${g.time}? Its ${plural(g.pending + g.confirmed, "viewing")} are cancelled too. Nothing is sent: tell each person yourself.`)
     && run(() => api(`/admin/viewing-groups/${g.id}/cancel`, { method: "POST", body: {} }),
-      r => `Open viewing cancelled, with ${plural(r.cancelled.length, "viewing")}. Nothing was sent: tell each person yourself.`);
+      r => `Open viewing cancelled, with ${plural(r.cancelled.length, "viewing")}.${r.refused.length
+        ? ` ${plural(r.refused.length, "viewing")} could not be cancelled (changed meanwhile): open ${r.refused.length === 1 ? "it" : "each"} in Upcoming or Requests to cancel it.`
+        : ""} Nothing was sent: tell each person yourself.`);
 
   if (err) return <p role="alert" className="err">{err} <button type="button" className="linkish" onClick={load}>Try again</button></p>;
   if (!data) return null;
@@ -55,12 +57,14 @@ export default function ViewingGroups({ listing, onChanged }) {
     <Msg m={msg} />
     {houses.map(id => {
       const asked = requests.filter(r => r.listing_id === id), open = groups.filter(g => g.listing_id === id), n = asked.length;
-      const title = (asked[0] ?? open[0]).listing_title;
+      const title = (asked[0] ?? open[0]).listing_title, planned = asked.filter(r => r.back_to_back).length, waiting = n - planned;
       return <article key={id} className="block-house" aria-labelledby={`h-block-${id}`}>
         <h3 id={`h-block-${id}`}>{title} <span className="muted">{id}</span></h3>
-        {n >= 2 && <p className="warn">{plural(n, "open request")} for this house.</p>}
+        {waiting >= 2 && <p className="warn">{plural(waiting, "open request")} for this house.</p>}
+        {planned > 0 && <p>{plural(planned, "request")} planned back-to-back. Confirm each one once the person agrees.</p>}
         {n > 0 && <ul className="block-people">{asked.map(r => <li key={r.id}>{r.name}
-          <span className="muted num"> asked for {fmtDay(r.date)} · {r.time}</span></li>)}</ul>}
+          <span className="muted num">{r.back_to_back ? ` · back-to-back ${fmtDay(r.date)} · ${r.time} with ${r.negotiator_name}`
+            : ` asked for ${fmtDay(r.date)} · ${r.time}`}</span></li>)}</ul>}
         {open.map(g => {
           const taken = g.pending + g.confirmed;
           return <div key={g.id} className="block-group">

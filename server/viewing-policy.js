@@ -1,6 +1,7 @@
 // VIS-09: viewing length, margins between homes and a daily maximum per negotiator. Availability and the booking
 // writers use it only with VIS09_VIEWING_POLICY_READY=1; without saved rules the defaults below apply (viewing-store.js).
 import { OPTIONS } from './applicants.js';
+import { collapsedSql } from './viewing-groups.js';
 
 export const viewingPolicyReady = env => env?.VIS09_VIEWING_POLICY_READY === '1';
 
@@ -145,7 +146,9 @@ export function canReserveViewing(snapshot, candidate, {excludeViewingId = null}
 // The owning transaction must also check hours, property/publication state,
 // permissions, and insert/update the snapshot with its event. Never expose the
 // exclusion option to an INSERT or accept it from an untrusted requester.
-export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewingId = null} = {}) {
+// VIS-14 (groups: VIS14_BLOCK_READY on): an open viewing group is one appointment of the day with its own margins,
+// and the viewings at its time are represented by it; excludeGroupId: the group a place is being given in.
+export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewingId = null, groups = false, excludeGroupId = null} = {}) {
   const policy = validatePolicy(selectedPolicy);
   const start = minutes(candidate?.time);
   if (!candidate || !Number.isSafeInteger(candidate.negotiator_id) || candidate.negotiator_id<1
@@ -153,7 +156,8 @@ export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewin
       || (candidate.listing_id != null && (typeof candidate.listing_id!=='string' || !/^HE-[A-Z]\d{3,}$/.test(candidate.listing_id)))
       || (candidate.parish != null && (typeof candidate.parish!=='string' || candidate.parish.length>100))
       || (candidate.listing_id == null && candidate.parish != null)
-      || (excludeViewingId != null && (!Number.isSafeInteger(excludeViewingId) || excludeViewingId<1)))
+      || (excludeViewingId != null && (!Number.isSafeInteger(excludeViewingId) || excludeViewingId<1))
+      || (excludeGroupId != null && (!groups || !Number.isSafeInteger(excludeGroupId) || excludeGroupId<1)))
     throw new TypeError('Invalid viewing candidate');
   // The finite list is derived from the existing shared applicant/listing values.
   const parishes=OPTIONS.parishes.map(([name])=>`'${name.replaceAll("'","''")}'`).join(',');
@@ -165,10 +169,24 @@ export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewin
   const gap=`(MAX(c.buffer_minutes,COALESCE(s.buffer_minutes,15)) + CASE
     WHEN c.parish IN (${parishes}) AND s.parish IN (${parishes}) AND c.parish=s.parish THEN 0
     ELSE MAX(c.parish_extra_minutes,COALESCE(s.parish_extra_minutes,15)) END)`;
+  // VIS-14: open groups, one appointment each, with the margins they were created with (gm); their viewings left out.
+  const collapsed = groups ? ` AND NOT ${collapsedSql('o')}` : '';
+  const gOff=`(CASE gm.date WHEN date(c.local_date,'-1 day') THEN -1440 WHEN date(c.local_date,'+1 day') THEN 1440 ELSE 0 END)`;
+  const gStart=`(${gOff}+CAST(substr(gm.time,1,2) AS INTEGER)*60+CAST(substr(gm.time,4,2) AS INTEGER))`;
+  const gEnd=`(${gOff}+CAST(substr(gm.end_time,1,2) AS INTEGER)*60+CAST(substr(gm.end_time,4,2) AS INTEGER))`;
+  const gGap=`(MAX(c.buffer_minutes,COALESCE(gm.buffer_minutes,15)) + CASE
+    WHEN c.parish IN (${parishes}) AND gm.parish IN (${parishes}) AND c.parish=gm.parish THEN 0
+    ELSE MAX(c.parish_extra_minutes,COALESCE(gm.parish_extra_minutes,15)) END)`;
+  const groupCount = groups ? ` + (SELECT COUNT(*) FROM viewing_groups gd WHERE gd.negotiator_id=c.negotiator_id
+          AND gd.date=c.local_date AND gd.status='open' AND gd.id IS NOT c.excluded_group)` : '';
+  const groupMargins = groups ? `
+        AND NOT EXISTS (SELECT 1 FROM viewing_groups gm WHERE gm.negotiator_id=c.negotiator_id AND gm.status='open'
+          AND gm.date IN (date(c.local_date,'-1 day'),c.local_date,date(c.local_date,'+1 day')) AND gm.id IS NOT c.excluded_group
+          AND c.start_minute < ${gEnd} + ${gGap} AND c.end_minute + ${gGap} > ${gStart})` : '';
   return {
     sql:`EXISTS (SELECT 1 FROM (SELECT ? AS negotiator_id, ? AS local_date, ? AS start_minute, ? AS end_minute,
         ? AS listing_id, ? AS parish, ? AS revision, ? AS duration_minutes, ? AS buffer_minutes,
-        ? AS parish_extra_minutes, ? AS max_daily, ? AS excluded_id, ? AS stable_timezone) c
+        ? AS parish_extra_minutes, ? AS max_daily, ? AS excluded_id, ? AS stable_timezone${groups ? ', ? AS excluded_group' : ''}) c
       JOIN negotiators n ON n.id=c.negotiator_id AND n.active=1
       LEFT JOIN viewing_policy_settings p ON p.negotiator_id=n.id
       WHERE c.stable_timezone=1 AND COALESCE(p.revision,0)=c.revision AND COALESCE(p.duration_minutes,30)=c.duration_minutes
@@ -182,17 +200,17 @@ export function reservationPolicyGuard(candidate, selectedPolicy, {excludeViewin
             AND bad.date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
             AND substr(bad.date,1,4)<>'0000' AND date(bad.date,'+0 days') IS bad.date))
         AND (SELECT COUNT(*) FROM viewing_requests o WHERE o.negotiator_id=c.negotiator_id AND o.date=c.local_date
-          AND o.status IS NOT 'cancelled' AND (c.excluded_id IS NULL OR o.id<>c.excluded_id)) < c.max_daily
+          AND o.status IS NOT 'cancelled' AND (c.excluded_id IS NULL OR o.id<>c.excluded_id)${collapsed})${groupCount} < c.max_daily
         AND NOT EXISTS (SELECT 1 FROM viewing_requests o LEFT JOIN viewing_policy_snapshots s ON s.viewing_id=o.id
           WHERE o.negotiator_id=c.negotiator_id
             AND o.date IN (date(c.local_date,'-1 day'),c.local_date,date(c.local_date,'+1 day')) AND o.status IS NOT 'cancelled'
-            AND (c.excluded_id IS NULL OR o.id<>c.excluded_id)
+            AND (c.excluded_id IS NULL OR o.id<>c.excluded_id)${collapsed}
             AND (o.status IS NULL OR o.status NOT IN ('requested','confirmed','completed','no_show') OR NOT ${validStart} OR NOT ${validEnd}
               OR ${oldEnd} <= ${oldStart}
-              OR (c.start_minute < ${oldEnd} + ${gap} AND c.end_minute + ${gap} > ${oldStart}))))`,
+              OR (c.start_minute < ${oldEnd} + ${gap} AND c.end_minute + ${gap} > ${oldStart})))${groupMargins})`,
     binds:[candidate.negotiator_id,candidate.date,start,start+policy.duration_minutes,candidate.listing_id ?? null,
       candidate.parish ?? null,policy.revision,policy.duration_minutes,policy.buffer_minutes,
       policy.parish_extra_minutes,policy.max_daily,excludeViewingId,
-      stableJerseyTime(candidate.date,candidate.time,policy.duration_minutes)?1:0],
+      stableJerseyTime(candidate.date,candidate.time,policy.duration_minutes)?1:0,...(groups ? [excludeGroupId] : [])],
   };
 }
