@@ -10,6 +10,7 @@ import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTen
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
+import { TenancySignatures } from "./TenancySignatures.jsx";
 import { Suppliers } from "./Suppliers.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
@@ -357,6 +358,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
     <TenancyInspections id={id} tick={tick} onRepair={refresh} />
     <TenancyRecords id={id} tick={tick} />
+    <TenancySignatures id={id} tick={tick} />
     <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />
 
     {full && <><h3 id={`h-charges-${id}`}>Charges</h3>
@@ -420,6 +422,9 @@ const EVENT = {
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
   "tenancy.origin_linked": d => `Tenancy started from Let agreed listing ${d.listing_id}`,
   "tenancy.signed_contract_recorded": d => `Signed contract reference recorded (revision ${d.revision})`,
+  // ADM-19: counts only; the names, days and references stay in the tenancy card.
+  "tenancy.signatures_reviewed": d => `Signatures checked outside Hampton recorded (revision ${d.revision}): ${d.signed} of ${
+    d.signed + d.missing} signed${d.contract_revision ? `, against signed contract reference revision ${d.contract_revision}` : ""}`,
   "tenancy.entry_inventory_saved": d => `Entry inventory saved (revision ${d.revision}): ${d.rooms} rooms, ${d.meter_readings} meter readings`,
   "tenancy.exit_inventory_saved": d => `Exit inventory saved (revision ${d.revision}): ${d.rooms} rooms, ${d.changed} changed, ${d.entry_revision
     ? `compared with entry inventory revision ${d.entry_revision}` : "no entry inventory to compare with"}${d.moved_out_on

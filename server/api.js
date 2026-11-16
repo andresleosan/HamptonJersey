@@ -41,6 +41,8 @@ import tenancyExitRoutes from "./routes/tenancy-exits.js";
 import { exitReady } from "./tenancy-exits.js";
 import inspectionRoutes from "./routes/rental-inspections.js";
 import { inspectionsReady } from "./rental-inspections.js";
+import signatureRoutes from "./routes/tenancy-signatures.js";
+import { signatureReady } from "./tenancy-signatures.js";
 import documentRoutes from "./routes/listing-documents.js";
 import { documentsReady } from "./listing-documents.js";
 import missingPaymentRoutes from "./routes/missing-payments.js";
@@ -109,6 +111,7 @@ async function route(request, env, segments, waitUntil) {
     if (env.ADM06_TENANCY_ORIGIN_READY === '1') routes = [...routes, ...tenancyOriginRoutes]; // ADM-06: needs migration 0056
     if (exitReady(env)) routes = [...routes, ...tenancyExitRoutes]; // ADM-16: needs migration 0059
     if (inspectionsReady(env)) routes = [...routes, ...inspectionRoutes]; // ADM-13: needs migration 0060
+    if (signatureReady(env)) routes = [...routes, ...signatureRoutes]; // ADM-19: needs migration 0103
     if (documentsReady(env)) routes = [...routes, ...documentRoutes]; // PUB-11: needs migration 0058
     if (missingPaymentsReady(env)) routes = [...routes, ...missingPaymentRoutes]; // NOT-05: no migration
     if (legalTermsReady(env)) routes = [...routes, ...legalRoutes]; // ADM-17: saving needs migration 0063

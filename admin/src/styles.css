@@ -434,6 +434,8 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 .inspection-room>legend{padding:0 4px;font-weight:600;overflow-wrap:anywhere}
 .badge-row{display:flex;flex-wrap:wrap;gap:6px}
 .repair-decision{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;width:100%}
+/* ADM-19: the signatures checked outside Hampton; a reference is free text, so it wraps anywhere. */
+.signatures{display:grid;gap:12px} .signatures>p{margin:0} .signatures .cell-note{overflow-wrap:anywhere}
 @media (max-width:760px){.inspections .btn,.inspections select,.inspections input[type=date],.inspections input:not([type]){min-height:44px}}
 .ref{display:grid;justify-items:end;gap:2px} .ref strong{font:400 22px/1.2 var(--display);letter-spacing:.06em}
 .owed{display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-start;padding:12px 16px;background:var(--mist);border-radius:var(--r-sm)}
