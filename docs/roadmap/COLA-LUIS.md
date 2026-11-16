@@ -24,6 +24,7 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | ANA-09 | 7 | Crear la regla de límite de peticiones en Cloudflare WAF. |
 | PRE-28 | 7 | Verificar titularidad de las cuentas de Hampton y la operación de Optimyze. |
 | BUS-13 | 3 | Hampton pone la categoría de vivienda de HE-R001, HE-R003 y HE-R027, y un abogado valida la tabla. |
+| BUS-17 | 2 | Pulsar una vez «Recalculate all» en Review (panel): así cada búsqueda queda registrada y la revisión de los 21 días puede contar su ausencia. BUS-17 ya está encendida; la primera revisión real llegará como pronto el 7-dic-2026 y con ella se cierra. |
 | BUS-06 | 52 | Ya está en el panel (Settings › Automations › Market inventory). Cargar ahí el directorio privado de fuentes (`directorio-aceptado-verificado.local.json`) comparando la huella, abrir una tanda y subir el primer lote real de anuncios de un canal revisado. Con eso se cierra. Ese primer lote real también cierra BUS-04 (encendida el 16-nov: avisa en el Inbox de casas nuevas o más baratas para cada búsqueda). |
 | BUS-19 | 52 | En la misma pantalla, revisar cada canal que se vaya a usar: tipo «general», decisión (permitido, solo manual o denegado), referencia de evidencia, fecha de revisión y sitio. Los permisos por escrito solo hacen falta para las fuentes que los exijan. Con los primeros canales revisados se cierra. |
 | PRE-06 | — | Configurar Cloudflare Access y comprobar la verificación en dos pasos de cada cuenta, cuando el código esté publicado. |
