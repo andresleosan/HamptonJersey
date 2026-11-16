@@ -14,6 +14,7 @@ import {onRequestGet as listingFn, onRequestHead as listingHead} from '../../fun
 import {onRequestGet as propertiesFn} from '../../functions/properties.js';
 import {onRequestGet as sitemapFn} from '../../functions/sitemap.xml.js';
 import {onRequestGet as robotsFn} from '../../functions/robots.txt.js';
+import {onRequest as panelFn} from '../../functions/admin/_middleware.js';
 
 const KEY = 'hermes-test-key-hermes-test-key-0123456789';
 const RUN = '11111111-1111-4111-8111-111111111111';
@@ -217,6 +218,21 @@ test('media, ficha /p, /properties, sitemap y robots solo leen: excluidas de la 
   assert.ok(seen.length > 0 && seen.every(s => /^\s*(SELECT|WITH)\b/i.test(s) && !/backup_/.test(s)), seen.join('\n---\n'));
   assert.ok(r2.length > 0);
   assert.deepEqual(permits(env), []);
+});
+
+// PRE-06: el middleware de /admin solo mira la aserción de Access y sirve los archivos del panel: ni D1 ni R2, con el
+// interruptor apagado o encendido (sin aserción, mal configurado o con una aserción que no vale).
+test('functions/admin/_middleware.js no toca D1 ni R2: excluida de la compuerta', async () => {
+  const untouchable = name => new Proxy({}, {get: (_, k) => assert.fail(`${name}.${String(k)}`)});
+  const base = {DB: untouchable('DB'), MEDIA: untouchable('MEDIA'), BACKUP_READY: '1', SITE_URL: 'https://www.hamptonestatesjersey.com'};
+  const on = {PRE06_ACCESS_READY: '1', ACCESS_TEAM_DOMAIN: 'https://pre14-panel.cloudflareaccess.com', ACCESS_STAFF_AUD: 'a'.repeat(64)};
+  const statuses = [];
+  for (const [env, headers] of [[base, {}], [{...base, ...on}, {}], [{...base, ...on}, {'cf-access-jwt-assertion': 'x.y.z'}],
+    [{...base, PRE06_ACCESS_READY: '1'}, {}]]) {
+    const request = new Request('https://www.hamptonestatesjersey.com/admin/', {headers});
+    statuses.push((await panelFn({request, env, next: async () => new Response('panel')})).status);
+  }
+  assert.deepEqual(statuses, [200, 403, 403, 503]);
 });
 
 // hampton-jobs no empaqueta la sesión del panel (auth.js, jose): la compuerta no los importa.

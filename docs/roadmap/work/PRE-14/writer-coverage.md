@@ -12,6 +12,7 @@ Estados: `pendiente` (sin envolver), `cubierta` (envuelta y con prueba propia), 
 | `functions/properties.js` → `server/seo.js` | Sin D1 (probado). | excluida |
 | `functions/sitemap.xml.js` → `server/seo.js` | Solo lee (probado). | excluida |
 | `functions/robots.txt.js` → `server/seo.js` | Sin datos (probado). | excluida |
+| `functions/admin/_middleware.js` → `server/access.js` | Sin D1 ni R2: solo valida la aserción de Access (PRE-06) y sirve los archivos del panel (probado). | excluida |
 | `server/jobs.js` `scheduled` | Reloj, retención (G2 y demanda), avisos, llamadas AGE-08, informes, seguimiento de ventas, cierres de alquiler, correo saliente. Todo el tick en un permiso `jobs:scheduled`; con la compuerta cerrada no escribe ni envía (el siguiente tick recupera). El control de la copia irá fuera del permiso (Task 4). | cubierta |
 | `server/jobs.js` `email` → `server/email-inbound.js` | Correo entrante. En un permiso `jobs:email`. Con la compuerta cerrada, hasta Task 5, se rechaza con `setReject` y motivo visible; el spool cifrado lo sustituye (Task 5, `stageInboundDuringBackup`). | cubierta |
 | `scripts/import_hampton.py` | Importación a D1 desde fuera de la aplicación. | suspensión |
