@@ -9300,7 +9300,8 @@
         "tests/server/queue.test.mjs",
         "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: conexión con Drive aplazada.",
-        "server/routes/queue.js (driveImportReady), tests/server/queue.test.mjs (13/13), docs/automations/folder_import.md"
+        "server/routes/queue.js (driveImportReady), tests/server/queue.test.mjs (13/13), docs/automations/folder_import.md",
+        "16-nov-2026: Luis pidió reactivarla; PUB21_DRIVE_READY=1 en wrangler.toml. VPS comprobado: custodio-cola y lector en marcha (3 propuestas enviadas antes de la pausa), GOOGLE_SERVICE_ACCOUNT presente en Pages."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -9329,7 +9330,7 @@
         "listing-editor"
       ],
       "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente.",
-      "actualizado": "2026-11-15"
+      "actualizado": "2026-11-16"
     },
     {
       "id": "PUB-22",
