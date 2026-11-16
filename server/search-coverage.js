@@ -1,9 +1,10 @@
 import { isFullAvailableCandidate } from './search-eligibility.js';
 
-// Disconnected, provisional contract: the adapter must provide a trusted DTO
-// from one current transactionally consistent snapshot and revalidate it before
-// any effect. No producer yet proves complete inventory/evaluation coverage;
-// consequently this function never reports certified absence.
+// The tri-state aggregate of one search: full_available, absent or unknown. The adapter (BUS-17,
+// server/search-review.js) provides a trusted DTO from one consistent snapshot and revalidates it in the transaction
+// before any effect. absent needs a coverage record of the same scope that states the snapshot is complete and how
+// many candidates it holds; a false candidate alone may only mean missing data, so without that record, or with any
+// malformed, duplicated or inconsistent record, the answer stays unknown.
 const unknown = () => ({state:'unknown'});
 const scope = ['searchId','episodeId','criteriaRevision','ruleVersion'];
 const keys = [...scope,'candidateKey','candidateRevision'];
@@ -41,7 +42,10 @@ function list(value) {
 export function aggregateFullAvailability(input) {
   try {
     const root=record(input,['current','candidates']);
-    if (!root || Reflect.ownKeys(input).some(k=>k!=='current' && k!=='candidates')) return unknown();
+    if (!root || Reflect.ownKeys(input).some(k=>!['current','candidates','coverage'].includes(k))) return unknown();
+    const stated=Object.getOwnPropertyDescriptor(input,'coverage');
+    const coverage=stated && Object.hasOwn(stated,'value') ? record(stated.value,[...scope,'complete','candidates']) : null;
+    if (stated && !coverage) return unknown();
     const current=record(root.current,[...scope,'episodeStatus']);
     if (!current || current.episodeStatus!=='active' ||
       !['searchId','episodeId','ruleVersion'].every(k=>typeof current[k]==='string' && current[k].trim()) ||
@@ -69,6 +73,8 @@ export function aggregateFullAvailability(input) {
       // the global snapshot/identity checks above, even after a positive.
       if (isFullAvailableCandidate(copy)) full=true;
     }
-    return full ? {state:'full_available'} : unknown();
+    if (full) return {state:'full_available'};
+    return coverage && coverage.complete===true && coverage.candidates===candidates.length &&
+      scope.every(k=>coverage[k]===current[k]) ? {state:'absent'} : unknown();
   } catch { return unknown(); }
 }

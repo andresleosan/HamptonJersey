@@ -7,6 +7,7 @@ import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_S
 // EST-01: the same recomputes, with each search's last run recorded around them.
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
+import { openSearchReview } from "../search-review.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
@@ -232,9 +233,11 @@ async function detail({ env, params: [id] }) {
     q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
+  const search_review = await openSearchReview(env, applicant.id); // BUS-17: undefined while switched off
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
     ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
+    ...(search_review !== undefined && { search_review }),
     ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id),
       // The server's own answer to "can a website opt-in be confirmed now" (the same check as updateContact's).
       marketing_confirmable: await pendingOptIn(env, contact.id) }) });

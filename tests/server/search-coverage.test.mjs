@@ -79,3 +79,21 @@ test('explicit test-only translation holds the clock for full and keeps unknown 
   assert.deepEqual(clock(s), {state:'pending',reason:'eligibility_unknown'});
   assert.equal(toClock(aggregateFullAvailability(s)), null);
 });
+
+test('certified absence needs a coverage record of the same scope and size; a full option still wins', () => {
+  const cover = (s, extra={}) => ({...s, coverage:{...scope(), complete:true, candidates:s.candidates.length, ...extra}});
+  const negative = snapshot(); negative.candidates[0].availability.current=false;
+  assert.deepEqual(aggregateFullAvailability(cover(negative)), {state:'absent'});
+  const empty = snapshot(); empty.candidates=[];
+  assert.deepEqual(aggregateFullAvailability(cover(empty)), {state:'absent'});
+  assert.deepEqual(aggregateFullAvailability(cover(snapshot())), {state:'full_available'});
+  for (const extra of [{complete:false},{candidates:2},{candidates:'1'},{episodeId:'other'},{criteriaRevision:2}])
+    assert.deepEqual(aggregateFullAvailability(cover(negative, extra)), {state:'unknown'}, JSON.stringify(extra));
+  const partial = cover(negative); delete partial.coverage.complete;
+  assert.deepEqual(aggregateFullAvailability(partial), {state:'unknown'});
+  const getter = {...negative}; let calls=0;
+  Object.defineProperty(getter,'coverage',{enumerable:true,get(){calls++;return {...scope(),complete:true,candidates:1};}});
+  assert.deepEqual(aggregateFullAvailability(getter), {state:'unknown'}); assert.equal(calls,0);
+  const dup = cover(negative); dup.candidates.push(dup.candidates[0]); dup.coverage.candidates=2;
+  assert.deepEqual(aggregateFullAvailability(dup), {state:'unknown'});
+});

@@ -27,6 +27,8 @@ ADM13_INSPECTIONS_READY = "1"
 BUS08_SWEEP_READY = "0"
 # BUS-04: the market's changes cross again only the active searches they affect, with one Inbox task per search for homes newly proposed or back at a lower price (migration 0097). Sends nothing. Needs the same recompute flags in both files as BUS-08 (a test checks it). Must match the other wrangler.toml.
 BUS04_REMATCH_READY = "0"
+# BUS-17: one internal Inbox review of an active search 21 days without a complete option (every must-have met and availability confirmed by a person), then 7 days after each closed review, with up to 20 explained alternatives; and a task when a rejected home's price drops 5% (migration 0099). Sends nothing and changes no criteria or match. Needs EST01_SEARCH_STATE_READY and EST16_AVAILABILITY_READY in both files. Must match the other wrangler.toml.
+BUS17_REVIEW_READY = "0"
 EMAIL_SERVICE_READY = "false"
 # OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
 OFE06_WEEKLY_REVIEW_READY = "1"

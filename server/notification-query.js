@@ -109,6 +109,8 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   let link=null;
   if(numeric&&n.entity_type==='viewing')link=`#/viewings?viewing=${n.entity_id}`;
   else if(numeric&&n.entity_type==='applicant'&&source_type==='applicant.market_matched')link='#/automations'; // BUS-04: the market inventory
+  else if(numeric&&n.entity_type==='applicant'&&['applicant.search_review','applicant.rejected_price_drop'].includes(source_type))
+    link=`#/applicants/${n.entity_id}/matches`; // BUS-17: the review's alternatives, or the rejected home, are in Matches
   else if(numeric&&n.entity_type==='applicant')link=`#/applicants/${n.entity_id}${n.category==='matched'?'/matches':''}`;
   else if(numeric&&n.entity_type==='contact')link=search_id!=null?`#/applicants/${search_id}`:`#/applicants/new?contact=${n.entity_id}`;
   else if(n.entity_type==='listing'&&/^HE-[A-Z]\d{3,}$/.test(n.entity_id))link=`#/p/${encodeURIComponent(n.entity_id)}`;
