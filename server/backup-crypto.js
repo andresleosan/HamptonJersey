@@ -48,6 +48,7 @@ function checkRecoveryKey(publicKey) {
 }
 
 // source: iterable asíncrono de Uint8Array (ReadableStream o generador). Nunca guarda más de un chunk en memoria.
+// metadata: objeto, o función (async) que se llama cuando el flujo terminó.
 // Devuelve el recibo (sin secretos) y la DEK, que el llamador usa para verificar dentro del intento y luego olvida.
 export async function encryptBackupEntry({run_id, attempt_id, entry_id, source, metadata = {}, publicKey, chunkBytes = CHUNK}, store) {
   uuid(run_id, 'run_id'); uuid(attempt_id, 'attempt_id'); uuid(entry_id, 'entry_id');
@@ -56,19 +57,22 @@ export async function encryptBackupEntry({run_id, attempt_id, entry_id, source, 
   const r = {run_id, attempt_id, entry_id};
   const dek = await subtle.generateKey({name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt']);
   const prefix = globalThis.crypto.getRandomValues(new Uint8Array(8));
-  const cipherDigests = [], plainDigests = [];
-  let index = 0, size = 0;
+  const cipherDigests = [null], plainDigests = [];
+  let index = 1, size = 0;
 
-  const seal = async plain => {
+  const encrypt = async (plain, i) => {
     const cipher = new Uint8Array(await subtle.encrypt(
-      {name: 'AES-GCM', iv: nonce(prefix, index), additionalData: aad(r, index, plain.length), tagLength: 128}, dek, plain));
-    await store.put(recordKey(r, index), cipher);
-    cipherDigests.push(await sha(cipher));
-    if (index > 0) { plainDigests.push(await sha(plain)); size += plain.length; }
+      {name: 'AES-GCM', iv: nonce(prefix, i), additionalData: aad(r, i, plain.length), tagLength: 128}, dek, plain));
+    await store.put(recordKey(r, i), cipher);
+    return sha(cipher);
+  };
+  const seal = async plain => {
+    cipherDigests.push(await encrypt(plain, index));
+    plainDigests.push(await sha(plain));
+    size += plain.length;
     index++;
   };
 
-  await seal(te.encode(JSON.stringify(metadata)));
   let buf = new Uint8Array(chunkBytes), fill = 0;
   for await (const piece of source) {
     const bytes = piece instanceof Uint8Array ? piece : new Uint8Array(piece);
@@ -80,6 +84,8 @@ export async function encryptBackupEntry({run_id, attempt_id, entry_id, source, 
     }
   }
   if (fill) await seal(buf.slice(0, fill));
+  // Registro 0 al final: la captura (Task 3) solo conoce tamaño y SHA-256 del contenido al acabar el flujo.
+  cipherDigests[0] = await encrypt(te.encode(JSON.stringify(typeof metadata === 'function' ? await metadata() : metadata)), 0);
 
   const envelope = te.encode(JSON.stringify({
     format: FORMAT, key_id: await keyFingerprint(publicKey), entry_id,
@@ -138,6 +144,22 @@ export async function readBackupEntry(receipt, {privateKey, dek} = {}, store, on
 
 export async function verifyBackupEntry(receipt, dek, store) {
   return readBackupEntry(receipt, {dek}, store).then(() => true, () => false);
+}
+
+// Sin DEK (Task 3, sello y conciliación): los bytes guardados del envelope y de cada registro coinciden con los
+// hashes del inventario. No prueba que descifren; eso lo hizo verifyBackupEntry dentro del intento.
+export async function verifyStoredEntry({run_id, attempt_id, entry_id, chunks, cipher_hash, envelope_sha256}, store) {
+  if (![run_id, attempt_id, entry_id].every(v => UUID.test(v ?? '')) || !Number.isInteger(chunks) || chunks < 0) return false;
+  const r = {run_id, attempt_id, entry_id};
+  const envelope = await store.get(`runs/${run_id}/${attempt_id}/${entry_id}/envelope.json`);
+  if (!envelope || hex(await sha(envelope)) !== envelope_sha256) return false;
+  const digests = [];
+  for (let i = 0; i <= chunks; i++) {
+    const cipher = await store.get(recordKey(r, i));
+    if (!cipher) return false;
+    digests.push(await sha(cipher));
+  }
+  return await chainHash(digests) === cipher_hash;
 }
 
 // --- Certificado firmado (Ed25519, algoritmo fijo por formato) ---

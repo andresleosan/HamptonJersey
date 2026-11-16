@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {webcrypto as crypto} from 'node:crypto';
 import {
   encryptBackupEntry, verifyBackupEntry, readBackupEntry, keyFingerprint,
-  signBackupCertificate, verifyBackupCommit,
+  signBackupCertificate, verifyBackupCommit, verifyStoredEntry,
 } from '../../server/backup-crypto.js';
 
 const RUN = '11111111-1111-4111-8111-111111111111';
@@ -46,6 +46,35 @@ for (const n of [0, 1, SMALL, SMALL + 1, 3 * SMALL]) {
     assert.deepEqual(r.metadata, {key: 'properties/HE-R001/photo.jpg', content_type: 'image/jpeg'});
   });
 }
+
+test('Task 3: metadatos calculados al acabar el flujo (tamaño y hash solo se conocen al final)', async () => {
+  const store = memStore(), data = bytes(40);
+  let seen = 0;
+  async function* counted() { for await (const c of pieces(data)) { seen += c.length; yield c; } }
+  const {receipt} = await enc(store, data, {source: counted(), metadata: async () => ({kind: 'r2', size: seen})});
+  const r = await plain(receipt, store);
+  assert.deepEqual(r.metadata, {kind: 'r2', size: 40});
+  assert.deepEqual(r.data, data);
+});
+
+test('Task 3: verifyStoredEntry comprueba envelope y cada registro guardados sin la DEK', async () => {
+  const store = memStore();
+  const {receipt} = await enc(store, bytes(40));
+  const row = {run_id: RUN, attempt_id: ATTEMPT, entry_id: ENTRY, chunks: receipt.chunks,
+    cipher_hash: receipt.cipher_hash, envelope_sha256: receipt.envelope_sha256};
+  assert.equal(await verifyStoredEntry(row, store), true);
+  const rec = `runs/${RUN}/${ATTEMPT}/${ENTRY}/2.bin`, env = receipt.envelope_ref;
+  const keep = [store.m.get(rec), store.m.get(env)];
+  store.m.get(rec)[0] ^= 1;
+  assert.equal(await verifyStoredEntry(row, store), false, 'registro alterado');
+  store.m.set(rec, keep[0].map((b, i) => i === 0 ? b ^ 1 : b));
+  store.m.set(env, Uint8Array.from([...keep[1], 32]));
+  assert.equal(await verifyStoredEntry(row, store), false, 'envelope alterado');
+  store.m.set(env, keep[1]);
+  store.m.delete(rec);
+  assert.equal(await verifyStoredEntry(row, store), false, 'registro ausente');
+  assert.equal(await verifyStoredEntry({...row, chunks: -1}, store), false);
+});
 
 test('el chunk por defecto es de 4 MiB exactos', async () => {
   const store = memStore(), data = bytes(4 * 1024 * 1024 + 1);
