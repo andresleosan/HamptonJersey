@@ -6,17 +6,21 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "No se repite ninguna casa: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». En vez de esperar 24 h, crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo.",
-  "falta": "M05 · Reconciliación 7-nov: Conectar las altas y cambios relevantes del inventario externo con todas las búsquedas activas afectadas. Evitar propuestas y avisos idénticos; una bajada de precio sí permite revisar una opción anterior. Continúa durante consultas, visitas y negociaciones. Depende de: BUS-08, BUS-12, EST-09. Aceptación: Un cambio relevante recalcula solo lo afectado sin duplicar avisos; una visita no desactiva el cruce. Traído de BUS-01 (15-nov): los resultados de mercado se reemplazan en cada búsqueda completa, sin episodios ni decisión humana; las reaperturas por bajada de precio y la no repetición tendrán que partir de market_matches (0083).",
+  "hecho": "No se repite ninguna casa propia: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». Crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo. Construido el 16-nov tras BUS04_REMATCH_READY=\"0\" (wrangler.toml y jobs/wrangler.toml) con la migración aditiva 0097, sin aplicar: el reloj consume market_change_outbox (lo escribe BUS-06, también desde la pasada diaria de BUS-08) en páginas de 50, la más antigua primero; un cambio que solo toca título, texto o fechas se marca consumido sin cruzar nada; uno material (anuncio nuevo, retirado, o cambio de operación, parroquia, dormitorios, baños, mascotas, parking o precio) encola una sola vez cada búsqueda activa residencial de esa operación (la de antes y la de después), y la marca de consumido va en la misma transacción que la cola, así que un tick que cae antes la relee y uno que cae después deja las búsquedas en cola. Cada tick cruza 2 búsquedas de la cola con el mismo recálculo de la web (search-state.js, EST-01 incluido) y solo si el reloj tiene las reglas de disponibilidad de la web (como BUS-08); una que falla vuelve detrás y se descarta a la tercera. Con BUS-04 encendida, la pasada diaria ya no recalcula todas las búsquedas: deja el cruce a BUS-04 y da el día por recalculado cuando no queda cambio ni búsqueda pendiente. No repetición y bajada de precio desde market_matches: market_match_proposals guarda qué casa se propuso ya a cada búsqueda y a qué precio; lo que la búsqueda ya tenía antes de un cruce es su línea base (sin aviso y sin precio inventado: se anota el que tenga en el siguiente cruce); una casa ya propuesta no vuelve a proponerse ni avisarse aunque salga y vuelva, salvo con un precio menor comparable (misma moneda y periodo, o alquiler mensual frente a anual por año); precios que se contradicen entre webs, otra moneda o periodos sin conversión no cuentan como bajada. Un aviso abierto por búsqueda en el Inbox («New market homes for …», abre Automations → Market inventory) cubre todas las propuestas hasta que el equipo lo cierra; no se envía, preselecciona ni aprueba nada. Una visita, una consulta o una negociación no paran el cruce: solo el estado de la búsqueda (EST-09). Apagado, el reloj y la web hacen exactamente lo mismo que antes (probado).",
+  "falta": "Encender exige: (1) aplicar 0097 en remoto (aditiva: un índice parcial sobre market_change_outbox, dos tablas nuevas y un índice; no toca filas existentes). (2) Copiar a jobs/wrangler.toml los valores de la web de los interruptores que lee el recálculo (BUS01_MARKET_MATCHING_READY, BUS10_IDENTITY_READY, EST15_UNAVAILABILITY_READY, EST16_AVAILABILITY_READY, EST01_SEARCH_STATE_READY y los demás que lee search-state.js; una prueba lo exige al poner BUS04_REMATCH_READY=\"1\"); es el mismo paso que pide BUS-08 y tiene su misma advertencia: EST15/EST16 en el reloj también cambian el filtro de AGE-08 y AGE-05. Sin ese paso, encendida, espera sin consumir nada. (3) Poner BUS04_REMATCH_READY=\"1\" en los dos wrangler.toml. Crea tareas internas del Inbox y no envía nada. (4) La comprobación real necesita cambios reales en el inventario: hoy el inventario de producción está vacío (la carga del directorio es de Luis, BUS-06) y BUS-08 no tiene lector automático. Fuera de esta tarea: reabrir un match rechazado de una ficha propia de Hampton por bajada de precio sigue en BUS-17; una pantalla por búsqueda con sus casas de mercado (hoy se ven por casa en Market inventory) iría a SPR-07/BUS-03.",
   "bloqueo": "",
   "evidencia": [
-    "migrations/0009_matches.sql:38",
+    "migrations/0097_market_rematch.sql",
+    "server/market-rematch.js:30 (classifyMarketChange), :42 (lowerPrice), :51 (consume), :83 (propose), :116 (cross)",
+    "server/market-daily-sweep.js:233 (con BUS-04, la pasada diaria deja el recálculo)",
+    "server/jobs.js:47",
+    "server/market-identity.js:382 (readMarketHomePrices, mismo precio que lee la búsqueda)",
+    "server/notification-query.js:111 (el aviso abre Automations)",
+    "tests/server/bus-04-market-rematch.test.mjs: 14 pruebas (solo la operación afectada, sin repetir propuesta ni aviso, bajada de precio y vuelta tras salir, anual/mensual, línea base sin precio inventado, visita y oferta no paran, caída antes de marcar, ticks solapados, páginas de 50, reintentos, espera sin reglas, apagado igual que hoy, interruptores iguales, D1 local en Miniflare)",
+    "Reloj local: wrangler dev -c jobs/wrangler.toml --local --test-scheduled con 0001–0097 aplicadas y BUS04 encendido: /__scheduled 200 sin error (16-nov-2026)",
+    "Decisiones (16-nov): sin episodios (BUS-01 reemplaza market_matches en cada pasada), la no repetición es un registro aparte por búsqueda y casa; afectadas = búsquedas activas residenciales de la operación, sin estrechar por presupuesto (plan BUS-04 tarea 2: ampliar si no hay certeza); un aviso abierto agregado por búsqueda (plan tarea 3); línea base sin precio inventado (plan, foco de revisión 1-2).",
+    "docs/superpowers/plans/2026-11-08-bus-04-material-changes-rematching.md",
     "server/match-store.js:54-62",
-    "server/routes/listings.js:111",
-    "server/routes/listings.js:140",
-    "server/routes/listings.js:201",
-    "server/routes/applicants.js:64-71",
-    "admin/src/Review.jsx:173-214",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
   ],
   "modulo": "M05",
@@ -59,6 +63,6 @@
     "search-lifecycle",
     "notifications-schema"
   ],
-  "nextStep": "Recalcular búsquedas activas ante cambios materiales del barrido sin duplicar propuestas ni avisos.",
-  "actualizado": "2026-11-15"
+  "nextStep": "Aplicar 0097 en remoto, copiar al reloj los interruptores del recálculo (como BUS-08) y encender BUS04_REMATCH_READY en los dos wrangler.toml; comprobar con el primer cambio real del inventario.",
+  "actualizado": "2026-11-16"
 }
