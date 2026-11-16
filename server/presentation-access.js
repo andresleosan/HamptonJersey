@@ -14,6 +14,8 @@ import { files } from "./private-media.js";
 import { capturesReady } from "./property-captures.js";
 import { taskStatements } from "./notification-tasks.js";
 import { AVAILABLE } from "./match-pages.js";
+import { reviewRoute, approveRoute, sendGate, APPROVED_SNAPSHOT, presented, inSnapshot, snapshotOptions, approvals }
+  from "./private-presentations.js";
 
 const ready = env => env?.AGE12_PRESENTATIONS_READY === "1" && env?.AGE10_PHOTOS_READY === "1" && capturesReady(env);
 const missingTable = e => /no such table/.test(e?.message ?? "");
@@ -64,7 +66,10 @@ async function redeem({ request, env }) {
 
 // The homes of this link only, in the order chosen, with their suitable photos (files() of AGE-10) and the answer given.
 // A home no longer offered (archived, let, sold) shows nothing of itself: listing null and no photos.
+// AGE-11 on: a link sent with an approved snapshot shows that snapshot only (server/private-presentations.js).
 async function options({ env, grant }) {
+  const p = await presented(env, grant.id);
+  if (p) return json({ options: await snapshotOptions(env, grant.id, p) });
   const homes = (await env.DB.prepare(`SELECT o.match_id, o.choice, o.answered_at, l.id, l.title, l.location, l.bedrooms, l.bathrooms,
       l.operation, l.sale_price, l.rent, l.rent_period, l.currency, l.summary, ${OFFERED} AS offered
     FROM presentation_options o JOIN listings l ON l.id = o.listing_id WHERE o.grant_id = ? ORDER BY o.position`).bind(grant.id).all()).results;
@@ -82,7 +87,9 @@ async function photo({ env, grant, params: [id] }) {
     WHERE a.id = ? AND EXISTS (SELECT 1 FROM presentation_options o JOIN listings l ON l.id = o.listing_id
       WHERE o.grant_id = ? AND o.listing_id = c.listing_id AND ${OFFERED})`)
     .bind(Number(id), grant.id).first();
-  const f = a && (await files(env, a.listing_id)).files.find(x => x.asset_id === Number(id) && x.decision?.status === "private_approved");
+  let f = a && (await files(env, a.listing_id)).files.find(x => x.asset_id === Number(id) && x.decision?.status === "private_approved");
+  const p = f && await presented(env, grant.id);
+  if (p && !inSnapshot(p, a.listing_id, f)) f = null; // AGE-11: only a photo of the approved snapshot
   const obj = f && await env.MEDIA.get(a.blob_key), type = obj?.httpMetadata?.contentType ?? "";
   if (!obj || obj.etag !== f.etag || obj.size !== f.bytes || !TYPES.includes(type)) {
     if (obj?.body instanceof ReadableStream) await obj.body.cancel();
@@ -113,7 +120,7 @@ async function respond({ request, env, grant }) {
     ON l.id = o.listing_id WHERE o.grant_id = ? AND o.match_id = ?`).bind(grant.id, b.match_id).first();
   if (!o) fail(404, "This home is not in your selection.");
   if (o.choice) fail(409, "You have already answered for this home. To change it, please contact Hampton Estates.");
-  if (!o.offered) fail(409, "This home is no longer available.");
+  if (!o.offered || !((await presented(env, grant.id))?.shown.has(b.match_id) ?? true)) fail(409, "This home is no longer available.");
   const ts = now(), [title, why] = TASK[b.choice];
   const [written] = await env.DB.batch([
     env.DB.prepare(`UPDATE presentation_options SET choice = ?, reason = ?, answered_at = ? WHERE grant_id = ? AND match_id = ? AND choice IS NULL
@@ -142,8 +149,10 @@ async function view(env, applicantId) {
     env.DB.prepare(`SELECT m.id AS match_id, l.id AS listing_id, l.title FROM matches m JOIN listings l ON l.id = m.listing_id
       JOIN applicants a ON a.id = m.applicant_id WHERE m.applicant_id = ? AND ${AVAILABLE} ORDER BY l.id LIMIT 50`).bind(applicantId),
   ])).map(r => r.results);
-  return { enabled: true, max_homes: MAX_HOMES, presentable,
-    grants: grants.map(g => ({ ...g, options: homes.filter(h => h.grant_id === g.id).map(({ grant_id, ...h }) => h) })) };
+  const approved = await approvals(env, applicantId); // AGE-11: null while its review is off
+  return { enabled: true, max_homes: MAX_HOMES, presentable, ...(approved && { review: true }),
+    grants: grants.map(g => ({ ...g, ...(approved && { approval: approved.get(g.id) ?? null }),
+      options: homes.filter(h => h.grant_id === g.id).map(({ grant_id, ...h }) => h) })) };
 }
 const staff = handler => async ctx => {
   if (!ready(ctx.env)) return ctx.request.method === "GET" ? json({ enabled: false }) : fail(404, "Not found");
@@ -172,13 +181,17 @@ async function create({ request, env, admin, params: [id] }) {
 }
 
 // POST: record that a person sent the link (it starts to work), or revoke it (every later read is refused).
+// AGE-11 on: sent only while the latest approval is of the snapshot as it stands (sendGate; 409 otherwise).
 async function mark({ env, admin, params: [id, action] }) {
+  const gate = action === "sent" ? await sendGate(env, Number(id)) : null;
   const ts = now(), sql = action === "sent" ? "sent_at = ?, sent_by = ? WHERE id = ? AND sent_at IS NULL AND revoked_at IS NULL"
     : "revoked_at = ?, revoked_by = ? WHERE id = ? AND revoked_at IS NULL";
-  const r = await env.DB.prepare(`UPDATE presentation_grants SET ${sql}`).bind(ts, admin, Number(id)).run();
+  const r = await env.DB.prepare(`UPDATE presentation_grants SET ${sql}${gate ? APPROVED_SNAPSHOT : ""}`)
+    .bind(ts, admin, Number(id), ...(gate ? [gate] : [])).run();
   const g = await env.DB.prepare("SELECT applicant_id FROM presentation_grants WHERE id = ?").bind(Number(id)).first();
   if (!g) fail(404, "Link not found");
-  if (!r.meta.changes) fail(409, action === "sent" ? "This link was already recorded as sent, or was revoked. Reload." : "This link was already revoked.");
+  if (!r.meta.changes) fail(409, action === "sent" ? `This link was already recorded as sent, or was revoked${gate ? ", or its approval changed" : ""}. Reload.`
+    : "This link was already revoked.");
   return json(await view(env, g.applicant_id));
 }
 
@@ -186,6 +199,8 @@ export default [
   ["GET", /^\/admin\/applicants\/(\d+)\/presentations$/, staff(list), true],
   ["POST", /^\/admin\/applicants\/(\d+)\/presentations$/, staff(create), true],
   ["POST", /^\/admin\/presentations\/(\d+)\/(sent|revoke)$/, staff(mark), true],
+  ["GET", /^\/admin\/presentations\/(\d+)\/review$/, staff(reviewRoute), true],
+  ["POST", /^\/admin\/presentations\/(\d+)\/approve$/, staff(approveRoute), true],
   ["POST", /^\/presentation\/session$/, client(redeem, false), false],
   ["GET", /^\/presentation\/options$/, client(options), false],
   ["GET", /^\/presentation\/photos\/(\d+)$/, client(photo), false],

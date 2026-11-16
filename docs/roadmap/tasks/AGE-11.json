@@ -4,16 +4,27 @@
   "titulo": "Presentación privada de una propiedad confirmada y recogida de interés",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M08 · Reconciliación 7-nov: Preparar presentación breve con fotos aptas y pregunta de interés/visita cuando coincidan match aprobado, disponibilidad confirmada e imágenes autorizadas. No mostrar como confirmada una propiedad pendiente. El disparador final del envío (automático al cumplir condiciones o revisión adicional) sigue abierto. El flujo no incluye una cadena automática de mensajes a 24/72 horas ni petición de flexibilizar requisitos; Meta no es requisito para construir la presentación y puede haber una tarea manual de entrega. Depende de: BUS-15, AGE-06, SPR-03, AGE-10, AGE-12. Aceptación: La presentación no sale si falta disponibilidad o imagen apta; el top 20 interno nunca se incorpora por envío automático. Traído de AGE-10 (15-nov): una presentación solo puede incluir fotos aptas de AGE-10 y debe quedar bloqueada si la captura no tiene ninguna. Revisión de AGE-10 (15-nov): files() compara con el etag y tamaño de la última comprobación de SPR-03, no con R2; comprobar el archivo al presentarlo. Traído de AGE-12 (15-nov): consumir AGE-12: crear el enlace con POST /admin/applicants/:id/presentations (nace latente), incluirlo en el correo de la presentación y registrar el envío (POST /admin/presentations/:id/sent) solo tras el acuse de AUT-17; hoy lo registra una persona con «I have sent it». Traído de ANA-06 (15-nov): medir en Insights el tiempo desde el registro de la búsqueda hasta la primera propiedad confirmada disponible y recibida por esa persona; necesita un registro de recepción verificable de la presentación (presentation_receipts o equivalente) con la hora real, sin contar el envío aceptado como recibido; mientras no exista, el indicador se muestra no disponible, nunca cero.",
+  "hecho": "16-nov-2026 (sin publicar, interruptor AGE11_REVIEW_READY=\"0\" en wrangler.toml, migración aditiva 0115 sin aplicar): revisión humana adicional de la presentación privada antes de enviar el enlace de AGE-12, sin duplicarlo. En el panel (tarjeta «Private presentation» de la búsqueda), cada enlace sin enviar tiene «Review before sending»: muestra exactamente lo que verá el cliente, solo las casas que eligió una persona al crear el enlace (nunca una alternativa interna por su cuenta), con título, zona, dormitorios, baños, precio o renta, descripción, «Availability confirmed on <fecha>» de la confirmación vigente y las fotos aptas de AGE-10 comprobadas en el almacenamiento (etag, tamaño y tipo). Una casa no confirmada disponible ahora, sin match aprobado vigente o sin foto apta bloquea la aprobación y nunca aparece como confirmada. «Approve this presentation» guarda una versión de ese snapshot con su SHA-256, quién y cuándo (presentation_reviews, append-only) y un evento applicant.presentation_approved. «I have sent it» de AGE-12 solo aparece tras aprobar y el servidor lo acepta solo si el snapshot reconstruido en ese momento tiene el hash de la última aprobación (comprobado también dentro del UPDATE): cualquier cambio posterior (descripción, precio, foto, confirmación) responde 409 y exige aprobar de nuevo (versión 2…). Dos personas aprobando a la vez: una sola aprobación (409 a la otra). Enviado, el enlace del cliente muestra solo el snapshot aprobado (cambios posteriores de la ficha y fotos aprobadas después no entran), solo de casas aún aprobadas, ofrecidas y confirmadas disponibles (si no, «no longer available», sin fotos y sin respuesta: 409), y solo fotos del snapshot que AGE-10 sigue permitiendo y que siguen siendo el mismo archivo. No envía nada: el empleado copia el enlace, lo envía él y pulsa «I have sent it». Sin cadenas 24/72 h. Apagado o sin 0115: AGE-12 responde igual y no lee presentation_reviews (prueba).",
+  "falta": "Aplicar la migración 0115 (aditiva) y encender AGE11_REVIEW_READY en wrangler.toml; después comprobar en producción el recorrido real: revisar, aprobar, cambio que obliga a reaprobar (409), «I have sent it» y vista del cliente con el snapshot aprobado. Complemento ANA-06 sin construir (plan 2026-11-10-tanda7-ana-06-tiempos.md, sección 3): registro manual auditado de recepción (presentation_receipts) para medir la primera propiedad recibida; mientras no exista, el indicador de ANA-06 sigue «no disponible», nunca cero.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:303-305",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): disparador de la presentación ya decidido."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): disparador de la presentación ya decidido.",
+    "server/private-presentations.js (snapshot, revisión, aprobación, puerta de envío y vista del cliente); server/presentation-access.js (enganches de AGE-12 solo con el interruptor)",
+    "migrations/0115_presentation_reviews.sql (aditiva: una tabla y un trigger append-only)",
+    "admin/src/PresentationLinks.jsx (Review before sending / Approve this presentation); site/presentation.js (fecha de confirmación aprobada)",
+    "tests/server/private-presentations.test.mjs 8/8; tests/server/presentation-access.test.mjs 9/9 sin cambios",
+    "tests/age11-presentation-review.e2e.cjs (aislado, 1280/390, OK); tests/age12-private-presentation.e2e.cjs (aislado, 1280/390, OK con AGE-11 apagado)",
+    "Decisión: el disparador del envío es manual (el empleado copia el enlace y pulsa «I have sent it» tras aprobar) · fuente: ficha (nextStep 15-nov) y spec list2 §Alcance 3 («revisión adicional del empleado antes de enviarla»).",
+    "Decisión: la revisión adicional la puede hacer el mismo empleado que creó el enlace (no se exige una segunda persona); dos aprobaciones simultáneas dan una sola · fuente: spec list2 §Alcance 3 y plan AGE-11 tarea 2 (two_staff_single_action), opción más simple y reversible.",
+    "Decisión: el snapshot cubre casas elegidas, condiciones visibles (operación y precio o renta), confirmación vigente y su fecha y fotos aptas; las casas no se cambian en un enlace: se revoca y se crea otro · fuente: spec list2 §F y AGE-12 (un enlace = sus casas).",
+    "Decisión: un enlace enviado antes de existir la revisión conserva la vista de AGE-12 al encender AGE-11 (no se rompen enlaces ya enviados) · fuente: opción reversible; esos enlaces ya exigían casas aprobadas y confirmadas al crearse.",
+    "Decisión: una casa del snapshot que deja de estar aprobada, ofrecida o confirmada disponible se muestra al cliente como «no longer available», sin fotos ni respuesta · fuente: criterio de aceptación («no mostrar como confirmada una propiedad pendiente»).",
+    "Decisión: el envío por correo (AUT-17) y su acuse pasan al falta de AUT-17; AGE-11 no envía · fuente: spec list2 §F («Correo depende AUT-17 real; canal manual conserva evidencia»)."
   ],
   "modulo": "M08",
   "deps": [
@@ -78,6 +89,6 @@
     "matching-contract",
     "outbound-policy"
   ],
-  "nextStep": "Preparar la presentación privada con revisión humana adicional antes de cada envío y enlace válido hasta su revocación; la envía un empleado, nunca sola.",
-  "actualizado": "2026-11-15"
+  "nextStep": "/avanzar: aplicar 0115 y encender AGE11_REVIEW_READY; verificar el recorrido real con un enlace de prueba sin enviarlo a nadie (o con uno real que el equipo vaya a enviar). Decidir si el complemento de recepción de ANA-06 se construye aquí o como tarea propia.",
+  "actualizado": "2026-11-16"
 }
