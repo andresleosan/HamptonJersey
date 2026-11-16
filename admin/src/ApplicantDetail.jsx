@@ -585,6 +585,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     <div role="tabpanel" id="panel-matches" aria-labelledby="tab-matches" hidden={cur !== "matches"} tabIndex={0}>
       {data.search_run && <p className="search-run"><SearchRun run={data.search_run} none={!Object.values(data.matchCounts).some(Boolean)} />
         <span className="muted"> · {searchScope(data.search_run)}</span></p>}
+      {data.search_review && <SearchReview review={data.search_review} />}
       {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
       <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} />
       <PresentationLinks applicantId={id} />
@@ -679,6 +680,25 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
           Use this<span className="sr"> ({what(w)})</span></button>}
       </li>)}</ul>
     </> : <p className="muted">Nothing to widen: this search {budget}, {parish} and {beds}.</p>}
+  </section>;
+}
+
+// BUS-17: the open internal review of a search with no complete option, as the clock wrote it when it opened. Read only:
+// the team chooses what to take up with the client, and marks the Inbox task Done once reviewed.
+function SearchReview({ review }) {
+  const items = review.alternatives;
+  const gap = u => `${u.label}${u.must ? " (must-have)" : ""}${u.detail ? `: ${u.detail}` : ""}`;
+  return <section className="card search-review" aria-labelledby="search-review-h">
+    <h2 id="search-review-h">{review.cycle === 1 ? "21-day search review" : "Search review"}</h2>
+    <p className="muted">No home has met every must-have with availability confirmed by a person{review.since ? ` since ${fmtDate(review.since)}` : ""}.
+      Choose what to take up with the client. Nothing has been sent and the criteria have not changed. Mark the Inbox task Done once reviewed.</p>
+    {review.coverage_pending.includes("market_inventory") && <p className="muted">The market inventory could not be read in full for this review.</p>}
+    {items.length ? <ol>{items.map(i => <li key={`${i.kind}:${i.id}`}>
+      <p><strong>{i.title}</strong> <span className="muted">{i.kind === "market" ? "Market inventory" : i.id}</span></p>
+      {i.satisfied.length > 0 && <p>Meets: {i.satisfied.join(", ")}</p>}
+      {i.unmet.length > 0 && <p>Does not meet: {i.unmet.map(gap).join("; ")}</p>}
+      {i.verify.length > 0 && <p>To confirm: {i.verify.map(gap).join("; ")}</p>}
+    </li>)}</ol> : <p>No alternative was found among the saved listings and the market inventory.</p>}
   </section>;
 }
 
