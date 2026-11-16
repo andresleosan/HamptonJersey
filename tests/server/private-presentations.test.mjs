@@ -307,3 +307,59 @@ test("off, or before migration 0115, receipts are not recorded and ANA-06 reads 
     assert.equal("conversations" in ok(await req(env, "GET", `/admin/applicants/${a}/presentations`)), false);
   }
 });
+
+// A confirmation that says unknown, written between the checks and the write (a race), straight into the table.
+const unknownNow = (env, listing) => run(env, `INSERT INTO availability_confirmations (listing_id, operation, status, confirmed_at, source, channel,
+  evidence_ref, recorded_at, recorded_by) VALUES (?, NULL, 'unknown', ?, 'owner', 'phone', 'Race FIXTURE', ?, ?)`, listing, "2026-11-12T09:30:00.000Z",
+  "2026-11-12T09:30:00.000Z", ADMIN);
+const beforeBatch = (env, marker, effect) => {
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => { if (stmts.some(s => s.sql.includes(marker))) effect(); return batch(stmts); };
+};
+
+test("the sent UPDATE itself requires every home still approved, offered and confirmed available, and records the approval sent", async () => {
+  const { env, a } = await world();
+  const g = await link(env, a);
+  await approved(env, g.id);
+  beforeBatch(env, "UPDATE presentation_grants", () => unknownNow(env, HOME));
+  const raced = await send(env, g.id);
+  assert.equal(raced.status, 409);
+  assert.deepEqual(rows(env, "SELECT sent_at FROM presentation_grants"), [{ sent_at: null }]);
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM presentation_sends")[0].n, 0);
+  // Sent normally: the approval it went under is recorded.
+  const fresh = await world(), g2 = await link(fresh.env, fresh.a), approval = await approved(fresh.env, g2.id);
+  ok(await send(fresh.env, g2.id));
+  assert.deepEqual(rows(fresh.env, "SELECT s.grant_id, r.version, r.snapshot_hash FROM presentation_sends s JOIN presentation_reviews r ON r.id = s.review_id"),
+    [{ grant_id: g2.id, version: 1, snapshot_hash: approval.snapshot_hash }]);
+});
+
+test("a link approved but sent while the review was off keeps AGE-12's view when switched on again", async () => {
+  const { env, a } = await world();
+  const g = await link(env, a);
+  await approved(env, g.id);
+  run(env, "UPDATE listings SET summary = 'Changed after the approval' WHERE id = ?", HOME);
+  env.AGE11_REVIEW_READY = "0";
+  ok(await send(env, g.id));
+  env.AGE11_REVIEW_READY = "1";
+  const cookie = await session(env, g);
+  const [o] = ok(await as(env, cookie, "GET", "/presentation/options")).options;
+  assert.equal(o.listing.summary, "Changed after the approval"); // AGE-12's live view, not the older approved snapshot
+  assert.equal("availability_confirmed_at" in o.listing, false);
+  // And a second "I have sent it" answers as AGE-12 does, not "Review and approve".
+  const again = await send(env, g.id);
+  assert.equal(again.status, 409);
+  assert.equal(again.data.error, "This link was already recorded as sent, or was revoked. Reload.");
+});
+
+test("an answer is written only while the home is still presentable, checked inside the write", async () => {
+  const { env, a } = await world();
+  const g = await link(env, a), mine = matchOf(env, a, HOME);
+  await approved(env, g.id);
+  ok(await send(env, g.id));
+  const cookie = await session(env, g);
+  beforeBatch(env, "UPDATE presentation_options", () => unknownNow(env, HOME));
+  const r = await as(env, cookie, "POST", "/presentation/respond", { match_id: mine, choice: "interested" });
+  assert.equal(r.status, 409);
+  assert.deepEqual(rows(env, "SELECT choice FROM presentation_options"), [{ choice: null }]);
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM events WHERE type = 'applicant.presentation_answered'")[0].n, 0);
+});

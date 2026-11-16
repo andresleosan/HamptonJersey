@@ -14,7 +14,7 @@ import { files } from "./private-media.js";
 import { capturesReady } from "./property-captures.js";
 import { taskStatements } from "./notification-tasks.js";
 import { AVAILABLE } from "./match-pages.js";
-import { reviewRoute, approveRoute, sendGate, APPROVED_SNAPSHOT, presented, inSnapshot, snapshotOptions, reviewView, recordReceipt }
+import { reviewRoute, approveRoute, sendGate, APPROVED_SNAPSHOT, recordSend, STILL_SHOWN, presented, inSnapshot, snapshotOptions, reviewView, recordReceipt }
   from "./private-presentations.js";
 
 const ready = env => env?.AGE12_PRESENTATIONS_READY === "1" && env?.AGE10_PHOTOS_READY === "1" && capturesReady(env);
@@ -120,11 +120,13 @@ async function respond({ request, env, grant }) {
     ON l.id = o.listing_id WHERE o.grant_id = ? AND o.match_id = ?`).bind(grant.id, b.match_id).first();
   if (!o) fail(404, "This home is not in your selection.");
   if (o.choice) fail(409, "You have already answered for this home. To change it, please contact Hampton Estates.");
-  if (!o.offered || !((await presented(env, grant.id))?.shown.has(b.match_id) ?? true)) fail(409, "This home is no longer available.");
+  const p = await presented(env, grant.id); // AGE-11: a home of the approved snapshot still presentable, checked again in the write
+  if (!o.offered || (p && !p.shown.has(b.match_id))) fail(409, "This home is no longer available.");
   const ts = now(), [title, why] = TASK[b.choice];
   const [written] = await env.DB.batch([
     env.DB.prepare(`UPDATE presentation_options SET choice = ?, reason = ?, answered_at = ? WHERE grant_id = ? AND match_id = ? AND choice IS NULL
-      AND EXISTS (SELECT 1 FROM presentation_grants g WHERE g.id = grant_id AND ${VALID})`).bind(b.choice, reason, ts, grant.id, b.match_id, ts),
+      AND EXISTS (SELECT 1 FROM presentation_grants g WHERE g.id = grant_id AND ${VALID})${p ? STILL_SHOWN : ""}`)
+      .bind(b.choice, reason, ts, grant.id, b.match_id, ts),
     env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, 'client', 'applicant', ?, 'applicant.presentation_answered',
       json_object('version', 1, 'grant_id', ?, 'match_id', ?, 'listing_id', ?, 'choice', ?) WHERE changes() = 1`)
       .bind(ts, String(grant.applicant_id), grant.id, b.match_id, o.listing_id, b.choice),
@@ -133,7 +135,8 @@ async function respond({ request, env, grant }) {
   ]);
   if (!written.meta.changes) {
     if (!(await granted(env, request))) gone();
-    fail(409, "You have already answered for this home. To change it, please contact Hampton Estates.");
+    fail(409, p ? "This home is no longer available, or you have already answered for it. Please contact Hampton Estates."
+      : "You have already answered for this home. To change it, please contact Hampton Estates.");
   }
   return json({ option: { match_id: b.match_id, choice: b.choice, answered_at: ts } });
 }
@@ -187,18 +190,20 @@ async function mark({ env, admin, params: [id, action] }) {
   const gate = action === "sent" ? await sendGate(env, Number(id)) : null;
   const ts = now(), sql = action === "sent" ? "sent_at = ?, sent_by = ? WHERE id = ? AND sent_at IS NULL AND revoked_at IS NULL"
     : "revoked_at = ?, revoked_by = ? WHERE id = ? AND revoked_at IS NULL";
-  const r = await env.DB.prepare(`UPDATE presentation_grants SET ${sql}${gate ? APPROVED_SNAPSHOT : ""}`)
-    .bind(ts, admin, Number(id), ...(gate ? [gate] : [])).run();
+  const update = env.DB.prepare(`UPDATE presentation_grants SET ${sql}${gate ? APPROVED_SNAPSHOT : ""}`)
+    .bind(ts, admin, Number(id), ...(gate ? [gate] : []));
+  // AGE-11: in the same batch, the approval it was sent under (server/private-presentations.js).
+  const r = gate ? (await env.DB.batch([update, recordSend(env, Number(id), gate)]))[0] : await update.run();
   const g = await env.DB.prepare("SELECT applicant_id FROM presentation_grants WHERE id = ?").bind(Number(id)).first();
   if (!g) fail(404, "Link not found");
-  if (!r.meta.changes) fail(409, action === "sent" ? `This link was already recorded as sent, or was revoked${gate ? ", or its approval changed" : ""}. Reload.`
+  if (!r.meta.changes) fail(409, action === "sent" ? `This link was already recorded as sent, or was revoked${gate ? ", or its approval or a home's availability changed" : ""}. Reload.`
     : "This link was already revoked.");
   return json(await view(env, g.applicant_id));
 }
 
 // AGE-11 for ANA-06: the client confirmed receiving a home of a sent link (server/private-presentations.js).
 const receipt = async ({ request, env, admin, params: [id] }) =>
-  json(await view(env, await recordReceipt(env, Number(id), (await readJson(request, 1024)) ?? {}, admin)));
+  json(await view(env, await recordReceipt(env, Number(id), (await readJson(request, 2048)) ?? {}, admin)));
 
 export default [
   ["GET", /^\/admin\/applicants\/(\d+)\/presentations$/, staff(list), true],

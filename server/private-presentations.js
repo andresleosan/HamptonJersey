@@ -102,31 +102,42 @@ export async function approveRoute({ request, env, admin, params: [id] }) {
 // applies (off, or before the migration), and AGE-12 records it as before.
 export async function sendGate(env, grantId) {
   if (!reviewReady(env)) return null;
+  const g = await grantOf(env, grantId);
+  if (g.sent_at || g.revoked_at) fail(409, "This link was already recorded as sent, or was revoked. Reload."); // AGE-12's own answer
   let latest;
   try { latest = await env.DB.prepare(LATEST).bind(grantId).first(); } catch (e) { if (missingTable(e)) return null; throw e; }
-  if (!latest) {
-    await grantOf(env, grantId);
-    fail(409, "Review and approve this presentation before you send it and record it as sent.");
-  }
+  if (!latest) fail(409, "Review and approve this presentation before you send it and record it as sent.");
   const s = await snapshotOf(env, grantId);
   if (s.snapshot_hash !== latest.snapshot_hash || s.blockers.length)
     fail(409, "This presentation changed since it was approved: review and approve it again before you send it (it was not recorded as sent).");
   return s.snapshot_hash;
 }
-// The extra condition of AGE-12's UPDATE: the latest approval still has that hash when the link is recorded as sent.
-export const APPROVED_SNAPSHOT = ` AND EXISTS (SELECT 1 FROM presentation_reviews r WHERE r.grant_id = presentation_grants.id AND r.snapshot_hash = ?
-  AND r.version = (SELECT MAX(version) FROM presentation_reviews WHERE grant_id = presentation_grants.id))`;
+// The extra conditions of AGE-12's UPDATE, checked inside the write: the latest approval still has that hash, and every
+// home of the link is still approved, offered and confirmed available. (Photos in storage are checked by sendGate.)
+const LATEST_IS = `SELECT r.id FROM presentation_reviews r WHERE r.grant_id = ? AND r.snapshot_hash = ?
+  AND r.version = (SELECT MAX(version) FROM presentation_reviews WHERE grant_id = r.grant_id)`;
+export const APPROVED_SNAPSHOT = ` AND EXISTS (${LATEST_IS.replace("r.grant_id = ?", "r.grant_id = presentation_grants.id")})
+  AND NOT EXISTS (SELECT 1 FROM presentation_options o JOIN matches m ON m.id = o.match_id JOIN listings l ON l.id = m.listing_id
+    JOIN applicants a ON a.id = m.applicant_id WHERE o.grant_id = presentation_grants.id AND COALESCE((${AVAILABLE}), 0) = 0)`;
+// In the same batch, after that UPDATE: the approval the link was sent under.
+export const recordSend = (env, grantId, hash) => env.DB.prepare(`INSERT INTO presentation_sends (grant_id, review_id)
+  SELECT ?, id FROM (${LATEST_IS}) WHERE changes() = 1`).bind(grantId, grantId, hash);
+// The snapshot of the approval a link was sent under, or null.
+const SENT_SNAPSHOT = "SELECT r.snapshot FROM presentation_sends s JOIN presentation_reviews r ON r.id = s.review_id WHERE s.grant_id = ?";
 
 // The approved snapshot a client's link shows and the homes of it still presentable now (approved, offered and
-// confirmed available). null: no review applies (off, before the migration, or a link sent before the review existed).
+// confirmed available). null: no review applies (off, before the migration, or a link sent without an approval).
 export async function presented(env, grantId) {
   if (!reviewReady(env)) return null;
   let latest;
-  try { latest = await env.DB.prepare(LATEST).bind(grantId).first(); } catch (e) { if (missingTable(e)) return null; throw e; }
+  try { latest = await env.DB.prepare(SENT_SNAPSHOT).bind(grantId).first(); } catch (e) { if (missingTable(e)) return null; throw e; }
   if (!latest) return null;
   const shown = (await env.DB.prepare(`SELECT o.match_id ${HOMES} AND ${AVAILABLE}`).bind(grantId).all()).results.map(r => r.match_id);
   return { homes: JSON.parse(latest.snapshot).homes, shown: new Set(shown) };
 }
+// Inside AGE-12's answer UPDATE (on presentation_options) when a review applies: the home is still presentable now.
+export const STILL_SHOWN = ` AND EXISTS (SELECT 1 FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id
+  WHERE m.id = presentation_options.match_id AND ${AVAILABLE})`;
 // A current suitable file is an approved one when it is the same photo and the same file (a later capture renumbers it).
 const same = (x, f) => x.media_id === f.media_id && x.etag === f.etag && x.bytes === f.bytes;
 export const inSnapshot = (p, listingId, f) => p.homes.some(h => h.listing_id === listingId && p.shown.has(h.match_id) && h.photos.some(x => same(x, f)));
@@ -219,13 +230,13 @@ export async function recordReceipt(env, grantId, b, admin) {
 }
 
 // For ANA-06 (first property received): the receipts in force, verified, of this client's sent links, each with the
-// time the link was sent and the availability confirmation approved with it (null for a link sent before the review).
+// time the link was sent and the availability confirmation approved with it (null for a link sent without an approval).
 // null: no receipt can exist (off, or before the migration): the indicator is then not available, never zero.
 export async function readFirstPropertyReceiptFacts(env, applicantId) {
   if (!reviewReady(env)) return null;
   try {
     const rows = (await env.DB.prepare(`SELECT p.grant_id, p.match_id, o.listing_id, p.received_at, g.sent_at,
-        (SELECT snapshot FROM presentation_reviews WHERE grant_id = g.id ORDER BY version DESC LIMIT 1) AS snapshot
+        (${SENT_SNAPSHOT.replace("s.grant_id = ?", "s.grant_id = g.id")}) AS snapshot
       FROM (${RECEIPT}) p JOIN presentation_grants g ON g.id = p.grant_id JOIN presentation_options o ON o.grant_id = p.grant_id AND o.match_id = p.match_id
       WHERE g.applicant_id = ? AND p.status = 'verified' ORDER BY p.received_at, p.grant_id`).bind(applicantId).all()).results;
     return rows.map(({ snapshot, ...r }) => ({ ...r, availability_confirmed_at: snapshot
