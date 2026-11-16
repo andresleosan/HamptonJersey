@@ -6,7 +6,7 @@ import {webcrypto as crypto, createHash} from 'node:crypto';
 import {
   mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync, openSync, rmSync,
 } from 'node:fs';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {DatabaseSync} from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
@@ -251,11 +251,15 @@ test('destino de producción, existente, relativo o dentro del repositorio se re
   let reads = 0;
   const source = {async get() { reads++; return null; }};
   const existing = fresh('exists'); mkdirSync(existing);
+  const checkout = fresh('other-checkout'); mkdirSync(path.join(checkout, '.git'), {recursive: true});
+  mkdirSync(path.join(checkout, 'sub'));
   for (const [destination, reason] of [
     [path.join(tmp, 'hampton-media'), 'production_destination'],
     [path.join(tmp, '1da41b63-c61f-4491-9f8d-3a9afde6e0fb'), 'production_destination'],
     [path.join(REPO, 'restore-dest'), 'destination_in_repo'],
     [existing, 'destination_exists'],
+    [path.join(checkout, 'restore-x'), 'destination_in_repo'],
+    [path.join(checkout, 'sub', 'restore-x'), 'destination_in_repo'],
     ['relative/dir', 'invalid_destination'],
     ['d1://hampton', 'invalid_destination'],
   ]) {
@@ -316,4 +320,24 @@ test('CLI: claves solo por descriptor, stdout sin secretos ni claves de objetos,
   const wrongWeek = run(['inspect', ...base.map(a => a === WEEK ? '2026-11-22T02:00:00.000Z' : a)]);
   assert.equal(wrongWeek.status, 1);
   assert.deepEqual(JSON.parse(wrongWeek.stderr), {status: 'failed', reason: 'backup_unexpected_backup'});
+});
+
+test('SIGTERM o Ctrl-C durante la verificación borran el staging antes de salir', async () => {
+  for (const [signal, code] of [['SIGTERM', 143], ['SIGINT', 130]]) {
+    const stagingParent = mkStaging();
+    const child = spawn(process.execPath, ['--input-type=module', '-e', `
+      import {openSync} from 'node:fs';
+      import {recoveryInspect} from ${JSON.stringify(new URL('../../scripts/backup-recovery.mjs', import.meta.url).href)};
+      await recoveryInspect({backup_id: ${JSON.stringify(RUN)}, week_start: ${JSON.stringify(WEEK)},
+        keyFD: openSync(${JSON.stringify(KEY_FILE)}, 'r'), trustFD: openSync(${JSON.stringify(TRUST_FILE)}, 'r'),
+        stagingParent: ${JSON.stringify(stagingParent)},
+        source: {get: () => { setInterval(() => {}, 1000); console.log('ready'); return new Promise(() => {}); }}});
+    `], {stdio: ['ignore', 'pipe', 'inherit']});
+    await new Promise(resolve => child.stdout.on('data', d => { if (String(d).includes('ready')) resolve(); }));
+    assert.equal(readdirSync(stagingParent).length, 1, 'staging creado');
+    const exited = new Promise(resolve => child.on('exit', c => resolve(c)));
+    child.kill(signal);
+    assert.equal(await exited, code, signal);
+    assert.deepEqual(readdirSync(stagingParent), [], `${signal}: staging borrado`);
+  }
 });

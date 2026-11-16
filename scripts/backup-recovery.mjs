@@ -189,6 +189,8 @@ async function verifyCopy(store, staging, {backup_id, week_start, privateKey, fi
   try {
     db.exec('PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF'); // staging desechable: sin fsync por sentencia
     db.setAuthorizer(action => (action === SQL.SQLITE_ATTACH ? SQL.SQLITE_DENY : SQL.SQLITE_OK)); // el SQL no crea archivos
+    // ponytail: el volcado se ejecuta de una vez; por encima de ~512 MiB (límite de cadena de V8) falla con
+    // sql_import_failed. Partir el SQL por sentencias (cadenas, triggers) no es trivial; se hará si D1 crece tanto.
     try { db.exec(readFileSync(sqlFile, 'utf8')); } catch { fail('sql_import_failed'); }
     if (db.prepare('PRAGMA foreign_key_check').all().length) fail('foreign_key_violation');
     for (const ref of root.references) {
@@ -240,17 +242,26 @@ export function checkDestination(destination) {
   let parent;
   try { parent = realpathSync(path.dirname(dest)); } catch { fail('invalid_destination'); }
   const real = path.join(parent, path.basename(dest));
-  if (inside(real, REPO)) fail('destination_in_repo');
+  if (inside(real, REPO) || inGitCheckout(parent)) fail('destination_in_repo');
   const ids = productionIds();
   if (real.split(path.sep).some(s => ids.has(s.toLowerCase()))) fail('production_destination');
   try { lstatSync(real); fail('destination_exists'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
   return real;
 }
 
+// Cualquier checkout de Git (este u otro, como /tmp/hampton-pub06-current): el directorio o un ancestro tiene .git.
+function inGitCheckout(dir) {
+  for (let d = dir; ; d = path.dirname(d)) {
+    try { lstatSync(path.join(d, '.git')); return true; } catch (e) { if (e.code !== 'ENOENT') return true; }
+    if (d === path.dirname(d)) return false;
+  }
+}
+
 function openStaging(stagingParent = os.tmpdir()) {
-  const dir = mkdtempSync(path.join(realpathSync(stagingParent), 'hampton-recovery-'));
+  const parent = realpathSync(stagingParent);
+  if (inside(parent, REPO) || inGitCheckout(parent)) fail('staging_in_repo');
+  const dir = mkdtempSync(path.join(parent, 'hampton-recovery-'));
   chmodSync(dir, 0o700);
-  if (inside(dir, REPO)) { rmSync(dir, {recursive: true, force: true}); fail('staging_in_repo'); }
   return dir;
 }
 
@@ -265,6 +276,10 @@ const normalize = e => (e?.message?.startsWith('backup_') ? e
 
 async function withCopy({backup_id, week_start, keyFD, trustFD, source, stagingParent}, after) {
   const staging = openStaging(stagingParent);
+  // Ctrl-C o SIGTERM: el SQL y la base descifrados del staging se borran antes de salir.
+  const onSignal = sig => { rmSync(staging, {recursive: true, force: true}); process.exit(sig === 'SIGINT' ? 130 : 143); };
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
   try {
     const {privateKey, fingerprint} = await readRecoveryKey(keyFD);
     const trustedSigningKeys = await readTrust(trustFD);
@@ -272,7 +287,11 @@ async function withCopy({backup_id, week_start, keyFD, trustFD, source, stagingP
     const verified = await verifyCopy(store, staging, {backup_id, week_start, privateKey, fingerprint, trustedSigningKeys});
     store.seal();
     return await after(verified, store, privateKey);
-  } catch (e) { throw normalize(e); } finally { rmSync(staging, {recursive: true, force: true}); }
+  } catch (e) { throw normalize(e); } finally {
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
+    rmSync(staging, {recursive: true, force: true});
+  }
 }
 
 // Verifica firma, manifiesto y TODAS las entradas sin escribir ningún destino. Devuelve un informe C0.
