@@ -96,8 +96,8 @@ ANA06_AGENCY_TIMES_READY = "1"
 BACKUP_READY = "0"
 # MSG-03: a person links a website chat to an existing contact from Messages, and the contact's record lists its chats (migration 0093, applied 16-nov-2026). Sends nothing.
 MSG03_CONTACT_LINK_READY = "1"
-# PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, not applied). Sends nothing; keep equal in the other wrangler.toml.
-PRE10_PURPOSE_READY = "0"
+# PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.
+PRE10_PURPOSE_READY = "1"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

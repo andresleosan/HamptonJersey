@@ -8175,7 +8175,7 @@
       "preferredSlot": "vps",
       "priority": 325,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **PRE-10 hecha:** cada contacto tiene su respuesta de marketing por finalidad (noticias, alertas de casas, oferta de valoración) y canal (email, teléfono, SMS); el equipo registra oposiciones desde la ficha, el consentimiento solo nace en la web con versión de aviso y cada correo promocional se vuelve a comprobar justo antes de salir (migración 0096). Hoy no hay envíos promocionales: el primero llegará con AUT-17. Progreso 134 → 135 de 211.
+
 15-nov-2026 · **ADM-03 hecha:** cada hito de la gestión de alquileres avisa al equipo en el Inbox (atrasos, pagos sin casar, cumplimiento, plazos de depósito y check-in/out, renovación, reparaciones de emergencia, liquidación del mes y, desde hoy, la inspección semestral 30 días antes), con sus borradores para copiar donde los hay. El correo llegará con AUT-17. Progreso 133 → 134 de 211.
 
 15-nov-2026 · **BUS-18 hecha:** en cada ficha propia, «Matched applicants» muestra por búsqueda su decisión (con «Approval out of date» si ya no vale), la disponibilidad confirmada y la consulta a la agencia, con el mismo cálculo que la tarjeta del aplicante; las casas del mercado ya lo tenían en Homes found. Progreso 132 → 133 de 211.
