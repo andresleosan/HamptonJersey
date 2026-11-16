@@ -52,8 +52,8 @@
       "openCount": 17,
       "states": {
         "hecho": 45,
-        "parcial": 5,
-        "pendiente": 6,
+        "parcial": 6,
+        "pendiente": 5,
         "bloqueado": 6,
         "descartado": 3
       }
@@ -3732,13 +3732,23 @@
       "fase": "—",
       "estado": "pendiente",
       "responsable": "desarrollo",
-      "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad: cuando una búsqueda para un aplicante está lista (propuestas revisadas), el equipo debe enterarse en Telegram junto al resumen de las 8:00 de Jersey. Hoy el avisador (AUT-14) solo escribe frases fijas construidas con los números de la puerta y nunca texto libre, así que el aviso se pega a mano en el canal.",
-      "falta": "Panel: botón «Ready for the team» en la ficha del aplicante (columna nueva en applicants, migración aditiva; evento en su historial; se quita con «Done» o al cambiar la etapa). Puerta: GET /api/hermes/status devuelve el número de aplicantes marcados. Avisador: una línea fija más en mensajeResumen, «N applicants with proposals ready for the team», con el enlace al panel que pone él mismo; sin nombres, sin texto libre (R21), en el mismo cambio que /status y con su prueba, como la Decisión 7. Las propuestas en sí se leen en el panel. Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
+      "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad. Parte de la app construida (16-nov), apagada con AUT18_TEAM_READY (en código, no en wrangler.toml): migración aditiva 0102 (tabla applicant_team_ready: fecha, quién y match_inputs_revision al marcar; se borra con el aplicante). Ficha del aplicante: sección «Ready for the team» con botón del mismo nombre y «Done»; se marca sobre la versión vista (updated_at, 409 si otro guardó; una respuesta tardía no vuelve a marcar tras Done), solo búsquedas activas y con una propuesta revisada (al menos una casa propuesta en Shortlisted; si no, 409 y el panel lo dice con el botón desactivado). Done quita la marca sin resolver la búsqueda. La quitan también, en su mismo lote y con el evento applicant.team_ready_cleared (reason stage_changed, search_resolved, search_reopened, archived o restored): un cambio de etapa desde la ficha o desde Sales (oferta, aceptación, venta completada o caída), resolver, reabrir, archivar y restaurar; también con el interruptor apagado si la tabla existe. La marca queda «Out of date» (no se cuenta) hasta marcarla otra vez si cambian los criterios (match_inputs_revision), si se revisa una propuesta después de marcarla (evento match.reviewed posterior) o si ya no queda ninguna en Shortlisted. Historial: applicant.team_ready (datos: solo match_inputs_revision), applicant.team_ready_done y applicant.team_ready_cleared (datos: solo reason), sin datos personales. Puerta: GET /api/hermes/status añade counts.applicants_ready (búsquedas activas con marca vigente) y la línea fija «N applicants with proposals ready for the team» en summary, solo número; apagado o sin migración, /status es idéntico (sin clave ni línea). Pruebas: tests/server/aut18-team-ready.test.mjs y e2e tests/aut18-ready.e2e.cjs a 1280 y 390.",
+      "falta": "Avisador del VPS (/root/hampton-hermes, fuera del repo): su línea fija en mensajeResumen leyendo counts.applicants_ready (o el summary de /status), con el enlace al panel que pone él mismo, sin nombres ni texto libre (R21), con su prueba; necesita el OK de Luis. Aplicar la migración 0102 en D1 y encender AUT18_TEAM_READY. Las propuestas del mercado que no son matches (BUS-01) no cuentan como propuestas revisadas: solo la tabla matches. Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
       "bloqueo": "",
       "evidencia": [
-        "server/routes/hermes.js:32-47",
-        "server/routes/applicants.js:154",
-        "docs/roadmap/ESTADO.md (Después del bucle)"
+        "server/applicant-ready.js",
+        "server/routes/applicants.js (setTeamReady, commit)",
+        "server/routes/hermes.js (status, summary)",
+        "server/routes/sales.js (stageTo)",
+        "migrations/0102_applicant_team_ready.sql",
+        "admin/src/ApplicantDetail.jsx (TeamReady)",
+        "tests/server/aut18-team-ready.test.mjs",
+        "tests/aut18-ready.e2e.cjs",
+        "docs/superpowers/plans/2026-11-08-aut-18-applicant-ready-summary.md",
+        "docs/superpowers/plans/2026-11-09-aut-18-human-ready-marker-and-summary-count-closure.md",
+        "Decisión: tabla aparte en vez de columnas en applicants, para no tocar la copia de privacidad (server/privacy-requests.js clasifica cada columna de applicants); la marca es dato interno del equipo",
+        "Decisión: nombre counts.applicants_ready, el del plan (status.applicants_ready), dentro de counts como gone_quiet de AUT-14",
+        "Decisión (plan: mark_requires_reviewed_proposals, new_material_revision_requires_review): propuesta revisada = match en shortlisted; revisión posterior = evento match.reviewed con fecha posterior a la marca, sin columna ni migración nueva"
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -3759,7 +3769,8 @@
         "telegram-notifier",
         "hermes-gateway"
       ],
-      "nextStep": "Añadir marca Ready for the team y contador en resumen sin transmitir datos personales."
+      "nextStep": "Con el OK de Luis, añadir la línea al avisador del VPS; aplicar 0102, encender AUT18_TEAM_READY, marcar un aplicante y comprobar el resumen de las 8:00 siguiente.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "AUT-19",
@@ -7853,15 +7864,21 @@
       "titulo": "Referencias del inquilino por email y contrato de plantilla con firma electrónica",
       "origen": "plan",
       "fase": "F5-B",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "No existen las referencias del inquilino por email con un enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, y el acceso de caso de ADM-12). Plan maestro (10-nov-2026): la firma del contrato se hace fuera de Hampton; la app solo registra la evidencia externa revisada, sin proveedor de firma ni subida de documentos. La plantilla de contrato necesita la revisión de un abogado de Jersey. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11). Traído de ADM-20 (15-nov): el contrato de plantilla toma agreement_on y law_scope del contrato y no se genera con ámbito o fecha de acuerdo desconocidos; al registrar el contrato firmado, proponer su fecha como agreement_on. Traído de ADM-15 (15-nov): la plantilla validada de la carta de aviso de renta no existe ni tiene dónde registrarse; si esta tarea crea el registro de plantillas legales validadas, la carta de ADM-15 debe salir de ahí.",
+      "hecho": "Construido el 16-nov-2026 tras el interruptor ADM19_SIGNATURE_READY (apagado por defecto en código; wrangler.toml no lo enciende) y la migración aditiva 0103_tenancy_signature_evidence.sql: en cada contrato de Rentals, la evidencia externa de firma revisada por una persona. Quién firmó por rol (Landlord y cada inquilino, Tenant 1…10, sin nombres), el día, dónde consta (referencia de texto al sistema externo, sin subir ni abrir documentos), y quién del equipo lo revisó y cuándo (sesión y reloj del servidor, nunca el cuerpo). La ficha del contrato muestra «Signed externally, reviewed by … on …» o qué falta («Still to sign or to check: …»), y «Out of date» si la referencia del contrato firmado de ADM-06 cambia después de la revisión. Guardado por revisión (compare-and-set) y re-leyendo dentro del lote la revisión del contrato firmado de ADM-06: un cambio concurrente responde 409 sin escribir. Una firma sin cambios conserva su revisión; una nueva o cambiada se revisa de nuevo. History de Rentals registra tenancy.signatures_reviewed solo con ids y recuentos. Solo sesión de staff; con el interruptor apagado las rutas responden 404 y la ficha no muestra nada. Traído de ADM-20 (16-nov): con las reglas de 2025 encendidas (ADM20_TENANCY_LAW_READY) y todas las firmas revisadas, la ficha propone el día de la última firma como agreement_on del contrato, solo cuando no tiene ninguna registrada (nunca sustituye una fecha ya puesta); es solo una propuesta (guardar firmas nunca la escribe) y se registra únicamente cuando una persona la acepta, por el guardado propio del contrato (comprobaciones de ADM-20, etiqueta de régimen, historial tenancy.updated y control por updated_at), comprobando además la revisión de firmas y la fecha que vio (409 si cambiaron), con una guarda sobre la revisión de firmas dentro del mismo lote de escritura (un guardado de firmas concurrente da 409 sin escribir). Guardar las firmas sin cambios no escribe nada ni añade historial.",
+      "falta": "Referencias del inquilino: no existen las referencias por email con enlace de acceso con caducidad elegida por el empleado (necesitan el correo, AUT-17, el acceso de caso de ADM-12 y la entidad de solicitud de ADM-18, aún pendiente); el plan las ata a esa solicitud, así que tampoco se construyó un registro manual de referencias recibidas sobre el contrato. Contrato de plantilla: la plantilla necesita la revisión de un abogado de Jersey (PRE-33); sin ella no hay tenancy_contracts, hashes de borrador/firmado ni emisión. Firma: no hay proveedor de firma electrónica ni callbacks (plan maestro: la firma se hace fuera). Activación de la evidencia de firma: aplicar 0103 en D1 de producción y encender ADM19_SIGNATURE_READY. Traído de ADM-11 (14-nov): los puntos del calendario de cumplimiento guardan solo fecha y referencia de texto; adjuntar el documento queda aquí o en Private documents (PUB-11). Traído de ADM-20 (15-nov): el contrato de plantilla toma agreement_on y law_scope del contrato y no se genera con ámbito o fecha de acuerdo desconocidos; la propuesta de agreement_on desde la firma ya está construida; el resto queda para la plantilla. Traído de ADM-15 (15-nov): la plantilla validada de la carta de aviso de renta no existe ni tiene dónde registrarse; si esta tarea crea el registro de plantillas legales validadas, la carta de ADM-15 debe salir de ahí.",
       "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:22-26",
         "migrations/0013_rentals.sql:30-63",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la firma se hace fuera de Hampton, sin proveedor de firma. Vuelve a desarrollo: lo externo es condición de activación."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): la firma se hace fuera de Hampton, sin proveedor de firma. Vuelve a desarrollo: lo externo es condición de activación.",
+        "migrations/0103_tenancy_signature_evidence.sql",
+        "server/tenancy-signatures.js",
+        "server/routes/tenancy-signatures.js",
+        "admin/src/TenancySignatures.jsx",
+        "tests/server/adm-19-signatures-d1.test.mjs (12/12 en D1 local con Miniflare: apagado = 404, solo staff, revisor de la sesión, 409 por revisión y por cambio del contrato firmado de ADM-06 a mitad de escritura, propuesta de agreement_on que solo se registra al aceptarla, sin sustituir una fecha registrada, aceptación atómica frente a un guardado de firmas concurrente, guardado sin cambios sin escritura)",
+        "tests/adm19-signature.e2e.cjs (navegador aislado, 1280 y 390 px)"
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -7905,8 +7922,8 @@
         "electronic-signature",
         "legal-parameters"
       ],
-      "nextStep": "Construir la solicitud de referencias sobre ADM-12 y ADM-18 y el registro de la evidencia de firma externa; activar el envío cuando AUT-17 opere.",
-      "actualizado": "2026-11-15"
+      "nextStep": "Aplicar 0103 y encender ADM19_SIGNATURE_READY tras revisar la evidencia de firma en navegador; construir la solicitud de referencias sobre ADM-12 y ADM-18 y activar el envío cuando AUT-17 opere; la plantilla de contrato, cuando el abogado (PRE-33) la valide.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "ADM-20",
