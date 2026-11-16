@@ -11,13 +11,13 @@ import { fileURLToPath } from "node:url";
 // AUT-13, H4: the key's custodian, outside Hermes's container. Hermes calls it with no key; it forwards only the door.
 const KEY = "hermes-test-key-hermes-test-key-0123456789";
 
-async function start() {
+async function start(access) {
   const seen = [];
   const fetchFn = async (url, init) => {
     seen.push({ url, method: init.method, headers: Object.fromEntries(new Headers(init.headers)), body: init.body && Buffer.from(init.body).toString() });
     return new Response(JSON.stringify({ ok: true }), { status: 201, headers: { "content-type": "application/json", "set-cookie": "x=1" } });
   };
-  const server = makeServer({ origin: "https://app.example", key: KEY, fetchFn });
+  const server = makeServer({ origin: "https://app.example", key: KEY, access, fetchFn });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -38,6 +38,7 @@ test("forwards the door's GET and POST with the key, and nothing of the caller's
     assert.equal(p.seen[0].method, "GET");
     assert.equal(p.seen[0].headers.authorization, `Bearer ${KEY}`);
     assert.equal(p.seen[0].headers.cookie, undefined);
+    assert.equal(p.seen[0].headers["cf-access-client-id"], undefined, "no Access headers unless configured (PRE-06)");
     assert.equal(p.seen[1].body, '{"title":"T"}');
     assert.equal(p.seen[1].headers["content-type"], "application/json");
   } finally { p.close(); }
@@ -103,6 +104,33 @@ test("refuses to listen on every interface, however it is written", () => {
         env: { APP_ORIGIN: "https://app.example", HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: "0" } });
       assert.equal(r.status, 1, `LISTEN_HOST=${host}`);
       assert.match(r.stderr, /LISTEN_HOST/, `LISTEN_HOST=${host} says why`);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// PRE-06: with Hermes's Access service token configured, every forwarded call carries it; half a configuration stops it.
+const ACCESS_ID = `${"a".repeat(32)}.access`, ACCESS_SECRET = "service-secret-for-tests-only-0123456789";
+test("adds Hermes's Access service token when configured", async () => {
+  const p = await start({ id: ACCESS_ID, secret: ACCESS_SECRET });
+  try {
+    assert.equal((await fetch(`${p.base}/api/hermes/status`, { headers: { "cf-access-client-id": "caller" } })).status, 201);
+    assert.equal(p.seen[0].headers["cf-access-client-id"], ACCESS_ID);
+    assert.equal(p.seen[0].headers["cf-access-client-secret"], ACCESS_SECRET);
+    assert.equal(p.seen[0].headers.authorization, `Bearer ${KEY}`, "the door's key still goes");
+  } finally { p.close(); }
+});
+
+test("refuses half an Access configuration", () => {
+  const dir = mkdtempSync(`${tmpdir()}/kp-`), file = `${dir}/key`, secret = `${dir}/secret`;
+  try {
+    writeFileSync(file, KEY); writeFileSync(secret, ACCESS_SECRET);
+    const script = fileURLToPath(new URL("../../hermes/key-proxy.mjs", import.meta.url));
+    for (const extra of [{ ACCESS_CLIENT_ID: ACCESS_ID }, { ACCESS_CLIENT_SECRET_FILE: secret },
+      { ACCESS_CLIENT_ID: "bad", ACCESS_CLIENT_SECRET_FILE: secret }]) {
+      const r = spawnSync(process.execPath, [script], { timeout: 5000, encoding: "utf8",
+        env: { APP_ORIGIN: "https://app.example", HERMES_KEY_FILE: file, LISTEN_HOST: "127.0.0.1", LISTEN_PORT: "0", ...extra } });
+      assert.equal(r.status, 1, JSON.stringify(Object.keys(extra)));
+      assert.match(r.stderr, /ACCESS_CLIENT_ID/);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

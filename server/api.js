@@ -1,7 +1,7 @@
 import { missingClosureTable } from "./rental-closure.js";
 import { json, fail, HttpError } from "./http.js";
 import { currentAdmin, sameOrigin, accessMismatch } from "./auth.js";
-import { accessReady, classifyAccessSurface, staffPrincipal, oddStaffSegment, AccessError } from "./access.js";
+import { accessReady, classifyAccessSurface, staffPrincipal, assertServiceAccess, oddSegment, AccessError } from "./access.js";
 import { qaRoute } from "./qa-history.js";
 import publicRoutes from "./routes/public.js";
 import ownerRoutes from "./routes/owner-requests.js";
@@ -104,11 +104,12 @@ async function route(request, env, segments, waitUntil) {
     // Pages hands catch-all segments still percent-encoded (e.g. "x%40gmail.com").
     let path;
     try { path = "/" + segments.map(decodeURIComponent).join("/"); } catch { fail(400, "Bad URL encoding"); }
-    // PRE-06: Staff paths pass Access before anything else runs.
+    // PRE-06: Staff, Hermes's door and QA pass Access before anything else runs; Hermes and QA keep their own keys.
     const access = accessReady(env);
-    if (access && classifyAccessSurface({ pathname: "/api" + path }) === "staff") {
-      await staffPrincipal(request, env);
-      if (oddStaffSegment(segments)) fail(400, "Bad URL encoding");
+    const surface = access ? classifyAccessSurface({ pathname: "/api" + path }) : "public";
+    if (surface !== "public") {
+      await (surface === "staff" ? staffPrincipal(request, env) : assertServiceAccess(request, env, surface));
+      if (oddSegment(segments)) fail(400, "Bad URL encoding");
     }
     // AUT-13: Hermes's door has its own key and no cookie, so the same-origin check (against cookie CSRF) is not its.
     if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));

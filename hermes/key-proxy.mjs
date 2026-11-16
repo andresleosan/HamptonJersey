@@ -4,6 +4,8 @@
 //
 // APP_ORIGIN=https://<app host> HERMES_KEY_FILE=/run/secrets/hermes_key LISTEN_HOST=<private address> \
 //   LISTEN_PORT=8787 node hermes/key-proxy.mjs
+// PRE-06: once Cloudflare Access guards the door, add ACCESS_CLIENT_ID=<id>.access and ACCESS_CLIENT_SECRET_FILE=<file>
+// (the service token of Hermes's Access application); both or neither.
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -11,7 +13,7 @@ import { pathToFileURL } from "node:url";
 const DOOR = /^\/api\/hermes\/[A-Za-z0-9_/-]+(\?[A-Za-z0-9=&_-]*)?$/; // the raw request line: no "..", "//" or host
 const MAX_BODY = 163840; // the door's own limit for a draft
 
-export function makeServer({ origin, key, fetchFn = fetch }) {
+export function makeServer({ origin, key, access, fetchFn = fetch }) {
   return createServer(async (req, res) => {
     const reply = (status, body = "", type = "text/plain; charset=utf-8") => res.writeHead(status, { "content-type": type }).end(body);
     if (!DOOR.test(req.url) || req.url.includes("//")) return reply(404, "Not found");
@@ -32,6 +34,7 @@ export function makeServer({ origin, key, fetchFn = fetch }) {
       const r = await fetchFn(origin + req.url, {
         method: req.method, redirect: "manual", signal: AbortSignal.timeout(15000),
         headers: { authorization: `Bearer ${key}`, "user-agent": "hampton-hermes-key-proxy",
+          ...(access ? { "cf-access-client-id": access.id, "cf-access-client-secret": access.secret } : {}),
           ...(req.method === "POST" ? { "content-type": "application/json" } : {}) },
         body: req.method === "POST" ? Buffer.concat(chunks) : undefined,
       });
@@ -41,14 +44,20 @@ export function makeServer({ origin, key, fetchFn = fetch }) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const { APP_ORIGIN: origin, HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: port = "8787" } = process.env;
+  const { APP_ORIGIN: origin, HERMES_KEY_FILE: file, LISTEN_HOST: host, LISTEN_PORT: port = "8787",
+    ACCESS_CLIENT_ID: accessId, ACCESS_CLIENT_SECRET_FILE: accessFile } = process.env;
   const key = file ? readFileSync(file, "utf8").trim() : "";
   if (!/^https:\/\/[^/]+$/.test(origin ?? "") || key.length < 32 || !host) {
     console.error("Set APP_ORIGIN (https://host), HERMES_KEY_FILE (a key of 32+ characters) and LISTEN_HOST (a private address)");
     process.exit(1);
   }
+  const access = accessId || accessFile ? { id: accessId ?? "", secret: accessFile ? readFileSync(accessFile, "utf8").trim() : "" } : null;
+  if (access && (!/^[0-9a-f]{32}\.access$/.test(access.id) || !access.secret)) {
+    console.error("Set both ACCESS_CLIENT_ID (<32 hex>.access) and ACCESS_CLIENT_SECRET_FILE, or neither");
+    process.exit(1);
+  }
   const stop = why => { console.error(`LISTEN_HOST ${host}: ${why}`); process.exit(1); };
-  const server = makeServer({ origin, key }).on("error", e => stop(e.message));
+  const server = makeServer({ origin, key, access }).on("error", e => stop(e.message));
   server.listen(Number(port), host, () => {
     // Only the private network shared with Hermes: whatever LISTEN_HOST says ("0", "::0", a name…), it exits if it
     // ended up listening on every interface.
