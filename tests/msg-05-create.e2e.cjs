@@ -106,6 +106,26 @@ const { join, dirname } = require('node:path');
         assert.equal(d1(`SELECT contact_id FROM chats WHERE id = ${dup}`)[0].contact_id, 1);
         assert.equal(d1("SELECT COUNT(*) n FROM contacts WHERE email = 'sarah.vibert@example.je'")[0].n, 1);
 
+        // Saved, but the answer is lost: the version our own save raised does not block Save, and Save again with the same
+        // key opens the applicant created the first time, without a second one.
+        const lost = addChat('lost', 'Synthetic Lost', 'chat-lost@example.test');
+        await page.goto(new URL(`admin/#/applicants/new?chat=${lost}`, BASE).href);
+        await page.getByRole('heading', { name: 'Create applicant from chat', exact: true }).waitFor();
+        await fill();
+        await page.route(`**/api/admin/chats/${lost}/applicant`, async route => { await route.fetch(); await route.abort(); }, { times: 1 });
+        await page.getByRole('button', { name: 'Save applicant' }).click();
+        await page.getByRole('alert').filter({ hasText: "Can't reach the server" }).waitFor();
+        const first = d1("SELECT a.id FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE c.email = 'chat-lost@example.test'");
+        assert.equal(first.length, 1, 'the first save was committed');
+        await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+        await page.getByRole('alert').filter({ hasText: 'Save again to check whether your applicant was saved.' }).waitFor();
+        assert.equal(await page.getByText('Nothing was saved').count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Save applicant' }).isEnabled(), true);
+        await page.getByRole('button', { name: 'Save applicant' }).click();
+        await page.waitForFunction(() => /^#\/applicants\/\d+$/.test(location.hash));
+        assert.equal(Number(new URL(page.url()).hash.split('/').pop()), first[0].id);
+        assert.equal(d1("SELECT COUNT(*) n FROM contacts WHERE email = 'chat-lost@example.test'")[0].n, 1);
+
         // A chat deleted while the form is open: Save says so and creates nothing.
         const gone = addChat('gone', 'Synthetic Gone', 'chat-gone@example.test');
         await page.goto(new URL(`admin/#/applicants/new?chat=${gone}`, BASE).href);

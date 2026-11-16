@@ -19,7 +19,9 @@ export default function NewApplicant({ contactId, chatId }) {
   const [contact, setContact] = useState(null), [loadErr, setLoadErr] = useState(null), [draftLoaded, setDraftLoaded] = useState(false);
   // MSG-05: whether Save is on, the chat version the form was opened with, and why it can no longer save (chat changed).
   const [saveable, setSaveable] = useState(false), [chatVersion, setChatVersion] = useState(null), [chatChanged, setChatChanged] = useState(null);
-  const opKey = useRef(null);
+  // sent: a Save went out with this form's key. If its answer was lost, the version our own save raised is no proof that
+  // nothing was saved: Save stays on, and sending the same key again gets the applicant or a certain refusal.
+  const opKey = useRef(null), sent = useRef(false);
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   // A 409: the email or phone is a saved contact ({contact_id}) or that contact already has this search ({applicant_id}).
   const [found, setFound] = useState(null);
@@ -62,7 +64,8 @@ export default function NewApplicant({ contactId, chatId }) {
         }
         const current = JSON.stringify([c.name, c.email, c.phone, d.chat_version]);
         if (initial !== null && initial !== current) {
-          if (d.save_available === true) changed("This chat changed since you opened it (someone saved or linked its contact). Nothing was saved.");
+          if (d.save_available === true && sent.current) { invalid = true; setMsg("This chat changed since you opened it. Save again to check whether your applicant was saved."); }
+          else if (d.save_available === true) changed("This chat changed since you opened it (someone saved or linked its contact). Nothing was saved.");
           else clear("Chat details changed. Return to Messages and open them again.");
           return;
         }
@@ -107,6 +110,7 @@ export default function NewApplicant({ contactId, chatId }) {
       ? { contact_id: withContact } : { privacy: extra.privacy, marketing: extra.marketing }) };
     const [url, payload] = fromChat ? [`/admin/chats/${chatId}/applicant`, { ...body, version: chatVersion, operation_key: opKey.current }]
       : ["/admin/applicants", body];
+    if (fromChat) sent.current = true;
     try { const { id } = await api(url, { method: "POST", body: payload }); setUnsaved(false); location.hash = `#/applicants/${id}`; }
     catch (x) {
       setErrors(x.data?.fields || {});
