@@ -103,10 +103,11 @@ function NewRequest({ team, onCancel }) {
 
 function Detail({ id }) {
   const [d, setD] = useState(null), [team, setTeam] = useState([]), [err, setErr] = useState(null), [ok, setOk] = useState(null);
-  const head = useRef(null), said = useRef(null);
+  const head = useRef(null), said = useRef(null), focused = useRef(false);
   const load = () => Promise.all([api(`/admin/privacy-requests/${id}`), api("/admin/privacy-requests")])
     .then(([x, all]) => { setD(x); setTeam(all.team); setErr(null); }, e => setErr(e.message));
-  useEffect(() => { load().then(() => head.current?.focus()); }, []);
+  useEffect(() => { load(); }, []);
+  useEffect(() => { if (d && !focused.current) { focused.current = true; head.current?.focus(); } }, [d]);
   useEffect(() => { if (ok) said.current?.focus(); }, [ok]);
   if (!d) return err ? <p role="alert" className="err">{err} <button type="button" className="btn ghost sm" onClick={load}>Try again</button></p>
     : <p role="status">Loading the request…</p>;
@@ -225,7 +226,7 @@ function Erasure({ plan }) {
     <ul>{plan.remove.map(x => <li key={x.item}>{REMOVE[x.item]}: {x.count}</li>)}</ul>
     <h3>To check by hand</h3>
     <ul>{plan.by_hand.map(x => <li key={x.item}>{x.item === "rentals" ? "Rentals: not linked to contacts. Check Rentals by hand."
-      : `Viewing requests with the same email or phone: ${x.count}. Delete them from Viewings after checking.`}</li>)}</ul>
+      : `Viewing requests with the same email or phone: ${x.count}. Other people can share an email or phone: check each one before deleting it from Viewings.`}</li>)}</ul>
   </div>;
 }
 

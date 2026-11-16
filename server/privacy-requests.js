@@ -137,7 +137,9 @@ async function holds(env, contactId) {
 }
 
 // What the existing Delete (an archived applicant's, §3.4) would remove for this contact, and what it leaves to a person.
-// Rentals are not linked to contacts: they are named for a check by hand, never matched here.
+// Viewing requests carry no contact id: those with the same non-empty email or phone are only possible matches (other
+// people can share them), counted for a person to check one by one, never listed or deleted here. Rentals are not linked
+// to contacts: they are named for a check by hand, never matched.
 async function erasurePlan(env, contactId, kept) {
   const n = await env.DB.prepare(`SELECT
     (SELECT COUNT(*) FROM applicants WHERE contact_id = ?1) AS searches,
@@ -145,7 +147,8 @@ async function erasurePlan(env, contactId, kept) {
     (SELECT COUNT(*) FROM matches m JOIN applicants s ON s.id = m.applicant_id WHERE s.contact_id = ?1) AS matches,
     (SELECT COUNT(*) FROM marketing_preferences WHERE contact_id = ?1) AS marketing_preferences,
     (SELECT COUNT(*) FROM viewing_requests v JOIN contacts c ON c.id = ?1
-      WHERE lower(v.email) = lower(c.email) OR v.phone = c.phone) AS viewing_requests`).bind(contactId).first();
+      WHERE (c.email <> '' AND v.email <> '' AND lower(v.email) = lower(c.email))
+        OR (c.phone <> '' AND v.phone <> '' AND v.phone = c.phone)) AS viewing_requests`).bind(contactId).first();
   return { can_delete: kept.length === 0,
     remove: [{ item: "contact", count: 1 }, ...["searches", "offers", "matches", "marketing_preferences"].map(item => ({ item, count: n[item] }))],
     by_hand: [{ item: "viewing_requests", count: n.viewing_requests }, { item: "rentals", count: null }] };
@@ -160,8 +163,9 @@ async function detail({ env, params: [id] }) {
     erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null });
 }
 
-// The copy for an access or portability request: explicit fields of the person's own records, read in one batch, never
-// SELECT *. Staff notes, message bodies and records shared with other people stay out and are named as such.
+// The copy for an access or portability request: explicit fields of the records linked to the contact by id, read in one
+// batch, never SELECT *. Staff notes, message bodies, records shared with other people and anything matched only by an
+// email or a phone (viewing requests) stay out and are named as such, for a person to review separately.
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time", "privacy_ack_at", "marketing_opt_in_at",
   "consent_source", "created_at", "last_activity_at"];
 const SEARCH = ["id", "operation", "search_state", "created_at", "resolved_at", "budget_min", "budget_max", "budget_stretch",
@@ -170,33 +174,31 @@ const SEARCH = ["id", "operation", "search_state", "created_at", "resolved_at", 
   "mortgage_aip", "housing_status", "household_adults", "household_children", "household_children_status", "requirements",
   "preferred_language", "viewing_availability", "area_min", "area_max", "area_unit"];
 const OFFER = ["id", "applicant_id", "listing_id", "amount", "conditions", "status", "counter_amount", "created_at"];
-const VIEWING = ["id", "listing_id", "listing_ref", "date", "time", "status", "created_at"];
 const PREFERENCE = ["purpose", "channel", "value", "source", "updated_at"];
 const NOT_INCLUDED = [
   "Emails and website chats are reviewed separately by our team.",
   "Internal notes, and records that also hold other people's details (such as sale files), are reviewed separately.",
   "Ages of children in the household are reviewed separately before they are shared.",
   "Rental records are kept apart from this register and reviewed separately.",
+  "Viewing requests are matched to you only by email or phone, so our team checks each one before sharing it.",
 ];
 const cols = (fields, alias) => fields.map(f => `${alias}.${f}`).join(", ");
 
 async function buildCopy(env, r) {
   if (!COPY_KINDS.includes(r.kind)) fail(400, "Only access and portability requests have a copy");
   if (r.contact_id == null || !r.identity_method) fail(400, "Link the contact and check the identity first");
-  const [{ results: [contact] }, { results: searches }, { results: offers }, { results: viewings }, { results: prefs }] =
+  const [{ results: [contact] }, { results: searches }, { results: offers }, { results: prefs }] =
     await env.DB.batch([
       env.DB.prepare(`SELECT ${cols(CONTACT, "c")} FROM contacts c WHERE c.id = ?`).bind(r.contact_id),
       env.DB.prepare(`SELECT ${cols(SEARCH, "s")} FROM applicants s WHERE s.contact_id = ? ORDER BY s.id`).bind(r.contact_id),
       env.DB.prepare(`SELECT ${cols(OFFER, "o")} FROM offers o JOIN applicants s ON s.id = o.applicant_id WHERE s.contact_id = ?
         ORDER BY o.id`).bind(r.contact_id),
-      env.DB.prepare(`SELECT ${cols(VIEWING, "v")} FROM viewing_requests v JOIN contacts c ON c.id = ?
-        WHERE lower(v.email) = lower(c.email) OR v.phone = c.phone ORDER BY v.id`).bind(r.contact_id),
       env.DB.prepare(`SELECT ${cols(PREFERENCE, "p")} FROM marketing_preferences p WHERE p.contact_id = ?
         ORDER BY p.purpose, p.channel`).bind(r.contact_id),
     ]);
   if (!contact) fail(404, "Contact not found");
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
-    viewing_requests: viewings, marketing_preferences: prefs, not_included: NOT_INCLUDED };
+    marketing_preferences: prefs, not_included: NOT_INCLUDED };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
 }
@@ -219,7 +221,7 @@ function toCsv(copy) {
   const rows = [["section", "record", "field", "value"]];
   const add = (section, record, obj) => { for (const [k, v] of Object.entries(obj)) rows.push([section, String(record), k, v == null ? "" : String(v)]); };
   add("contact", 1, copy.contact);
-  for (const s of ["searches", "offers", "viewing_requests", "marketing_preferences"]) copy[s].forEach((x, i) => add(s, i + 1, x));
+  for (const s of ["searches", "offers", "marketing_preferences"]) copy[s].forEach((x, i) => add(s, i + 1, x));
   copy.not_included.forEach((t, i) => rows.push(["not_included", String(i + 1), "note", t]));
   return rows.map(r => r.map((v, i) => csvCell(i === 3 ? csvText(v) : v)).join(",")).join("\r\n") + "\r\n";
 }

@@ -156,6 +156,15 @@ test('an erasure request lists what a deletion would remove and what holds keep,
     [['contact', 1], ['searches', 1], ['offers', 1], ['matches', 0], ['marketing_preferences', 0]]);
   assert.deepEqual(r.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 1], ['rentals', null]]);
   assert.deepEqual(counts(env), before, 'nothing deleted or written by reading the plan');
+  // Empty details never match someone else's: a contact without email matches no viewing request with an empty one.
+  const noEmail = Number(db.prepare(`INSERT INTO contacts (name,email,phone,last_activity_at,created_at,updated_at)
+    VALUES ('Blank Person',NULL,'+447700900777',?,?,?)`).run(T, T, T).lastInsertRowid);
+  db.prepare(`INSERT INTO viewing_requests (listing_id,agent,kind,date,time,name,email,phone,status,created_at,updated_at)
+    VALUES ('HE-R001','team','in_person','2026-11-21','11:00','Someone Else','','','requested',?,?)`).run(T, T);
+  const unknown = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${unknown.id}/contact`, { cookie, body: { revision: 1, contact_id: noEmail } });
+  const none = await call(env, 'GET', `${BASE}/${unknown.id}`, { cookie });
+  assert.deepEqual(none.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['rentals', null]]);
   // A sale, in any state, is a hold too.
   db.prepare("UPDATE offers SET status='accepted' WHERE id=?").run(offer);
   db.prepare(`UPDATE applicants SET search_state='resolved', resolved_at=?, resolved_by='admin@example.test',
@@ -185,6 +194,8 @@ test('the copy needs a checked identity, leaves out internal notes, and download
   seedListing(env);
   env.DB.raw.prepare(`INSERT INTO offers (listing_id,applicant_id,amount,status,note,created_at,created_by,updated_at,updated_by)
     VALUES ('HE-R001',?,650000,'rejected','internal offer note',?,'admin@example.test',?,'admin@example.test')`).run(p.applicant, T, T);
+  env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id,agent,kind,date,time,name,email,phone,status,created_at,updated_at)
+    VALUES ('HE-R001','team','in_person','2026-11-20','10:00','Someone Else','pre12-person@example.test','+447700900121','requested',?,?)`).run(T, T);
   const preview = await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie });
   assert.equal(preview.status, 200, preview.text);
   const { copy, sha256 } = preview.data;
@@ -192,6 +203,9 @@ test('the copy needs a checked identity, leaves out internal notes, and download
   assert.equal(copy.contact.email, 'pre12-person@example.test');
   assert.equal(copy.searches[0].requirements, 'Near a school');
   assert.equal(copy.offers[0].amount, 650000);
+  // Viewing requests are matched only by email or phone, which other people can share: never in the copy by themselves.
+  assert.equal('viewing_requests' in copy, false);
+  assert.ok(copy.not_included.some(t => /viewing requests/i.test(t)));
   assert.equal(JSON.stringify(copy).includes('internal offer note'), false);
   assert.ok(copy.not_included.length > 0);
   assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy/download?format=json`, { cookie })).status, 409, 'not reviewed yet');
