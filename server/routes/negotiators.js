@@ -3,6 +3,7 @@ import { validHours, validException, jerseyNow, DEFAULT_HOURS, SLOT_MINUTES } fr
 import { loadAvailability } from "../viewing-store.js";
 import { viewingPolicyReady, validViewingPolicy } from "../viewing-policy.js";
 import { availabilityRange } from "./public.js";
+import { vis14Ready, calendarGroups } from "../viewing-groups.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const ID = /^[1-9]\d{0,8}$/;
@@ -131,7 +132,10 @@ async function availability({ request, env }) {
   const a = await loadAvailability(env, { ...availabilityRange(q, clock.date), now: clock, fromTomorrow: false,
     includeInactive: id != null, negotiatorId: id == null ? null : Number(id), excludeId: exclude == null ? null : Number(exclude), listingId });
   if (id != null && !a.negotiators.length) fail(404, "Unknown negotiator");
-  return json({ slot_minutes: SLOT_MINUTES, ...a });
+  // VIS-14: the open viewings of those days, with how many places are pending and confirmed (no property, no people).
+  const groups = vis14Ready(env) ? await calendarGroups(env, { from: a.days[0].date, to: a.days.at(-1).date,
+    negotiatorId: id == null ? null : Number(id) }) : null;
+  return json({ slot_minutes: SLOT_MINUTES, ...a, ...(groups ? { groups } : {}) });
 }
 
 export default [

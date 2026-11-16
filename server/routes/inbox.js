@@ -5,6 +5,7 @@ import { loadAvailability, bookStatement, slotGuard, policySnapshot, propertyVie
 import { touchByViewing } from "../retention.js";
 import houseRuleRoutes, { noticeCheck } from "../house-rules.js";
 import { cycleOn, REMINDER_CHANNELS, outcomeReady, followUp } from "../viewing-cycle.js";
+import { vis14Ready } from "../viewing-groups.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -38,9 +39,10 @@ async function list({ request, env }) {
       .bind(...Object.values(TABS).flatMap(([cond]) => bindsOf(cond, clock)), ...listing),
   ]).then(r => r.map(x => x.results));
   // VIS-08: cycle tells the panel that reminders and feedback can be recorded (switched on and migrated). VIS-04:
-  // follow_up, that a decision to proceed or to ask for more leaves a task in the Inbox.
+  // follow_up, that a decision to proceed or to ask for more leaves a task in the Inbox. VIS-14: groups, that houses with
+  // several requests can be planned as back-to-back times or an open viewing.
   return json({ viewings, counts, ...(await cycleOn(env, viewings[0]) ? { cycle: true } : {}),
-    ...(outcomeReady(env) ? { follow_up: true } : {}) });
+    ...(outcomeReady(env) ? { follow_up: true } : {}), ...(vis14Ready(env) ? { groups: true } : {}) });
 }
 
 // Task links resolve independently of the list's 500-row window and use the same Jersey tab clock.
@@ -170,7 +172,8 @@ async function change(env, action, body, cur, clock, admin, cycle, ts) {
 }
 
 // C7 with optimistic locking: the client sends the updated_at it saw (null for a request never edited).
-async function runAction({ env, admin, id, body }) {
+// VIS-14's plans move and cancel viewings through it too (server/routes/viewing-groups.js).
+export async function runAction({ env, admin, id, body }) {
   if (!("updated_at" in body) || (body.updated_at !== null && typeof body.updated_at !== "string"))
     fail(400, "Missing updated_at: reload the viewing");
   if (!Object.hasOwn(FROM, body.action)) fail(400, "Unknown action");

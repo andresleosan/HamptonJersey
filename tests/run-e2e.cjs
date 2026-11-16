@@ -37,6 +37,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/vis08-viewing-cycle.e2e.cjs" ? { VIS08_CYCLE_READY: "1", VIS10_HOUSE_RULES_READY: "1" } : {}),
       // VIS-04's follow-up, on the cycle it completes (the answer recorded later).
       ...(process.env.E2E_SCRIPT === "tests/vis04-after-viewing.e2e.cjs" ? { VIS04_OUTCOME_READY: "1", VIS08_CYCLE_READY: "1" } : {}),
+      // VIS-14: open viewings and back-to-back times, switched on for its own test only (off in production).
+      ...(process.env.E2E_SCRIPT === "tests/vis14-block.e2e.cjs" ? { VIS14_BLOCK_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana10-poster-qr.e2e.cjs" ? { ANA10_QR_OPENS_READY: "1", PUB16_TIMED_CLOSURE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/ana06-agency-times.e2e.cjs" ? { ANA06_AGENCY_TIMES_READY: "1" } : {}),

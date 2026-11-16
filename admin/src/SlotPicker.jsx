@@ -40,7 +40,9 @@ export default function SlotPicker({ value, onChange, own, listingId, refresh = 
   const slotsOf = date => data?.days.find(d => d.date === date)?.slots[nid] ?? [];
   const stateOf = (date, s) => (own && own.negotiator_id === nid && own.date === date && own.time === s.time ? "current"
     : s.booked ? "booked" : "free");
-  const freeCount = date => (date > last ? 0 : slotsOf(date).filter(s => stateOf(date, s) === "free").length);
+  // VIS-14: an open viewing at that time (the server sends them switched on): its places, never who holds them.
+  const groupAt = (date, time) => data?.groups?.find(g => g.negotiator_id === nid && g.date === date && g.time === time);
+  const freeCount = date =>(date > last ? 0 : slotsOf(date).filter(s => stateOf(date, s) === "free").length);
 
   // Fresh times: a chosen time someone else has just taken is dropped (the day stays).
   useEffect(() => {
@@ -93,11 +95,12 @@ export default function SlotPicker({ value, onChange, own, listingId, refresh = 
         {!paging && data.days.some(d => d.date === value.date) && <fieldset className="pick-set" {...described("time")}>
           <legend>Time on {fmtDay(value.date, true)}</legend>
           <div className="pick">{slotsOf(value.date).map(s => {
-            const st = stateOf(value.date, s);
+            const st = stateOf(value.date, s), g = st !== "current" && groupAt(value.date, s.time);
             return <label key={s.time}>
               <input type="radio" name={`${uid}-time`} value={s.time} checked={value.time === s.time} disabled={st !== "free"}
                 onChange={() => onChange({ ...value, time: s.time })} />
-              <span className="num">{s.time}{st !== "free" && <small>{st === "current" ? "Current time" : "Booked"}</small>}</span>
+              <span className="num">{s.time}{g ? <><small>Open viewing</small><small>{g.pending + g.confirmed} of {g.capacity} · {g.confirmed} confirmed</small></>
+                : st !== "free" && <small>{st === "current" ? "Current time" : "Booked"}</small>}</span>
             </label>;
           })}</div>
         </fieldset>}

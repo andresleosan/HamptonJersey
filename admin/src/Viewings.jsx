@@ -6,6 +6,7 @@ import { KINDS, OUTCOMES, jerseyToday, jerseyNow, plusDays } from "../../server/
 import { stageOf, reminderDue, REMINDER_CHANNELS } from "../../server/viewing-cycle.js";
 import SlotPicker from "./SlotPicker.jsx";
 import Interest from "./Interest.jsx";
+import ViewingGroups from "./ViewingGroups.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
@@ -182,6 +183,8 @@ export default function Viewings({ listing, requestedId }) {
     {/* The card's changes read the list again too; the list's last message is about something else by then. */}
     {listing && <Interest data={interest} error={interestErr} reload={() => { setMsg(null); return load(); }} onDirty={onDirty} />}
     {creating && <NewViewing listing={listing} onBooked={booked} onClose={closeForm} onDirty={onDirty} />}
+    {/* VIS-14: houses with several open requests, once the server reports it on. */}
+    {data?.groups && tab === "requests" && <ViewingGroups listing={listing} onChanged={() => load()} />}
     <div className="seg" role="group" aria-label="Viewings">{Object.entries(TABS).map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => show(k)}>{t}<span className="count">{counts[k] ?? ""}</span></button>)}</div>
     <Msg m={msg} />
