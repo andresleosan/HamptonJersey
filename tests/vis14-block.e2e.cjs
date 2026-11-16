@@ -57,8 +57,7 @@ const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execut
         mkdirSync(process.env.E2E_SHOTS, { recursive: true });
         await target.screenshot({ path: join(process.env.E2E_SHOTS, `vis14-${name}-${width}.png`) });
       };
-      const people = (await request('/api/admin/negotiators')).data.negotiators;
-      const josh = people.find(p => p.name === 'Joshua Franco').id, gil = people.find(p => p.name === 'Gilberto Franco').id;
+      let josh, gil;
       // In a slot picker: a negotiator, the nth enabled weekday from tomorrow on, and its first free time.
       const choose = async (picker, negotiator, n) => {
         await picker.locator('select').selectOption(String(negotiator));
@@ -76,6 +75,8 @@ const sql = statement => execFileSync(process.execPath, [wrangler, 'd1', 'execut
 
       // The house is flagged above Requests, with who asked and the two plans.
       await page.goto(`${BASE}admin/#/viewings`);
+      const people = (await request('/api/admin/negotiators')).data.negotiators;
+      [josh, gil] = ['Joshua Franco', 'Gilberto Franco'].map(name => people.find(p => p.name === name).id);
       const plan = page.locator('section.block-plan');
       await plan.getByRole('heading', { name: 'Several people want the same house' }).waitFor();
       const house = plan.locator('article.block-house').filter({ has: page.getByRole('heading', { name: new RegExp(listing) }) });
