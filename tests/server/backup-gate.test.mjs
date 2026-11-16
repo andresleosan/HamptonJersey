@@ -6,6 +6,7 @@ import {makeDb} from './helpers.mjs';
 import {backupDue, attemptAt} from '../../server/backup-policy.js';
 import {
   withApplicationWrite, closeWriteGate, drainState, sealable, openWriteGate, reconcileWritePermit, BackupMaintenanceError,
+  listOpenWritePermits,
 } from '../../server/backup-write-gate.js';
 
 const RUN = '11111111-1111-4111-8111-111111111111', RUN2 = '22222222-2222-4222-8222-222222222222';
@@ -151,4 +152,53 @@ test('cobertura: toda entrada figura en el registro y BACKUP_READY sigue apagado
     assert.ok(ready, `${f}: BACKUP_READY declarado`);
     assert.ok(ready === '0' || !uncovered, `${f}: no se activa con escritores sin cubrir`);
   }
+});
+
+test('un escritor con el reloj adelantado que entra «por plazo vencido» invalida el sello aunque ya cerrara', async () => {
+  const e = env();
+  const gate = await closeWriteGate(e, {run_id: RUN, now: T});
+  assert.equal(gate.deadline, plus(T, 300));
+  // Su reloj va 2 s por delante: para él el plazo ya venció; para la captura (T+299) no.
+  assert.equal(await withApplicationWrite(e, {operation_id: 'api:skewed'}, async () => 'ok', () => plus(T, 301)), 'ok');
+  assert.equal(openPermits(e), 0);
+  assert.equal(await drainState(e, {run_id: RUN, epoch: 1, now: plus(T, 299)}), 'invalidated');
+  assert.equal(await sealable(e, {run_id: RUN, epoch: 1, now: plus(T, 299)}), false);
+});
+
+test('sin now, admisión, cierre y plazo usan el reloj de D1', async () => {
+  const e = env();
+  assert.equal(await withApplicationWrite(e, {operation_id: 'api:clock'}, async () => 'ok'), 'ok');
+  const w = e.DB.raw.prepare('SELECT started_at, closed_at FROM backup_writers').get();
+  for (const v of [w.started_at, w.closed_at]) assert.equal(new Date(v).toISOString(), v);
+  const gate = await closeWriteGate(e, {run_id: RUN});
+  assert.ok(Math.abs(Date.parse(gate.deadline) - Date.now() - 300_000) < 5000);
+  await assert.rejects(withApplicationWrite(e, {operation_id: 'api:closed'}, async () => 1), BackupMaintenanceError);
+  assert.equal(await sealable(e, {run_id: RUN, epoch: 1}), true);
+});
+
+test('admisión con respuesta perdida y cierre que falla una vez no dejan permisos huérfanos', async () => {
+  const e = env(), db = e.DB;
+  let loseInsert = true, failClose = 0;
+  e.DB = {...db, prepare(sql) {
+    const st = db.prepare(sql);
+    const wrap = s => ({...s, bind: (...a) => wrap(s.bind(...a)), async run() {
+      // El cierre falla sin ejecutarse; la admisión se ejecuta y se pierde su respuesta.
+      if (/^UPDATE backup_writers/.test(sql.trim()) && failClose > 0) { failClose--; throw new Error('D1 busy'); }
+      const r = await s.run();
+      if (/^INSERT INTO backup_writers/.test(sql.trim()) && loseInsert) { loseInsert = false; throw new Error('network lost'); }
+      return r;
+    }});
+    return wrap(st);
+  }};
+  await assert.rejects(withApplicationWrite(e, {operation_id: 'api:lost'}, async () => assert.fail('no debe correr')), /network lost/);
+  assert.deepEqual(await listOpenWritePermits(e), []);
+  assert.equal(db.raw.prepare(`SELECT close_reason FROM backup_writers`).get().close_reason, 'admission_failed');
+  failClose = 1;
+  assert.equal(await withApplicationWrite(e, {operation_id: 'api:retry'}, async () => 'ok'), 'ok');
+  assert.deepEqual(await listOpenWritePermits(e), []);
+  failClose = 2;
+  await withApplicationWrite(e, {operation_id: 'api:stuck'}, async () => 'ok');
+  const open = await listOpenWritePermits(e);
+  assert.deepEqual(open.map(p => [p.operation, p.epoch]), [['api:stuck', 0]]);
+  assert.deepEqual(Object.keys(open[0]).sort(), ['epoch', 'id', 'operation', 'started_at']);
 });

@@ -40,15 +40,15 @@ CREATE TABLE backup_write_gate (
 );
 INSERT INTO backup_write_gate (id, epoch, state, updated_at) VALUES (1, 0, 'open', '2026-11-16T00:00:00.000Z');
 
--- Un permiso por operación que escribe en D1 o R2. Solo se cierra al terminar o por conciliación autorizada;
--- nunca por antigüedad.
+-- Un permiso por operación que escribe en D1 o R2. Solo se cierra al terminar, al fallar su propia admisión o por
+-- conciliación autorizada; nunca por antigüedad.
 CREATE TABLE backup_writers (
   id TEXT PRIMARY KEY CHECK (length(id) = 36),
   epoch INTEGER NOT NULL,
   operation TEXT NOT NULL CHECK (length(operation) BETWEEN 1 AND 80),
   started_at TEXT NOT NULL,
   closed_at TEXT,
-  close_reason TEXT CHECK (close_reason IS NULL OR close_reason IN ('finished','reconciled')),
+  close_reason TEXT CHECK (close_reason IS NULL OR close_reason IN ('finished','reconciled','admission_failed')),
   reconciled_by TEXT,
   CHECK ((closed_at IS NULL) = (close_reason IS NULL))
 );
