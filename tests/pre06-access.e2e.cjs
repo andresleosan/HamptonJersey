@@ -81,8 +81,7 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       // The sign-in opens in another tab; this one stays where it was. A blocked popup leaves the same link to use.
       const before = page.url();
       const [popup] = await Promise.all([context.waitForEvent('page'), link.click()]);
-      await popup.waitForLoadState('domcontentloaded');
-      assert.equal(new URL(popup.url()).pathname, '/admin/');
+      await popup.waitForURL(url => new URL(url).pathname === '/admin/');
       await popup.close();
       assert.equal(page.url(), before);
       assert.equal(await title.inputValue(), draft);
