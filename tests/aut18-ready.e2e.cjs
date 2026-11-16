@@ -39,8 +39,8 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
     const text=JSON.stringify(s);for(const secret of [name,email,'Quarrington'])assert.ok(!text.includes(secret),`door leaks ${secret}`);};
 
    const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
-   // The refused Done answers 409 on purpose; any other console error fails the run.
-   page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource.*409/.test(m.text()))errors.push(m.text());});
+   // The refused Done answers 409 on purpose, and the container has no network (web fonts); any other console error fails.
+   page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource.*(409|ERR_INTERNET_DISCONNECTED)/.test(m.text()))errors.push(m.text());});
    await page.setViewportSize({width,height:900});
    const fits=async where=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),`no sideways scroll: ${where} at ${width}`);
    const shot=async what=>{if(shots)await page.screenshot({path:join(shots,`aut18-${what}-${width}.png`),fullPage:true});};
