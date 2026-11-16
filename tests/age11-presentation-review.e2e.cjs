@@ -97,8 +97,34 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await says(card,'approved again',['(version 2)']);
    await card.getByRole('button',{name:'I have sent it'}).click();
    await says(card,'sent',['Working',`Sent by ${ADMIN}`]);
+   // ANA-06's receipt: the client confirms receiving it in a conversation the team logs; a person records it with the real time.
+   await page.waitForTimeout(1100);
+   const contact=d1(`SELECT contact_id FROM applicants WHERE id=${ana}`)[0].contact_id;
+   await post(`/admin/contacts/${contact}/conversation`,undefined);
+   const talk=d1(`SELECT id, at FROM events WHERE type='contact.conversation' AND entity_id='${contact}' ORDER BY id DESC`)[0];
+   await page.reload();
+   await says(card,'no receipt',['Receipt not confirmed yet.']);
+   await card.getByRole('button',{name:'Client confirmed receipt'}).click();
+   const form=card.getByRole('form',{name:`Receipt of ${lid}`});
+   await form.getByRole('button',{name:'Save receipt'}).click();
+   await says(card.getByRole('alert'),'time needed',['Enter when the client received it']);
+   const local=await page.evaluate(at=>{const d=new Date(at),p=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;},talk.at);
+   await form.getByLabel('When the client received it').fill(local);
+   await form.getByLabel('Logged conversation in which they confirmed it').selectOption(String(talk.id));
+   await form.getByRole('button',{name:'Save receipt'}).click();
+   await says(card,'receipt',['Client confirmed receipt: received',`recorded by ${ADMIN}`]);
+   const receipts=()=>d1(`SELECT p.revision, p.status, p.evidence_event_id FROM presentation_receipts p JOIN presentation_grants g ON g.id=p.grant_id
+    WHERE g.applicant_id=${ana} ORDER BY p.revision`);
+   assert.deepEqual(receipts(),[{revision:1,status:'verified',evidence_event_id:talk.id}]);
    await fits(page,'panel');
    if(shots)await card.screenshot({path:join(shots,`age11-panel-${width}.png`)});
+   // Revoked with a reason: a new revision, the earlier one kept.
+   await card.getByRole('button',{name:'Revoke receipt'}).click();
+   await form.getByLabel('Reason').fill('Recorded on the wrong home');
+   await form.getByRole('button',{name:'Revoke receipt'}).click();
+   await says(card,'receipt revoked',['Receipt revoked.']);
+   assert.deepEqual(receipts().map(r=>r.status),['verified','revoked']);
 
    // The client: only the approved snapshot, even after a later change of title.
    d1(`UPDATE listings SET title='Renamed after sending' WHERE id='${lid}';`);

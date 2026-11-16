@@ -14,7 +14,7 @@ import { files } from "./private-media.js";
 import { capturesReady } from "./property-captures.js";
 import { taskStatements } from "./notification-tasks.js";
 import { AVAILABLE } from "./match-pages.js";
-import { reviewRoute, approveRoute, sendGate, APPROVED_SNAPSHOT, presented, inSnapshot, snapshotOptions, approvals }
+import { reviewRoute, approveRoute, sendGate, APPROVED_SNAPSHOT, presented, inSnapshot, snapshotOptions, reviewView, recordReceipt }
   from "./private-presentations.js";
 
 const ready = env => env?.AGE12_PRESENTATIONS_READY === "1" && env?.AGE10_PHOTOS_READY === "1" && capturesReady(env);
@@ -149,10 +149,11 @@ async function view(env, applicantId) {
     env.DB.prepare(`SELECT m.id AS match_id, l.id AS listing_id, l.title FROM matches m JOIN listings l ON l.id = m.listing_id
       JOIN applicants a ON a.id = m.applicant_id WHERE m.applicant_id = ? AND ${AVAILABLE} ORDER BY l.id LIMIT 50`).bind(applicantId),
   ])).map(r => r.results);
-  const approved = await approvals(env, applicantId); // AGE-11: null while its review is off
-  return { enabled: true, max_homes: MAX_HOMES, presentable, ...(approved && { review: true }),
-    grants: grants.map(g => ({ ...g, ...(approved && { approval: approved.get(g.id) ?? null }),
-      options: homes.filter(h => h.grant_id === g.id).map(({ grant_id, ...h }) => h) })) };
+  const r = await reviewView(env, applicantId); // AGE-11: null while its review is off
+  return { enabled: true, max_homes: MAX_HOMES, presentable, ...(r && { review: true, conversations: r.conversations }),
+    grants: grants.map(g => ({ ...g, ...(r && { approval: r.approvals.get(g.id) ?? null }),
+      options: homes.filter(h => h.grant_id === g.id)
+        .map(({ grant_id, ...h }) => (r ? { ...h, receipt: r.receipts.get(`${g.id}:${h.match_id}`) ?? null } : h)) })) };
 }
 const staff = handler => async ctx => {
   if (!ready(ctx.env)) return ctx.request.method === "GET" ? json({ enabled: false }) : fail(404, "Not found");
@@ -195,12 +196,17 @@ async function mark({ env, admin, params: [id, action] }) {
   return json(await view(env, g.applicant_id));
 }
 
+// AGE-11 for ANA-06: the client confirmed receiving a home of a sent link (server/private-presentations.js).
+const receipt = async ({ request, env, admin, params: [id] }) =>
+  json(await view(env, await recordReceipt(env, Number(id), (await readJson(request, 1024)) ?? {}, admin)));
+
 export default [
   ["GET", /^\/admin\/applicants\/(\d+)\/presentations$/, staff(list), true],
   ["POST", /^\/admin\/applicants\/(\d+)\/presentations$/, staff(create), true],
   ["POST", /^\/admin\/presentations\/(\d+)\/(sent|revoke)$/, staff(mark), true],
   ["GET", /^\/admin\/presentations\/(\d+)\/review$/, staff(reviewRoute), true],
   ["POST", /^\/admin\/presentations\/(\d+)\/approve$/, staff(approveRoute), true],
+  ["POST", /^\/admin\/presentations\/(\d+)\/receipts$/, staff(receipt), true],
   ["POST", /^\/presentation\/session$/, client(redeem, false), false],
   ["GET", /^\/presentation\/options$/, client(options), false],
   ["GET", /^\/presentation\/photos\/(\d+)$/, client(photo), false],

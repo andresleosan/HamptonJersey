@@ -144,13 +144,91 @@ export async function snapshotOptions(env, grantId, p) {
   }));
 }
 
-// The panel: the latest approval of each of this client's links. null: no review applies.
-export async function approvals(env, applicantId) {
+// The panel: the latest approval of each of this client's links, the receipt in force of each home of a sent link, and
+// the conversations logged with the client's contact (the evidence a receipt may name). null: no review applies.
+const RECEIPT = `SELECT grant_id, match_id, revision, status, received_at, evidence_event_id, recorded_by, recorded_at FROM presentation_receipts p
+  WHERE revision = (SELECT MAX(revision) FROM presentation_receipts WHERE grant_id = p.grant_id AND match_id = p.match_id)`;
+export async function reviewView(env, applicantId) {
   if (!reviewReady(env)) return null;
   try {
-    return new Map((await env.DB.prepare(`SELECT r.grant_id, r.version, r.approved_by, r.approved_at FROM presentation_reviews r
-      JOIN presentation_grants g ON g.id = r.grant_id WHERE g.applicant_id = ?
-        AND r.version = (SELECT MAX(version) FROM presentation_reviews WHERE grant_id = r.grant_id)`).bind(applicantId).all())
-      .results.map(({ grant_id, ...a }) => [grant_id, a]));
+    const [approved, receipts, conversations] = (await env.DB.batch([
+      env.DB.prepare(`SELECT r.grant_id, r.version, r.approved_by, r.approved_at FROM presentation_reviews r
+        JOIN presentation_grants g ON g.id = r.grant_id WHERE g.applicant_id = ?
+          AND r.version = (SELECT MAX(version) FROM presentation_reviews WHERE grant_id = r.grant_id)`).bind(applicantId),
+      env.DB.prepare(`${RECEIPT} AND grant_id IN (SELECT id FROM presentation_grants WHERE applicant_id = ?)`).bind(applicantId),
+      env.DB.prepare(`SELECT e.id, e.at, e.actor FROM events e JOIN applicants a ON e.entity_id = CAST(a.contact_id AS TEXT)
+        WHERE a.id = ? AND e.entity_type = 'contact' AND e.type = 'contact.conversation' ORDER BY e.at DESC, e.id DESC LIMIT 20`).bind(applicantId),
+    ])).map(r => r.results);
+    return { approvals: new Map(approved.map(({ grant_id, ...a }) => [grant_id, a])), conversations,
+      receipts: new Map(receipts.map(({ grant_id, match_id, ...r }) => [`${grant_id}:${match_id}`, r])) };
+  } catch (e) { if (missingTable(e)) return null; throw e; }
+}
+
+const instantOf = v => (typeof v === "string" && v.length <= 40 && Number.isFinite(Date.parse(v)) ? new Date(Date.parse(v)).toISOString() : null);
+// POST {match_id, revision, status, received_at?, evidence_event_id?, reason?} on a link recorded as sent: record that
+// the client confirmed receiving that home (status verified), correct it (verified again, with a reason) or revoke it
+// (revoked, with a reason), on the revision the person saw (0: none yet). Without the real time, nothing is recorded.
+// Checked again inside the write; a stale revision or a double action answers 409 and writes nothing. Writes the
+// revision and one event with ids only; sends nothing and changes no search, match or link. Returns the applicant id.
+export async function recordReceipt(env, grantId, b, admin) {
+  if (!reviewReady(env)) fail(404, "Not found");
+  const status = b?.status, reason = typeof b?.reason === "string" && b.reason.trim() ? b.reason.trim() : null;
+  if (!["verified", "revoked"].includes(status) || !Number.isSafeInteger(b.match_id) || !Number.isSafeInteger(b.revision) || b.revision < 0)
+    fail(400, "Reload the presentation");
+  if (reason && reason.length > 300) fail(400, "Keep the reason to 300 characters.");
+  if (b.revision > 0 && !reason) fail(400, "Say why you are correcting or revoking this receipt.");
+  const verified = status === "verified", received = verified ? instantOf(b.received_at) : null, ts = now();
+  const evidence = verified ? b.evidence_event_id : null;
+  if (verified && !received) fail(400, "Enter the date and time the client received it. If nobody knows it, do not record a receipt.");
+  if (verified && received > ts) fail(400, "The time the client received it cannot be in the future.");
+  if (verified && !Number.isSafeInteger(evidence)) fail(400, "Choose the logged conversation in which the client confirmed it.");
+  let g;
+  try {
+    g = await env.DB.prepare(`SELECT g.id, g.applicant_id, g.sent_at, a.contact_id, (SELECT status FROM presentation_receipts WHERE grant_id = g.id
+        AND match_id = o.match_id ORDER BY revision DESC LIMIT 1) AS current FROM presentation_grants g JOIN presentation_options o ON o.grant_id = g.id
+      JOIN matches m ON m.id = o.match_id JOIN listings l ON l.id = o.listing_id JOIN applicants a ON a.id = g.applicant_id
+      WHERE g.id = ? AND o.match_id = ?`).bind(Number(grantId), b.match_id).first();
+  } catch (e) { if (missingTable(e)) fail(404, "Not found"); throw e; }
+  if (!g) fail(404, "This home is not in this link.");
+  if (!g.sent_at) fail(409, "This link was not recorded as sent: a receipt needs a link sent first.");
+  if (!verified && g.current !== "verified") fail(409, "Only a receipt in force can be revoked.");
+  if (verified && received < g.sent_at) fail(400, "The client cannot have received it before the link was sent.");
+  if (verified) {
+    const e = await env.DB.prepare(`SELECT at FROM events WHERE id = ? AND entity_type = 'contact' AND entity_id = ? AND type = 'contact.conversation'`)
+      .bind(evidence, String(g.contact_id)).first();
+    if (!e || e.at < g.sent_at) fail(400, "Choose a conversation with this client logged after the link was sent.");
+    if (received > e.at) fail(400, "The client cannot have received it after the conversation in which they confirmed it.");
+  }
+  // Again inside the write: the revision seen, the link sent before the time given, the home in it, and the evidence.
+  const [inserted] = await env.DB.batch([
+    env.DB.prepare(`INSERT INTO presentation_receipts (grant_id, match_id, revision, status, received_at, evidence_event_id, reason, recorded_by, recorded_at)
+      SELECT ?, ?, ? + 1, ?, ?, ?, ?, ?, ? WHERE (SELECT COALESCE(MAX(revision), 0) FROM presentation_receipts WHERE grant_id = ? AND match_id = ?) = ?
+        AND EXISTS (SELECT 1 FROM presentation_grants g JOIN presentation_options o ON o.grant_id = g.id JOIN listings l ON l.id = o.listing_id
+          WHERE g.id = ? AND o.match_id = ? AND g.sent_at IS NOT NULL AND (? IS NULL OR g.sent_at <= ?))
+        AND (? IS NULL OR EXISTS (SELECT 1 FROM events e JOIN presentation_grants g ON g.id = ? JOIN applicants a ON a.id = g.applicant_id
+          WHERE e.id = ? AND e.entity_type = 'contact' AND e.entity_id = CAST(a.contact_id AS TEXT) AND e.type = 'contact.conversation'
+            AND e.at >= g.sent_at AND e.at >= ?))`)
+      .bind(g.id, b.match_id, b.revision, status, received, evidence, reason, admin, ts, g.id, b.match_id, b.revision,
+        g.id, b.match_id, received, received, evidence, g.id, evidence, received),
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, ?, 'applicant', ?, 'applicant.presentation_receipt',
+      json_object('version', 1, 'grant_id', ?, 'match_id', ?, 'revision', ? + 1, 'status', ?) WHERE changes() = 1`)
+      .bind(ts, admin, String(g.applicant_id), g.id, b.match_id, b.revision, status),
+  ]);
+  if (!inserted.meta.changes) fail(409, "Someone else changed this receipt, or the link or the conversation changed: reload (nothing was recorded).");
+  return g.applicant_id;
+}
+
+// For ANA-06 (first property received): the receipts in force, verified, of this client's sent links, each with the
+// time the link was sent and the availability confirmation approved with it (null for a link sent before the review).
+// null: no receipt can exist (off, or before the migration): the indicator is then not available, never zero.
+export async function readFirstPropertyReceiptFacts(env, applicantId) {
+  if (!reviewReady(env)) return null;
+  try {
+    const rows = (await env.DB.prepare(`SELECT p.grant_id, p.match_id, o.listing_id, p.received_at, g.sent_at,
+        (SELECT snapshot FROM presentation_reviews WHERE grant_id = g.id ORDER BY version DESC LIMIT 1) AS snapshot
+      FROM (${RECEIPT}) p JOIN presentation_grants g ON g.id = p.grant_id JOIN presentation_options o ON o.grant_id = p.grant_id AND o.match_id = p.match_id
+      WHERE g.applicant_id = ? AND p.status = 'verified' ORDER BY p.received_at, p.grant_id`).bind(applicantId).all()).results;
+    return rows.map(({ snapshot, ...r }) => ({ ...r, availability_confirmed_at: snapshot
+      ? JSON.parse(snapshot).homes.find(h => h.match_id === r.match_id)?.availability_confirmed_at ?? null : null }));
   } catch (e) { if (missingTable(e)) return null; throw e; }
 }

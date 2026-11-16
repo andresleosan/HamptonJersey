@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { makeEnv, seedListing, seedMedia, call, adminCookie, captured, T0 } from "./listing-client.mjs";
 import { recomputeForApplicant } from "../../server/match-store.js";
 import { extractFeatures } from "../../server/listing-features.js";
+import { readFirstPropertyReceiptFacts } from "../../server/private-presentations.js";
 
 const ADMIN = "admin@example.test", COLLEAGUE = "colleague@example.test", HOME = "HE-R001", OTHER = "HE-R002";
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
@@ -214,7 +215,7 @@ async function age12Run(env, a) {
 }
 
 test("off, AGE-12 reads nothing of the review and answers as switched on before migration 0115", async () => {
-  const off = await world({ review: false }), seen = captured(off.env, /presentation_reviews/);
+  const off = await world({ review: false }), seen = captured(off.env, /presentation_(reviews|receipts)/);
   const answers = await age12Run(off.env, off.a);
   assert.deepEqual(seen, []);
   assert.deepEqual(ok(await req(off.env, "GET", "/admin/presentations/1/review")), { enabled: false });
@@ -226,4 +227,83 @@ test("off, AGE-12 reads nothing of the review and answers as switched on before 
   // AGE-12 off: AGE-11 has nothing to review either.
   const age12off = await world({ presentations: false });
   assert.deepEqual(ok(await req(age12off.env, "GET", "/admin/presentations/1/review")), { enabled: false });
+});
+
+// ANA-06's receipt: a person records that the client confirmed receiving a home of a sent link, with the real time and
+// a conversation logged with that client as evidence; corrections and revocations are new revisions with a reason.
+const receipt = (env, id, body, who) => req(env, "POST", `/admin/presentations/${id}/receipts`, body, who);
+const conversation = async (env, a) => {
+  const contact = rows(env, "SELECT contact_id FROM applicants WHERE id = ?", a)[0].contact_id;
+  ok(await req(env, "POST", `/admin/contacts/${contact}/conversation`));
+  return rows(env, "SELECT id, at FROM events WHERE type = 'contact.conversation' ORDER BY id DESC LIMIT 1")[0];
+};
+
+test("a receipt is recorded only on a sent link's home, with a real time and a conversation with that client after sending", async () => {
+  const { env, a } = await world();
+  const mine = matchOf(env, a, HOME), before = await conversation(env, a);
+  const g = await link(env, a);
+  await approved(env, g.id);
+  const unsent = await receipt(env, g.id, { match_id: mine, revision: 0, status: "verified", received_at: before.at, evidence_event_id: before.id });
+  assert.equal(unsent.status, 409);
+  ok(await send(env, g.id));
+  const sent = rows(env, "SELECT sent_at FROM presentation_grants WHERE id = ?", g.id)[0].sent_at, talk = await conversation(env, a);
+  const base = { match_id: mine, revision: 0, status: "verified", received_at: sent, evidence_event_id: talk.id };
+  const state = () => ({ m: rows(env, "SELECT * FROM matches ORDER BY id"), a: rows(env, "SELECT * FROM applicants ORDER BY id"),
+    g: rows(env, "SELECT * FROM presentation_grants"), o: rows(env, "SELECT * FROM presentation_options") });
+  const was = state();
+  for (const [label, body, status] of [
+    ["unknown time", { ...base, received_at: undefined }, 400],
+    ["not a time", { ...base, received_at: "yesterday-ish" }, 400],
+    ["future", { ...base, received_at: "2099-01-01T10:00:00.000Z" }, 400],
+    ["before sending", { ...base, received_at: "2026-01-01T10:00:00.000Z" }, 400],
+    ["conversation before sending", { ...base, evidence_event_id: before.id }, 400],
+    ["no evidence", { ...base, evidence_event_id: undefined }, 400],
+    ["not a conversation", { ...base, evidence_event_id: rows(env, "SELECT id FROM events WHERE type = 'applicant.presentation_approved'")[0].id }, 400],
+    ["another home", { ...base, match_id: matchOf(env, a, OTHER) }, 404],
+    ["a reason is needed to correct", { ...base, revision: 1 }, 400],
+    ["revoke with nothing in force", { match_id: mine, revision: 0, status: "revoked", reason: "Wrong" }, 409],
+  ]) assert.equal((await receipt(env, g.id, body)).status, status, label);
+  assert.equal((await call(env, "POST", `/admin/presentations/${g.id}/receipts`, { body: base })).status, 401);
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM presentation_receipts")[0].n, 0);
+  // Two people at once: one receipt.
+  const both = await Promise.all([receipt(env, g.id, base), receipt(env, g.id, base, COLLEAGUE)]);
+  assert.deepEqual(both.map(r => r.status).sort(), [200, 409]);
+  const panel = both.find(r => r.status === 200).data;
+  assert.equal(panel.review, true);
+  assert.deepEqual(panel.conversations.map(c => c.id), [talk.id, before.id]);
+  const shown = panel.grants[0].options[0].receipt;
+  assert.deepEqual([shown.revision, shown.status, shown.received_at, shown.evidence_event_id], [1, "verified", sent, talk.id]);
+  // Correction on a stale revision: 409; with the revision seen and a reason: revision 2.
+  assert.equal((await receipt(env, g.id, { ...base, reason: "Time fixed" })).status, 409);
+  ok(await receipt(env, g.id, { ...base, revision: 1, received_at: talk.at, reason: "The client gave the exact time" }));
+  assert.deepEqual(await readFirstPropertyReceiptFacts(env, a), [{ grant_id: g.id, match_id: mine, listing_id: HOME, received_at: talk.at,
+    sent_at: sent, availability_confirmed_at: "2026-11-10T09:30:00.000Z" }]);
+  // Revoked: nothing in force for ANA-06; a second revocation is refused.
+  ok(await receipt(env, g.id, { match_id: mine, revision: 2, status: "revoked", reason: "Said in error" }));
+  assert.equal((await receipt(env, g.id, { match_id: mine, revision: 3, status: "revoked", reason: "Again" })).status, 409);
+  assert.deepEqual(await readFirstPropertyReceiptFacts(env, a), []);
+  assert.deepEqual(rows(env, "SELECT revision, status, reason FROM presentation_receipts ORDER BY revision"), [
+    { revision: 1, status: "verified", reason: null }, { revision: 2, status: "verified", reason: "The client gave the exact time" },
+    { revision: 3, status: "revoked", reason: "Said in error" }]);
+  // Audit events: ids and states only, never the time, the reason or contact details.
+  const events = rows(env, "SELECT data FROM events WHERE type = 'applicant.presentation_receipt' ORDER BY id").map(e => JSON.parse(e.data));
+  assert.deepEqual(events.map(e => [e.revision, e.status]), [[1, "verified"], [2, "verified"], [3, "revoked"]]);
+  assert.ok(!JSON.stringify(events).includes("Said in error") && !JSON.stringify(events).includes("@"));
+  assert.throws(() => run(env, "UPDATE presentation_receipts SET reason = 'x'"), /append-only/);
+  // Nothing else changed: no match, search, link or answer.
+  assert.deepEqual(state(), was);
+  // A home whose match is deleted is gone from the link: no receipt, and its history goes with it.
+  run(env, "DELETE FROM matches WHERE id = ?", mine);
+  assert.equal((await receipt(env, g.id, { ...base, revision: 3, reason: "Again" })).status, 404);
+  assert.equal(rows(env, "SELECT COUNT(*) AS n FROM presentation_receipts")[0].n, 0);
+});
+
+test("off, or before migration 0115, receipts are not recorded and ANA-06 reads none", async () => {
+  for (const opts of [{ review: false }, { schema: { skip: [115] } }]) {
+    const { env, a } = await world(opts);
+    const g = await link(env, a);
+    assert.equal((await receipt(env, g.id, { match_id: matchOf(env, a, HOME), revision: 0, status: "revoked", reason: "x" })).status, 404);
+    assert.equal(await readFirstPropertyReceiptFacts(env, a), null);
+    assert.equal("conversations" in ok(await req(env, "GET", `/admin/applicants/${a}/presentations`)), false);
+  }
 });
