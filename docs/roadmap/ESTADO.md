@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **Mensajes de Facebook reactivados por Luis:** MSG-01, PRE-02 y PRE-08 vuelven al plan (responder desde el panel, con borrador de Hermes y aprobación humana). El tablero pasa de 211 a 214 tareas aplicables. Progreso 139 de 211 → 139 de 214.
+
 16-nov-2026 · **ANA-04 construida y apagada:** Insights podrá mostrar qué filtros usa la gente en la web (operación, zona, dormitorios, precio máximo y búsquedas sin resultados), en totales por día, sin datos de personas. Espera a 0108, al aviso de privacidad y a la retención aprobada. Progreso 139 → 139 de 211.
 
 16-nov-2026 · **Properties Queue vuelve a enviar carpetas a Hermes** (PUB21_DRIVE_READY=1, por decisión de Luis): pegar el enlace de la carpeta de Drive y Hermes deja la propuesta de la ficha para revisarla. Progreso 139 → 139 de 211.

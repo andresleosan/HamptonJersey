@@ -41,6 +41,7 @@ Si algo no está en ninguna de las dos listas y es difícil de revertir o sale d
 Luis pidió adaptar las tareas pendientes al [plan maestro vigente](2026-11-10-plan-maestro-vigente.md), que prevalece sobre el catálogo antiguo:
 
 - **Retiradas** (pasan a `descartado`, el tablero baja de 215 a 211 aplicables): MSG-01, PUB-03, PRE-02 y PRE-08, todo lo de Meta.
+- **Reactivadas por Luis el 16-nov-2026:** MSG-01, PRE-02 y PRE-08, para responder los mensajes de la página de Facebook desde el panel, con borrador de Hermes y aprobación humana (Hermes no contesta solo). Enviar respuestas sigue siendo interruptor de Luis. PUB-03 sigue retirada.
 - **Aplazadas a una fase posterior** (siguen contando, pero ni se construyen ni bloquean): VIS-15, AUT-06, AUT-08, PUB-20, PUB-21, PRE-01 y PRE-24.
 - **Dependencias por componente**: la ruta ya no esconde una tarea porque otra esté sin cerrar; ver la sección 2 de la skill.
 - **Decisiones de producto**: el plan maestro las da por resueltas. Las fichas que anotaban una decisión pendiente llevan ahora la regla del plan.

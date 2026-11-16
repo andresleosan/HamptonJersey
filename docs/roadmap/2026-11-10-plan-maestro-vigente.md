@@ -72,3 +72,8 @@ TP-01–04 suman26planesactivos y58unidadesfuturas decódigo; TP-05 no añadecó
 
 ## Conciliación para publicación · 10-nov-2026
 Solicitud expresa de Luis: publicar estos planes como Luismadef45. Main47dab2c incorporado conservando documentación propia; REG-17 captura ya publicada y tarea parcial hasta que VIS-17 consuma las franjas. No reconstruir captura ni repetir0026. Las referencias de preparación local/fechas anteriores permanecen históricas. GitHub acredita el commit documental tras el envío, no activación de funciones.
+
+
+## Reactivación de mensajes de Facebook · 16-nov-2026
+
+Decisión de Luis en sesión: vuelven al plan MSG-01, PRE-02 y PRE-08 para recibir en el panel los mensajes de la página de Facebook de Hampton y responderlos con aprobación humana; Hermes propone borradores cuando PRE-32 lo permita y nunca contesta solo. Instagram queda para después. PUB-03 (publicar en redes) y WhatsApp (PRE-24) siguen fuera de la fase vigente.

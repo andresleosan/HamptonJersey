@@ -33,9 +33,10 @@ Ordenado por cuántas tareas abiertas desbloquea cada cosa (`node scripts/avanza
 | VIS-12 | — | Dar acceso a la cuenta de Google Calendar para activar la integración, cuando el código esté publicado. |
 | REG-15 | 0 | Construida y apagada (alertas «Save this search»). Decidir si abrir el formulario público que recoge emails: aplicar 0107, poner REG15_ALERTS_READY a "1" en los dos wrangler y escribir la fila app_settings.saved_searches con la versión del aviso de privacidad (PRE-09). Dos puntos para tu OK: las alertas salen con una aprobación general tuya y no una a una (el plan maestro pide revisión individual para correos de alquileres y ventas), y la confirmación es la única cola de correo desde una ruta pública. Necesita AUT-17. |
 | ANA-04 | 0 | Construida y apagada (tendencias de filtros de la web, solo totales diarios). Para encenderla: tu OK a mencionarla en el aviso de privacidad (PRE-09) y a guardar 90 días de totales; después se aplica 0108 y se pone ANA04_SEARCH_STATS_READY a "1" en los dos wrangler. |
+| PRE-02 | 2 | Trámite de Meta para los mensajes de Facebook (reactivado el 16-nov): crear la app en developers.facebook.com, verificar el negocio, conectar la página de Hampton y pedir el permiso `pages_messaging`. Es lo más lento; mientras tanto se construye el código apagado (MSG-01, PRE-08). |
 | PRE-14 | 0 | Crear el bucket R2 privado de copias, un token con permiso solo de exportar D1 y la clave de recuperación que custodia Luis; sin eso la copia semanal cifrada no puede encenderse. Además, para no rechazar correo durante la copia: un segundo bucket R2 privado para el spool de correo y su clave `BACKUP_SPOOL_KEY` (32 bytes aleatorios en base64, como secreto de hampton-jobs). |
 
-El trámite de Meta (PRE-02) ya no está en la cola: el plan maestro lo retiró.
+El trámite de Meta (PRE-02) volvió a la cola el 16-nov-2026 por decisión de Luis (mensajes de Facebook).
 
 ## Migraciones e interruptores que esperan su sí
 
