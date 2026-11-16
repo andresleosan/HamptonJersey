@@ -230,3 +230,65 @@ test("switched off, a stage change still takes an earlier mark off, so switching
   assert.equal((await req(env, "GET", `/admin/applicants/${id}`)).data.team_ready, null);
   assert.equal((await door(env)).data.counts.applicants_ready, 0);
 });
+
+test("the stage moves Sales makes take the mark off in their own batch, with its event", async () => {
+  const env = env0(), id = await create(env, { email: "buyer@private.je", phone: "07797 900330", operation: "buy",
+    budget_max: 900000 });
+  const cleared = () => events(env, id).filter(e => e.type === "applicant.team_ready_cleared");
+  const offerMade = async () => {
+    const r = await req(env, "POST", "/admin/offers", { listing_id: "HE-S003", applicant_id: id, amount: 750000 });
+    assert.equal(r.status, 201, JSON.stringify(r.data));
+    return r.data.offer.id;
+  };
+  // Recording an offer moves the buyer to Offer.
+  await mark(env, id, true);
+  const offer = await offerMade();
+  assert.equal(applicant(env, id).stage, "offer");
+  assert.equal(ready(env, id), null);
+  assert.deepEqual(cleared().map(e => [e.actor, e.data]), [[ADMIN, { reason: "stage_changed" }]]);
+  // Accepting it moves them to Agreed.
+  await mark(env, id, true);
+  const accepted = await req(env, "POST", `/admin/offers/${offer}/accept`);
+  assert.equal(accepted.status, 201, JSON.stringify(accepted.data));
+  assert.equal(applicant(env, id).stage, "agreed");
+  assert.equal(ready(env, id), null);
+  assert.equal(cleared().length, 2);
+  // The sale falling through moves them back to Searching.
+  await mark(env, id, true);
+  const fell = await req(env, "POST", `/admin/sales/${accepted.data.sale_id}/fall-through`, { reason: "finance" });
+  assert.equal(fell.status, 200, JSON.stringify(fell.data));
+  assert.equal(applicant(env, id).stage, "searching");
+  assert.equal(ready(env, id), null);
+  assert.equal(cleared().length, 3);
+  // A later move (a new offer takes the buyer to Offer again) on a search without a mark writes no event.
+  await offerMade();
+  assert.equal(applicant(env, id).stage, "offer");
+  assert.equal(cleared().length, 3);
+});
+
+test("resolving, reopening, archiving and restoring the search take the mark off, with its event", async () => {
+  const env = env0(), id = await create(env);
+  const cleared = () => events(env, id).filter(e => e.type === "applicant.team_ready_cleared").map(e => e.data.reason);
+  const search = (state, reason = "Found a home") => req(env, "POST", `/admin/applicants/${id}/search`, { state, reason,
+    updated_at: applicant(env, id).updated_at });
+  await mark(env, id, true);
+  assert.equal((await search("resolved")).status, 200);
+  assert.equal(ready(env, id), null);
+  assert.deepEqual(cleared(), ["search_resolved"]);
+  // A mark left in the table (from before this release) goes on each later step too.
+  const plant = () => env.DB.raw.prepare(`INSERT INTO applicant_team_ready (applicant_id, marked_at, marked_by, revision)
+    SELECT id, ?, ?, match_inputs_revision FROM applicants WHERE id = ?`).run(T0, ADMIN, id);
+  plant();
+  assert.equal((await req(env, "POST", `/admin/applicants/${id}/archive`)).status, 200);
+  assert.equal(ready(env, id), null);
+  plant();
+  assert.equal((await req(env, "POST", `/admin/applicants/${id}/restore`)).status, 200);
+  assert.equal(ready(env, id), null);
+  plant();
+  assert.equal((await search("active", "Looking again")).status, 200);
+  assert.equal(ready(env, id), null);
+  assert.deepEqual(cleared(), ["search_resolved", "archived", "restored", "search_reopened"]);
+  // Without a mark, none of them writes the event.
+  assert.equal((await search("resolved")).status, 200);
+  assert.equal(cleared().length, 4);
+});

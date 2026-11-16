@@ -58,7 +58,10 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked",
   "contact.marketing_preference": "Marketing objection recorded",
   "applicant.team_ready": "Marked ready for the team", "applicant.team_ready_done": "Ready for the team: done",
-  "applicant.team_ready_cleared": "Ready for the team removed: stage changed" };
+  "applicant.team_ready_cleared": "Ready for the team removed" };
+// AUT-18: why a Ready for the team mark came off (applicant.team_ready_cleared's reason).
+const CLEARED = { stage_changed: "stage changed", search_resolved: "search resolved", search_reopened: "search made active",
+  archived: "archived", restored: "restored" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -782,6 +785,7 @@ const headline = (e, matches, offers) => (e.type === "match.reviewed" ? reviewed
   : e.type === "match.clarification" ? [`Clarification ${e.data?.approved ? "approved" : "withdrawn"}`, e.listing_title ?? e.data?.listing_id]
   : e.data?.offer_id != null ? ofOffer(e, offers)
   : e.type === "applicant.matched" && e.data?.new != null ? [`${e.data.new} new ${e.data.new === 1 ? "match" : "matches"} found`]
+  : e.type === "applicant.team_ready_cleared" && CLEARED[e.data?.reason] ? [`${EVENT[e.type]}: ${CLEARED[e.data.reason]}`]
   : [EVENT[e.type] ?? e.type]);
 
 // The history, newest first: events with who and what changed, and the viewings (website requests and the team's

@@ -5,6 +5,7 @@ import { logEvent, resolveNotices } from "../events.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
 import { recomputeForApplicant } from "../search-state.js"; // EST-01: the same recompute, its run recorded
 import { touch, contacted, LOCK } from "./applicants.js";
+import { storedMark, clearMark } from "../applicant-ready.js";
 import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
 import { ENUMS } from "../listing.js";
@@ -36,6 +37,7 @@ async function eligible(env, listingId, applicantId) {
     fail(400, "This listing is not for sale");
   if (applicant.operation !== "buy" || applicant.archived_at) fail(400, "This applicant is not an active buyer");
   if (applicant.search_category !== "residential") fail(400, "This offer requires a residential buyer");
+  applicant.team_marked = !!await storedMark(env, applicant.id); // AUT-18
   return { listing, applicant };
 }
 
@@ -51,7 +53,8 @@ const buyerEvent = (env, ctx, buyerId, type, data, ifInserted = false) => logEve
 
 // V6, V21: moves the buyer to `stage` when at one of `from`, and only from the stage read (a change saved meanwhile
 // wins and nothing is written). As a panel save: applicant.stage_changed, updated_at (an open form gets 409), the
-// contact's activity, and leaving New closes the new-applicant notice. [] when the move does not apply.
+// contact's activity, and leaving New closes the new-applicant notice; AUT-18: and takes a Ready for the team mark off
+// (applicant.team_marked, read by the loaders below). [] when the move does not apply.
 function stageTo(env, ctx, applicant, stage, from) {
   if (!from.includes(applicant.stage)) return [];
   // Leaving Lost clears its reason, as a panel save does.
@@ -66,6 +69,7 @@ function stageTo(env, ctx, applicant, stage, from) {
     ...(applicant.stage === "new" ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(applicant.id),
       category: "new_applicant" }, ctx.admin, { ifLogged: true })] : []),
     touch(env, applicant.contact_id, ctx.ts),
+    ...(applicant.team_marked ? clearMark(env, applicant.id, ctx.admin, "stage_changed", stage) : []),
   ];
 }
 
@@ -366,6 +370,7 @@ async function closable(env, id, completing) {
   if (sale.status !== "in_progress") fail(409, CLOSED);
   if (completing && !passing?.done_on && !passing?.not_needed)
     fail(400, `Mark "${milestoneLabel("passing", sale.route)}" done or not needed first`);
+  if (applicant) applicant.team_marked = !!await storedMark(env, applicant.id); // AUT-18
   return { sale, listing, applicant };
 }
 

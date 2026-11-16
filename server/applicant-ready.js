@@ -47,11 +47,15 @@ export const readyStatements = (env, { id, revision, ready, actor, at }) => read
     { ifChanged: true }),
 ];
 
-// A stage change takes the mark off in the same save; the event is written only when there was one.
-export const clearOnStage = (env, id, actor) => [
-  env.DB.prepare("DELETE FROM applicant_team_ready WHERE applicant_id = ?").bind(id),
+// A stage change, resolving, reopening, archiving or restoring takes the mark off in the same batch, last in it (so
+// the changes() and last_insert_rowid() earlier statements read are theirs); the event is written only when there was
+// one. reason: stage_changed, search_resolved, search_reopened, archived or restored. atStage: only once the search is
+// at that stage (a Sales move that a change saved meanwhile stopped takes nothing off).
+export const clearMark = (env, id, actor, reason, atStage) => [
+  env.DB.prepare(`DELETE FROM applicant_team_ready WHERE applicant_id = ?1${atStage
+    ? " AND EXISTS (SELECT 1 FROM applicants WHERE id = ?1 AND stage = ?2)" : ""}`).bind(id, ...(atStage ? [atStage] : [])),
   ...logEvent(env, { actor, entity_type: "applicant", entity_id: String(id), type: "applicant.team_ready_cleared",
-    data: { reason: "stage_changed" } }, null, { ifChanged: true }),
+    data: { reason } }, null, { ifChanged: true }),
 ];
 
 // For Hermes's door: how many active searches have a current mark. undefined when switched off or not migrated, so a

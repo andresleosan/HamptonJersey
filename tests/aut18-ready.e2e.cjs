@@ -135,15 +135,27 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    assert.deepEqual(mark(),[]);
    await counted(0);
 
+   // Resolving the search takes a mark off too; a resolved search cannot be marked.
+   await button('Ready for the team').click();await status('Marked ready for the team.');
+   await page.getByRole('button',{name:'Resolve search',exact:true}).click();
+   await page.getByLabel('Resolution reason').fill('Found a home');
+   await page.getByRole('button',{name:'Confirm resolution',exact:true}).click();
+   await panel.getByText('Only an active search can be marked ready for the team.',{exact:true}).waitFor();
+   assert.equal(await button('Ready for the team').count(),0);assert.equal(await button('Done').count(),0);
+   assert.deepEqual(mark(),[]);
+   await counted(0);
+
    // The history: each step, with ids only.
    assert.deepEqual(history().map(e=>e.type),['applicant.team_ready','applicant.team_ready_done','applicant.team_ready',
-    'applicant.team_ready_cleared','applicant.team_ready','applicant.team_ready','applicant.team_ready','applicant.team_ready_done']);
+    'applicant.team_ready_cleared','applicant.team_ready','applicant.team_ready','applicant.team_ready','applicant.team_ready_done',
+    'applicant.team_ready','applicant.team_ready_cleared']);
    for(const e of history())for(const secret of [name,email])assert.ok(!String(e.data).includes(secret));
    await page.goto(base+`admin/#/applicants/${id}/timeline`);
    const timeline=page.locator('ol.timeline');
    await timeline.getByText('Marked ready for the team',{exact:true}).first().waitFor();
    await timeline.getByText('Ready for the team: done',{exact:true}).first().waitFor();
    await timeline.getByText('Ready for the team removed: stage changed',{exact:true}).waitFor();
+   await timeline.getByText('Ready for the team removed: search resolved',{exact:true}).waitFor();
    await fits('Timeline');await shot('timeline');
    await page.close();
   }

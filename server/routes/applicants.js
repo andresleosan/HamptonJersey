@@ -8,7 +8,7 @@ import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_S
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
 import { openSearchReview } from "../search-review.js";
-import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clearOnStage } from "../applicant-ready.js";
+import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clearMark } from "../applicant-ready.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
@@ -449,7 +449,6 @@ async function commit(env, admin, cur, { next, keys, data, criteriaFields, stage
       .bind(...keys.map(k => next[k]), admin, cur.updated_at, ts, cur.id),
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: String(cur.id),
       type: keys.includes("stage") ? "applicant.stage_changed" : "applicant.updated", data }),
-    ...(unready ? clearOnStage(env, cur.id, admin) : []),
     // A proposal decided since it was read has no status left to take: NOT NULL fails and the whole batch rolls back.
     ...(proposalId ? [...proposalTask(env, cur.id, "resolved"), env.DB.prepare(`UPDATE criteria_proposals SET
       status = CASE WHEN status = 'pending' THEN 'confirmed' END, decided_by = ?, decided_at = ? WHERE id = ?`).bind(admin, ts, proposalId)] : []),
@@ -457,6 +456,7 @@ async function commit(env, admin, cur, { next, keys, data, criteriaFields, stage
     // Someone has picked it up: the new-applicant notice is done (§3.2).
     ...((keys.includes("assigned_to") && assigned_to) || leftNew
       ? [resolveNotices(env, { entity_type: "applicant", entity_id: String(cur.id), category: "new_applicant" }, admin)] : []),
+    ...(unready ? clearMark(env, cur.id, admin, "stage_changed") : []),
   ], "applicant", cur.id, cur.updated_at); }
   catch (e) {
     if (/UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation.");
@@ -677,6 +677,7 @@ async function setArchived({ env, admin, params: [id, action] }) {
   if (archive) await busy();
   if (archive && cur.search_state !== "resolved") fail(409, "Resolve this search before archiving it.");
   const ts = nextVersion(cur.updated_at), ref = { entity_type: "applicant", entity_id: String(cur.id) };
+  const unready = !!await storedMark(env, cur.id); // AUT-18
   try {
     await env.DB.batch([
       env.DB.prepare(`UPDATE applicants SET archived_at = ?, updated_at = CASE WHEN updated_at = ?
@@ -685,6 +686,7 @@ async function setArchived({ env, admin, params: [id, action] }) {
       ...logEvent(env, { actor: admin, ...ref, type: archive ? "applicant.archived" : "applicant.restored" }),
       touch(env, cur.contact_id, ts),
       ...(archive ? [resolveNotices(env, ref, admin)] : []),
+      ...(unready ? clearMark(env, cur.id, admin, archive ? "archived" : "restored") : []),
     ]);
   } catch (e) {
     const current = await loadApplicant(env, id);
@@ -710,6 +712,7 @@ async function setSearch({ request, env, admin, params: [id] }) {
   const resolved = body.state === "resolved";
   const ts = nextVersion(cur.updated_at);
   const ref = { entity_type: "applicant", entity_id: String(cur.id) };
+  const unready = !!await storedMark(env, cur.id); // AUT-18
   try {
     await saveVersioned(env, [
       env.DB.prepare(`UPDATE applicants SET search_state = ?, resolved_at = ?, resolved_by = ?, resolution_reason = ?,
@@ -719,6 +722,7 @@ async function setSearch({ request, env, admin, params: [id] }) {
         data: { before: { search_state: cur.search_state }, after: { search_state: body.state }, reason } }),
       touch(env, cur.contact_id, ts),
       ...(resolved ? ["new_applicant", "matched"].map(category => resolveNotices(env, { ...ref, category }, admin)) : []),
+      ...(unready ? clearMark(env, cur.id, admin, resolved ? "search_resolved" : "search_reopened") : []),
     ], "applicant", cur.id, body.updated_at);
   } catch (e) {
     if (/UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation.");
