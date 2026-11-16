@@ -77,6 +77,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/bus01-market-matching.e2e.cjs"
         ? { BUS01_MARKET_MATCHING_READY: "1", BUS10_IDENTITY_READY: "1", EST01_SEARCH_STATE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/aut19-criteria-proposal.e2e.cjs" ? { AUT19_CRITERIA_PROPOSALS_READY: "1" } : {}),
+      // AUT-18: the mark in the panel and its count at Hermes's door, with a key of this run only.
+      ...(process.env.E2E_SCRIPT === "tests/aut18-ready.e2e.cjs" ? { AUT18_TEAM_READY: "1", HERMES_KEY: randomBytes(32).toString('hex') } : {}),
       // EST-16 on its own: EST-15 (on in wrangler.toml) would ask for a reason and withdraw proposals; its own check covers both.
       ...(process.env.E2E_SCRIPT === "tests/est16-availability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/est15-unavailability.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1" } : {}),

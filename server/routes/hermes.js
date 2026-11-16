@@ -4,6 +4,7 @@ import { openCounts } from "./notifications.js";
 import { pauseOutbound } from "./automations.js";
 import { nextImport, importFile, importProposal } from "./queue.js";
 import { QUIET, quietCutoff } from "./applicants.js";
+import { readyCount } from "../applicant-ready.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
 // Authorization: Bearer <HERMES_KEY>. Fixed operations, public data (C0) and counts only: never who (H6, H7); since PUB-21
@@ -40,6 +41,7 @@ function summary(c, drafts, toConfirm, outbound, request) {
     c.rentals && `${plural(c.rentals, "rentals task")} to do`,
     c.expiring && `${plural(c.expiring, "contact")} expiring within a month`, // E8: contacts, not searches
     c.gone_quiet && `${plural(c.gone_quiet, "search", "searches")} gone quiet`, // EST-11
+    c.applicants_ready && `${plural(c.applicants_ready, "applicant")} with proposals ready for the team`, // AUT-18
     drafts && `${plural(drafts, "text draft")} waiting for approval`,
   ].filter(Boolean).map(s => `- ${s}`);
   if (toConfirm.length) lines.push(`- To confirm: ${toConfirm.map(l => `${l.id} ${l.title}`).join(", ")}`);
@@ -54,7 +56,9 @@ async function status({ request, env }) {
     // AUT-14: the searches the Applicants list marks Gone quiet (EST-11), a number only.
     env.DB.prepare(`SELECT COUNT(*) AS n FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE ${QUIET}`).bind(quietCutoff()),
   ])]);
-  const { outbound, stalled, legal, ...c } = { ...counts, gone_quiet: quiet.n }; // stalled (AUT-01) and legal (ADM-17) are the panel's
+  // AUT-18: marked Ready for the team, a number only; left out while switched off or when it cannot be counted.
+  const ready = await readyCount(env);
+  const { outbound, stalled, legal, ...c } = { ...counts, gone_quiet: quiet.n, ...(ready !== undefined && { applicants_ready: ready }) }; // stalled (AUT-01) and legal (ADM-17) are the panel's
   const by = outbound && (outbound.by === "hermes" ? "hermes" : "team"); // never a team member's email
   return json({ counts: c, drafts_waiting: drafts.n,
     to_confirm_listings: toConfirm.map(l => ({ id: l.id, title: l.title, link: panel(request, `p/${l.id}`) })),

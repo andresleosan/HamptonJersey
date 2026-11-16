@@ -6,13 +6,21 @@
   "fase": "—",
   "estado": "pendiente",
   "responsable": "desarrollo",
-  "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad: cuando una búsqueda para un aplicante está lista (propuestas revisadas), el equipo debe enterarse en Telegram junto al resumen de las 8:00 de Jersey. Hoy el avisador (AUT-14) solo escribe frases fijas construidas con los números de la puerta y nunca texto libre, así que el aviso se pega a mano en el canal.",
-  "falta": "Panel: botón «Ready for the team» en la ficha del aplicante (columna nueva en applicants, migración aditiva; evento en su historial; se quita con «Done» o al cambiar la etapa). Puerta: GET /api/hermes/status devuelve el número de aplicantes marcados. Avisador: una línea fija más en mensajeResumen, «N applicants with proposals ready for the team», con el enlace al panel que pone él mismo; sin nombres, sin texto libre (R21), en el mismo cambio que /status y con su prueba, como la Decisión 7. Las propuestas en sí se leen en el panel. Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
+  "hecho": "Luis lo pidió el 6-nov-2026, sin prioridad. Parte de la app construida (16-nov), apagada con AUT18_TEAM_READY (en código, no en wrangler.toml): migración aditiva 0102 (tabla applicant_team_ready: fecha, quién y match_inputs_revision al marcar; se borra con el aplicante). Ficha del aplicante: sección «Ready for the team» con botón del mismo nombre y «Done»; se marca sobre la versión vista (updated_at, 409 si otro guardó; una respuesta tardía no vuelve a marcar tras Done), solo búsquedas activas. Done quita la marca sin resolver la búsqueda; un cambio de etapa la quita en el mismo guardado; un cambio de criterios la deja «Criteria changed» (no se cuenta) hasta marcarla otra vez. Historial: applicant.team_ready (datos: solo match_inputs_revision), applicant.team_ready_done y applicant.team_ready_cleared (reason stage_changed), sin datos personales. Puerta: GET /api/hermes/status añade counts.applicants_ready (búsquedas activas con marca vigente) y la línea fija «N applicants with proposals ready for the team» en summary, solo número; apagado o sin migración, /status es idéntico (sin clave ni línea). Pruebas: tests/server/aut18-team-ready.test.mjs y e2e tests/aut18-ready.e2e.cjs a 1280 y 390.",
+  "falta": "Avisador del VPS (/root/hampton-hermes, fuera del repo): su línea fija en mensajeResumen leyendo counts.applicants_ready (o el summary de /status), con el enlace al panel que pone él mismo, sin nombres ni texto libre (R21), con su prueba; necesita el OK de Luis. Aplicar la migración 0102 en D1 y encender AUT18_TEAM_READY. Sin construir del plan: invalidar también por revisión de propuestas (solo se usa la revisión de criterios) y exigir propuestas revisadas antes de marcar (hoy es criterio humano). Hecho cuando: Luis marca un aplicante y el resumen de las 8:00 siguiente lleva esa línea y el enlace; otra cuenta del canal no ve más que eso. Modelo recomendado: claude-opus-5-5 · esfuerzo medium.",
   "bloqueo": "",
   "evidencia": [
-    "server/routes/hermes.js:32-47",
-    "server/routes/applicants.js:154",
-    "docs/roadmap/ESTADO.md (Después del bucle)"
+    "server/applicant-ready.js",
+    "server/routes/applicants.js (setTeamReady, commit)",
+    "server/routes/hermes.js (status, summary)",
+    "migrations/0102_applicant_team_ready.sql",
+    "admin/src/ApplicantDetail.jsx (TeamReady)",
+    "tests/server/aut18-team-ready.test.mjs",
+    "tests/aut18-ready.e2e.cjs",
+    "docs/superpowers/plans/2026-11-08-aut-18-applicant-ready-summary.md",
+    "docs/superpowers/plans/2026-11-09-aut-18-human-ready-marker-and-summary-count-closure.md",
+    "Decisión: tabla aparte en vez de columnas en applicants, para no tocar la copia de privacidad (server/privacy-requests.js clasifica cada columna de applicants); la marca es dato interno del equipo",
+    "Decisión: nombre counts.applicants_ready, el del plan (status.applicants_ready), dentro de counts como gone_quiet de AUT-14"
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -33,5 +41,6 @@
     "telegram-notifier",
     "hermes-gateway"
   ],
-  "nextStep": "Añadir marca Ready for the team y contador en resumen sin transmitir datos personales."
+  "nextStep": "Con el OK de Luis, añadir la línea al avisador del VPS; aplicar 0102, encender AUT18_TEAM_READY, marcar un aplicante y comprobar el resumen de las 8:00 siguiente.",
+  "actualizado": "2026-11-16"
 }

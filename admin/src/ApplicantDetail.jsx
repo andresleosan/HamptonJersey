@@ -56,7 +56,9 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded",
   "applicant.presentation_answered": "Client answered on their private presentation",
   "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked",
-  "contact.marketing_preference": "Marketing objection recorded" };
+  "contact.marketing_preference": "Marketing objection recorded",
+  "applicant.team_ready": "Marked ready for the team", "applicant.team_ready_done": "Ready for the team: done",
+  "applicant.team_ready_cleared": "Ready for the team removed: stage changed" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -259,7 +261,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     if(generation!==detailGeneration.current)return;
     // A new stage can close or reopen the search, which recomputes its matches.
     setData(x => ({ ...x, events: d.events, viewings: d.viewings, duplicates: d.duplicates, matchCounts: d.matchCounts,
-      retention: d.retention, widen: d.widen, search_run: d.search_run, marketing_confirmable: d.marketing_confirmable }));
+      retention: d.retention, widen: d.widen, search_run: d.search_run, marketing_confirmable: d.marketing_confirmable,
+      team_ready: d.team_ready })); // AUT-18: a new stage takes the mark off
     onChange?.(); // the save restarted the contact's 12 months: the bar's expiring count may drop
   };
   // Stage and Assigned to save on their own; unsaved requirements stay in the form. Input while saving is ignored,
@@ -485,6 +488,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       Log a conversation only after speaking with them.</p>}
     <SearchLifecycle applicant={a} dirty={dirty} busy={busy || reviewing} nameOf={nameOf} onReload={reloadSearch} onEditing={setDecisionDirty}
       onChanged={async applicant => { setData(d => ({ ...d, applicant })); onChange?.(); await fetchDetail(); }} />
+    {data.team_ready !== undefined && <TeamReady applicant={a} ready={data.team_ready} dirty={dirty} busy={busy || reviewing} nameOf={nameOf}
+      onReload={reloadSearch} onChanged={async d => { setData(x => ({ ...x, ...d })); onChange?.(); await fetchDetail(); }} />}
 
     <div className="filters">
       <div className="apply"><label>Stage<select ref={stageRef} value={stage} disabled={archived} onKeyDown={onEnter(applyStage)}
@@ -686,6 +691,50 @@ function Widen({ alternatives, applicant: a, dirty, onUse }) {
           Use this<span className="sr"> ({what(w)})</span></button>}
       </li>)}</ul>
     </> : <p className="muted">Nothing to widen: this search {budget}, {parish} and {beds}.</p>}
+  </section>;
+}
+
+// AUT-18: Ready for the team. The team marks a search once its proposals are reviewed; the 08:00 summary on Telegram
+// counts the marked searches, a number only. Done, or a stage change, takes the mark off; Done does not resolve the search.
+function TeamReady({ applicant: a, ready, dirty, busy, nameOf, onChanged, onReload }) {
+  const [working, setWorking] = useState(false), [message, setMessage] = useState(null);
+  const heading = useRef(null), refocus = useRef(false);
+  useEffect(() => { if (refocus.current) { heading.current?.focus(); refocus.current = false; } }, [message]);
+  const disabled = dirty || busy || working, active = isActive(a);
+  const send = async value => {
+    setWorking(true); setMessage(null);
+    let saved = false;
+    const text = value ? "Marked ready for the team." : "Done. The search stays as it is.";
+    try {
+      const d = await api(`/admin/applicants/${a.id}/team-ready`, { method: "POST", body: { ready: value, updated_at: a.updated_at } });
+      saved = true; await onChanged(d);
+      refocus.current = true; setMessage({ ok: true, text });
+    } catch (err) {
+      refocus.current = saved;
+      setMessage({ text: saved ? `${text} Couldn't refresh the record. Reload to see it.` : err.message, reload: saved || err.status === 409 });
+    } finally { setWorking(false); }
+  };
+  const reload = async () => {
+    setWorking(true);
+    try { await onReload(); setMessage(null); } catch (err) { setMessage({ text: err.message, reload: true }); }
+    finally { setWorking(false); }
+  };
+  return <section className="search-lifecycle team-ready" aria-labelledby="team-ready-h">
+    <div className="inline"><h2 id="team-ready-h" ref={heading} tabIndex={-1}>Ready for the team</h2>
+      {ready && <span className={`badge ${ready.current ? "positive" : "attention"}`}>{ready.current ? "Ready" : "Criteria changed"}</span>}</div>
+    {ready ? <p className="muted">Marked by {nameOf(ready.by)} · {fmtAgo(ready.at)}. {ready.current
+      ? "The 08:00 team summary counts it, without names. Mark it Done once the team has taken it up."
+      : "The criteria changed after it was marked, so the summary leaves it out. Review the proposals and mark it again, or mark it Done."}</p>
+      : <p className="muted">{active ? "Mark this search once its proposals are reviewed. The 08:00 team summary counts marked searches, without names."
+        : "Only an active search can be marked ready for the team."}</p>}
+    {dirty && <p className="muted">Save or discard your changes first.</p>}
+    <div className="inline">
+      {active && !ready?.current && <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => send(true)}>
+        {ready ? "Mark ready again" : "Ready for the team"}</button>}
+      {ready && <button type="button" className="btn ghost sm" disabled={disabled} onClick={() => send(false)}>Done</button>}
+    </div>
+    {message && <p role={message.ok ? "status" : "alert"} className={message.ok ? "ok" : "err"}>{message.text}
+      {message.reload && <> <button type="button" className="btn ghost sm" disabled={working} onClick={reload}>Reload search</button></>}</p>}
   </section>;
 }
 

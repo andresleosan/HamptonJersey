@@ -8,6 +8,7 @@ import { afterSave, matchSnapshotMessage, MATCH_INCOMPLETE_MESSAGE, CANDIDATES_S
 import { recomputeForApplicant, recomputeForApplicantWithStatus, firstSearch, searchRunsWithoutMatch, searchRunFor } from "../search-state.js";
 import { widen } from "../widen.js";
 import { openSearchReview } from "../search-review.js";
+import { readyRow, readyView, readyStatements, clearOnStage } from "../applicant-ready.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
@@ -231,10 +232,12 @@ async function detail({ env, params: [id] }) {
   ])).map(r => r.results);
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
   const search_review = await openSearchReview(env, applicant.id); // BUS-17: undefined while switched off
+  const ready = await readyRow(env, applicant.id); // AUT-18: undefined while switched off
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
     ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
     ...(search_review !== undefined && { search_review }),
+    ...(ready !== undefined && { team_ready: readyView(ready, applicant) }),
     ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id),
       // The server's own answer to "can a website opt-in be confirmed now" (the same check as updateContact's).
       marketing_confirmable: await pendingOptIn(env, contact.id) }) });
@@ -439,11 +442,14 @@ async function commit(env, admin, cur, { next, keys, data, criteriaFields, stage
   const ts = nextVersion(cur.updated_at);
   if (criteriaFields.length) data.criteria_confirmation = { by: admin, at: ts, fields: criteriaFields };
   const leftNew = cur.stage === "new" && stage !== "new";
+  // AUT-18: a stage change takes a Ready for the team mark off in the same save.
+  const unready = keys.includes("stage") && await readyRow(env, cur.id) !== undefined;
   try { await saveVersioned(env, [
     env.DB.prepare(`UPDATE applicants SET ${keys.map(k => `${k} = ?`).join(", ")}, updated_by = ?, ${LOCK} WHERE id = ?`)
       .bind(...keys.map(k => next[k]), admin, cur.updated_at, ts, cur.id),
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: String(cur.id),
       type: keys.includes("stage") ? "applicant.stage_changed" : "applicant.updated", data }),
+    ...(unready ? clearOnStage(env, cur.id, admin) : []),
     // A proposal decided since it was read has no status left to take: NOT NULL fails and the whole batch rolls back.
     ...(proposalId ? [...proposalTask(env, cur.id, "resolved"), env.DB.prepare(`UPDATE criteria_proposals SET
       status = CASE WHEN status = 'pending' THEN 'confirmed' END, decided_by = ?, decided_at = ? WHERE id = ?`).bind(admin, ts, proposalId)] : []),
@@ -722,6 +728,27 @@ async function setSearch({ request, env, admin, params: [id] }) {
   return json({ applicant: parsed(await loadApplicant(env, cur.id)) });
 }
 
+// AUT-18: Ready for the team (ready: true) or Done (ready: false), by a person on the version they saw. Only an active
+// search is marked; Done leaves the search as it is. The search's version moves, so an earlier answer cannot redo either.
+async function setTeamReady({ request, env, admin, params: [id] }) {
+  const body = asObject(await readJson(request));
+  if (typeof body.ready !== "boolean") fail(400, "Send ready: true or false");
+  if (typeof body.updated_at !== "string") fail(400, "Missing updated_at: reload the applicant");
+  const cur = await loadApplicant(env, id), mark = await readyRow(env, cur.id);
+  if (mark === undefined) fail(404, "Not found");
+  if (body.updated_at !== cur.updated_at) fail(409, stale("applicant"));
+  if (body.ready && !isActive(cur)) fail(409, "Only an active search can be marked ready for the team.");
+  if (!body.ready && !mark) fail(409, "This search is not marked ready for the team. Reload to see it.");
+  const ts = nextVersion(cur.updated_at);
+  await saveVersioned(env, [
+    env.DB.prepare(`UPDATE applicants SET updated_by = ?, ${LOCK} WHERE id = ?`).bind(admin, body.updated_at, ts, cur.id),
+    ...readyStatements(env, { id: cur.id, revision: cur.match_inputs_revision, ready: body.ready, actor: admin, at: ts }),
+    touch(env, cur.contact_id, ts),
+  ], "applicant", cur.id, body.updated_at);
+  const applicant = await loadApplicant(env, cur.id);
+  return json({ applicant: parsed(applicant), team_ready: readyView(await readyRow(env, cur.id), applicant) });
+}
+
 // §3.4: from Archived only, typing the contact's name. The history keeps each event's type, date and actor, without data.
 async function remove({ request, env, admin, params: [id] }) {
   const cur = await loadApplicant(env, id);
@@ -771,6 +798,7 @@ export default [
   ["GET", /^\/admin\/applicants\/(\d+)\/offers$/, offers, true],
   ["PUT", /^\/admin\/applicants\/(\d+)$/, update, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/search$/, setSearch, true],
+  ["POST", /^\/admin\/applicants\/(\d+)\/team-ready$/, setTeamReady, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals$/, propose, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals\/(\d+)\/confirm$/, confirmProposal, true],
   ["POST", /^\/admin\/applicants\/(\d+)\/criteria-proposals\/(\d+)\/discard$/, discardProposal, true],
