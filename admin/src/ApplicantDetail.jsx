@@ -16,6 +16,7 @@ import { areaCopy } from "./area-copy.js";
 import { marketingHistory } from "./marketing-history.js";
 import RegistrationEssentials from "./RegistrationEssentials.jsx";
 import { ContactChats } from "./ChatContact.jsx";
+import MarketingPreferences from "./MarketingPreferences.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -356,10 +357,10 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     const current=()=>generation===marketingGeneration.current;
     marketingInFlight.current=true;detailGeneration.current++;setBusy(true);
     try {
-      const {contact}=await api(`/admin/contacts/${contactId}`);
+      const {contact,marketing_preferences}=await api(`/admin/contacts/${contactId}`);
       if(!current() || contact.id!==contactId)return;
       const fresh=toForm({},contact);
-      setData(d=>d && d.contact.id===contactId ? {...d,contact} : d);
+      setData(d=>d && d.contact.id===contactId ? {...d,contact,...(marketing_preferences && {marketing_preferences})} : d);
       setForm(f=>({...f,...Object.fromEntries(CONTACT.filter(k=>JSON.stringify(f[k])===JSON.stringify(previous[k])).map(k=>[k,fresh[k]]))}));
       setMarketing({phase:"idle",status:"Contact reloaded. Review the preference before continuing."});
       requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
@@ -371,6 +372,28 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     const generation=++marketingGeneration.current;
     try { await reloadSearch(); }
     catch(error) { if(generation===marketingGeneration.current)setMarketing({phase:"idle",error:error.message}); }
+  };
+  // PRE-10: an objection by purpose and channel was saved. Same history refresh as the objection above.
+  const preferencesRecorded = async ({contact, marketing_preferences}) => {
+    const generation=++marketingGeneration.current, contactId=contact.id;
+    const current=()=>generation===marketingGeneration.current;
+    setData(d=>d && d.contact.id===contactId ? {...d,contact,marketing_preferences} : d);
+    setMarketingHistoryReady(false);
+    setMarketing({phase:"idle",status:"Marketing objection recorded."});
+    requestAnimationFrame(()=>{if(current())marketingHeading.current?.focus();});
+    onChange?.();
+    const detail=++detailGeneration.current;
+    try {
+      const d=await api(`/admin/applicants/${id}`);
+      if(current() && detail===detailGeneration.current) {
+        setData(x=>x && x.contact.id===contactId ? {...x,events:d.events,duplicates:d.duplicates,retention:d.retention} : x);
+        setMarketingHistoryReady(true);
+      }
+    } catch { if(current())setMarketing({phase:"idle",status:"Marketing objection recorded. History could not be refreshed."}); }
+  };
+  const preferencesStale = () => {
+    setMarketingHistoryReady(false);
+    setMarketing({phase:"stale",error:"Contact changed. Reload the contact before continuing."});
   };
   const openObjection = () => {
     setMarketing({phase:"confirm"}); requestAnimationFrame(()=>marketingConfirm.current?.focus());
@@ -508,7 +531,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       <RegistrationEssentials applicant={a} formRef={formRef} />
       <section className="card" aria-labelledby="marketing-heading">
         <h2 id="marketing-heading" ref={marketingHeading} tabIndex={-1}>Marketing preference</h2>
-        <p>{c.marketing_opt_in_at ? "Marketing consent recorded" : "Marketing consent not recorded"}</p>
+        {!data.marketing_preferences && <p>{c.marketing_opt_in_at ? "Marketing consent recorded" : "Marketing consent not recorded"}</p>}
         <p className="muted">This preference applies to all searches for this contact.</p>
         {contactChanged.length>0 && <p>Save or discard contact changes first.</p>}
         {archived && <p>Restore this search to change its contact preference.</p>}
@@ -517,6 +540,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         {!marketingHistoryUsable && <p>Marketing history needs a refresh before an earlier opt-in can be reviewed.{' '}
           <button type="button" className="btn ghost sm" disabled={busy} onClick={refreshMarketingHistory}>Refresh marketing history</button></p>}
         {marketing.phase==="stale" ? <button type="button" className="btn ghost sm" disabled={busy} onClick={reloadMarketingContact}>Reload contact</button>
+          : data.marketing_preferences ? <MarketingPreferences contact={c} preferences={data.marketing_preferences}
+            blocked={contactChanged.length>0 || archived} busy={busy} onRecorded={preferencesRecorded} onStale={preferencesStale} />
           : c.marketing_opt_in_at && (marketing.phase==="confirm" || marketing.phase==="pending" ? <div>
             <p>Record that this contact objects to marketing?</p>
             <div className="inline"><button ref={marketingConfirm} type="button" className="btn sm" disabled={busy || !!contactChanged.length || archived} onClick={recordObjection}>Confirm objection</button>

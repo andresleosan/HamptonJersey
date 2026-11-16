@@ -573,7 +573,10 @@ async function offers({ env, params: [id] }) {
 }
 
 // "Add a new search for this contact" (#/applicants/new?contact=<id>) shows the contact it starts from.
-const contactDetail = async ({ env, params: [id] }) => json({ contact: await loadContact(env, id) });
+const contactDetail = async ({ env, params: [id] }) => {
+  const contact = await loadContact(env, id);
+  return json({ contact, ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id) }) });
+};
 
 async function updateContact({ request, env, admin, params: [id] }) {
   const body = asObject(await readJson(request));
