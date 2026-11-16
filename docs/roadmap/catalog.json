@@ -19435,8 +19435,8 @@
       "fase": "F0",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Register your search y New applicant piden el marketing en una casilla aparte y opcional, el aviso explica el derecho a oponerse y un registro repetido sin la casilla retira el consentimiento al momento. La ficha permite registrar una oposición para el contacto compartido con confirmación y control de versión; se preservan borradores y se impide confirmar solicitudes anteriores a una negativa posterior. La retirada pública se procesa con guarda de identidad y cambios atómicos.",
-      "falta": "Completar la autorización y supresión de marketing por finalidad y canal en los emisores antes de cualquier envío promocional. Faltan los avisos aplicables en los canales que se integren y la revisión jurídica de sus reglas. La API administrativa genérica todavía permite registrar un opt-in explícito y no constituye un ledger completo por finalidad.",
+      "hecho": "Register your search y New applicant piden el marketing en una casilla aparte y opcional; un registro repetido sin la casilla retira el consentimiento al momento. 16-nov, apagado tras PRE10_PURPOSE_READY=\"0\" (migración 0096, sin aplicar): permiso por finalidad (news, property_alerts, valuation_offer) y canal (email, phone, sms) en marketing_preferences con historial en events; la ficha muestra el estado de cada par y registra una oposición (una finalidad o todas, un canal o todos) con cómo se recibió y control de versión; el panel ya no puede registrar un opt-in propio, solo confirmar uno de la web posterior a la última retirada; el consentimiento solo nace de la web con versión de aviso (CHECK en base de datos); el correo de noticias de la web no autoriza valoraciones ni otro canal; todo correo promocional (plantilla marketing.<finalidad>) se revalida al reclamarlo y justo antes de enviarlo, y una oposición cancela los que estén en cola. No envía nada.",
+      "falta": "Aplicar 0096 en remoto y encender PRE10_PURPOSE_READY en los dos wrangler.toml, con comprobación de lectura. Fuera de esta tarea: el primer emisor promocional real llega con AUT-17 (hoy no existe ninguna plantilla marketing.*); los formularios que recojan otras finalidades (valoración) deben llamar a setCommunicationPreference con su versión de aviso; revisión del abogado (PRE-33) de los avisos y reglas por canal, incluido si desmarcar la casilla de noticias en un registro repetido debe retirar también otras finalidades. A confirmar por Luis o el abogado (PRE-33): con el interruptor encendido, el alta de un contacto desde el panel ya no registra el opt-in de marketing (la casilla desaparece) porque el consentimiento solo nace de la web con versión de aviso; si se quiere consentimiento por teléfono, hace falta su texto y su registro.",
       "bloqueo": "Correo (AUT-17) · JFSC/abogado",
       "evidencia": [
         "site/apply.js:154",
@@ -19449,7 +19449,15 @@
         "admin/src/marketing-history.js",
         "server/contact-version.js",
         "docs/roadmap/work/PRE-10/manual-objection-2026-11-13.md",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+        "migrations/0096_marketing_preferences.sql",
+        "server/communication-preferences.js (canSendForPurpose, setCommunicationPreference, regla ALLOWED compartida)",
+        "server/email.js PROMOTION: revalidación en reclamo y antes del envío; apagado no nombra la tabla nueva",
+        "server/routes/applicants.js updateContact: con el interruptor, opt-in del panel solo con solicitud web pendiente (PENDING_MARKETING)",
+        "admin/src/MarketingPreferences.jsx",
+        "2026-11-16: node --test communication-preferences (10), marketing-pre-dispatch (5), pre10-purpose-d1 (1, D1 local miniflare) en verde; e2e aislado tests/pre10-purpose.e2e.cjs (interruptor a 1) y tests/pre10-objection.e2e.cjs (apagado, sin cambios) en verde a 1280/390.",
+        "Decisiones 2026-11-16 (fuente: spec 2026-11-08-public-acquisition-privacy-design §2 y plan PRE-10): finalidades news/property_alerts/valuation_offer; la casilla actual cuenta solo como news por email (lo más conservador); el panel solo registra oposiciones; el token de versión es updated_at del contacto, como el resto de ediciones; evidence_ref opcional y sin texto libre.",
+        "2026-11-16, revisión independiente: oposición repetida vuelve a vallar una solicitud web posterior; respuesta «already recorded» con el contacto completo; alta del panel sin opt-in encendido; marketing_confirmable desde el servidor; plantillas no transaccionales se tratan como promocionales; comparación de horas con julianday (empate o ilegible = no enviar). Pruebas review 1-6 y e2e de PRE-10 en verde."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -19470,8 +19478,8 @@
         "email-pipeline",
         "messages-contract"
       ],
-      "nextStep": "Integrar permisos por finalidad y revalidación previa al envío; completar textos y revisión jurídica de cada canal cuando corresponda.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Aplicar 0096 (aditiva) en D1 remoto, encender PRE10_PURPOSE_READY=\"1\" en wrangler.toml y jobs/wrangler.toml, comprobar la ficha con una lectura y cerrar por aceptación propia; lo legal pasa a PRE-33 y el envío real a AUT-17.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "PRE-11",
