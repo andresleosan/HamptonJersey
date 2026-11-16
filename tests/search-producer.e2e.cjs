@@ -1,4 +1,4 @@
-// Enable the otherwise closed client flag only in the intercepted synthetic document.
+// Switch the producer on only through an intercepted /api/config (ANA04_SEARCH_STATS_READY stays off).
 // Every measurement request is intercepted before it reaches the local server.
 const {chromium}=require(process.env.PW || 'playwright-core');
 const assert=require('node:assert/strict');
@@ -19,14 +19,10 @@ const BASE=process.env.BASE;
     await page.route('**/api/listings',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(
       Array.from({length:6},(_,i)=>({id:`HE-R00${i+1}`,title:`Fixture ${i+1}`,region:'jersey',operation:'rent',
         image:`/media/FIXTURE${i+1}`,use:'residential',beds:2,rent:2000,rentPeriod:'month',currency:'GBP',status:'available'})))}));
-    await page.route('**/*',async (route,request)=>{
-      const url=new URL(request.url());
-      if(request.isNavigationRequest() && url.origin===new URL(BASE).origin && url.pathname==='/') {
-        const response=await route.fetch();const html=await response.text();
-        assert.ok(html.includes('const SEARCH_STATS_PRODUCER_ENABLED = false;'));
-        return route.fulfill({response,body:html.replace('const SEARCH_STATS_PRODUCER_ENABLED = false;','const SEARCH_STATS_PRODUCER_ENABLED = true;')});
-      }
-      return route.fallback();
+    await page.route('**/api/config',async route=>{
+      const response=await route.fetch();const config=await response.json();
+      assert.equal(config.searchStats,undefined,'the fixture runs with the switch off');
+      return route.fulfill({response,json:{...config,searchStats:true}});
     });
     await page.goto(BASE);await page.locator('#quick').waitFor();
     await page.locator('#q-op').selectOption('rent');await page.locator('#q-beds').selectOption('2');await page.locator('#q-max').selectOption('2500');

@@ -9825,21 +9825,27 @@
       "fase": "F7-A",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "Insights conserva demanda y vistas existentes. Se preparó una medición agregada de filtros y tendencias, sin identificadores ni combinaciones persistidas, con pruebas de presupuesto y compatibilidad de caché. El productor, escritor, lector y retención nuevos permanecen cerrados.",
-      "falta": "Verificar aviso de privacidad, política de retención, protección de solicitudes y presupuesto/esquema D1 antes de activar; el SQL es una propuesta fuera de migrations. La cobertura real de estas métricas no se ha comprobado.",
+      "hecho": "La medición de filtros queda conectada tras ANA04_SEARCH_STATS_READY: POST /api/search-stats cuenta marginales con tope de 5.000 al día, /api/config avisa a la web, Insights lee Search trends y la retención borra lo anterior a 90 días. Migración aditiva 0108 creada. Apagado, todo responde como antes.",
+      "falta": "Aplicar la migración 0108 en D1. Aprobar el aviso de privacidad (PRE-09) y la retención de 90 días (PRE-12) antes de encender. Después, encender ANA04_SEARCH_STATS_READY en los dos wrangler.toml y comprobar el recorrido real. La cobertura real no se ha comprobado.",
       "bloqueo": "",
       "evidencia": [
-        "site/index.html:610-613",
-        "site/index.html:741-750",
-        "server/routes/public.js:82",
-        "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:22",
-        "admin/src/Insights.jsx:38-39",
-        "site/measurement-dimensions.js",
-        "site/lib.js",
+        "migrations/0108_search_metrics.sql",
         "server/search-measurement.js",
+        "server/routes/public.js",
+        "server/routes/insights.js",
+        "server/retention.js",
+        "site/index.html",
+        "admin/src/SearchTrends.jsx",
+        "tests/server/search-stats.test.mjs",
         "tests/server/search-stats-d1.test.mjs",
+        "tests/search-producer.e2e.cjs",
         "tests/search-compat.e2e.cjs",
-        "docs/roadmap/work/ANA-04/evidence.md"
+        "docs/roadmap/work/ANA-04/evidence.md",
+        "Decisión: las rutas existentes se conservan; apagadas responden igual (503 y no disponible). Fuente: restricción del encargo y SKILL §4.5.",
+        "Decisión: la web sabe que mide por searchStats en /api/config, como savedSearches de REG-15. Fuente: patrón de REG-15, opción más simple y reversible.",
+        "Decisión: con el interruptor, un fallo de D1 devuelve 204 y se registra sin datos de la petición. Fuente: plan, «204 significa procesamiento aceptado».",
+        "Decisión: la retención usa el pase diario existente y el interruptor está en ambos wrangler.toml. Fuente: plan, sección Retención.",
+        "Decisión: 0108 copia el SQL propuesto sin cambios. Fuente: docs/roadmap/work/ANA-04/proposed-search-metrics.sql."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -9865,8 +9871,8 @@
       "resources": [
         "analytics-contract"
       ],
-      "nextStep": "Revisar privacidad, retención, protección y presupuesto D1 antes de integrar el esquema y activar la medición.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Con PRE-09 y PRE-12 aprobados: aplicar 0108, encender ANA04_SEARCH_STATS_READY en ambos wrangler.toml y verificar el recorrido.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "ANA-05",

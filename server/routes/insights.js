@@ -8,6 +8,7 @@ import { getSearchMilestones } from "../measurement-funnel.js";
 import { PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
 import { reviewPublicListing } from "./public.js";
 import { posterQrEnabled, qrOpensTotal } from "../poster-qr.js";
+import { readSearchTrends, searchStatsReady } from "../search-measurement.js";
 
 const DAYS = ["7", "30", "90"];
 // I8: offered to applicants and not archived; each query adds the operation.
@@ -233,10 +234,11 @@ async function activity({request, env}) {
   return json(await getWebVolumes(env, {from, to}));
 }
 
-// Until the source and policy are verified, never infer an absent counter is zero.
-async function searchTrends({request}) {
+// ANA-04: off, the source is unavailable as before; never infer an absent counter is zero.
+async function searchTrends({request, env}) {
   const selected = period(request);
-  return json({available: false, coverage: 'unknown', period: selected});
+  if (!searchStatsReady(env)) return json({available: false, coverage: 'unknown', period: selected});
+  return json(await readSearchTrends(env, selected));
 }
 
 export default [

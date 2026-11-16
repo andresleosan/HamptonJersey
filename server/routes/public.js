@@ -1,4 +1,5 @@
 import { validSearchAction } from "../measurement-dimensions.js";
+import { searchStatsReady, writeSearchAction } from "../search-measurement.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { json, fail, HttpError, readJson, now } from "../http.js";
 import { toPublic } from "../listing.js";
@@ -91,8 +92,9 @@ const listPublic = async ({ env }) => {
 
 // chat: whether the website offers new chats (MSG-02, C3); with the cache, a change shows within 5 minutes.
 // savedSearches: present only while the website offers «Save this search» (REG-15); off, the answer is as before.
+// searchStats: present only while the website counts search actions (ANA-04); off, the answer is as before.
 const config = async ({ request, env }) => json({ turnstileSiteKey: env.TURNSTILE_SITE_KEY, chat: await chatOn(env, request),
-  ...(await savedSearchPolicy(env) ? { savedSearches: true } : {}) }, 200,
+  ...(await savedSearchPolicy(env) ? { savedSearches: true } : {}), ...(searchStatsReady(env) ? { searchStats: true } : {}) }, 200,
   { "cache-control": "public, max-age=300" });
 
 // ?from=YYYY-MM-DD&days=N of an availability request, shared with the panel's (which starts from today).
@@ -170,11 +172,14 @@ async function createViewing({ request, env }) {
 
 const options = () => json(OPTIONS, 200, { "cache-control": "public, max-age=86400" });
 
-// The producer and writer remain closed until privacy, schema and cost are verified.
-async function searchStats({request}) {
+// ANA-04: off, a valid action is refused as before. On, 204 means processed, not counted: a capped day or a failed
+// write is not the visitor's concern, and the log names neither the request nor its values.
+async function searchStats({request, env}) {
   const body = await readJson(request, 1024);
   if (!validSearchAction(body)) fail(400, "Invalid search measurement");
-  return json({error: "Search measurement is not available"}, 503, {"cache-control": "no-store"});
+  if (!searchStatsReady(env)) return json({error: "Search measurement is not available"}, 503, {"cache-control": "no-store"});
+  await writeSearchAction(env, body).catch(() => console.error("Search measurement not recorded"));
+  return new Response(null, {status: 204, headers: {"cache-control": "no-store"}});
 }
 
 export const STAT_METRICS = ["view", "photos", "tour"];

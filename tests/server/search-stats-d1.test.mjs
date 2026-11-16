@@ -15,7 +15,7 @@ test('D1: atomic search marginals respect the daily cap, rollback and bounded re
     compatibilityDate:'2025-10-01',host:'127.0.0.1',port:0,d1Databases:{DB:'ana04-local'}}));
   try {
     const DB=await mf.getD1Database('DB');
-    const sql=readFileSync(new URL('../../docs/roadmap/work/ANA-04/proposed-search-metrics.sql',import.meta.url),'utf8');
+    const sql=readFileSync(new URL('../../migrations/0108_search_metrics.sql',import.meta.url),'utf8').replace(/^--.*$/gm,'');
     for (const s of sql.split(';').map(x=>x.trim()).filter(Boolean)) await DB.prepare(s).run();
     await DB.prepare('CREATE TABLE unrelated (n INTEGER)').run();
     await DB.prepare('INSERT INTO unrelated VALUES (1)').run();

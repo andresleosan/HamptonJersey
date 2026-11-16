@@ -594,8 +594,8 @@ let SAVED_SEARCHES = false;
 const savedSearchLink = () => SAVED_SEARCHES ? '<a class="btn ghost" href="#/alerts">Email me new homes</a>' : "";
 const tsReady = new Promise(r => { window.onTurnstile = r; });
 // I3: one count per listing and metric until the page reloads, with no cookies; a failed count is ignored.
-// Disabled until the privacy notice, retention policy, D1 schema and operating cost are approved.
-const SEARCH_STATS_PRODUCER_ENABLED = false;
+// ANA-04: search actions are counted only while /api/config says so (ANA04_SEARCH_STATS_READY).
+let SEARCH_STATS_PRODUCER_ENABLED = false;
 function trackSearch(visible) {
   if (!SEARCH_STATS_PRODUCER_ENABLED || typeof searchAction !== "function") return;
   const body = searchAction(filter, visible, true);
@@ -1345,6 +1345,7 @@ Promise.allSettled([getJSON("/api/listings"), getJSON("/data/team.json"), getJSO
   // Before the listings check: Register your search still opens (with its anti-spam key) when they fail.
   TS_KEY = c.status === "fulfilled" && typeof c.value?.turnstileSiteKey === "string" ? c.value.turnstileSiteKey : null;
   SAVED_SEARCHES = c.status === "fulfilled" && c.value?.savedSearches === true;
+  SEARCH_STATS_PRODUCER_ENABLED = c.status === "fulfilled" && c.value?.searchStats === true;
   bootChat(c.status === "fulfilled" && c.value?.chat === true);
   if (p.status !== "fulfilled" || !Array.isArray(p.value)) throw p.reason || new Error("bad data");
   const order = {jersey: 0, uk: 1, international: 2};

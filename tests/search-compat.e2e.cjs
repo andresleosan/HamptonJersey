@@ -28,11 +28,12 @@ const listings=Array.from({length:6},(_,i)=>({id:`HE-R00${i+1}`,title:`Fixture $
         if(url.origin!==new URL(BASE).origin)return route.fallback();
         if(request.isNavigationRequest() && url.pathname==='/') {
           if(variant.oldHtml) return route.fulfill({status:200,contentType:'text/html',body:legacyHtml});
-          const response=await route.fetch();const html=await response.text();
-          assert.ok(html.includes('const SEARCH_STATS_PRODUCER_ENABLED = false;'));
-          // Only inside this intercepted synthetic document: prove compatibility guards suppress all tracking.
-          return route.fulfill({response,body:html.replace('const SEARCH_STATS_PRODUCER_ENABLED = false;',
-            'const SEARCH_STATS_PRODUCER_ENABLED = true;')});
+          return route.fallback();
+        }
+        // Only inside this synthetic fixture: the switch is on, so the compatibility guards must suppress all tracking.
+        if(url.pathname==='/api/config') {
+          const response=await route.fetch();
+          return route.fulfill({response,json:{...await response.json(),searchStats:true}});
         }
         if(url.pathname==='/lib.js' && variant.oldLib)
           return route.fulfill({status:200,contentType:'text/javascript',body:legacyLib});

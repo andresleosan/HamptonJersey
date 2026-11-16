@@ -1,7 +1,9 @@
 import {validSearchAction} from './measurement-dimensions.js';
 import {jerseyToday, plusDays, realDate} from './viewings.js';
 
-// Prepared only for synthetic tests. No production route invokes this writer while policy/schema/cost are unverified.
+// ANA-04: writer, reader and retention run only with this switch (migration 0108). Off, nothing names their tables.
+export const searchStatsReady = env => env?.ANA04_SEARCH_STATS_READY === '1';
+
 // D1 executes a batch sequentially in one transaction: changes() carries the budget decision through each marginal.
 export async function writeSearchAction({DB}, action, at = new Date()) {
   if (!validSearchAction(action)) throw new Error('Invalid search measurement');
@@ -18,7 +20,7 @@ export async function writeSearchAction({DB}, action, at = new Date()) {
   return result[0].meta.changes === 1;
 }
 
-// Kept disconnected from the real maintenance job until the schema and retention policy are approved.
+// Called by the retention pass only with searchStatsReady.
 export async function pruneSearchMetrics({DB}, at = new Date()) {
   const before = plusDays(jerseyToday(at), -90);
   return DB.batch([
