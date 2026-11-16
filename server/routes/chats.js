@@ -1,6 +1,6 @@
 import { json, fail, readJson, now } from "../http.js";
 import { conversation, messageText, TEAM_MAX, CHAT_DB_NOW, chatKeyCurrent } from "../chat.js";
-import { applicantDraftFromChat } from "../chat-applicant.js";
+import { applicantDraftFromChat, chatApplicantReady } from "../chat-applicant.js";
 import { chatContactReady, chatContactLink } from "../chat-contact.js";
 
 // MSG-02 (spec 2026-11-06): the panel's Messages screen. Waiting chats first, oldest wait first (C7).
@@ -31,7 +31,9 @@ async function detail({ env, params: [id] }) {
   // reads as switched off (like PUB-16's).
   const contact_link = chatContactReady(env) ? await chatContactLink(env, c.id).then(l => l ?? deleted(),
     e => { if (/no such column: (contact_id|contact_version)/.test(String(e?.message))) return undefined; throw e; }) : undefined;
-  return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages, ...(contact_link && { contact_link }) });
+  // MSG-05: only switched on, Messages offers Create applicant instead of the read-only review.
+  return json({ chat: { ...chat, listing: listing_id ? { id: listing_id, title } : null }, messages, ...(contact_link && { contact_link }),
+    ...(contact_link && chatApplicantReady(env) && { create_applicant: true }) });
 }
 
 async function applicantDraft({ request, env, params: [id] }) {

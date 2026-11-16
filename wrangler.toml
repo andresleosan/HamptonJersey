@@ -100,6 +100,8 @@ MSG03_CONTACT_LINK_READY = "1"
 PRE10_PURPOSE_READY = "1"
 # BUS-08: the daily market sweep (migration 0095). Off: no automatic source reader exists or is authorised yet (BUS-19). Before switching on, jobs/wrangler.toml must carry the website's values of the flags a recompute reads (a test checks it). Must match the other wrangler.toml.
 BUS08_SWEEP_READY = "0"
+# MSG-05: a person creates an applicant from a website chat, with its contact details filled in and an explicit Save; one batch writes the contact, the search and the chat's link (migration 0098; needs MSG03_CONTACT_LINK_READY). Sends nothing.
+MSG05_CREATE_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

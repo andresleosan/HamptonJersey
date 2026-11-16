@@ -284,10 +284,12 @@ async function matchPage({request,env,params:[id]}) {
  return json(await pageMatches(env,Number(id),{status:q.get('status'),after:q.get('after'),only:q.get('only')}));
 }
 
-async function create({ request, env, admin }) {
+// The panel's New applicant and MSG-05's save from a chat share this: validation, the two 409 offers and the statements.
+// Returns { response } when nothing may be written, or { contact, head, tail, conflict }: head inserts the new contact
+// (if any) and then the search, last; tail is its event and the contact's clock; conflict(e) explains a failed batch.
+export async function prepareCreate(env, raw, admin) {
   // PRE-10: switched on, consent comes only from the website with its notice version: the panel's new contact records
   // no marketing opt-in (its tick is hidden). Off, as before.
-  const raw = await readJson(request);
   const body = purposeReady(env) && raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw, marketing: false } : raw;
   let contact = null;
   if (body?.contact_id != null) {
@@ -298,42 +300,51 @@ async function create({ request, env, admin }) {
   // "Add a new search for this contact": the stored contact stands in for the form's contact fields, unchanged.
   const r = validateApplicant(contact ? { ...body, name: contact.name, email: contact.email, phone: contact.phone } : body,
     { publicForm: false }, ts);
-  if (r.errors) return fieldErrors(r.errors);
+  if (r.errors) return { response: fieldErrors(r.errors) };
   const taken = c => json({ error: `${c.name} is already a contact`, contact_id: c.id }, 409);
-  if (!contact) { const c = await findContact(env, r.value.contact); if (c) return taken(c); }
+  if (!contact) { const c = await findContact(env, r.value.contact); if (c) return { response: taken(c) }; }
   else {
     // One active search per operation: a second one would split the contact's history (§3.3 "Create second search").
     const effective = r.value.applicant.search_operation ?? r.value.applicant.operation;
     const s = await env.DB.prepare(`SELECT s.id FROM applicants s WHERE s.contact_id = ? AND COALESCE(s.search_operation, s.operation) = ? AND s.search_category = ? AND ${ACTIVE}
       ORDER BY s.created_at DESC, s.id DESC LIMIT 1`).bind(contact.id, effective, r.value.applicant.search_category).first();
-    if (s) return json({ error: `${contact.name} already has an active ${OPERATION_LABEL[effective]} search`,
-      applicant_id: s.id }, 409);
+    if (s) return { response: json({ error: `${contact.name} already has an active ${OPERATION_LABEL[effective]} search`,
+      applicant_id: s.id }, 409) };
   }
 
   const stamps = { created_at: ts, updated_at: ts, updated_by: admin };
   const person = { ...r.value.contact, last_activity_at: ts, last_contact_at: ts, ...stamps }, a = { ...r.value.applicant, ...stamps };
   const cols = row => Object.keys(row).join(", "), marks = row => Object.keys(row).map(() => "?").join(", ");
   const name = contact?.name ?? person.name;
-  const stmts = [
+  const head = [
     ...(contact ? [] : [env.DB.prepare(`INSERT INTO contacts (${cols(person)}) VALUES (${marks(person)})`).bind(...Object.values(person))]),
     // A new contact is the row inserted just before, in the same batch.
     env.DB.prepare(`INSERT INTO applicants (contact_id, ${cols(a)}) VALUES (${contact ? "?" : "last_insert_rowid()"}, ${marks(a)})`)
       .bind(...(contact ? [contact.id] : []), ...Object.values(a)),
+  ];
+  const tail = [
     // Entered by the team: the Feed tells the others, nobody needs to act (§3.2).
     ...logEvent(env, { actor: admin, entity_type: "applicant", entity_id: null, type: "applicant.created",
     data: { operation: a.search_operation ?? a.operation, source: a.source } },
     { category: "new_applicant", title: `New applicant: ${name} · ${OPERATION_LABEL[a.search_operation ?? a.operation]}`, action_required: false }),
     ...(contact ? [contacted(env, contact.id, ts)] : []),
   ];
-  let results;
-  try { results = await env.DB.batch(stmts); } catch (e) {
+  const conflict = async e => {
     // Another admin added the same email or phone a moment ago.
     const c = /UNIQUE/i.test(String(e?.message)) && !contact && await findContact(env, r.value.contact);
     if (c) return taken(c);
     if (contact && /UNIQUE/i.test(String(e?.message))) fail(409, "This contact already has an active search for this operation. Reload to see it.");
     throw e;
-  }
-  const newId = results[contact ? 0 : 1].meta.last_row_id;
+  };
+  return { contact, head, tail, conflict };
+}
+
+async function create({ request, env, admin }) {
+  const p = await prepareCreate(env, await readJson(request), admin);
+  if (p.response) return p.response;
+  let results;
+  try { results = await env.DB.batch([...p.head, ...p.tail]); } catch (e) { return p.conflict(e); }
+  const newId = results[p.head.length - 1].meta.last_row_id;
   await afterSave(firstSearch, env, newId, admin);
   return json({ id: newId }, 201);
 }

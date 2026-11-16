@@ -47,6 +47,7 @@ import legalRoutes, { legalTermsReady } from "./legal-terms.js";
 import presentationRoutes from "./presentation-access.js";
 import trashRoutes from "./property-photo-purge.js";
 import chatContactRoutes, { chatContactReady } from "./chat-contact.js";
+import chatApplicantRoutes, { chatApplicantReady } from "./chat-applicant.js";
 import marketingPreferenceRoutes, { purposeReady } from "./communication-preferences.js";
 
 // [method, path regex, handler, requiresAdmin]
@@ -90,6 +91,7 @@ async function route(request, env, segments, waitUntil) {
     if (renewalReady(env)) routes = [...routes, ...renewalRoutes]; // ADM-14: no migration
     if (statementsReady(env)) routes = [...routes, ...closingRoutes]; // ADM-10: needs migration 0090
     if (chatContactReady(env)) routes = [...routes, ...chatContactRoutes]; // MSG-03: needs migration 0093
+    if (chatApplicantReady(env)) routes = [...routes, ...chatApplicantRoutes]; // MSG-05: needs migrations 0093 and 0098
     if (purposeReady(env)) routes = [...routes, ...marketingPreferenceRoutes]; // PRE-10: needs migration 0096
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
