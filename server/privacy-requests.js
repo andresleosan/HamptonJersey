@@ -143,16 +143,55 @@ async function holds(env, contactId, requestId) {
 // What the existing Delete (an archived applicant's, §3.4) would remove for this contact, and what it leaves to a person.
 // Viewing requests carry no contact id: those with the same non-empty email, or the same phone once normalised as the
 // contact's is (normalizePhone), are only possible matches (other people can share them), counted for a person to check
-// one by one, never listed or deleted here. Rentals are not linked to contacts: named for a check by hand, never matched.
+// one by one, never deleted here. Rentals are not linked to contacts: named for a check by hand, never matched.
 const STRIPPED = ["' '", "'-'", "'.'", "'('", "')'"].reduce((sql, c) => `replace(${sql}, ${c}, '')`, "v.phone");
-async function possibleViewings(env, contactId) {
+async function matchedViewings(env, contactId, fields) {
   const c = await env.DB.prepare("SELECT email, phone FROM contacts WHERE id = ?").bind(contactId).first();
-  if (!c) return 0;
-  const { results } = await env.DB.prepare(`SELECT v.email, v.phone FROM viewing_requests v
+  if (!c) return [];
+  const { results } = await env.DB.prepare(`SELECT ${cols(fields, "v")} FROM viewing_requests v
     WHERE (?1 <> '' AND v.email <> '' AND lower(v.email) = lower(?1))
-      OR (length(?2) >= 9 AND v.phone <> '' AND substr(${STRIPPED}, -9) = substr(?2, -9))`).bind(c.email ?? "", c.phone ?? "").all();
+      OR (length(?2) >= 9 AND v.phone <> '' AND substr(${STRIPPED}, -9) = substr(?2, -9)) ORDER BY v.id`).bind(c.email ?? "", c.phone ?? "").all();
   return results.filter(v => (c.email && v.email && v.email.toLowerCase() === c.email.toLowerCase())
-    || (c.phone && normalizePhone(v.phone) === c.phone)).length;
+    || (c.phone && normalizePhone(v.phone) === c.phone));
+}
+const possibleViewings = async (env, contactId) => (await matchedViewings(env, contactId, ["email", "phone"])).length;
+
+// With PRE12_VIEWING_REVIEW_READY (migration 0111), a team member confirms one by one which of those possible matches
+// are this person's, or takes a confirmation back; who and when are kept with ids only. A confirmation counts only for
+// the contact linked when it was made, and only while the viewing request still exists and still matches. Before 0111
+// is applied there are none.
+export const viewingReviewReady = env => env?.PRE12_VIEWING_REVIEW_READY === "1";
+const REVIEW = ["id", "date", "time", "listing_ref", "listing_title_snapshot", "name", "email", "phone", "status", "created_at"];
+async function confirmations(env, r) {
+  try {
+    const { results } = await env.DB.prepare(`SELECT p.viewing_id, p.confirmed, p.actor, p.at FROM privacy_request_viewings p
+      WHERE p.request_id = ?1 AND p.contact_id = ?2 AND p.id = (SELECT MAX(q.id) FROM privacy_request_viewings q
+        WHERE q.request_id = ?1 AND q.contact_id = ?2 AND q.viewing_id = p.viewing_id)`).bind(r.id, r.contact_id).all();
+    return new Map(results.filter(d => d.confirmed).map(d => [d.viewing_id, { by: d.actor, at: d.at }]));
+  } catch (e) { if (/no such table/.test(e?.message ?? "")) return new Map(); throw e; }
+}
+async function viewingsToReview(env, r) {
+  const confirmed = await confirmations(env, r);
+  return (await matchedViewings(env, r.contact_id, REVIEW)).map(v => ({ ...v, confirmed: confirmed.get(v.id) ?? null }));
+}
+async function confirmedViewings(env, r) {
+  const confirmed = viewingReviewReady(env) ? await confirmations(env, r) : new Map();
+  return confirmed.size ? (await matchedViewings(env, r.contact_id, VIEWING)).filter(v => confirmed.has(v.id)) : [];
+}
+
+async function decideViewing({ request, env, admin, params: [id, viewing] }) {
+  if (!viewingReviewReady(env)) fail(404, "Not found");
+  const b = await readJson(request), r = await current(env, id), v = Number(viewing);
+  if (r.state !== "open") fail(409, CLOSED);
+  if (!COPY_KINDS.includes(r.kind) || r.contact_id == null) fail(400, "Link the contact of an access or portability request first");
+  if (typeof b?.confirmed !== "boolean") return bad({ confirmed: "Say whether this viewing request is the person's" });
+  if (!(await matchedViewings(env, r.contact_id, ["id", "email", "phone"])).some(x => x.id === v))
+    fail(404, "This viewing request is not a possible match for the contact");
+  const { meta } = await env.DB.prepare(`INSERT INTO privacy_request_viewings (request_id, contact_id, viewing_id, confirmed, actor, at)
+    SELECT id, contact_id, ?, ?, ?, ? FROM privacy_requests WHERE id = ? AND state = 'open' AND contact_id = ?`)
+    .bind(v, b.confirmed ? 1 : 0, admin, now(), id, r.contact_id).run();
+  if (!meta.changes) fail(409, STALE);
+  return json({ viewings: await viewingsToReview(env, r) });
 }
 async function erasurePlan(env, contactId, kept) {
   const n = await env.DB.prepare(`SELECT
@@ -171,7 +210,8 @@ async function detail({ env, params: [id] }) {
   const [{ results: audit }] = await env.DB.batch([env.DB.prepare(`SELECT id, revision, action, actor, at FROM privacy_request_audit
     WHERE request_id = ? ORDER BY id`).bind(id)]);
   return json({ request: output(r), holds: kept, audit,
-    erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null });
+    erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null,
+    ...(viewingReviewReady(env) && COPY_KINDS.includes(r.kind) && r.contact_id != null ? { viewings: await viewingsToReview(env, r) } : {}) });
 }
 
 // The copy for an access or portability request: explicit fields of the records linked to the contact by id, read in one
@@ -191,6 +231,9 @@ const SEARCH = ["id", "operation", "search_category", "search_operation", "stage
 const OFFER = ["id", "applicant_id", "listing_id", "amount", "status", "counter_amount", "created_at", "updated_at"];
 const MATCH = ["id", "applicant_id", "listing_id", "status", "reject_reason", "created_at", "updated_at", "reviewed_at"];
 const PREFERENCE = ["purpose", "channel", "value", "source", "notice_version", "updated_at"];
+const VIEWING = ["id", "listing_id", "listing_ref", "listing_title_snapshot", "kind", "date", "time", "end_time", "name", "email",
+  "phone", "status", "outcome", "interest_removed_at", "interest_reason", "reminded_at", "reminded_channel", "feedback_at",
+  "created_at", "updated_at"];
 const STAFF = "Names of our team members who recorded or changed it; they are not your details.";
 const NOTES = "Internal notes our team wrote; reviewed separately, as they can hold other people's details.";
 const NOT_INCLUDED = [
@@ -219,6 +262,13 @@ const NOT_INCLUDED = [
   { section: "history", reason: "The panel's internal log of changes; reviewed separately." },
 ];
 const cols = (fields, alias) => fields.map(f => `${alias}.${f}`).join(", ");
+// Named only when the copy holds confirmed viewing requests, so a copy without them keeps its hash.
+const VIEWING_NOT_INCLUDED = [
+  { section: "viewing_requests", fields: ["agent", "negotiator_id", "updated_by", "reminded_by", "feedback_by"], reason: STAFF },
+  { section: "viewing_requests", fields: ["notes", "outcome_note", "interest_note"], reason: NOTES },
+  { section: "viewing_requests", fields: ["interest_same_as"],
+    reason: "Points to another person's record of ours; reviewed by hand, as it can hold other people's details." },
+];
 
 // REG-15: the website alerts this person confirmed (never their tokens). Only when there are any, so a copy someone
 // already reviewed keeps its hash; without migration 0107 there are none.
@@ -255,9 +305,11 @@ async function buildCopy(env, r) {
     ]);
   if (!contact) fail(404, "Contact not found");
   const alerts = await propertyAlerts(env, r.contact_id), facebook = await facebookConversations(env, r.contact_id);
-  const not_included = facebook ? [...NOT_INCLUDED, FACEBOOK_NOT_INCLUDED] : NOT_INCLUDED;
+  const viewings = await confirmedViewings(env, r);
+  const not_included = [...NOT_INCLUDED, ...(viewings.length ? VIEWING_NOT_INCLUDED : []), ...(facebook ? [FACEBOOK_NOT_INCLUDED] : [])];
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
-    matches, marketing_preferences: prefs, ...(alerts.length ? { property_alerts: alerts } : {}), not_included };
+    matches, marketing_preferences: prefs, ...(viewings.length ? { viewing_requests: viewings } : {}),
+    ...(alerts.length ? { property_alerts: alerts } : {}), not_included };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
 }
@@ -286,7 +338,7 @@ function toCsv(copy) {
   const rows = [["section", "record", "field", "value"]];
   const add = (section, record, obj) => { for (const [k, v] of Object.entries(obj)) rows.push([section, String(record), k, v == null ? "" : String(v)]); };
   add("contact", 1, copy.contact);
-  for (const s of ["searches", "offers", "matches", "marketing_preferences", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
+  for (const s of ["searches", "offers", "matches", "marketing_preferences", "viewing_requests", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
   copy.not_included.forEach((n, i) => rows.push(["not_included", String(i + 1), n.section,
     `${n.fields ? `${n.fields.join(" ")}: ` : ""}${n.reason}`]));
   return rows.map(r => r.map((v, i) => csvCell(i === 3 ? csvText(v) : v)).join(",")).join("\r\n") + "\r\n";
@@ -335,4 +387,5 @@ export default [
   ["POST", new RegExp(`${ONE}/copy-review$`), reviewCopy, true],
   ["GET", new RegExp(`${ONE}/copy/download$`), download, true],
   ["POST", new RegExp(`${ONE}/close$`), close, true],
+  ["POST", new RegExp(`${ONE}/viewings/([1-9]\\d{0,14})$`), decideViewing, true],
 ];

@@ -60,17 +60,39 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     await page.getByRole('status').filter({hasText:'Identity check recorded.'}).waitFor();
     await card('Identity check').getByText(/Checked/).waitFor();
 
+    // A viewing request with the same email: checked by a person, and only once confirmed does it go in the copy.
+    const {jerseyToday,plusDays}=await import('../server/viewings.js');
+    // The first free weekday slot of the fixture's negotiator.
+    let booked=null;
+    for(const date of Array.from({length:14},(_,i)=>plusDays(jerseyToday(),i+1))
+      .filter(d=>{const day=new Date(d+'T12:00:00Z').getUTCDay();return day>=1&&day<=5;}))
+      for(const time of ['10:00','11:00','12:00','14:00','15:00']) if(!booked?.ok()){
+        booked=await ctx.request.fetch(BASE+'api/admin/viewings',{method:'POST',headers:{origin:new URL(BASE).origin},
+          data:{listing_id:'HE-R001',negotiator_id:1,kind:'In person',date,time,name:`Viewer ${stamp}`,email}});
+      }
+    assert.ok(booked.ok(),`book a viewing: ${booked.status()} ${await booked.text()}`);
+    await page.reload();
+    await page.getByRole('heading',{name:'Access request',level:1}).waitFor({timeout:10000});
+    const viewings=card('Viewing requests to check');
+    await viewings.getByText(`Viewer ${stamp}`,{exact:false}).waitFor();
+    await viewings.getByRole('button',{name:/^Confirm it is theirs: viewing request of /}).click();
+    await page.getByRole('status').filter({hasText:'Viewing request added to the copy.'}).waitFor();
+    await viewings.getByText('In the copy',{exact:true}).waitFor();
+    await viewings.getByRole('button',{name:/^Take out of the copy: viewing request of /}).waitFor();
+
     // Copy: read, marked as reviewed, then downloaded as reviewed.
     const copy=card('Copy for the person');
     await copy.getByRole('button',{name:'Show copy',exact:true}).click();
     await copy.getByLabel('Copy to review').waitFor();
     assert.match(await copy.getByLabel('Copy to review').textContent(),new RegExp(email.replace(/[.]/g,'\\.')));
+    assert.match(await copy.getByLabel('Copy to review').textContent(),new RegExp(`Viewer ${stamp}`));
     await copy.getByRole('button',{name:'Mark copy as reviewed',exact:true}).click();
     await page.getByRole('status').filter({hasText:'Copy marked as reviewed.'}).waitFor();
     const [download]=await Promise.all([page.waitForEvent('download'),copy.getByRole('button',{name:'Download JSON',exact:true}).click()]);
     assert.match(download.suggestedFilename(),/^hampton-data-copy-[0-9a-f-]{36}\.json$/);
     const file=JSON.parse(readFileSync(await download.path(),'utf8'));
     assert.equal(file.contact.email,email);
+    assert.deepEqual(file.viewing_requests.map(v=>v.name),[`Viewer ${stamp}`]);
     // Changed after the review: the download says so on the page instead.
     const contact=(await request('GET',`/admin/applicants/${made.id}`)).contact;
     await request('PUT',`/admin/contacts/${contactId}`,{updated_at:contact.updated_at,best_time:'Mornings'});
@@ -109,5 +131,5 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     assert.deepEqual(errors,[]);
     await ctx.close();
   }}finally{await browser.close();}
-  console.log('PRE-12 isolated UI OK: record, field error, contact search, identity, reviewed copy and download, 409, close, erasure plan, 1280/390.');
+  console.log('PRE-12 isolated UI OK: record, field error, contact search, identity, viewing confirmed one by one, reviewed copy and download, 409, close, erasure plan, 1280/390.');
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

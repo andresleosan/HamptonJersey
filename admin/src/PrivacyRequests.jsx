@@ -133,7 +133,9 @@ function Detail({ id }) {
       {d.holds.length ? <ul>{d.holds.map(h => <li key={h.code}>{HOLDS[h.code]}</li>)}</ul>
         : <p>No holds: nothing the cleanup keeps for this contact.</p>}</div>}
     {d.erasure && <Erasure plan={d.erasure} />}
-    {COPY_KINDS.includes(r.kind) && <Copy key={`p${r.revision}`} r={r} team={team} onSaved={done("Copy marked as reviewed.")} reload={load} />}
+    {d.viewings && <ViewingReview r={r} viewings={d.viewings} team={team} done={done} reload={load} />}
+    {COPY_KINDS.includes(r.kind) && <Copy key={`p${r.revision}-${d.viewings?.filter(v => v.confirmed).map(v => v.id).join(".")}`}
+      r={r} team={team} onSaved={done("Copy marked as reviewed.")} reload={load} />}
     {open ? <Close key={`x${r.revision}`} r={r} onSaved={done("Request closed.")} reload={load} />
       : <div className="card"><h2>Result</h2><p>{RESULTS[r.result]}, recorded by {nameOf(team, r.closed_by)} on {fmtDate(r.closed_at)}.</p>
         {r.result_note && <p>{r.result_note}</p>}</div>}
@@ -232,6 +234,30 @@ function Erasure({ plan }) {
     <ul>{plan.by_hand.map(x => <li key={x.item}>{x.item === "rentals" ? "Rentals: not linked to contacts. Check Rentals by hand."
       : `Viewing requests with the same email or phone: ${x.count}. Other people can share an email or phone: check each one before deleting it from Viewings.`}</li>)}</ul>
   </div>;
+}
+
+// Viewing requests carry no contact: those with the contact's email or phone are checked one by one, and only the ones a
+// person confirms go in the copy.
+function ViewingReview({ r, viewings, team, done, reload }) {
+  return <div className="card"><h2>Viewing requests to check</h2>
+    <p className="muted">These viewing requests have {r.contact.name}'s email or phone. Other people can share an email or phone:
+      confirm only the ones that are this person's. Only confirmed ones go in the copy.</p>
+    {viewings.length ? <ul className="viewing-review">{viewings.map(v => <ViewingItem key={v.id} r={r} v={v} team={team}
+      onSaved={done(v.confirmed ? "Viewing request taken out of the copy." : "Viewing request added to the copy.")} reload={reload} />)}</ul>
+      : <p>No viewing requests with this contact's email or phone.</p>}
+  </div>;
+}
+
+function ViewingItem({ r, v, team, onSaved, reload }) {
+  const a = useChange(`pv${v.id}`, `/admin/privacy-requests/${r.id}/viewings/${v.id}`, "POST", onSaved);
+  const what = `${fmtDay(v.date)} at ${v.time}`, action = v.confirmed ? "Take out of the copy" : "Confirm it is theirs";
+  return <li><p><strong>{what}</strong> · {v.listing_title_snapshot || v.listing_ref || "No property"} · {v.name} ·{" "}
+    {v.email || "no email"} · {v.phone || "no phone"}</p>
+    {v.confirmed && <p><span className="badge positive">In the copy</span> Confirmed by {nameOf(team, v.confirmed.by)} on {fmtDate(v.confirmed.at)}.</p>}
+    {r.state === "open" && <div className="inline"><button type="button" className={v.confirmed ? "btn ghost sm" : "btn sm"}
+      disabled={a.busy} aria-label={`${action}: viewing request of ${what}`} onClick={() => a.send({ confirmed: !v.confirmed })}>
+      {a.busy ? "Saving…" : action}</button></div>}
+    <Failure msg={a.msg} reload={reload} focus={a.said} /></li>;
 }
 
 function Copy({ r, team, onSaved, reload }) {

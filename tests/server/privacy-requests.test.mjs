@@ -482,3 +482,167 @@ test('MSG-01: Facebook conversations are named in the copy for review by hand, o
   assert.ok(after.copy.not_included.some(n => n.section === 'facebook_messages' && n.reason));
   assert.notEqual(after.sha256, before.sha256);
 });
+
+// PRE-12: viewing requests matched only by email or phone, reviewed one by one (migration 0111, PRE12_VIEWING_REVIEW_READY).
+const reviewOn = schema => ({ ...makeEnv(schema), PRE12_REQUESTS_READY: '1', PRE12_VIEWING_REVIEW_READY: '1' });
+function viewing(env, { email = '', phone = '', name = 'Someone' } = {}) {
+  return Number(env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id,agent,kind,date,time,name,email,phone,status,notes,
+    created_at,updated_at,updated_by) VALUES ('HE-R001','team','in_person','2026-11-20','10:00',?,?,?,'requested',
+    'internal viewing note',?,?,'admin@example.test')`).run(name, email, phone, T, T).lastInsertRowid);
+}
+const decide = (env, cookie, id, v, confirmed) => call(env, 'POST', `${BASE}/${id}/viewings/${v}`, { cookie, body: { confirmed } });
+
+test('viewing review: switched off or without 0111, nothing is listed and the copy keeps its hash', async () => {
+  for (const schema of [{}, { skip: [111] }]) {
+    const env = { ...makeEnv(schema), PRE12_REQUESTS_READY: '1' }, cookie = await adminCookie();
+    const { request } = await verified(env, cookie);
+    seedListing(env);
+    const v = viewing(env, { email: 'pre12-person@example.test' });
+    const off = await call(env, 'GET', `${BASE}/${request.id}`, { cookie });
+    assert.equal('viewings' in off.data, false);
+    assert.equal((await decide(env, cookie, request.id, v, true)).status, 404);
+    const before = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.sha256;
+    const reviewed = await call(env, 'POST', `${BASE}/${request.id}/copy-review`, { cookie, body: { revision: request.revision, sha256: before } });
+    assert.equal(reviewed.status, 200, reviewed.text);
+    // Switched on, with or without 0111: listed with no decision, and the copy reviewed before still downloads.
+    env.PRE12_VIEWING_REVIEW_READY = '1';
+    const listed = await call(env, 'GET', `${BASE}/${request.id}`, { cookie });
+    assert.equal(listed.status, 200, listed.text);
+    assert.deepEqual(listed.data.viewings.map(x => [x.id, x.confirmed]), [[v, null]]);
+    assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.sha256, before);
+    assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy/download?format=json`, { cookie })).status, 200);
+  }
+});
+
+test('viewing review: candidates are listed one by one and only the confirmed ones enter the copy', async () => {
+  const env = reviewOn(), cookie = await adminCookie(), { p, request } = await verified(env, cookie);
+  seedListing(env);
+  const byEmail = viewing(env, { email: 'PRE12-person@example.test', name: 'Synthetic Person' });
+  const byPhone = viewing(env, { phone: '07700 900121', name: 'Someone Else' });
+  const other = viewing(env, { email: 'other@example.test', phone: '07700 900999' });
+  const before = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  const list = (await call(env, 'GET', `${BASE}/${request.id}`, { cookie })).data.viewings;
+  assert.deepEqual(list.map(v => [v.id, v.confirmed]), [[byEmail, null], [byPhone, null]]);
+  assert.equal(list[1].name, 'Someone Else');
+  assert.equal('notes' in list[0], false, 'internal notes are not shown for the review either');
+
+  assert.equal((await decide(env, cookie, request.id, other, true)).status, 404, 'not a possible match');
+  assert.equal((await decide(env, cookie, request.id, 999999, true)).status, 404);
+  assert.equal((await decide(env, cookie, request.id, byEmail, 'yes')).status, 400);
+  const done = await decide(env, await adminCookie('colleague@example.test'), request.id, byEmail, true);
+  assert.equal(done.status, 200, done.text);
+  const confirmed = done.data.viewings.find(v => v.id === byEmail).confirmed;
+  assert.equal(confirmed.by, 'colleague@example.test');
+  assert.match(confirmed.at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(done.data.viewings.find(v => v.id === byPhone).confirmed, null);
+
+  const after = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  assert.deepEqual(after.copy.viewing_requests.map(v => v.id), [byEmail]);
+  assert.notEqual(after.sha256, before.sha256);
+  assert.equal(JSON.stringify(after.copy).includes('internal viewing note'), false);
+  assert.equal(JSON.stringify(after.copy).includes('Someone Else'), false, 'the unconfirmed one never enters');
+  // Every column is in the copy or named in not_included with its reason.
+  const named = after.copy.not_included.filter(n => n.section === 'viewing_requests').flatMap(n => n.fields ?? []);
+  const missing = env.DB.raw.prepare('PRAGMA table_info(viewing_requests)').all().map(c => c.name)
+    .filter(c => !(c in after.copy.viewing_requests[0]) && !named.includes(c));
+  assert.deepEqual(missing, []);
+  const reviewed = await call(env, 'POST', `${BASE}/${request.id}/copy-review`, { cookie,
+    body: { revision: request.revision, sha256: after.sha256 } });
+  assert.equal(reviewed.status, 200, reviewed.text);
+  assert.match((await call(env, 'GET', `${BASE}/${request.id}/copy/download?format=csv`, { cookie })).text,
+    /\r\nviewing_requests,1,id,/);
+
+  // Taken back: out of the copy again, the copy is the one from before, and the reviewed one no longer downloads.
+  assert.equal((await decide(env, cookie, request.id, byEmail, false)).status, 200);
+  assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data.sha256, before.sha256);
+  assert.equal((await call(env, 'GET', `${BASE}/${request.id}/copy/download?format=json`, { cookie })).status, 409);
+
+  // The record keeps ids, the decision, who and when: never the person's details.
+  const rows = env.DB.raw.prepare('SELECT * FROM privacy_request_viewings ORDER BY id').all();
+  assert.deepEqual(rows.map(r => [r.viewing_id, r.confirmed, r.actor, r.contact_id]),
+    [[byEmail, 1, 'colleague@example.test', p.id], [byEmail, 0, 'admin@example.test', p.id]]);
+  assert.deepEqual(Object.keys(rows[0]).sort(), ['actor', 'at', 'confirmed', 'contact_id', 'id', 'request_id', 'viewing_id']);
+  assert.throws(() => env.DB.raw.prepare('UPDATE privacy_request_viewings SET confirmed = 1').run(), /append-only/);
+
+  // Confirmed for one contact, it does not count once another contact is linked.
+  assert.equal((await decide(env, cookie, request.id, byPhone, true)).status, 200);
+  const q = person(env, { email: 'pre12-other@example.test', phone: '+447700900555' });
+  const current = (await call(env, 'GET', `${BASE}/${request.id}`, { cookie })).data.request;
+  const relinked = await call(env, 'POST', `${BASE}/${request.id}/contact`, { cookie, body: { revision: current.revision, contact_id: q.id } });
+  assert.equal(relinked.status, 200, relinked.text);
+  assert.deepEqual((await call(env, 'GET', `${BASE}/${request.id}`, { cookie })).data.viewings, []);
+  assert.equal((await decide(env, cookie, request.id, byPhone, true)).status, 404);
+});
+
+test('viewing review: only open access or portability requests with a contact take decisions', async () => {
+  const env = reviewOn(), cookie = await adminCookie();
+  seedListing(env);
+  const v = viewing(env, { email: 'pre12-person@example.test' });
+  const erasure = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  assert.equal((await decide(env, cookie, erasure.id, v, true)).status, 400);
+  assert.equal('viewings' in (await call(env, 'GET', `${BASE}/${erasure.id}`, { cookie })).data, false);
+  const unlinked = (await create(env, cookie)).data.request;
+  assert.equal((await decide(env, cookie, unlinked.id, v, true)).status, 400);
+  const { request } = await verified(env, cookie);
+  const closed = await call(env, 'POST', `${BASE}/${request.id}/close`, { cookie, body: { revision: request.revision, result: 'refused' } });
+  assert.equal(closed.status, 200, closed.text);
+  assert.equal((await decide(env, cookie, request.id, v, true)).status, 409);
+  assert.equal(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM privacy_request_viewings').get().n, 0);
+  assert.equal((await decide(env, undefined, request.id, v, true)).status, 401);
+});
+
+// PRE-12 / PUB-09: deleting a listing removes its private withdrawal notes in the same write, and its history says so.
+test('deleting a listing removes its withdrawal notes, revisions and receipts, and records it in its history', async () => {
+  const env = { ...makeEnv(), PUB09_WITHDRAWALS_READY: '1' }, cookie = await adminCookie(), db = env.DB.raw;
+  const op = n => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const withdraw = async (id, n) => {
+    const r = await call(env, 'POST', `/admin/listings/${id}/unpublish`, { cookie, body: { updated_at: db.prepare(
+      'SELECT updated_at FROM listings WHERE id=?').get(id).updated_at, reason_code: 'other', note: `Private note ${n}`, operation_id: op(n) } });
+    assert.equal(r.status, 200, r.text);
+    return r.data.withdrawal.id;
+  };
+  seedListing(env);
+  seedListing(env, { id: 'HE-R002' });
+  const w = await withdraw('HE-R001', 1), kept = await withdraw('HE-R002', 2);
+  const fixed = await call(env, 'POST', `/admin/listings/HE-R001/withdrawals/${w}/correct`, { cookie,
+    body: { expected_revision: 1, reason_code: 'other', note: 'Private correction', operation_id: op(3) } });
+  assert.equal(fixed.status, 200, fixed.text);
+  const n = (table, where = '1') => db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`).get().n;
+  const archived = await call(env, 'POST', '/admin/listings/HE-R001/archive', { cookie,
+    body: { updated_at: db.prepare("SELECT updated_at FROM listings WHERE id='HE-R001'").get().updated_at } });
+  assert.equal(archived.status, 200, archived.text);
+  const eventsBefore = db.prepare('SELECT id, type, data FROM events ORDER BY id').all();
+
+  // Atomic: a delete that fails leaves the notes where they were.
+  db.exec("CREATE TRIGGER fixture_keep BEFORE DELETE ON listings BEGIN SELECT RAISE(ABORT, 'fixture failure'); END");
+  assert.equal((await call(env, 'DELETE', '/admin/listings/HE-R001', { cookie, body: { confirm: 'HE-R001' } })).status, 500);
+  assert.deepEqual([n('listing_withdrawals'), n('listing_withdrawal_revisions'), n('listing_withdrawal_receipts')], [2, 1, 3]);
+  assert.equal(n('events'), eventsBefore.length);
+  db.exec('DROP TRIGGER fixture_keep');
+
+  const gone = await call(env, 'DELETE', '/admin/listings/HE-R001', { cookie, body: { confirm: 'HE-R001' } });
+  assert.equal(gone.status, 200, gone.text);
+  assert.equal(n('listing_withdrawals', "listing_id='HE-R001'"), 0);
+  assert.equal(n('listing_withdrawal_revisions'), 0);
+  assert.equal(n('listing_withdrawal_receipts', `withdrawal_id='${w}'`), 0);
+  // Another listing's notes stay.
+  assert.deepEqual([n('listing_withdrawals', `id='${kept}'`), n('listing_withdrawal_receipts', `withdrawal_id='${kept}'`)], [1, 1]);
+  // No historical event is deleted or changed; the purge is one more event, with ids only.
+  const eventsAfter = db.prepare('SELECT id, type, data FROM events ORDER BY id').all();
+  assert.deepEqual(eventsAfter.slice(0, eventsBefore.length), eventsBefore);
+  const purge = eventsAfter.filter(e => e.type === 'listing.withdrawal_notes_purged');
+  assert.equal(purge.length, 1);
+  assert.deepEqual(JSON.parse(purge[0].data).withdrawal_ids, [w]);
+  assert.equal(eventsAfter.some(e => /Private (note|correction)/.test(e.data)), false);
+  const history = await call(env, 'GET', '/admin/listings/HE-R001/history', { cookie });
+  assert.equal(history.status, 200, history.text);
+  const item = history.data.items.find(i => i.type === 'listing.withdrawal_notes_purged');
+  assert.ok(item, JSON.stringify(history.data.items.map(i => i.type)));
+  assert.equal(item.details_unavailable, false);
+  assert.equal(history.data.items[0].type, 'listing.deleted');
+
+  // A listing without withdrawals is deleted as before, with no purge event.
+  seedListing(env, { id: 'HE-R003', published: 0, archived_at: T });
+  assert.equal((await call(env, 'DELETE', '/admin/listings/HE-R003', { cookie, body: { confirm: 'HE-R003' } })).status, 200);
+  assert.equal(n('events', "entity_id='HE-R003' AND type='listing.withdrawal_notes_purged'"), 0);
+});

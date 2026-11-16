@@ -544,9 +544,24 @@ export async function deleteListing(env, id, admin, context = {}) {
     // A failed CAS aborts the entire batch before media, listing or R2 are removed.
     env.DB.prepare("INSERT INTO listing_event_context(listing_id) SELECT NULL WHERE changes() = 0"),
   ] : [];
+  // PRE-12: the private withdrawal notes (PUB-09, migration 0044), their corrections and receipts go with the listing,
+  // in the same batch. Its history keeps one more event with their ids only; no event is deleted or changed. A database
+  // without 0044 has none, and deletes as before.
+  const withdrawals = "SELECT id FROM listing_withdrawals WHERE listing_id = ?";
+  const notesPurge = !(await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'listing_withdrawals'")
+    .first()) ? [] : [
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+      SELECT ?, ?, 'listing', ?, 'listing.withdrawal_notes_purged', json_object('version', 1, 'fields', json('[]'),
+        'withdrawal_ids', json(ids)) FROM (SELECT json_group_array(id) AS ids, COUNT(*) AS n FROM (${withdrawals} ORDER BY id))
+      WHERE n > 0`).bind(now(), admin, id, id),
+    env.DB.prepare(`DELETE FROM listing_withdrawal_receipts WHERE withdrawal_id IN (${withdrawals})`).bind(id),
+    env.DB.prepare(`DELETE FROM listing_withdrawal_revisions WHERE withdrawal_id IN (${withdrawals})`).bind(id),
+    env.DB.prepare("DELETE FROM listing_withdrawals WHERE listing_id = ?").bind(id),
+  ];
   try {
     await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'deleted' }, [
       ...queueGuard,
+      ...notesPurge,
       env.DB.prepare("DELETE FROM media WHERE listing_id = ?").bind(id),
       env.DB.prepare("DELETE FROM listings WHERE id = ?").bind(id),
       env.DB.prepare("INSERT INTO deleted_listings (id, deleted_at, deleted_by) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING").bind(id, now(), admin),
