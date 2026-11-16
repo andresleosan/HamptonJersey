@@ -62,9 +62,14 @@ const { join, dirname } = require('node:path');
       assert.equal(stale, 409);
       assert.equal(linkedTo(id), 1);
 
-      // The search finds another contact; linking moves the chat.
-      await card.getByLabel('Find a contact').fill('Renouf');
-      await card.getByRole('button', { name: 'Search' }).click();
+      // The search announces its result; the linked contact alone is no match.
+      const search = async q => { await card.getByLabel('Find a contact').fill(q); await card.getByRole('button', { name: 'Search' }).click(); };
+      await search('Vibert');
+      await card.getByRole('status').getByText('No contact matches. To add one, use Review chat contact.').waitFor();
+      assert.equal(await card.getByRole('list', { name: 'Contacts found' }).count(), 0, 'no empty list');
+      // A Jersey-format phone finds another contact; linking moves the chat.
+      await search('07700 900321');
+      await card.getByRole('status').getByText('1 contact found', { exact: true }).waitFor();
       const found = card.getByRole('list', { name: 'Contacts found' });
       await found.getByRole('button', { name: 'Link to Tom Renouf' }).click();
       await card.getByRole('status').getByText('Chat linked to Tom Renouf.').waitFor();

@@ -32,7 +32,7 @@ export function ChatContact({ chatId, link, onLinked }) {
   const pick = c => <li key={c.id}><span>{record(c)} <span className="muted">{who(c)}</span></span>
     <button type="button" className="btn ghost sm" disabled={busy} onClick={() => save(c, `Chat linked to ${c.name}.`)}>
       Link<span className="sr"> to {c.name}</span></button></li>;
-  const linked = link.contact;
+  const linked = link.contact, others = found?.filter(c => c.id !== linked?.id);
 
   return <section className="card" aria-labelledby={`cc-${chatId}`}>
     <h3 id={`cc-${chatId}`}>Contact</h3>
@@ -48,8 +48,10 @@ export function ChatContact({ chatId, link, onLinked }) {
         onChange={e => setQ(e.target.value)} /></label>
       <button type="submit" className="btn ghost sm" disabled={busy}>Search</button>
     </form>
-    {found && (found.length ? <ul className="plain-list" aria-label="Contacts found">{found.filter(c => c.id !== linked?.id).map(pick)}</ul>
-      : <p className="muted">No contact matches. To add one, use Review chat contact.</p>)}
+    {/* Always in the page, so the result of each search is announced. */}
+    <p role="status" className="muted">{others && (others.length ? `${others.length} ${others.length === 1 ? "contact" : "contacts"} found`
+      : "No contact matches. To add one, use Review chat contact.")}</p>
+    {others?.length > 0 && <ul className="plain-list" aria-label="Contacts found">{others.map(pick)}</ul>}
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </section>;
 }
