@@ -49,6 +49,10 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/msg03-contact-link.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "0" } : {}),
       // SAP-08: the applicant's Messages tab lists the chats linked to its contact (MSG-03, on in wrangler.toml).
       ...(process.env.E2E_SCRIPT === "tests/sap08-tabs.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1" } : {}),
+      // MSG-01: Facebook messages through a signed webhook with this run's fictitious secrets; sending stays off.
+      ...(process.env.E2E_SCRIPT === "tests/msg-01-facebook.e2e.cjs" ? { META_MESSAGES_READY: "1", META_SEND_READY: "0",
+        MSG03_CONTACT_LINK_READY: "1", META_APP_SECRET: randomBytes(32).toString('hex'), META_VERIFY_TOKEN: randomBytes(16).toString('hex'),
+        META_PAGE_ID: "100000000000001" } : {}),
       // MSG-05: Create applicant from a chat, switched on; the read-only draft's test keeps it off.
       ...(process.env.E2E_SCRIPT === "tests/msg-05-create.e2e.cjs" ? { MSG03_CONTACT_LINK_READY: "1", MSG05_CREATE_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/msg-05-draft.e2e.cjs" ? { MSG05_CREATE_READY: "0" } : {}),

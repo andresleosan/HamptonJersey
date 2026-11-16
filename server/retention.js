@@ -4,6 +4,7 @@ import { jerseyToday } from "./viewings.js";
 import { normalizePhone } from "./applicants.js";
 import { KEEP_DAYS } from "./chat.js";
 import { cleanEmail } from "./email-retention.js";
+import { metaMessagesReady } from "./meta-webhooks.js";
 
 // G2: contacts 12 months without activity and viewing requests whose date is over 12 months old are deleted once a
 // Jersey day, as the manual deletes do it (E4, E5). E7: at most RETENTION_CAP of each per pass, oldest first, in one
@@ -108,6 +109,11 @@ export async function runRetention(env, ts) {
   // Before migration 0098 there is no table and nothing to delete.
   await env.DB.prepare(`DELETE FROM chat_applicant_saves WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days')`)
     .bind(ts).run().catch(e => { if (!/no such table: chat_applicant_saves/.test(String(e?.message))) throw e; });
+  // MSG-01: Facebook conversations 30 days after their last message, like the website's chats; their messages in
+  // cascade. Only switched on; before migration 0109 there is no table and nothing to delete.
+  if (metaMessagesReady(env)) await env.DB.prepare(`DELETE FROM channel_conversations WHERE id IN (SELECT id FROM channel_conversations
+    WHERE last_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days') ORDER BY last_at, id LIMIT ${RETENTION_CAP})`)
+    .bind(ts).run().catch(e => { if (!/no such table: channel_conversations/.test(String(e?.message))) throw e; });
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes, chats: r[13].meta.changes };
 }
 

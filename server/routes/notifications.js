@@ -10,6 +10,8 @@ import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 import { readLegal } from "../legal-terms.js";
 import { privacyRequestsReady, openPrivacyCount } from "../privacy-requests.js";
+import { metaMessagesReady } from "../meta-webhooks.js";
+import { facebookWaiting } from "../meta-messages.js";
 
 // NOT-09 (switched on): a snoozed task waits in the Feed until its time.
 const OPEN = on => `n.action_required = 1 AND n.resolved_at IS NULL${on ? ` AND NOT ${snoozedSql()}` : ""}`;
@@ -57,8 +59,13 @@ async function counted(env, legal, snooze) {
   return { action: CATEGORIES.reduce((sum, c) => sum + by[c], 0), ...by, sales: sales.n, rentals: rentals.n,
     expiring: expiring.n, retention_review: retentionReview.n, to_confirm: toConfirm.n, chats: chats.n,
     outbound: outbound ?? null, stalled: stopped.clock + stopped.hermes, ...(legal.terms ? { legal: legal.terms.status } : {}),
-    ...(privacyRequestsReady(env) ? { privacy: await openPrivacyCount(env) } : {}) };
+    ...(privacyRequestsReady(env) ? { privacy: await openPrivacyCount(env) } : {}), ...await facebookCount(env) };
 }
+// MSG-01: Facebook conversations waiting, only switched on and with migration 0109; Messages offers Facebook then.
+const facebookCount = async env => {
+  const n = metaMessagesReady(env) ? await facebookWaiting(env) : null;
+  return n === null ? {} : { facebook: n };
+};
 
 // E6: the panel polls the counts every 30 s, and the Inbox its list; each poll claims the day's retention pass in case
 // the clock has not (a failed one again, up to 3 attempts). It runs after the answer, the claim too, so the poll waits

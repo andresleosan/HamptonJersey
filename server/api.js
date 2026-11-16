@@ -62,6 +62,8 @@ import savedSearchRoutes, { savedSearchesReady, unsubscribeRoutes } from "./save
 import { calendarRoutes, calendarOffRoutes, calendarReady } from "./viewing-calendar.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
 import backupRoutes, { BACKUP_ADMIN } from "./routes/backups.js";
+import { metaMessagesReady, metaWebhook } from "./meta-webhooks.js";
+import facebookRoutes from "./meta-messages.js";
 
 const ACCESS_MESSAGES = {
   access_required: "Your security sign-in has expired. Sign in again to continue.",
@@ -129,6 +131,8 @@ async function route(request, env, segments, waitUntil) {
     }
     // AUT-13: Hermes's door has its own key and no cookie, so the same-origin check (against cookie CSRF) is not its.
     if (segments[0] === "hermes") return await hermesDoor(request, env, path.slice("/hermes".length));
+    // PRE-08 / MSG-01: Meta's webhook is signed, not same-origin; it exists only with META_MESSAGES_READY (migration 0109).
+    if (segments[0] === "meta" && metaMessagesReady(env)) return await metaWebhook(request, env, path);
     if (method !== "GET" && method !== "HEAD" && !sameOrigin(request)) fail(403, "Cross-origin request blocked");
     if (segments[0] === "qa") return await qaRoute({request, env, path, segments});
     // Market tables require a separate migration and source review. New routes
@@ -156,6 +160,7 @@ async function route(request, env, segments, waitUntil) {
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
+    if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109
     routes = [...routes, ...(calendarReady(env) ? calendarRoutes : calendarOffRoutes)]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];

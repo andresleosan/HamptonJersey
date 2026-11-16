@@ -7,14 +7,15 @@ const who = c => [c.email, c.phone].filter(Boolean).join(" · ");
 // The record opens on its Messages tab, where the contact's linked chats are (SAP-08).
 const record = c => (c.applicant_id ? <a href={`#/applicants/${c.applicant_id}/messages`}>{c.name}</a> : c.name);
 
-export function ChatContact({ chatId, link, onLinked, action = "Review chat contact" }) {
+// path: where the link is saved; a Facebook conversation (MSG-01) has its own.
+export function ChatContact({ chatId, link, onLinked, action = "Review chat contact", path = `/admin/chats/${chatId}/contact` }) {
   const [q, setQ] = useState(""), [found, setFound] = useState(null), [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null), said = useRef(null);
   useEffect(() => { if (msg) said.current?.focus(); }, [msg]);
   const save = async (contact, done) => {
     setBusy(true); setMsg(null);
     try {
-      const r = await api(`/admin/chats/${chatId}/contact`, { method: "POST", body: { contact_id: contact?.id ?? null, version: link.version } });
+      const r = await api(path, { method: "POST", body: { contact_id: contact?.id ?? null, version: link.version } });
       onLinked(r.contact_link); setFound(null); setQ(""); setMsg({ ok: true, text: done });
     } catch (e) {
       setMsg({ text: e.message });

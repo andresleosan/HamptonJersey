@@ -58,6 +58,8 @@ PRE10_PURPOSE_READY = "1"
 # same three secrets GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET and GOOGLE_CALENDAR_TOKEN_KEY.
 VIS12_CALENDAR_READY = "0"
 VIS12_CALENDAR_INVITES_READY = "0"
+# MSG-01: the daily retention pass deletes Facebook conversations 30 days after their last message. Must match the other wrangler.toml.
+META_MESSAGES_READY = "0"
 
 [triggers]
 crons = ["*/10 * * * *"]

@@ -4,6 +4,7 @@ import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 import { TEAM_MAX } from "../../server/chat.js";
 import { ChatContact } from "./ChatContact.jsx";
+import FacebookMessages from "./FacebookMessages.jsx";
 
 // MSG-02 (spec 2026-11-06): the website's chats. Waiting ones first, oldest wait first; a person replies, marks it
 // handled or deletes it. The visitor sees a reply while the chat is open on their device, for 7 days (C5).
@@ -19,8 +20,19 @@ const EMPTY = {
 const seen = iso => !iso ? "Not seen on the website since their first message"
   : Date.now() - Date.parse(iso) < 60e3 ? "Visitor on the website now" : `Last on the website ${fmtAgo(iso)}`;
 
-// chat: one to open from a contact's record (MSG-03), shown among All.
-export default function Messages({ paused, onChange, chat }) {
+// chat: one to open from a contact's record (MSG-03), shown among All. facebook: Facebook conversations waiting, only
+// when MSG-01 is switched on (META_MESSAGES_READY); then the screen offers Website chat and Facebook.
+export default function Messages({ paused, onChange, chat, facebook, channel: start }) {
+  const [channel, setChannel] = useState(facebook != null && start === "facebook" ? "facebook" : "web");
+  const choose = facebook != null && <div className="seg" role="group" aria-label="Channel">
+    {[["web", "Website chat"], ["facebook", "Facebook"]].map(([k, t]) => <button key={k} type="button" aria-pressed={channel === k}
+      onClick={() => setChannel(k)}>{t}{k === "facebook" && facebook > 0
+        && <span className="count">{facebook}<span className="sr"> waiting</span></span>}</button>)}</div>;
+  if (channel === "facebook" && facebook != null) return <FacebookMessages paused={paused} onChange={onChange} channels={choose} />;
+  return <WebChats paused={paused} onChange={onChange} chat={chat} channels={choose} />;
+}
+
+function WebChats({ paused, onChange, chat, channels }) {
   const opened = /^\d+$/.test(chat ?? "") ? Number(chat) : null;
   const [tab, setTab] = useState(opened ? "all" : "waiting"), [data, setData] = useState(null), [sel, setSel] = useState(opened);
   const [loadErr, setLoadErr] = useState(null), [note, setNote] = useState(null), seq = useRef(0), noteRef = useRef(null);
@@ -45,6 +57,7 @@ export default function Messages({ paused, onChange, chat }) {
   return <section aria-labelledby="t-msg">
     <div className="head"><div><h1 id="t-msg">Messages</h1>
       <p className="muted">Chats from the website. A person replies to every one.</p></div></div>
+    {channels}
     <div className="seg" role="group" aria-label="Chats">{Object.entries(TABS).map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => show(k)}>{t}
         {k !== "all" && data && <span className="count">{data.counts[k]}</span>}</button>)}</div>

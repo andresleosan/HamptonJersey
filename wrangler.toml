@@ -118,6 +118,13 @@ EMAIL_SERVICE_READY = "false"
 REG15_ALERTS_READY = "0"
 # ANA-04: anonymous daily counts of the website's search filters and Insights' Search trends, with their 90-day retention (migration 0108). Off until 0108 is applied and the PRE-09 notice and PRE-12 retention are approved. Must match the other wrangler.toml.
 ANA04_SEARCH_STATS_READY = "0"
+# MSG-01 / PRE-08: messages to Hampton's Facebook page arrive through Meta's signed webhook (/api/meta/webhook) and show in
+# Messages (migration 0109). Needs the PRE-02 app and the secrets META_APP_SECRET, META_VERIFY_TOKEN and META_PAGE_ID.
+# Collects messages from the public: only Luis switches it on. Must match the other wrangler.toml (its retention).
+META_MESSAGES_READY = "0"
+# MSG-01: a person's reply from Messages goes to Facebook (Send API, within 24 hours of their last message; needs
+# META_PAGE_TOKEN). Sends messages: only Luis switches it on.
+META_SEND_READY = "0"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
 TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"

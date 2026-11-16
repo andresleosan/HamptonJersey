@@ -152,7 +152,8 @@ export default function App() {
     : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={blocked} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
-    : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")} paused={blocked} onChange={loadCounts} />
+    : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")}
+      channel={new URLSearchParams(query).get("channel")} facebook={counts.facebook} paused={blocked} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "legal" ? <LegalTerms onChange={loadCounts} />
     : section === "privacy" && "privacy" in counts ? <PrivacyRequests key={arg ?? ""} id={/^[0-9a-f-]{36}$/.test(arg ?? "") ? arg : null} />
@@ -168,14 +169,15 @@ export default function App() {
     await firebaseSignOut().catch(() => {});
     setMe(null);
   };
+  const waiting = (counts.chats ?? 0) + (counts.facebook ?? 0); // MSG-01: Facebook only switched on
   return <>
     <header ref={bar} className="bar" inert={blocked} onClick={e => { if (e.target.closest("a")) leave(e); }}>
       <a href="#/" className="brand">Hampton Estates{" "}<span className="staff">Staff</span></a>
       <nav aria-label="Sections">
         <a href="#/" aria-current={current === "" ? "page" : undefined}>Inbox{counts.action > 0
           && <span className="count">{counts.action}<span className="sr"> need action</span></span>}</a>
-        <a href="#/messages" aria-current={current === "messages" ? "page" : undefined}>Messages{counts.chats > 0
-          && <span className="count">{counts.chats}<span className="sr"> waiting</span></span>}</a>
+        <a href="#/messages" aria-current={current === "messages" ? "page" : undefined}>Messages{waiting > 0
+          && <span className="count">{waiting}<span className="sr"> waiting</span></span>}</a>
         <a href="#/email" aria-current={current === "email" ? "page" : undefined}>Email</a>
         <a href="#/applicants" aria-current={current === "applicants" ? "page" : undefined}>Applicants{counts.expiring > 0
           && <span className="count" title={`${counts.expiring} expiring`}>{counts.expiring}<span className="sr"> expiring</span></span>}{counts.retention_review > 0
