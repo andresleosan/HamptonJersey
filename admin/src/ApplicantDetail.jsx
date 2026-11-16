@@ -55,6 +55,7 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",
   "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded",
   "applicant.presentation_answered": "Client answered on their private presentation",
+  "applicant.presentation_approved": "Private presentation approved for sending",
   "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked",
   "contact.marketing_preference": "Marketing objection recorded", "contact.retention_notice_review": "Retention notice needs review",
   "applicant.team_ready": "Marked ready for the team", "applicant.team_ready_done": "Ready for the team: done",

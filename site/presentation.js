@@ -70,7 +70,10 @@ function render(options) {
       decoding: "async" }); img.addEventListener("error", () => img.remove()); return img; };
     item.append(...[o.photos.length && el("div", { className: "photos", tabIndex: 0, role: "group", ariaLabel: `Photos of ${l.title || "the home"}` }, ...o.photos.map(photo)),
     el("h2", { id: `h${o.match_id}`, textContent: l.title || "Home" }), el("p", { className: "facts", textContent: facts(l) }),
-    price(l) && el("p", { className: "price", textContent: price(l) }), l.summary && el("p", { textContent: l.summary }),
+    price(l) && el("p", { className: "price", textContent: price(l) }),
+    // AGE-11: the date of the availability confirmation approved with the presentation, only while it still stands.
+    l.availability_confirmed_at && el("p", { className: "facts", textContent: `Availability confirmed on ${new Date(l.availability_confirmed_at)
+      .toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" })}` }), l.summary && el("p", { textContent: l.summary }),
     o.choice ? el("p", { className: "answered", textContent: `You answered: ${CHOICES.find(c => c[0] === o.choice)[1]}.` })
       : answerForm(o, item)].filter(Boolean));
     return item;

@@ -137,6 +137,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // AGE-12 presents AGE-10's suitable photos of SPR-03's capture on a client's private link.
       ...(process.env.E2E_SCRIPT === "tests/age12-private-presentation.e2e.cjs" ? { AGE12_PRESENTATIONS_READY: "1", AGE10_PHOTOS_READY: "1",
         SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),
+      // AGE-11 reviews and approves the snapshot of AGE-12's link before it is sent, so its test has AGE-12's switches on too.
+      ...(process.env.E2E_SCRIPT === "tests/age11-presentation-review.e2e.cjs" ? { AGE11_REVIEW_READY: "1", AGE12_PRESENTATIONS_READY: "1",
+        AGE10_PHOTOS_READY: "1", SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),
       // EST-19: the trash of properties confirmed not available and the six-month photo purge, both tested on.
       ...(process.env.E2E_SCRIPT === "tests/est19-trash.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1",
         EST19_TRASH_READY: "1", EST19_PURGE_READY: "1" } : {}),
