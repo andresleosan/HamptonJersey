@@ -5,6 +5,7 @@ import { jerseyToday, addMinutes, SLOT_MINUTES } from "../../server/viewings.js"
 import { clientFit } from "../../server/viewing-coordination.js";
 import SlotPicker from "./SlotPicker.jsx";
 import { NoticeConfirm, noticeShort } from "./HouseRules.jsx";
+import { CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
 
 // VIS-17: agree one time with everyone a viewing needs (client always; advertiser or agency and the negotiator when
 // chosen). Staff record each answer by hand with how and when; the viewing is confirmed only once all have accepted.
@@ -20,7 +21,10 @@ const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const windowsText = w => (w?.length ? w.map(x => `${DAY[x.day]} ${x.start}-${x.end}`).join(", ") : "Not given");
 // The browser's own clock as a datetime-local value.
 const localNow = () => { const d = new Date(); d.setSeconds(0, 0); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
-const errorsOf = e => ({ text: e.message, fields: e.data?.fields ?? {} });
+const errorsOf = e => ({ text: e.message, fields: e.data?.fields ?? {}, code: e.data?.code });
+// VIS-12: after a refusal staff can answer for, their own check of that slot in the negotiator's Google Calendar.
+const checkedSlot = (err, reviewed, s) => (reviewed && REVIEWABLE.includes(err?.code)
+  ? { calendar_reviewed: { negotiator_id: s.negotiator_id, date: s.date, time: s.time } } : {});
 
 // v: the open viewing; house: its house rules (VIS-10); saved(text): reload the list and show this message;
 // onOpen(bool): whether a proposal is open (the old Confirm is then hidden).
@@ -46,6 +50,8 @@ export default function ViewingCoordination({ v, house, saved, onOpen }) {
       : <>
         <p><span className={`badge ${tone}`}>{label}</span>{" "}
           <span className="num">{fmtDay(p.date, true)} · {p.time}-{p.end_time}</span>{p.negotiator_name ? ` with ${p.negotiator_name}` : ""}</p>
+        {state.stale && <p className="warn" role="note">This viewing was moved or confirmed since this time was proposed.
+          Propose another time.</p>}
         {open && <p className="muted">{FIT[p.client_fit]}.{state.coordination_state === "blocked"
           ? " Everyone accepted, but this time was booked meanwhile: propose another time." : " The viewing keeps its current time until everyone accepts."}</p>}
         <ul className="coord-people" aria-label="Who must accept">{p.required.map(k => {
@@ -54,7 +60,7 @@ export default function ViewingCoordination({ v, house, saved, onOpen }) {
             {a ? <span>{a.response === "accepted" ? "Accepted" : "Declined"} · {CHANNEL[a.channel]} · {fmtDate(a.answered_at)}
               {a.answered_by ? ` · ${a.answered_by}` : ""} <span className="muted">· recorded by {a.recorded_by}</span></span>
               : <span className="muted">{open ? "Waiting for their answer" : "No answer"}</span>}
-            {open && !a && <> <button type="button" className="btn ghost sm" aria-expanded={form === k}
+            {open && !state.stale && !a && <> <button type="button" className="btn ghost sm" aria-expanded={form === k}
               onClick={e => toggle(k, e)}>Record answer</button></>}
             {open && form === k && <AnswerForm v={v} p={p} who={k} onDone={done} onClose={close} />}
           </li>;
@@ -70,6 +76,7 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
   const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date >= jerseyToday() ? v.date : null, time: null });
   const [others, setOthers] = useState({ advertiser: !!v.listing_id, staff: false }), [search, setSearch] = useState(state.proposal?.applicant_id ?? "");
   const [agreed, setAgreed] = useState(false), [err, setErr] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
+  const [reviewed, setReviewed] = useState(false), [calendar, setCalendar] = useState(null); // VIS-12, after a refusal
   const head = useRef(null);
   useEffect(() => { head.current?.focus(); }, []);
   const short = noticeShort(house, slot), chosen = state.searches.find(s => s.id === Number(search));
@@ -82,13 +89,17 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
     try {
       await api(`/admin/viewings/${v.id}/proposals`, { method: "POST", body: { expected_revision: state.revision, ...slot,
         required: ["client", ...Object.keys(others).filter(k => others[k])], applicant_id: search ? Number(search) : null,
-        ...(short ? { notice_confirmed: true } : {}) } });
+        ...(short ? { notice_confirmed: true } : {}), ...checkedSlot(calendar, reviewed, slot) } });
       await onDone(`Time proposed for ${fmtDay(slot.date, true)} at ${slot.time}. Record each answer as it comes in.`);
-    } catch (e) { setErr(errorsOf(e)); setRefresh(x => x + 1); } finally { setBusy(false); }
+    } catch (e) {
+      const x = errorsOf(e);
+      setErr(x); setCalendar(x.code ? x : null); setReviewed(false); setRefresh(n => n + 1);
+    } finally { setBusy(false); }
   };
   return <form className="coord-form" onSubmit={submit} aria-labelledby={`h-prop-${v.id}`} noValidate>
     <h4 id={`h-prop-${v.id}`} ref={head} tabIndex={-1}>Propose a time</h4>
-    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); setAgreed(false); }} own={v} listingId={v.listing_id}
+    <SlotPicker value={slot} onChange={s => { setSlot(s); setErr(null); setAgreed(false); setCalendar(null); setReviewed(false); }}
+      own={v} listingId={v.listing_id}
       refresh={refresh} errors={err?.fields ?? {}} />
     {short && <NoticeConfirm house={house} checked={agreed} onChange={b => { setAgreed(b); setErr(null); }} />}
     <fieldset className="choices-set"><legend>Who must accept</legend>
@@ -105,6 +116,7 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
     {chosen && <p className="muted">Preferred viewing times: {windowsText(chosen.windows)}.{slot.time && slot.date
       ? ` ${FIT[clientFit(chosen.windows, { date: slot.date, time: slot.time, end_time: addMinutes(slot.time, SLOT_MINUTES) })]}.` : ""}</p>}
     {err && <p role="alert" className="err">{err.fields.notice_confirmed ?? err.fields.required ?? err.text}</p>}
+    {REVIEWABLE.includes(calendar?.code) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
     <div className="inline"><button className="btn">{busy ? "Proposing…" : "Propose this time"}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </form>;
@@ -112,6 +124,7 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
 
 function AnswerForm({ v, p, who, onDone, onClose }) {
   const [f, setF] = useState({ response: "", channel: "", at: localNow(), by: "" }), [err, setErr] = useState(null), [busy, setBusy] = useState(false);
+  const [reviewed, setReviewed] = useState(false), [calendar, setCalendar] = useState(null); // VIS-12, after a refusal
   const head = useRef(null), id = `${v.id}-${who}`;
   useEffect(() => { head.current?.focus(); }, []);
   const set = k => e => { setF(x => ({ ...x, [k]: e.target.value })); setErr(null); };
@@ -127,10 +140,14 @@ function AnswerForm({ v, p, who, onDone, onClose }) {
     setBusy(true);
     try {
       const r = await api(`/admin/viewings/${v.id}/proposals/${p.id}/responses`, { method: "POST", body: { revision: p.revision,
-        participant: who, response: f.response, channel: f.channel, answered_at: new Date(f.at).toISOString(), answered_by: f.by.trim() || null } });
+        participant: who, response: f.response, channel: f.channel, answered_at: new Date(f.at).toISOString(), answered_by: f.by.trim() || null,
+        ...checkedSlot(calendar, reviewed, p) } });
       await onDone(r.confirmed ? `Everyone accepted. The viewing is confirmed for ${fmtDay(p.date, true)} at ${p.time}.`
         : f.response === "declined" ? `${WHO[who]} declined. Propose another time.` : `${WHO[who]}'s answer saved.`);
-    } catch (e) { setErr(errorsOf(e)); } finally { setBusy(false); }
+    } catch (e) {
+      const x = errorsOf(e);
+      setErr(x); setCalendar(x.code ? x : null); setReviewed(false);
+    } finally { setBusy(false); }
   };
   return <form className="coord-form" onSubmit={submit} aria-labelledby={`h-ans-${id}`} noValidate>
     <h4 id={`h-ans-${id}`} ref={head} tabIndex={-1}>{WHO[who]}'s answer</h4>
@@ -148,6 +165,7 @@ function AnswerForm({ v, p, who, onDone, onClose }) {
     <label>Who answered (optional)<input value={f.by} maxLength={120} autoComplete="off" onChange={set("by")}
       placeholder={who === "advertiser" ? "e.g. Agency front desk" : ""} /></label>
     {err && <p role="alert" className="err">{err.text}</p>}
+    {REVIEWABLE.includes(calendar?.code) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
     <div className="inline"><button className="btn">{busy ? "Saving…" : "Save answer"}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
   </form>;

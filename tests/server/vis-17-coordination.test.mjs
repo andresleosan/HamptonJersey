@@ -4,6 +4,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, captured, T0 } from "./helpers.mjs";
 import { validRequired, validateResponse, coordinationState, clientFit } from "../../server/viewing-coordination.js";
+import { fakeGoogle } from "./google-calendar-fake.mjs";
+import { sealToken } from "../../server/calendar-sync.js";
 
 // Tuesday 20 October 2026, 13:05 in Jersey (BST). Proposals are for Wednesday with Joshua (negotiator 2).
 const NOW = Date.parse("2026-10-20T12:05:00.000Z"), WED = "2026-10-21", ID = "HE-R001";
@@ -36,7 +38,7 @@ const events = (env, id, type) => env.DB.raw.prepare("SELECT * FROM events WHERE
 const propose = (env, cookie, id, o = {}) => call(env, "POST", `/admin/viewings/${id}/proposals`, { cookie, body: {
   expected_revision: 0, negotiator_id: 2, date: WED, time: "11:00", required: ["client", "advertiser"], ...o } });
 const answer = (env, cookie, id, p, participant, o = {}) => call(env, "POST", `/admin/viewings/${id}/proposals/${p.id}/responses`,
-  { cookie, body: { revision: p.revision, participant, response: "accepted", channel: "phone", answered_at: "2026-10-20T11:50:00.000Z", ...o } });
+  { cookie, body: { revision: p.revision, participant, response: "accepted", channel: "phone", answered_at: "2026-10-20T12:05:00.000Z", ...o } });
 const act = (env, cookie, id, action, o = {}) => call(env, "PUT", `/admin/viewings/${id}`,
   { cookie, body: { action, updated_at: row(env, id).updated_at, ...o } });
 
@@ -232,4 +234,105 @@ test("a search is linked only by hand, of the same person and the same operation
   const linked = await propose(env, cookie, id);
   assert.equal(linked.data.proposal.applicant_id, null, "never chosen for them");
   assert.equal(linked.data.proposal.client_fit, "unknown");
+});
+
+// Independent review, 16-nov.
+const proposalState = env => env.DB.raw.prepare("SELECT state FROM viewing_proposals ORDER BY id DESC").get().state;
+
+test("G1: a place in an open viewing (VIS-14) supersedes the open proposal; a late answer cannot move it out", async t => {
+  const { env, cookie } = await world(t);
+  env.VIS14_BLOCK_READY = "1";
+  const id = request(env);
+  const p = (await propose(env, cookie, id, { required: ["client", "advertiser"] })).data.proposal;
+  const g = await call(env, "POST", "/admin/viewing-groups", { cookie, body: { listing_id: ID, negotiator_id: 2, date: WED,
+    time: "15:00", capacity: 4, viewings: [{ id, updated_at: row(env, id).updated_at }] } });
+  assert.equal(g.status, 201);
+  assert.equal(proposalState(env), "superseded");
+  assert.equal((await answer(env, cookie, id, p, "client")).status, 409);
+  assert.deepEqual([row(env, id).date, row(env, id).time], [WED, "15:00"], "still in the group");
+});
+
+test("G2: repeating an answer on a blocked proposal writes nothing behind its 409", async t => {
+  const { env, cookie } = await world(t);
+  const id = request(env);
+  const p = (await propose(env, cookie, id, { required: ["client"] })).data.proposal;
+  const other = request(env, { negotiator_id: 2, agent: "Joshua Franco", date: WED, time: "11:00", end_time: "11:30", status: "confirmed",
+    email: "ben@example.je" });
+  assert.equal((await answer(env, cookie, id, p, "client")).data.coordination_state, "blocked");
+  env.DB.raw.prepare("UPDATE viewing_requests SET status = 'cancelled' WHERE id = ?").run(other); // the time is free again
+  const again = await answer(env, cookie, id, p, "client");
+  assert.equal(again.status, 409);
+  assert.deepEqual([row(env, id).status, row(env, id).time], ["requested", "10:00"]);
+  assert.equal(proposalState(env), "open");
+  assert.equal(events(env, id, "viewing.confirmed").length, 0);
+});
+
+test("M1: a proposal made while Confirm is under way stops Confirm inside its write", async t => {
+  const { env, cookie } = await world(t);
+  const id = request(env);
+  const prepare = env.DB.prepare.bind(env.DB);
+  let raced = false;
+  env.DB.prepare = sql => {
+    // The first read finds no proposal; one is made right after it, before Confirm writes.
+    if (!raced && sql === "SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'") {
+      raced = true;
+      return { bind: () => ({ first: async () => {
+        env.DB.raw.prepare(`INSERT INTO viewing_proposals (viewing_id, revision, negotiator_id, date, time, end_time, required,
+          from_status, from_negotiator_id, from_date, from_time, created_at, created_by)
+          VALUES (?, 1, 2, ?, '11:00', '11:30', '["client"]', 'requested', 1, '2026-10-22', '10:00', ?, 'colleague@example.test')`)
+          .run(id, WED, T0);
+        return null;
+      } }) };
+    }
+    return prepare(sql);
+  };
+  const r = await act(env, cookie, id, "confirm");
+  assert.equal(r.status, 409);
+  assert.match(r.data.error, /being coordinated/);
+  assert.equal(row(env, id).status, "requested");
+});
+
+test("M2: the final acceptance checks the negotiator's Google Calendar again", async t => {
+  const { env, cookie } = await world(t);
+  Object.assign(env, { VIS12_CALENDAR_READY: "1", GOOGLE_CALENDAR_CLIENT_ID: "client.apps.googleusercontent.com",
+    GOOGLE_CALENDAR_CLIENT_SECRET: "FIXTURE-CLIENT-SECRET", GOOGLE_CALENDAR_TOKEN_KEY: Buffer.alloc(32, 7).toString("base64"),
+    SITE_URL: "https://www.hampton.test" });
+  env.DB.raw.prepare(`INSERT INTO calendar_connections (negotiator_id, calendar_id, state, refresh_token_enc, scopes, connected_at,
+    connected_by) VALUES (2, 'primary', 'active', ?, 'x', ?, 'admin@example.test')`).run(await sealToken(env, 2, "1//FIXTURE-REFRESH"), T0);
+  const google = fakeGoogle(), fetch = globalThis.fetch;
+  globalThis.fetch = google.fetch;
+  t.after(() => { globalThis.fetch = fetch; });
+  const id = request(env);
+  const p = (await propose(env, cookie, id, { required: ["client"] })).data.proposal;
+  google.busy = [{ start: `${WED}T10:00:00Z`, end: `${WED}T10:30:00Z` }]; // 11:00 BST, someone else's appointment
+  const r = await answer(env, cookie, id, p, "client");
+  assert.deepEqual([r.status, r.data.code], [409, "calendar_busy"]);
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM viewing_acceptances").get().n, 0);
+  assert.equal(row(env, id).status, "requested");
+});
+
+test("M3: switched off and on again, answers to a proposal of a viewing moved meanwhile move nothing", async t => {
+  const { env, cookie } = await world(t);
+  const id = request(env);
+  const p = (await propose(env, cookie, id, { required: ["client"] })).data.proposal;
+  env.VIS17_MULTIPART_READY = "0";
+  assert.equal((await act(env, cookie, id, "reschedule", { negotiator_id: 1, date: "2026-10-23", time: "10:00" })).status, 200);
+  env.VIS17_MULTIPART_READY = "1";
+  assert.equal(proposalState(env), "open", "off, nothing closed it");
+  assert.equal((await call(env, "GET", `/admin/viewings/${id}/coordination`, { cookie })).data.stale, true);
+  const r = await answer(env, cookie, id, p, "client");
+  assert.equal(r.status, 409);
+  assert.match(r.data.error, /moved or confirmed since/);
+  assert.deepEqual([row(env, id).date, row(env, id).time, row(env, id).status], ["2026-10-23", "10:00", "requested"]);
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM viewing_acceptances").get().n, 0);
+});
+
+test("M4: an answer cannot predate the proposal it answers (to the minute)", async t => {
+  const { env, cookie } = await world(t);
+  const id = request(env);
+  const p = (await propose(env, cookie, id, { required: ["client"] })).data.proposal;
+  const early = await answer(env, cookie, id, p, "client", { answered_at: "2026-10-20T11:00:00.000Z" });
+  assert.equal(early.status, 400);
+  assert.ok(early.data.fields.answered_at);
+  assert.equal((await answer(env, cookie, id, p, "client", { answered_at: "2026-10-20T12:05:00.000Z" })).status, 200, "same minute");
 });

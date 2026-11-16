@@ -124,6 +124,7 @@ const FROM = { confirm: ["requested"], cancel: ACTIVE, reschedule: ACTIVE, compl
 const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", no_show: "no_show" };
 // VIS-17: what each action makes of the viewing's open proposal.
 const CLOSES = { reschedule: "superseded", cancel: "cancelled", complete: "cancelled", no_show: "cancelled" };
+const COORDINATING = "This viewing is being coordinated with several people. Record their answers, or propose another time.";
 
 // The columns an action sets, its event data (and name, when it is not the status), and the conditions its UPDATE
 // must still meet: for a reschedule the clash it must not have (C6). cycle: VIS-08 is on; ts: the time of the write.
@@ -200,10 +201,10 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   if (!FROM[body.action].includes(cur.status)) fail(409, `This viewing is already ${cur.status === "no_show" ? "marked as a no-show" : cur.status}.`);
   if (cur.updated_at !== body.updated_at) fail(409, stale);
   // VIS-17: while a time is being agreed with several people, Confirm would confirm the old time for all of them.
-  const coordination = await coordinationOn(env);
-  if (coordination && body.action === "confirm" && await env.DB.prepare(
-    "SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'").bind(id).first())
-    fail(409, "This viewing is being coordinated with several people. Record their answers, or propose another time.");
+  // Read first for a clear answer, and checked again inside the UPDATE (a proposal made meanwhile).
+  const coordination = await coordinationOn(env), agreeing = coordination && body.action === "confirm";
+  const openProposal = () => env.DB.prepare("SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'").bind(id).first();
+  if (agreeing && await openProposal()) fail(409, COORDINATING);
   const ch = await change(env, body.action, body, cur, jerseyNow(), admin, cycle, ts);
   if (ch.errors) return fields(ch.errors);
   const slot = body.action === "confirm" ? cur : body.action === "reschedule" ? { ...cur, ...ch.set } : null;
@@ -212,7 +213,8 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   if (cal?.error) return busy(cal);
   if (cal?.reviewed) ch.data = { ...ch.data, calendar_reviewed: true };
   const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) };
-  const guards = [ch.guard, ch.property].filter(Boolean);
+  const guards = [ch.guard, ch.property, agreeing && { sql: "NOT EXISTS (SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open')",
+    binds: [id] }].filter(Boolean);
   const type = `viewing.${ch.event ?? (body.action === "reschedule" ? "rescheduled" : TO[body.action])}`;
   // The lock and the slot check are part of the UPDATE; the event, the touch and the notice follow only if it changed
   // the row.
@@ -241,6 +243,7 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   const after = await env.DB.prepare("SELECT updated_at FROM viewing_requests WHERE id = ?").bind(id).first();
   if (!after) fail(404, "Viewing not found");
   if (after.updated_at !== body.updated_at) fail(409, stale);
+  if (agreeing && await openProposal()) fail(409, COORDINATING);
   if (body.action === "confirm") fail(409, "This property's notice changed while you were confirming. Check it and confirm again.");
   return taken();
 }

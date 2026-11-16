@@ -26,16 +26,16 @@ export function validRequired(list) {
 
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;
 
-// One person's answer to a proposal, as staff record it. required: the proposal's list; now: ms; since: the viewing's
-// created_at (an answer cannot predate the request it is about).
+// One person's answer to a proposal, as staff record it. required: the proposal's list; now: ms; since: the proposal's
+// created_at (an answer cannot predate the time it answers; compared to the minute, as the panel enters minutes).
 export function validateResponse(b, { required, now, since }) {
   const src = b && typeof b === "object" && !Array.isArray(b) ? b : {}, errors = {}, value = {};
   value.participant = required.includes(src.participant) ? src.participant : (errors.participant = "Choose whose answer this is", null);
   value.response = RESPONSES.includes(src.response) ? src.response : (errors.response = "Choose accepted or declined", null);
   value.channel = EVIDENCE_CHANNELS.includes(src.channel) ? src.channel : (errors.channel = "Choose how they answered", null);
   const at = typeof src.answered_at === "string" && ISO.test(src.answered_at) ? Date.parse(src.answered_at) : NaN;
-  if (!Number.isFinite(at) || at > now + 60000 || at < Date.parse(since))
-    errors.answered_at = "Enter when they answered, not in the future and not before the viewing was requested";
+  if (!Number.isFinite(at) || at > now + 60000 || at < Math.floor(Date.parse(since) / 60000) * 60000)
+    errors.answered_at = "Enter when they answered, not in the future and not before the time was proposed";
   else value.answered_at = new Date(at).toISOString();
   const by = src.answered_by == null ? "" : typeof src.answered_by === "string" ? src.answered_by.trim() : null;
   if (by === null || by.length > 120) errors.answered_by = "Use 120 characters or fewer";
@@ -62,6 +62,12 @@ export function clientFit(windows, { date, time, end_time }) {
   const day = new Date(date + "T12:00:00Z").getUTCDay();
   return windows.some(w => w.day === day && w.start <= time && w.end >= end_time) ? "fits" : "outside";
 }
+
+// Viewing `v` is still as it was when proposal `p` was made (aliases in scope; SQL and JS forms).
+export const unchangedSql = (v, p) => `${v}.status = ${p}.from_status AND ${v}.negotiator_id IS ${p}.from_negotiator_id
+  AND ${v}.date = ${p}.from_date AND ${v}.time = ${p}.from_time`;
+export const unchanged = (v, p) => v.status === p.from_status && v.negotiator_id === p.from_negotiator_id
+  && v.date === p.from_date && v.time === p.from_time;
 
 // Proposal `p` (alias in scope) has an accepted answer from everyone it asks.
 export const allAcceptedSql = p => `NOT EXISTS (SELECT 1 FROM json_each(${p}.required) r WHERE NOT EXISTS (
