@@ -3,7 +3,7 @@ import { json, fail, HttpError } from "./http.js";
 import { currentAdmin, sameOrigin, accessMismatch } from "./auth.js";
 import { accessReady, classifyAccessSurface, staffPrincipal, assertServiceAccess, oddSegment, AccessError } from "./access.js";
 import { qaRoute } from "./qa-history.js";
-import { STAFF_IMAGE_CACHE } from "./media.js";
+import { STAFF_IMAGE_CACHE, staffMediaRoutes } from "./media.js";
 import publicRoutes from "./routes/public.js";
 import ownerRoutes from "./routes/owner-requests.js";
 import sessionRoutes from "./routes/session.js";
@@ -70,7 +70,7 @@ const SERVICE_ACCESS_MESSAGES = {
 };
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
+const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...staffMediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
 
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.

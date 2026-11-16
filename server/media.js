@@ -137,3 +137,8 @@ export async function serveStaffMedia(request, env, id) {
   if (request.method === "HEAD") { await cancelBody(obj.body); return new Response(null, { headers }); }
   return new Response(obj.body, { headers });
 }
+
+// Registered by server/api.js, not routes/media.js: hampton-jobs reaches routes/media.js and must not bundle auth.js.
+const STAFF_MEDIA = /^\/admin\/media\/([A-Za-z0-9]+)\/content$/;
+const staffMedia = ({ request, env, params: [id] }) => serveStaffMedia(request, env, id);
+export const staffMediaRoutes = [["GET", STAFF_MEDIA, staffMedia, true], ["HEAD", STAFF_MEDIA, staffMedia, true]];
