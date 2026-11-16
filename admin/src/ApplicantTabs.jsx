@@ -21,7 +21,7 @@ const Pending = ({ state, read, what }) => state.phase === "error"
   ? <p role="alert" className="err">{state.error} <button type="button" className="btn ghost sm" onClick={read}>Try again</button></p>
   : <p role="status" className="muted">Loading {what}…</p>;
 
-const SAME = { email: "Same email", phone: "Same phone" };
+const SAME = { email: "Same email", phone: "Same phone", "email phone": "Same email and phone" };
 
 // G4: viewings have no link to a person yet, so these are the ones with the contact's email or phone. Only the viewing
 // itself shows, never the requester's details: a viewing matched this way may be someone else's.
@@ -40,7 +40,7 @@ export function ApplicantViewings({ id, active }) {
         <p className="meta"><span>{fmtDay(v.date, true)} at {v.time}{v.end_time ? `–${v.end_time}` : ""}</span>
           {v.status === "completed" && <span>{OUTCOME[v.outcome] ?? "No answer yet"}</span>}
           {v.feedback_at && <span>Feedback {fmtDate(v.feedback_at)}</span>}
-          <span>{v.matched_by.map(k => SAME[k]).join(" and ")}</span>
+          <span>{SAME[v.matched_by.join(" ")]}</span>
           <span><a href={v.listing_id ? `#/viewings?listing=${encodeURIComponent(v.listing_id)}` : "#/viewings"}>Open viewings</a></span></p>
       </li>;
     })}</ol> : <p className="empty card">No viewings with this contact's email or phone.</p>}
