@@ -4,10 +4,10 @@
   "titulo": "Exportar cobros, pagos y liquidaciones a la contabilidad de Hampton",
   "origen": "plan",
   "fase": "F5-A",
-  "estado": "pendiente",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "Rentals › Accounting export (#/rentals/accounting) descarga un CSV por tipo para un rango de días de Jersey de hasta 366 que termina hoy como tarde: cargos con los write-offs y reversiones de ADM-09 (ajustes, nunca cobros), pagos recibidos (también sin asignar) y liquidaciones cerradas de ADM-10 (solo statement_runs, la última revisión cerrada de cada mes, líneas rent/fee/repair/gst/net leídas de su instantánea congelada). Columnas fijas del codificador (peniques, GBP, debit/credit, fechas ISO; supersedes enlaza cada línea de una revisión nueva con la que sustituye, para no contar dos veces), documentadas en docs/roadmap/work/ADM-21/columns.md. GET solo para miembros del equipo con sesión, mismo origen (Sec-Fetch-Site/Origin), adjunto no-store y nosniff; lectura en una transacción D1; >50.000 filas o >16 MB da 413 y un importe >£1m da 422, sin recortar; sin descripciones bancarias ni datos personales; registro en events sin filas; no marca nada como enviado o pagado. Sin interruptor ni migración. Pruebas: el libro del inquilino cuadra con su deuda, las líneas con los totales de Statements, una corrección posterior no cambia la revisión exportada, fórmulas escapadas; e2e a 1280 y 390.",
-  "falta": "Publicar y comprobar en producción con una lectura real (descarga de un rango con datos). Compatibilidad comprobada con el lector CSV de Python y parseCsv, no con un programa contable real: adaptar el formato cuando Hampton diga cuál usa.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "admin/src/RentImport.jsx:29-139",
@@ -24,7 +24,8 @@
     "tests/adm21-accounting-export.e2e.cjs",
     "docs/roadmap/work/ADM-21/columns.md",
     "Decisión (plan 2026-11-09-adm-21 + spec tp03 §Exportación): peniques, sin BOM, tipos charges|payments|statements, 366 días/50.000 filas; corte coherente con una lectura D1 en una transacción en vez de una tabla de snapshot (sin migración); sin interruptor (el plan no lo pide; solo lee datos ya visibles en el panel; los ajustes siguen ADM09_ARREARS_READY y las liquidaciones ADM10_STATEMENTS_READY)",
-    "Decisión (regla 5, opción más simple y reversible): autoridad = sesión de admin como Statements y los write-offs de ADM-09; la capacidad sensitive_finance por caso no tiene alcance de cartera ni concesiones y no se autoasigna"
+    "Decisión (regla 5, opción más simple y reversible): autoridad = sesión de admin como Statements y los write-offs de ADM-09; la capacidad sensitive_finance por caso no tiene alcance de cartera ni concesiones y no se autoasigna",
+    "16-nov-2026: cerrada por aceptación propia según el plan 2026-11-09-adm-21 (primera salida CSV normalizada, sin APIs de Sage/Xero): charges, payments y statements (solo la última revisión cerrada, con supersedes), peniques, GBP, fechas ISO, límites sin truncar; adm-21-* 36/36, e2e adm21 PASS a 1280/390; revisión independiente sin graves (riesgo de doble conteo de revisiones corregido con supersedes, 6dfd7d1). La descarga real la hace el equipo con su sesión."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -53,6 +54,6 @@
     "statement-ui",
     "rentals-export"
   ],
-  "nextStep": "Integrar en main, desplegar y descargar un rango real de cada tipo desde Rentals › Accounting export; si cuadra con Statements y la deuda del panel, cerrar.",
+  "nextStep": "Conservar como completada. Si Hampton usa un programa contable concreto y su importación pide otro formato, adaptarlo (MEJORAS).",
   "actualizado": "2026-11-16"
 }

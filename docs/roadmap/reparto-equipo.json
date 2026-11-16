@@ -18,10 +18,10 @@
       "area": "Aplicantes, requisitos, matching y estados",
       "capacity": 2,
       "count": 59,
-      "openCount": 13,
+      "openCount": 12,
       "states": {
-        "hecho": 40,
-        "parcial": 8,
+        "hecho": 41,
+        "parcial": 7,
         "pendiente": 3,
         "replanteado": 6,
         "bloqueado": 2
@@ -49,11 +49,11 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 18,
+      "openCount": 17,
       "states": {
-        "hecho": 44,
+        "hecho": 45,
         "parcial": 5,
-        "pendiente": 7,
+        "pendiente": 6,
         "bloqueado": 6,
         "descartado": 3
       }
@@ -859,18 +859,21 @@
       "titulo": "Ficha del aplicante con pestañas Requirements, Matches, Timeline, Messages y Viewings",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy) y Timeline, que incluye las visitas con el mismo email o teléfono.",
-      "falta": "Una pestaña Viewings con las visitas ligadas al aplicante (hoy solo se cruzan por email o teléfono, G4) y la pestaña Messages con sus conversaciones (F6).",
+      "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy), Timeline, Messages y Viewings. Messages lista los chats web vinculados por una persona al contacto del aplicante (MSG-03), sin su texto, y dice que el correo aún no está vinculado. Viewings lista las visitas con el email o teléfono del contacto (el mismo cruce que Timeline, teléfono normalizado, sin valores vacíos), marcadas «Matched by email/phone» y sin datos del solicitante. Lecturas solo para admins: GET /admin/applicants/:id/viewings y /messages.",
+      "falta": "",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
-        "admin/src/ApplicantDetail.jsx:19",
-        "admin/src/ApplicantDetail.jsx:312-330",
-        "admin/src/ApplicantDetail.jsx:434-449",
-        "server/routes/applicants.js:131-141",
-        "server/routes/applicants.js:261",
-        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+        "admin/src/ApplicantDetail.jsx:28",
+        "admin/src/ApplicantDetail.jsx:595-603",
+        "admin/src/ApplicantTabs.jsx:28-74",
+        "server/routes/applicant-tabs.js:7-46",
+        "server/routes/applicants.js:215-216",
+        "tests/server/sap08-applicant-tabs.test.mjs",
+        "tests/sap08-tabs.e2e.cjs",
+        "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+        "16-nov-2026: cerrada por aceptación propia: la ficha tiene Requirements, Matches, Offers, Timeline, Messages y Viewings; revisión independiente sin graves y sus dos menores corregidos (685dd20). Trasladado: el vínculo persistente visita–contacto/búsqueda a VIS-17 y el correo en Messages a MSG-03 (tramo correo, con AUT-17)."
       ],
       "assignedSlot": "vps",
       "allocationStatus": "proposed",
@@ -898,8 +901,8 @@
         "viewings-contract",
         "messages-contract"
       ],
-      "nextStep": "Añadir vínculos persistentes de visitas y conversaciones a la búsqueda, separando canales todavía no activos.",
-      "actualizado": "2026-11-14"
+      "nextStep": "Conservar como completada.",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "SAP-09",
@@ -2936,7 +2939,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "",
-      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): aplicar las reglas de la casa (aviso si hay inquilino, quién la enseña) a las visitas coordinadas con terceros; hoy solo cubren las reservas del panel y de la web (noticeCheck en server/house-rules.js). Traído de VIS-08 (15-nov): estados de coordinación multiparte (por coordinar, propuesta, pendiente de confirmaciones) y su aceptación: una propuesta incompleta no aparece confirmada ni cierra la búsqueda; una reprogramación retira confirmaciones incompatibles. Traído de EST-13 (15-nov): la visita confirmada es un estado propio del candidato: no cambia la decisión, la disponibilidad ni resuelve la búsqueda. Traído de VIS-04 (15-nov): el grant de visita da acceso al formulario de feedback de esa visita, también para una reserva general sin presentación; no basta con conocer el id; revocarlo corta el acceso y una respuesta tardía tras cancelación no revive estados. Traído de ANA-05 (15-nov): guardar en cada visita el id de la búsqueda (applicant_id) para que ANA-05 cuente visitas confirmadas, recordadas, completadas y con respuesta; hoy salen Not recorded porque solo se unen por correo o teléfono. Traído de AGE-12 (15-nov): el formulario del aplicante tras la visita (Proceed / Need more information / Not interested con motivo obligatorio; nota ≤500; escribe outcome, outcome_note, feedback_at y feedback_by = applicant sin sobrescribir el resultado del equipo) va en un acceso de audiencia viewing de VIS-17 (createViewingGrant), no en el enlace de presentación; puede reutilizar la mecánica de token y cookie de server/presentation-access.js. Interruptor propio apagado: solo lo enciende Luis. Traído de BUS-18 (15-nov): mostrar el estado de visita de cada búsqueda (requested/confirmed/completed/no_show) en Matched applicants de la ficha; solo completed se muestra como Viewed.",
+      "falta": "M09 · Reconciliación 7-nov: Coordinar visita con propiedad, búsqueda, anunciante y empleado. Reutilizar franjas REG-17 y permitir actualizarlas para esta cita; cruzar horarios de cliente, anunciante y empleado si asiste. Proponer opciones y guardar cada aceptación necesaria; confirmar solo cuando estén completas, sin condicionar la visita a un acuerdo de comisión. Reprogramación/cancelación actualizan la misma visita y tareas, y la búsqueda continúa. Depende de: REG-17, AGE-12, AGE-06, EST-13. Aceptación: Una hora propuesta por agencia sigue pendiente hasta aceptar cliente y demás participantes requeridos; la visita confirmada no cierra la búsqueda. Reflejar sus estados confirmados o plazas en el calendario ocupado de VIS-06, sin datos personales. Traído de VIS-10 (14-nov): aplicar las reglas de la casa (aviso si hay inquilino, quién la enseña) a las visitas coordinadas con terceros; hoy solo cubren las reservas del panel y de la web (noticeCheck en server/house-rules.js). Traído de VIS-08 (15-nov): estados de coordinación multiparte (por coordinar, propuesta, pendiente de confirmaciones) y su aceptación: una propuesta incompleta no aparece confirmada ni cierra la búsqueda; una reprogramación retira confirmaciones incompatibles. Traído de EST-13 (15-nov): la visita confirmada es un estado propio del candidato: no cambia la decisión, la disponibilidad ni resuelve la búsqueda. Traído de VIS-04 (15-nov): el grant de visita da acceso al formulario de feedback de esa visita, también para una reserva general sin presentación; no basta con conocer el id; revocarlo corta el acceso y una respuesta tardía tras cancelación no revive estados. Traído de ANA-05 (15-nov): guardar en cada visita el id de la búsqueda (applicant_id) para que ANA-05 cuente visitas confirmadas, recordadas, completadas y con respuesta; hoy salen Not recorded porque solo se unen por correo o teléfono. Traído de AGE-12 (15-nov): el formulario del aplicante tras la visita (Proceed / Need more information / Not interested con motivo obligatorio; nota ≤500; escribe outcome, outcome_note, feedback_at y feedback_by = applicant sin sobrescribir el resultado del equipo) va en un acceso de audiencia viewing de VIS-17 (createViewingGrant), no en el enlace de presentación; puede reutilizar la mecánica de token y cookie de server/presentation-access.js. Interruptor propio apagado: solo lo enciende Luis. Traído de BUS-18 (15-nov): mostrar el estado de visita de cada búsqueda (requested/confirmed/completed/no_show) en Matched applicants de la ficha; solo completed se muestra como Viewed. Traído de SAP-08 (16-nov): un vínculo persistente de cada visita con su contacto o búsqueda; hoy la pestaña Viewings del aplicante las cruza por email o teléfono (marcadas «Matched by email/phone»).",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:57-59",
@@ -7976,21 +7979,28 @@
       "titulo": "Exportar cobros, pagos y liquidaciones a la contabilidad de Hampton",
       "origen": "plan",
       "fase": "F5-A",
-      "estado": "pendiente",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Codificador CSV puro ensayado con datos ficticios: tipos cerrados, importes en peniques, escape y protección ante fórmulas. No hay descarga ni acceso a datos reales.",
-      "falta": "Integrar autoridad financiera ADM-09 y snapshot cerrado ADM-10, validar los límites de importes y tamaño total, construir descarga protegida y comprobar compatibilidad con programas contables. Traído de ADM-10 (15-nov): exportar las liquidaciones desde statement_runs (solo revisiones cerradas; líneas rent/fee/gst/repair/net en la instantánea JSON).",
+      "hecho": "Rentals › Accounting export (#/rentals/accounting) descarga un CSV por tipo para un rango de días de Jersey de hasta 366 que termina hoy como tarde: cargos con los write-offs y reversiones de ADM-09 (ajustes, nunca cobros), pagos recibidos (también sin asignar) y liquidaciones cerradas de ADM-10 (solo statement_runs, la última revisión cerrada de cada mes, líneas rent/fee/repair/gst/net leídas de su instantánea congelada). Columnas fijas del codificador (peniques, GBP, debit/credit, fechas ISO; supersedes enlaza cada línea de una revisión nueva con la que sustituye, para no contar dos veces), documentadas en docs/roadmap/work/ADM-21/columns.md. GET solo para miembros del equipo con sesión, mismo origen (Sec-Fetch-Site/Origin), adjunto no-store y nosniff; lectura en una transacción D1; >50.000 filas o >16 MB da 413 y un importe >£1m da 422, sin recortar; sin descripciones bancarias ni datos personales; registro en events sin filas; no marca nada como enviado o pagado. Sin interruptor ni migración. Pruebas: el libro del inquilino cuadra con su deuda, las líneas con los totales de Statements, una corrección posterior no cambia la revisión exportada, fórmulas escapadas; e2e a 1280 y 390.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
-        "admin/src/Statement.jsx:9-11",
         "admin/src/RentImport.jsx:29-139",
-        "server/routes/rent.js:737-771",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:579",
         "docs/superpowers/specs/2026-11-10-tp05-continuity-scope-design.md",
         "docs/superpowers/plans/2026-11-10-tp05-construction-order.md",
         "server/rental-accounting-csv.js",
         "tests/server/adm-21-csv.test.mjs",
-        "docs/roadmap/work/ADM-21/avance-publicable.md"
+        "docs/roadmap/work/ADM-21/avance-publicable.md",
+        "server/rental-accounting.js",
+        "admin/src/RentalAccounting.jsx",
+        "tests/server/adm-21-1.test.mjs",
+        "tests/server/adm-21-2.test.mjs",
+        "tests/adm21-accounting-export.e2e.cjs",
+        "docs/roadmap/work/ADM-21/columns.md",
+        "Decisión (plan 2026-11-09-adm-21 + spec tp03 §Exportación): peniques, sin BOM, tipos charges|payments|statements, 366 días/50.000 filas; corte coherente con una lectura D1 en una transacción en vez de una tabla de snapshot (sin migración); sin interruptor (el plan no lo pide; solo lee datos ya visibles en el panel; los ajustes siguen ADM09_ARREARS_READY y las liquidaciones ADM10_STATEMENTS_READY)",
+        "Decisión (regla 5, opción más simple y reversible): autoridad = sesión de admin como Statements y los write-offs de ADM-09; la capacidad sensitive_finance por caso no tiene alcance de cartera ni concesiones y no se autoasigna",
+        "16-nov-2026: cerrada por aceptación propia según el plan 2026-11-09-adm-21 (primera salida CSV normalizada, sin APIs de Sage/Xero): charges, payments y statements (solo la última revisión cerrada, con supersedes), peniques, GBP, fechas ISO, límites sin truncar; adm-21-* 36/36, e2e adm21 PASS a 1280/390; revisión independiente sin graves (riesgo de doble conteo de revisiones corregido con supersedes, 6dfd7d1). La descarga real la hace el equipo con su sesión."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -8019,8 +8029,8 @@
         "statement-ui",
         "rentals-export"
       ],
-      "nextStep": "Integrar ADM-09 y ADM-10; validar límites de importes y tamaño antes de conectar una descarga protegida y verificar su compatibilidad contable.",
-      "actualizado": "2026-11-15"
+      "nextStep": "Conservar como completada. Si Hampton usa un programa contable concreto y su importación pide otro formato, adaptarlo (MEJORAS).",
+      "actualizado": "2026-11-16"
     },
     {
       "id": "MSG-01",
@@ -8125,7 +8135,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
-      "falta": "Tramo chat web: encendido el 16-nov-2026 (0093 aplicada, MSG03_CONTACT_LINK_READY=1); queda que alguien del equipo vincule un chat real una vez y lo vea en la ficha. Tramo correo: reenvíos seleccionados de Gmail cuando AUT-17 opere. Antes del 16-nov la pantalla Messages solo tenía el chat de la web (MSG-02) sin contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
+      "falta": "Tramo chat web: encendido el 16-nov-2026 (0093 aplicada, MSG03_CONTACT_LINK_READY=1); queda que alguien del equipo vincule un chat real una vez y lo vea en la ficha. Tramo correo: reenvíos seleccionados de Gmail cuando AUT-17 opere. Antes del 16-nov la pantalla Messages solo tenía el chat de la web (MSG-02) sin contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores. Traído de SAP-08 (16-nov): mostrar las conversaciones de correo en la pestaña Messages del aplicante cuando AUT-17 opere.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/App.jsx:122-136",

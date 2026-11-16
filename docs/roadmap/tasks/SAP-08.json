@@ -4,10 +4,10 @@
   "titulo": "Ficha del aplicante con pestañas Requirements, Matches, Timeline, Messages y Viewings",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "Existen Requirements (editable; al guardar se recalcula el matching), Matches, Offers (búsquedas To Buy), Timeline, Messages y Viewings. Messages lista los chats web vinculados por una persona al contacto del aplicante (MSG-03), sin su texto, y dice que el correo aún no está vinculado. Viewings lista las visitas con el email o teléfono del contacto (el mismo cruce que Timeline, teléfono normalizado, sin valores vacíos), marcadas «Matched by email/phone» y sin datos del solicitante. Lecturas solo para admins: GET /admin/applicants/:id/viewings y /messages.",
-  "falta": "Un vínculo persistente visita-contacto o visita-búsqueda (G4/VIS-17): hoy las visitas solo se cruzan por email o teléfono y lo comparten todas las búsquedas del contacto. Correo en Messages cuando AUT-17 esté activado (F6).",
+  "falta": "",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:28",
@@ -17,7 +17,8 @@
     "server/routes/applicants.js:215-216",
     "tests/server/sap08-applicant-tabs.test.mjs",
     "tests/sap08-tabs.e2e.cjs",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
+    "16-nov-2026: cerrada por aceptación propia: la ficha tiene Requirements, Matches, Offers, Timeline, Messages y Viewings; revisión independiente sin graves y sus dos menores corregidos (685dd20). Trasladado: el vínculo persistente visita–contacto/búsqueda a VIS-17 y el correo en Messages a MSG-03 (tramo correo, con AUT-17)."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -45,6 +46,6 @@
     "viewings-contract",
     "messages-contract"
   ],
-  "nextStep": "Añadir el vínculo explícito de visitas al contacto/búsqueda (migración aditiva) y el canal de correo en Messages cuando AUT-17 se active.",
+  "nextStep": "Conservar como completada.",
   "actualizado": "2026-11-16"
 }

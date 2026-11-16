@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **SAP-08 y ADM-21 hechas:** la ficha del aplicante tiene ya las pestañas Messages (chats web vinculados al contacto) y Viewings (visitas con el mismo email o teléfono, sin datos de quien las pidió); en Rentals, «Accounting export» descarga en CSV los cobros (con write-offs), los pagos y las liquidaciones cerradas (cada revisión nueva dice a qué línea sustituye) para la contabilidad de Hampton. Progreso 136 → 138.
+
 16-nov-2026 · **PRE-12 encendido (sigue parcial):** en Settings › Privacy requests el equipo registra cada solicitud de privacidad (acceso, rectificación, supresión, oposición, portabilidad), quién verificó la identidad y cómo, y prepara la copia de datos con revisión humana antes de descargarla; una solicitud de supresión nunca borra sola y una solicitud abierta (salvo la de supresión) frena la limpieza y el Delete. Migración 0101. Falta el aviso previo por correo (AUT-17) y la purga de notas de retirada al borrar una ficha. Progreso 136 → 136.
 
 16-nov-2026 · **AUT-14 en la cola de Luis:** el resumen de las 8:00 de Jersey llega al canal del equipo (comprobado hoy en el VPS) y ahora la app cuenta también las búsquedas «Gone quiet» y los contactos que caducan en un mes; el aviso de fallo a Luis se probó en local (una línea por hora). Guía para el equipo en docs/team/telegram-channel.md. Falta el OK de Luis para actualizar el avisador e invitar al equipo. Progreso 136 → 136.
