@@ -85,6 +85,10 @@ EST19_TRASH_READY = "1"
 EST19_PURGE_READY = "1"
 # ADM-12: repair suppliers directory and the landlord's approval recorded by the team (migration 0089, applied 15-nov-2026). Sends nothing.
 ADM12_SUPPLIERS_READY = "1"
+# ADM-12: the tenant's link to report a repair (6-digit code by email, 30-minute session; migration 0110). Needs the
+# secret CASE_CHALLENGE_HMAC_KEY, migrations 0046 and 0049 (ADM-18 capabilities) to create links, and AUT-17 (the EMAIL
+# binding here and EMAIL_SERVICE_READY) to send codes. Collects reports from tenants: only Luis switches it on.
+ADM12_CASE_ACCESS_READY = "0"
 # ADM-09: arrears drafts (+1/+5/+14 letter, not validated by a lawyer) and recorded write-offs; net debt everywhere (migration 0045, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
 ADM09_ARREARS_READY = "1"
 # ADM-10: close each month's landlord statement as a frozen revision; record sent and paid by hand (migration 0090, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.

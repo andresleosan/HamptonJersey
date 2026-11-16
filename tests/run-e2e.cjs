@@ -68,6 +68,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm-13-inspections.e2e.cjs" ? { ADM13_INSPECTIONS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm19-signature.e2e.cjs" ? { ADM19_SIGNATURE_READY: "1", ADM20_TENANCY_LAW_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm12-repairs.e2e.cjs" ? { ADM12_SUPPLIERS_READY: "1" } : {}),
+      // ADM-12: the tenant's repair link with a key of this run only; no email binding here, as in production before AUT-17.
+      ...(process.env.E2E_SCRIPT === "tests/adm12-repair-report.e2e.cjs"
+        ? { ADM12_CASE_ACCESS_READY: "1", CASE_CHALLENGE_HMAC_KEY: randomBytes(32).toString('hex') } : {}),
       ...(process.env.E2E_SCRIPT === "tests/not-05-missing-payments.e2e.cjs" ? { NOT05_MISSING_PAYMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm09-arrears.e2e.cjs" ? { ADM09_ARREARS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm10-statements.e2e.cjs" ? { ADM10_STATEMENTS_READY: "1" } : {}),

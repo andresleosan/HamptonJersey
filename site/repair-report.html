@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Report a repair · Hampton Estates</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<!-- ADM-12: a tenant's private link to report a repair. No analytics, fonts or anything else from a third party; nothing kept in the browser. -->
+<style>
+:root{--ink:#151515;--paper:#fff;--mist:#f4f3f0;--line:#e3e0da;--stone:#6b665e;--bronze:#a56b3d;--bronze-dk:#86542d;--ok:#2f6b4f;--err:#a32020;
+  --field-line:#8f8a82;--display:"Tenor Sans","Gill Sans",Optima,sans-serif;--body:Montserrat,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 14px/1.5 var(--body)}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+header{border-bottom:1px solid var(--line);padding-block:18px}
+.brand{font-family:var(--display);font-size:19px;letter-spacing:.06em}
+h1{font-family:var(--display);font-weight:400;font-size:26px;margin:32px 0 0;text-wrap:balance}
+.lead{color:var(--stone);max-width:68ch}
+.card{border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:16px;max-width:760px;margin-block:24px 40px}
+.field{display:grid;gap:6px}
+.field>span,legend{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--stone)}
+.hint{font-size:13px;color:var(--stone);margin:0}
+input[type=text],textarea{font:inherit;color:inherit;border:1px solid var(--field-line);border-radius:10px;padding:10px 12px;background:#fbfaf8;width:100%;min-height:44px}
+textarea{min-height:120px}
+input:focus,textarea:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
+input[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--err)}
+.code{max-width:12ch;letter-spacing:.3em;font-size:18px}
+fieldset{border:0;margin:0;padding:0;min-width:0;display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer}
+.opt input{margin-top:3px;accent-color:var(--ink)}
+.opt small{display:block;color:var(--stone)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:#fff;
+  padding:10px 20px;font:600 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.btn:hover:not(:disabled){background:var(--bronze-dk);border-color:var(--bronze-dk)}
+.btn.ghost{background:#fff;color:var(--ink)}
+.btn.ghost:hover:not(:disabled){color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.note{background:var(--mist);border-radius:10px;padding:12px 14px;margin:0}
+.ok{color:var(--ok);font-weight:600;margin:0}
+.err{color:var(--err);margin:0}
+footer{border-top:1px solid var(--line);padding-block:24px;color:var(--stone);font-size:13px}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><span class="brand">Hampton Estates</span></div></header>
+<main class="wrap" id="app" aria-live="polite"><h1>Report a repair</h1><p role="status">Loading…</p></main>
+<footer><div class="wrap"><p>If anyone is in danger, call 999 first. Questions, or a request about your personal data: call
+  <a href="tel:+441534727582">+44 1534 727582</a> or read our <a href="/#/privacy" rel="noopener noreferrer">privacy notice</a>.</p></div></footer>
+<script type="module" src="/repair-report.js"></script>
+</body>
+</html>

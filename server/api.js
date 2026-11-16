@@ -64,6 +64,9 @@ import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./bac
 import backupRoutes, { BACKUP_ADMIN } from "./routes/backups.js";
 import { metaMessagesReady, metaWebhook } from "./meta-webhooks.js";
 import facebookRoutes from "./meta-messages.js";
+import caseAccessRoutes from "./routes/case-access.js";
+import repairReportRoutes from "./routes/repair-reports.js";
+import { caseAccessReady } from "./case-access.js";
 
 const ACCESS_MESSAGES = {
   access_required: "Your security sign-in has expired. Sign in again to continue.",
@@ -88,9 +91,11 @@ export async function handleApi(request, env, segments, waitUntil = () => {}) {
   // Admin, session and chat answers carry personal data: never cache them anywhere.
   // PRE-06: except a panel image from the Staff media route, kept in that browser's cache only (server/media.js).
   const staffImage = segments[0] === "admin" && segments[1] === "media" && res.headers.get("cache-control") === STAFF_IMAGE_CACHE;
-  if (/^(admin|me|session|hermes|chat|qa|presentation)$/.test(segments[0] ?? "") && !staffImage) res.headers.set("cache-control", "no-store");
-  // AGE-12: a client's private presentation is never indexed and never says where it was opened from.
-  if (segments[0] === "presentation") { res.headers.set("x-robots-tag", "noindex"); res.headers.set("referrer-policy", "no-referrer"); }
+  const tenantLink = caseAccessReady(env) && /^(case-access|repair-report)$/.test(segments[0] ?? ""); // ADM-12, switched on only
+  if ((/^(admin|me|session|hermes|chat|qa|presentation)$/.test(segments[0] ?? "") || tenantLink) && !staffImage) res.headers.set("cache-control", "no-store");
+  // AGE-12 / ADM-12: a client's private presentation and a tenant's repair link are never indexed and never say where
+  // they were opened from.
+  if (segments[0] === "presentation" || tenantLink) { res.headers.set("x-robots-tag", "noindex"); res.headers.set("referrer-policy", "no-referrer"); }
   return res;
 }
 
@@ -161,6 +166,8 @@ async function route(request, env, segments, waitUntil) {
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
     if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109
+    // ADM-12: the tenant's repair link; needs migration 0110, CASE_CHALLENGE_HMAC_KEY, and 0046/0049 to create links.
+    if (caseAccessReady(env)) routes = [...routes, ...caseAccessRoutes, ...repairReportRoutes];
     routes = [...routes, ...(calendarReady(env) ? calendarRoutes : calendarOffRoutes)]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
