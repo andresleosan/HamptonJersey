@@ -98,6 +98,8 @@ BACKUP_READY = "0"
 MSG03_CONTACT_LINK_READY = "1"
 # PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.
 PRE10_PURPOSE_READY = "1"
+# BUS-08: the daily market sweep (migration 0095). Off: no automatic source reader exists or is authorised yet (BUS-19). Before switching on, jobs/wrangler.toml must carry the website's values of the flags a recompute reads (a test checks it). Must match the other wrangler.toml.
+BUS08_SWEEP_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

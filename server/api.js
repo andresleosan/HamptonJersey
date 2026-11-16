@@ -31,6 +31,7 @@ import emailRoutes from "./routes/email.js";
 import advertiserRoutes from "./routes/advertisers.js";
 import advertiserPrivacyRoutes from "./advertiser-privacy.js";
 import marketInventoryRoutes from "./routes/market-inventory.js";
+import { dailySweepRoutes, sweepReady } from "./market-daily-sweep.js";
 import demandRoutes from "./routes/demand.js";
 import saleFollowupRoutes, { followupReady } from "./sale-followup.js";
 import tenancyOriginRoutes from "./routes/tenancy-origins.js";
@@ -75,6 +76,7 @@ async function route(request, env, segments, waitUntil) {
     // Market tables require a separate migration and source review. New routes
     // stay absent unless the deployment explicitly enables the completed slice.
     let routes = [...ROUTES, ...(env.MARKET_INVENTORY_READY === '1' ? marketInventoryRoutes : []),
+      ...(env.MARKET_INVENTORY_READY === '1' && sweepReady(env) ? dailySweepRoutes : []), // BUS-08: needs migration 0095
       ...(followupReady(env) ? saleFollowupRoutes : [])]; // OFE-06: needs migration 0053
     // AUT-10: the mode switch exists only with its migration (0054) and flag.
     if (env.AUT10_MODES_READY === '1') routes = [...routes, ...modeRoutes];

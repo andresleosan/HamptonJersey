@@ -23,6 +23,8 @@ ADM09_ARREARS_READY = "1"
 ADM10_STATEMENTS_READY = "1"
 # ADM-13/ADM-03: the six-monthly inspection's Inbox task follows the panel (migration 0060, applied). Sends nothing. Must match the other wrangler.toml.
 ADM13_INSPECTIONS_READY = "1"
+# BUS-08: the daily market sweep (migration 0095). Off: no automatic source reader exists or is authorised yet (BUS-19). Before switching on, jobs/wrangler.toml must carry the website's values of the flags a recompute reads (a test checks it). Must match the other wrangler.toml.
+BUS08_SWEEP_READY = "0"
 EMAIL_SERVICE_READY = "false"
 # OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
 OFE06_WEEKLY_REVIEW_READY = "1"

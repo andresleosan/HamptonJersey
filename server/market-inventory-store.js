@@ -319,13 +319,14 @@ export async function commitObservationPage(env, input, actor, clock = () => new
       record.external_key, raw, normalized, normalizedHash, record.source_at, originHash));
     // Exact monthly rent is derived from the retained financial terms. Older rows lack
     // this field; comparing the source terms still detects real amount/period changes.
-    const material=manual ? "json_remove(old.normalized_json,'$.observed_at','$.monthly_rent_exact')<>json_remove(?,'$.observed_at','$.monthly_rent_exact')" : 'old.normalized_sha256<>?';
+    // BUS-08: the daily sweep compares the same way, so reading an unchanged advert again emits no change.
+    const material=manual || input.material_compare===true ? "json_remove(old.normalized_json,'$.observed_at','$.monthly_rent_exact')<>json_remove(?,'$.observed_at','$.monthly_rent_exact')" : 'old.normalized_sha256<>?';
     statements.push(db.prepare(`INSERT INTO market_change_outbox(id,observation_id,observation_version,kind)
       SELECT ?,?,1,'observation_changed' WHERE COALESCE((SELECT
         CASE WHEN old.source_at<=? AND ${material} THEN 1 ELSE 0 END
         FROM market_observations old WHERE old.source_ref=? AND old.channel_id=? AND old.external_key=? AND old.id<>?
         ORDER BY old.source_at DESC,old.sequence DESC LIMIT 1),1)=1`).bind(crypto.randomUUID(), observationId,
-      record.source_at, manual ? normalized : normalizedHash, lease.source_ref, lease.channel_id, record.external_key, observationId));
+      record.source_at, manual || input.material_compare===true ? normalized : normalizedHash, lease.source_ref, lease.channel_id, record.external_key, observationId));
   }
   statements.push(db.prepare(`UPDATE market_source_runs SET cursor=?,page_no=page_no+1,
     status=CASE WHEN ?=1 THEN 'complete' ELSE 'pending' END,lease_token=NULL,lease_until=NULL,

@@ -13,6 +13,7 @@ const { callPass } = enquiries(ENQUIRY_GATES); // AGE-08: which matches count fo
 import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';
+import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -38,6 +39,10 @@ export default {
     if (rentalClosureEnabled(env)) {
       try { await processExpiredRentalClosures(env); }
       catch { console.error('Rental withdrawal pass failed'); }
+    }
+    if (sweepReady(env)) { // BUS-08: the daily market sweep, off until its sources are authorised (BUS-19)
+      try { await marketSweepPass(env, now()); }
+      catch { console.error('Market sweep pass failed'); }
     }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.
