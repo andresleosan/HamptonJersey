@@ -70,7 +70,7 @@ function NewRequest({ team, onCancel }) {
       setUnsaved(false); location.hash = `#/privacy/${request.id}`;
     } catch (x) {
       const fields = x.data?.fields || {};
-      fe.setErrors(fields); setMsg({ text: x.message }); setBusy(false);
+      fe.setErrors(fields); setMsg({ text: Object.keys(fields).length ? "Please check the highlighted fields." : x.message }); setBusy(false);
       requestAnimationFrame(() => form.current?.querySelector('[aria-invalid="true"]')?.focus());
     }
   };
@@ -147,7 +147,11 @@ function useChange(prefix, path, method, onSaved) {
     if (busy) return;
     setBusy(true); setMsg(null); fe.setErrors({});
     try { const x = await api(path, { method, body }); setBusy(false); onSaved(x); }
-    catch (x) { fe.setErrors(x.data?.fields || {}); setMsg({ text: x.message, stale: x.status === 409 }); setBusy(false); }
+    catch (x) {
+      const fields = x.data?.fields || {};
+      fe.setErrors(fields); setBusy(false);
+      setMsg({ text: Object.keys(fields).length ? "Please check the highlighted fields." : x.message, stale: x.status === 409 });
+    }
   };
   return { busy, msg, said, send, ...fe };
 }
