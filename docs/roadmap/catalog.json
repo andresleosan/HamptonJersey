@@ -19747,7 +19747,8 @@
         "16-nov-2026 (aviso y Q05): npm test 3260/3260 + unittest 29 OK; npm run build y check:release OK; tests/server/retention.test.mjs sin cambios y en verde; con el interruptor apagado el SQL de runRetention se comparó texto a texto antes y después (idéntico); e2e aislado tests/pre12-retention-notice.e2e.cjs 1280/390 OK. tests/server/bus-07-provenance.test.mjs suma server/retention-notices.js al inventario de módulos que encolan correo.",
         "Revisión independiente del aviso (16-nov), corregido: (grave 1) una respuesta cuenta también por el From, por la referencia [HE-OUT-…] en el asunto, por el hilo (In-Reply-To/References) o por el vínculo de llegada, no solo por el remitente del sobre; (grave 2) con 0112 aplicada, aunque el interruptor se apague o difiera entre web y reloj, la limpieza nunca borra contra el aviso del episodio (pendiente, fallido, incierto, no enviado, respondido, o antes de su fecha y del mes); sin 0112 el SQL sigue idéntico. Menores: máximo 20 avisos enviados por día de Jersey dentro del cupo de 100, contado en el propio reclamo; encendido antes de 0112 el correo y la limpieza funcionan como hoy; el texto de la tarea es cierto en ambos desenlaces. Comentario de los dos wrangler.toml: encender los dos a la vez. tests/server/retention-notices.test.mjs 15/15; npm test 3265/3265 + unittest 29 OK; build y check:release OK; e2e aislado 1280/390 OK. tests/server/vis-12-clock-groups.test.mjs compara ahora sin 0112, que cambia a propósito el SQL de la limpieza.",
         "Segunda revisión independiente (16-nov): los 5 arreglos confirmados; nuevo grave corregido: con 0112 aplicada y el interruptor apagado, la respuesta se registra en cada pasada antes de borrar el contenido del correo (tests/server/retention-notices-off.test.mjs falla sin el arreglo).",
-        "16-nov: migración 0112 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
+        "16-nov: migración 0112 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor.",
+        "docs/roadmap/work/PRE-12/plan-vinculo-alquileres.md (16-nov-2026, solo planificación: vínculo tenancy→contact confirmado por un admin, migración aditiva 0113 propuesta, interruptor PRE12_TENANCY_LINK_READY apagado; seis decisiones abiertas D1-D6 para Luis)"
       ],
       "modulo": "M03/M12",
       "deps": [],
@@ -19779,7 +19780,7 @@
         "search-lifecycle",
         "email-pipeline"
       ],
-      "nextStep": "Luis: aprobar el texto del aviso (server/retention-notices.js) y, con AUT-17 activo y 0112 aplicada, encender PRE12_RETENTION_NOTICE_READY en los dos wrangler.toml; desarrollo: revisión manual_notice_documented, alta desde un correo del panel y entrega de la copia por correo (AUT-17)."
+      "nextStep": "Luis: aprobar el texto del aviso (server/retention-notices.js) y, con AUT-17 activo y 0112 aplicada, encender PRE12_RETENTION_NOTICE_READY en los dos wrangler.toml; desarrollo: revisión manual_notice_documented, alta desde un correo del panel y entrega de la copia por correo (AUT-17); vínculo de alquileres con contactos: Luis decide D1-D6 de docs/roadmap/work/PRE-12/plan-vinculo-alquileres.md y desarrollo lo construye apagado (0113, PRE12_TENANCY_LINK_READY)."
     },
     {
       "id": "PRE-13",
