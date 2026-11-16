@@ -94,6 +94,10 @@ export async function runRetention(env, ts) {
     env.DB.prepare(`DELETE FROM drive_imports WHERE id IN (${IMPORTS})`).bind(ts),
     env.DB.prepare(`DELETE FROM chats WHERE id IN (${CHATS})`).bind(ts),
   ]);
+  // MSG-05: a chat save's key (with the admin's email) only serves retries: 30 days after it was written, like the chats.
+  // Before migration 0098 there is no table and nothing to delete.
+  await env.DB.prepare(`DELETE FROM chat_applicant_saves WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days')`)
+    .bind(ts).run().catch(e => { if (!/no such table: chat_applicant_saves/.test(String(e?.message))) throw e; });
   return { contacts: r[6].meta.changes, viewings: r[10].meta.changes, jobs: r[11].meta.changes, chats: r[13].meta.changes };
 }
 

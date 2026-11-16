@@ -220,3 +220,17 @@ test("Save needs a person and the same origin", async () => {
   assert.equal(cross.status, 403);
   nothingWritten(env);
 });
+
+test("the retention pass deletes a save's key 30 days after it was written, and runs without migration 0098", async () => {
+  const { runRetention } = await import("../../server/retention.js");
+  const env = world(), id = chat(env), key = newKey();
+  const r = await save(env, id, form({ operation_key: key }));
+  assert.equal(r.status, 201);
+  const written = row(env, "SELECT created_at FROM chat_applicant_saves").created_at, day = 864e5;
+  await runRetention(env, new Date(Date.parse(written) + 29 * day).toISOString());
+  assert.equal(n(env, "chat_applicant_saves"), 1, "kept for retries within 30 days");
+  await runRetention(env, new Date(Date.parse(written) + 31 * day).toISOString());
+  assert.equal(n(env, "chat_applicant_saves"), 0);
+  assert.equal(n(env, "applicants"), 1, "the applicant stays");
+  await runRetention(world({ on: false, skip: [98] }), new Date().toISOString());
+});
