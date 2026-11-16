@@ -501,7 +501,7 @@ export function renderPrivacy(root) {
     <p>This notice explains how Hampton Estates uses the personal details you give us, for example when you register
       your search or ask for a viewing, and the rights you have under the Data Protection (Jersey) Law 2018.</p>
 
-    <p>External property tours load only when you choose to open them. The tour provider receives your IP address and may use its own storage.</p>
+    <p>Property tours and videos load only when you choose to open them. The player's provider (Matterport, YouTube or Vimeo) then receives your IP address and may use its own storage.</p>
 
     <h2>Who we are</h2>
     <p>Hampton Estates, 42 Bath Street, St Helier, Jersey JE2 4ST. We decide how your details are used, so we are the
@@ -541,6 +541,9 @@ export function renderPrivacy(root) {
       only on our instructions. When a provider handles data outside Jersey, the law requires suitable safeguards, and
       we only use providers that give them. We pass your details to a landlord, a seller or their agent only when you
       ask us to arrange a viewing or make an offer.</p>
+    <p>Our pages load their typefaces from Google Fonts, so Google receives your IP address when a page opens.
+      Matterport, YouTube and Vimeo, which play our property tours and videos, receive it only when you open one. Each
+      uses what it receives under its own privacy policy.</p>
 
     <h2>How long we keep it</h2>
     <p>While any of your searches is active or awaiting our team's review, we keep your contact details and search record
@@ -568,6 +571,23 @@ export function renderPrivacy(root) {
       for up to 90 days so deleting a message does not let a duplicate delivery restore it. If you ask us to stop sending
       to your address, we keep a fingerprint of the address to respect that preference until you ask us to remove it.
       You can contact us to ask for deletion or to change your sending preferences.</p>
+
+    <h2>Landlords and tenants of homes we manage</h2>
+    <p>If we manage a home you let or rent, we keep:</p>
+    <ul>
+      <li>For a landlord: your name, email address and phone number, the homes we manage for you, our service and fee,
+        the repair amount you approve in advance and the approvals you give, and your monthly statements.</li>
+      <li>For a tenant: the lead tenant's name, email address and phone number, the names of the other occupants, the
+        tenancy's dates, rent and notice, the payments we receive and any rent owed, the deposit and its protection,
+        the entry and exit inventories, inspections and the repairs reported.</li>
+    </ul>
+    <p>We use these details to run the tenancy: to manage the agreement, its renewals and notices, collect the rent,
+      protect and settle the deposit, arrange repairs, keep the home's legal checks up to date and send the landlord a
+      monthly statement of the rent collected, our fees and repair costs. Our legal basis is the contract: our
+      management agreement with the landlord and the tenancy agreement. Where the law requires something, such as
+      protecting the deposit with mydeposits or keeping our accounts, our legal basis is that legal obligation.</p>
+    <p>We keep tenancy, payment, deposit and repair records, with the details in them, while we manage the home or the
+      tenancy lasts and for 6 years after it ends. The 12-month periods above for searches do not apply to them.</p>
 
     <h2>Your rights</h2>
     <ul>
