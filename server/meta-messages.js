@@ -62,23 +62,25 @@ async function detail({ env, params: [id] }) {
     ...(link && { contact_link: link }) });
 }
 
-// Messenger Send API: the reply as a RESPONSE to the person's page-scoped id. The token goes as access_token, as in
-// Meta's documentation; it is never logged nor returned. ok: accepted with its message id; false: refused; null: no
-// answer, so it may have gone.
+// Messenger Send API: the reply as a RESPONSE to the person's page-scoped id. The token goes in the Authorization header,
+// never in the URL, so no request log can show it; it is never logged nor returned. ok: accepted with its message id;
+// false: refused (4xx); null: no answer or a Meta server error (5xx), so it may have gone.
 async function sendMessenger(env, psid, text) {
-  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${env.META_PAGE_ID}/messages?access_token=${encodeURIComponent(env.META_PAGE_TOKEN)}`;
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${env.META_PAGE_ID}/messages`;
   let res;
   try {
-    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${env.META_PAGE_TOKEN}` },
+      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
       body: JSON.stringify({ recipient: { id: psid }, messaging_type: "RESPONSE", message: { text } }) });
   } catch { return { ok: null }; }
   const data = await res.json().catch(() => null);
   if (res.ok && typeof data?.message_id === "string") return { ok: true, mid: data.message_id };
-  return res.ok ? { ok: null } : { ok: false, code: Number.isInteger(data?.error?.code) ? data.error.code : res.status };
+  return res.ok || res.status >= 500 ? { ok: null } : { ok: false, code: Number.isInteger(data?.error?.code) ? data.error.code : res.status };
 }
 
 async function reply({ request, env, admin, params: [id] }) {
-  const text = messageText((await readJson(request, 16384))?.text, TEAM_MAX);
+  const body = await readJson(request, 16384), text = messageText(body?.text, TEAM_MAX);
+  const last = Number.isInteger(body?.last) ? body.last : null; // the newest message the panel showed
   if (!text) fail(400, `Write a reply (up to ${TEAM_MAX} characters)`);
   const c = await env.DB.prepare("SELECT id, external_user_id, last_inbound_at FROM channel_conversations WHERE id = ?")
     .bind(Number(id)).first() ?? gone();
@@ -90,17 +92,27 @@ async function reply({ request, env, admin, params: [id] }) {
   if (await paused(env)) fail(409, "Sending is paused (Pause all outbound), so nothing was sent. Resume sending in Automations first.");
   if (!windowOpen(c.last_inbound_at)) fail(409, "More than 24 hours have passed since their last message, so Facebook does not "
     + "allow a reply. Nothing was sent. Contact them another way, or reply when they write again.");
-  // The reply is recorded before it leaves, so a send whose answer is lost still shows on the screen.
-  const ts = now(), ins = await env.DB.prepare(`INSERT INTO channel_messages (conversation_id, direction, text, status, sent_by,
-    sent_at, created_at) SELECT id, 'out', ?, 'sending', ?, ?, ? FROM channel_conversations WHERE id = ?`)
-    .bind(text, admin, ts, ts, c.id).run();
-  if (!ins.meta.changes) gone();
+  // The reply is recorded before it leaves, so a send whose answer is lost still shows on the screen. Not while another
+  // reply to this person is still being sent (two tabs, two people, a double click): one at a time.
+  const ts = now(), recent = new Date(Date.parse(ts) - 60e3).toISOString();
+  const ins = await env.DB.prepare(`INSERT INTO channel_messages (conversation_id, direction, text, status, sent_by,
+    sent_at, created_at) SELECT id, 'out', ?, 'sending', ?, ?, ? FROM channel_conversations WHERE id = ?
+      AND NOT EXISTS (SELECT 1 FROM channel_messages WHERE conversation_id = ?5 AND direction = 'out' AND status = 'sending'
+        AND created_at > ?6)`)
+    .bind(text, admin, ts, ts, c.id, recent).run();
+  if (!ins.meta.changes) fail(409, "Another reply to this person is being sent right now. Wait a moment and reload before sending again.");
   const msgId = ins.meta.last_row_id, r = await sendMessenger(env, c.external_user_id, text);
   const mark = (status, mid = null) => env.DB.prepare("UPDATE channel_messages SET status = ?, external_id = ? WHERE id = ?").bind(status, mid, msgId);
   if (r.ok) {
-    await env.DB.batch([mark("sent", r.mid), env.DB.prepare(`UPDATE channel_conversations SET status = 'answered', waiting_since = NULL,
-      last_at = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM channel_messages WHERE conversation_id = ? AND direction = 'in' AND sent_at > ?)`)
-      .bind(now(), c.id, c.id, ts)]);
+    // Answered only if no message came in after the newest one the panel showed (by id, as Handled), else by time.
+    const newer = last == null ? "sent_at > ?4" : "id > ?4";
+    try {
+      await env.DB.batch([mark("sent", r.mid), env.DB.prepare(`UPDATE channel_conversations SET status = 'answered', waiting_since = NULL,
+        last_at = ?1 WHERE id = ?2 AND NOT EXISTS (SELECT 1 FROM channel_messages WHERE conversation_id = ?3 AND direction = 'in' AND ${newer})`)
+        .bind(now(), c.id, c.id, last ?? ts)]);
+    } catch {
+      fail(502, "Facebook accepted the reply, but it could not be recorded here. Do not send it again.");
+    }
     return json({ ok: true }, 201);
   }
   await mark(r.ok === false ? "failed" : "unknown").run();

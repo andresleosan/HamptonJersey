@@ -78,7 +78,7 @@ function Conversation({ id, paused, onChanged, onGone }) {
   };
   const send = async e => {
     e.preventDefault();
-    if (await act(() => api(`/admin/facebook/${id}/reply`, { method: "POST", body: { text } }), "Reply sent on Facebook.")) setText("");
+    if (await act(() => api(`/admin/facebook/${id}/reply`, { method: "POST", body: { text, last: d.messages.at(-1)?.id ?? 0 } }), "Reply sent on Facebook.")) setText("");
   };
   const handled = () => act(() => api(`/admin/facebook/${id}/handled`, { method: "POST", body: { last: d.messages.at(-1)?.id ?? 0 } }),
     "Conversation marked as handled.");

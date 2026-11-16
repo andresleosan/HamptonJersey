@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **Mensajes de Facebook construidos y apagados (MSG-01, PRE-08):** Messages tendrá una pestaña Facebook con las conversaciones de la página, unidas a un contacto, y el equipo responderá desde ahí dentro de las 24 horas de Meta. Cada aviso de Meta se verifica con su firma. Espera al trámite de Meta (PRE-02) y a que Luis encienda recibir (META_MESSAGES_READY) y enviar (META_SEND_READY). Progreso 139 → 139 de 214.
+
 16-nov-2026 · **Mensajes de Facebook reactivados por Luis:** MSG-01, PRE-02 y PRE-08 vuelven al plan (responder desde el panel, con borrador de Hermes y aprobación humana). El tablero pasa de 211 a 214 tareas aplicables. Progreso 139 de 211 → 139 de 214.
 
 16-nov-2026 · **ANA-04 construida y apagada:** Insights podrá mostrar qué filtros usa la gente en la web (operación, zona, dormitorios, precio máximo y búsquedas sin resultados), en totales por día, sin datos de personas. Espera a 0108, al aviso de privacidad y a la retención aprobada. Progreso 139 → 139 de 211.

@@ -64,7 +64,10 @@ async function handshake(request, env) {
 }
 
 // Meta's time for a message (milliseconds), never later than now: the 24-hour window counts from it.
-const when = (ms, received) => (Number.isFinite(ms) && ms > 0 && ms < Date.parse(received) ? new Date(ms).toISOString() : received);
+// Meta's time of the message (milliseconds), kept only if it is within the last 7 days; otherwise the time we got it,
+// so a wrong or second-based value never closes the 24-hour window or ages the conversation out at once.
+const when = (ms, received) => (Number.isFinite(ms) && ms < Date.parse(received) && ms > Date.parse(received) - 7 * 864e5
+  ? new Date(ms).toISOString() : received);
 
 // The text messages a person sent to our page. Echoes (the page itself), reads, deliveries and postbacks are left out.
 export function pageMessages(payload, pageId, received) {

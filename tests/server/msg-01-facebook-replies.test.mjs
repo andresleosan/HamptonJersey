@@ -84,7 +84,8 @@ test("with sending on, a reply goes to the Send API as a RESPONSE and is recorde
     assert.equal(f.calls.length, 1);
     const [{ url, init }] = f.calls, u = new URL(url);
     assert.equal(u.origin + u.pathname, `https://graph.facebook.com/v27.0/${PAGE}/messages`);
-    assert.equal(u.searchParams.get("access_token"), TOKEN);
+    assert.equal(u.search, "", "the token never goes in the URL");
+    assert.equal(new Headers(init.headers).get("authorization"), `Bearer ${TOKEN}`);
     assert.equal(init.method, "POST");
     assert.equal(new Headers(init.headers).get("content-type"), "application/json");
     assert.deepEqual(JSON.parse(init.body), { recipient: { id: PSID }, messaging_type: "RESPONSE",
@@ -194,14 +195,14 @@ test("a person links the conversation to a contact (MSG-03's pattern), with a ve
   assert.equal((await admin(env, "POST", `/admin/facebook/${id}/contact`, { contact_id: null, version: 1 })).status, 404);
 });
 
-test("retention deletes a Facebook conversation 30 days after its last message, like the website's chats, only switched on", async () => {
+test("retention deletes a Facebook conversation 30 days after its last message, like the website's chats, also switched off later", async () => {
   const ts = "2026-11-16T03:00:00.000Z";
   for (const on of [true, false]) {
     const env = world({ on }), old = conversation(env, { inboundAt: "2026-10-16T02:00:00.000Z" });
     const recent = conversation(env, { inboundAt: "2026-10-17T04:00:00.000Z", psid: "200000000000009" });
     await runRetention(env, ts);
     const left = rows(env, "SELECT id FROM channel_conversations ORDER BY id").map(r => r.id);
-    assert.deepEqual(left, on ? [recent] : [old, recent]);
+    assert.deepEqual(left, [recent], `switched ${on ? "on" : "off"}: nothing stays for ever`);
   }
   await runRetention(world({ skip: [109] }), ts); // switched on before 0109: the rest of the pass still runs
 });
@@ -211,4 +212,19 @@ test("META_MESSAGES_READY is the same in both wrangler.toml files, so the clock'
   const flag = f => /^META_MESSAGES_READY = "(\d)"$/m.exec(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8"))?.[1];
   assert.ok(flag("wrangler.toml"));
   assert.equal(flag("jobs/wrangler.toml"), flag("wrangler.toml"));
+});
+
+test("a Meta server error counts as unknown, not refused; a second reply while one is being sent is refused", async () => {
+  const env = world({ send: true }), id = conversation(env), f = fakeFetch(() => Response.json({ error: { code: 2 } }, { status: 500 }));
+  try {
+    const r = await admin(env, "POST", `/admin/facebook/${id}/reply`, { text: "Hello" });
+    assert.equal(r.status, 502);
+    assert.match(r.data.error, /may or may not have been sent/);
+    assert.equal(rows(env, "SELECT status FROM channel_messages WHERE direction = 'out'")[0].status, "unknown");
+    env.DB.raw.prepare(`INSERT INTO channel_messages (conversation_id, direction, text, status, sent_by, sent_at, created_at)
+      VALUES (?, 'out', 'in flight', 'sending', 'colleague@example.test', ?, ?)`).run(id, new Date().toISOString(), new Date().toISOString());
+    const again = await admin(env, "POST", `/admin/facebook/${id}/reply`, { text: "Hello again" });
+    assert.equal(again.status, 409);
+    assert.equal(f.calls.length, 1, "nothing more went to Facebook");
+  } finally { f.restore(); }
 });
