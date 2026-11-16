@@ -94,6 +94,8 @@ ADM14_RENEWAL_READY = "1"
 ANA06_AGENCY_TIMES_READY = "1"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.
 BACKUP_READY = "0"
+# MSG-03: a person links a website chat to an existing contact from Messages, and the contact's record lists its chats (migration 0093, not applied yet). Sends nothing.
+MSG03_CONTACT_LINK_READY = "0"
 EMAIL_SERVICE_READY = "false"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

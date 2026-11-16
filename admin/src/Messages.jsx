@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 import { TEAM_MAX } from "../../server/chat.js";
+import { ChatContact } from "./ChatContact.jsx";
 
 // MSG-02 (spec 2026-11-06): the website's chats. Waiting ones first, oldest wait first; a person replies, marks it
 // handled or deletes it. The visitor sees a reply while the chat is open on their device, for 7 days (C5).
@@ -18,8 +19,10 @@ const EMPTY = {
 const seen = iso => !iso ? "Not seen on the website since their first message"
   : Date.now() - Date.parse(iso) < 60e3 ? "Visitor on the website now" : `Last on the website ${fmtAgo(iso)}`;
 
-export default function Messages({ paused, onChange }) {
-  const [tab, setTab] = useState("waiting"), [data, setData] = useState(null), [sel, setSel] = useState(null);
+// chat: one to open from a contact's record (MSG-03), shown among All.
+export default function Messages({ paused, onChange, chat }) {
+  const opened = /^\d+$/.test(chat ?? "") ? Number(chat) : null;
+  const [tab, setTab] = useState(opened ? "all" : "waiting"), [data, setData] = useState(null), [sel, setSel] = useState(opened);
   const [loadErr, setLoadErr] = useState(null), [note, setNote] = useState(null), seq = useRef(0), noteRef = useRef(null);
   // A poll keeps the chat on screen even when it left this tab (a colleague replied): a reply being typed is never
   // swapped for another chat. After your own action, or with none selected, the first one in the list.
@@ -115,6 +118,8 @@ function Chat({ id, paused, onChanged, onGone }) {
       {c.phone && <div><dt>Phone</dt><dd className="num">{c.phone}</dd></div>}
       {c.status === "handled" && <div><dt>Handled</dt><dd>{fmtDate(c.handled_at)} by {c.handled_by}</dd></div>}
     </dl>
+    {d.contact_link && <ChatContact chatId={id} link={d.contact_link}
+      onLinked={link => (link ? setD(x => ({ ...x, contact_link: link })) : load())} />}
     {err && <p role="alert" className="err">Couldn't refresh; what you see may be out of date. {err}</p>}
     <ol ref={log} tabIndex={0} className="chat-log" aria-label="Conversation">{d.messages.map(m => <li key={m.id} className={m.role}>
       <p className="muted"><b>{m.role === "team" ? m.from : c.name}</b>{m.role === "team" && m.sent_by && ` (${m.sent_by})`}

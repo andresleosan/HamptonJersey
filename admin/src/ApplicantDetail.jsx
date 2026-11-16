@@ -15,6 +15,7 @@ import SearchLifecycle from "./SearchLifecycle.jsx";
 import { areaCopy } from "./area-copy.js";
 import { marketingHistory } from "./marketing-history.js";
 import RegistrationEssentials from "./RegistrationEssentials.jsx";
+import { ContactChats } from "./ChatContact.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -52,7 +53,8 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "sale.updated": "Sale file changed", "sale.completed": "Sale completed", "sale.fallen_through": "Sale fell through",
   "applicant.search_resolved": "Search resolved", "applicant.search_reopened": "Search made active",
   "applicant.criteria_proposed": "Criteria changes proposed", "applicant.criteria_proposal_discarded": "Proposed criteria changes discarded",
-  "applicant.presentation_answered": "Client answered on their private presentation" };
+  "applicant.presentation_answered": "Client answered on their private presentation",
+  "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked" };
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" }, SOURCE_LABEL = Object.fromEntries(OPTIONS.sources);
 
 const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
@@ -522,6 +524,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
           </div> : <button type="button" className="btn ghost sm" disabled={busy || !!contactChanged.length || archived}
             onClick={openObjection}>Record marketing objection</button>)}
       </section>
+      <ContactChats contactId={c.id} />
       <form ref={formRef} noValidate onSubmit={e => { e.preventDefault(); if (dirty && !busy) save(); }}>
         {/* Archived: read only until restored. */}
         <fieldset className="sections plain" disabled={archived}>

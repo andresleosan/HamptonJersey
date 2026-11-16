@@ -144,7 +144,7 @@ export default function App() {
     : section === "insights" && arg === "weekly" ? <WeeklyInsights key={sub} weekStart={sub ?? ""} paused={expired} />
     : section === "insights" ? <Insights /> : section === "availability" ? <Availability /> : section === "users" ? <Users me={me} />
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
-    : section === "messages" ? <Messages paused={expired} onChange={loadCounts} />
+    : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")} paused={expired} onChange={loadCounts} />
     : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
     : section === "legal" ? <LegalTerms onChange={loadCounts} />
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
