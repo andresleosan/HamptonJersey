@@ -47,15 +47,25 @@ export async function readSignatures(env, tenancy_id) {
 }
 
 // ADM-20's carry-over, only with its 2025 rules on (null otherwise): the agreement is made when the last party signs,
-// so once every signature is checked that day is proposed as the tenancy's agreement date, unless already recorded.
-// A proposal only: nothing here writes it. updated_at: the tenancy's, for the save that accepts it.
+// so once every signature is checked that day is proposed as the tenancy's agreement date while it has none: a date
+// already recorded is never replaced from here. A proposal only: nothing here writes it. updated_at: the tenancy's, for
+// the save that accepts it.
 async function agreement(env, id, st, record) {
   const law = await tenancyLaw(env);
   if (!law) return null;
   const t = await env.DB.prepare("SELECT agreement_on, updated_at FROM tenancies WHERE id = ?").bind(id).first();
   const last = st.state === "complete" ? record.signatures.reduce((a, s) => (s.signed_on > a ? s.signed_on : a), "") : null;
-  const proposed = last && last !== t.agreement_on ? last : null;
+  const proposed = last && t.agreement_on == null ? last : null;
   return { recorded: t.agreement_on, proposed, regime: proposed && regimeOf(proposed, law), updated_at: t.updated_at };
+}
+
+// For the batch that records an accepted date: it fails unless the signatures are still at the revision the person
+// read, and stillSignatures then answers 409 when that is why.
+const REVISION_SQL = "COALESCE((SELECT revision FROM tenancy_signature_evidence WHERE tenancy_id = ?), 0)";
+export const signaturesGuard = (env, tenancy_id, revision) =>
+  env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL WHERE ${REVISION_SQL} <> ?`).bind(tenancy_id, revision);
+export async function stillSignatures(env, tenancy_id, revision) {
+  if ((await env.DB.prepare(`SELECT ${REVISION_SQL} AS r`).bind(tenancy_id).first()).r !== revision) fail(409, STALE);
 }
 
 // A person accepts the proposed agreement date: the one they saw (agreement_on), from the signatures they read
@@ -97,7 +107,8 @@ export async function saveSignatures(env, { tenancy_id, ...body }, actor) {
   if (done(e)) return done(e);
   const rev = body.expectedRevision, crev = body.contract_revision, tenants = body.tenants;
   const t = await tenancyRow(env, tenancy_id);
-  const prev = await env.DB.prepare("SELECT revision, signatures, contract_revision FROM tenancy_signature_evidence WHERE tenancy_id = ?")
+  const prev = await env.DB.prepare(`SELECT revision, tenants, signatures, contract_revision FROM tenancy_signature_evidence
+    WHERE tenancy_id = ?`)
     .bind(t.id).first();
   if ((prev?.revision ?? 0) !== rev) fail(409, STALE);
   if (await contractRevision(env, t.id) !== crev) fail(409, CONTRACT);
@@ -107,6 +118,8 @@ export async function saveSignatures(env, { tenancy_id, ...body }, actor) {
     const k = kept.get(s.party);
     return k && k.signed_on === s.signed_on && k.evidence_ref === s.evidence_ref ? k : { ...s, reviewed_at: ts, reviewed_by: actor };
   });
+  // Nothing changed (every signature kept its review): nothing is written and the history gets no line, like save().
+  if (prev && prev.tenants === tenants && JSON.stringify(signatures) === prev.signatures) return readSignatures(env, t.id);
   const cols = [tenants, JSON.stringify(signatures), crev, ts, actor];
   // The write re-reads the record's revision and the contract reference's: either moved on, it changes nothing.
   const write = rev === 0

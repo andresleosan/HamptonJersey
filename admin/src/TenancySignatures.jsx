@@ -38,8 +38,8 @@ function AgreementDate({ id, d, onDone, onStale }) {
   };
   const fields = Object.values(s.fe.errors);
   return <div className="inline" role="group" aria-label="Proposed agreement date">
-    <p>The last party signed on <strong>{fmtDay(a.proposed)}</strong>{a.recorded ? <>, but the agreement date recorded is {fmtDay(a.recorded)}</>
-      : <>; the agreement date is not recorded</>}. Recorded as the agreement date, the {a.regime} rules apply.</p>
+    <p>The last party signed on <strong>{fmtDay(a.proposed)}</strong>; the agreement date is not recorded. Recorded as the agreement
+      date, the {a.regime} rules apply.</p>
     <button type="button" className="btn ghost sm" disabled={s.busy} onClick={accept}>Use {fmtDay(a.proposed)} as the agreement date</button>
     {s.msg && !s.msg.ok && <p role="alert" className="err">{[s.msg.text, ...fields].join(" ")}{fields.length
       ? " Record it in Edit details to answer this." : ""}{s.msg.stale && <> <button type="button" className="btn ghost sm" onClick={onStale}>Reload</button></>}</p>}
@@ -50,6 +50,8 @@ export function TenancySignatures({ id, tick, onChanged }) {
   const ready = useSignatureReady(), [d, setD] = useState(null), [err, setErr] = useState(null), [form, setForm] = useState(null);
   const p = `sg${id}`, h = `h-${p}`, s = useSave(p), { fe } = s, sent = useRef([]), today = jerseyToday();
   const load = () => api(`/admin/tenancies/${id}/signatures`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
+  // After an accepted date or a conflict the tenancy card is read again too (its agreement date, its updated_at).
+  const reloadAll = () => { load(); onChanged?.(); };
   useEffect(() => { if (ready) load(); }, [ready, id, tick]);
   if (!ready) return null;
   if (!d) return <section aria-labelledby={h}><h3 id={h}>Signatures</h3>
@@ -84,7 +86,7 @@ export function TenancySignatures({ id, tick, onChanged }) {
     {d.signatures.length > 0 && <ul className="plain-list" aria-label="Signatures checked">{d.signatures.map(x => <li key={x.party}>
       <span><strong>{label(x.party, d.tenants)}</strong> signed {fmtDay(x.signed_on)}<span className="cell-note">{x.evidence_ref}</span>
         <span className="muted cell-note">Checked by {x.reviewed_by} on {fmtDate(x.reviewed_at)}</span></span></li>)}</ul>}
-    {d.agreement?.proposed && !form && <AgreementDate id={id} d={d} onDone={() => { load(); onChanged?.(); }} onStale={load} />}
+    {d.agreement?.proposed && !form && <AgreementDate id={id} d={d} onDone={reloadAll} onStale={reloadAll} />}
     {!form && <Note msg={s.msg} />}
     {!form ? <div className="inline"><button type="button" className="btn ghost sm" onClick={() => { s.setMsg(null); setForm(toForm(d)); }}>
       {d.revision ? "Update signatures" : "Record signatures"}</button></div>
@@ -102,7 +104,7 @@ export function TenancySignatures({ id, tick, onChanged }) {
             aria-describedby={described(fe, key(x, "evidence_ref"), `d-${p}-ref`)} />{fe.error(key(x, "evidence_ref"))}</label>
         </div></fieldset>)}
         <small id={`d-${p}-ref`} className="muted">The signing service's envelope or the office file you checked. The app does not receive, store or open the document.</small>
-        <Note msg={s.msg} onReload={s.reload(load)} />
+        <Note msg={s.msg} onReload={() => { s.reload(load)(); onChanged?.(); }} />
         <div className="inline"><button className="btn sm" disabled={s.busy}>{s.busy ? "Saving…" : "Save signatures"}</button>
           <button type="button" className="btn ghost sm" onClick={() => { setForm(null); s.setMsg(null); fe.setErrors({}); }}>Cancel</button></div>
       </form>}

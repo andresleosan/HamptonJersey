@@ -220,3 +220,46 @@ test("the last signature's day is proposed as the agreement date; only a person'
   const after = (await req("GET", "/admin/tenancies/3/signatures", undefined, undefined, law)).data.agreement;
   assert.deepEqual([after.recorded, after.proposed], [TENANT1.signed_on, null], "nothing left to propose");
 });
+
+test("saving the signatures unchanged writes nothing and adds no history line", async () => {
+  const d = (await req("GET", "/admin/tenancies/1/signatures")).data, events = await n("rental_events", "tenancy_id = 1");
+  const r = await req("PUT", "/admin/tenancies/1/signatures", { expectedRevision: d.revision, contract_revision: d.contract_revision,
+    tenants: d.tenants, signatures: d.signatures.map(({ party, signed_on, evidence_ref }) => ({ party, signed_on, evidence_ref })) },
+  "colleague@example.test");
+  assert.equal(r.status, 200);
+  assert.equal(r.data.revision, d.revision);
+  assert.deepEqual(r.data.signatures, d.signatures, "reviews kept as they were");
+  assert.equal(r.data.updated_by, d.updated_by);
+  assert.equal(await n("rental_events", "tenancy_id = 1"), events);
+});
+
+test("an agreement date already recorded is never replaced by a proposal", async () => {
+  const law = { ...env, ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" };
+  const d = (await req("GET", "/admin/tenancies/3/signatures", undefined, undefined, law)).data;
+  // Tenant 1's day is corrected to today: the last signature moves on, but the date recorded stays and nothing is proposed.
+  const r = await req("PUT", "/admin/tenancies/3/signatures", { expectedRevision: d.revision, contract_revision: d.contract_revision,
+    tenants: 1, signatures: [LANDLORD, { ...TENANT1, signed_on: T }] }, undefined, law);
+  assert.equal(r.status, 200);
+  assert.deepEqual([r.data.status.state, r.data.agreement.recorded, r.data.agreement.proposed], ["complete", TENANT1.signed_on, null]);
+  const t = await one("SELECT updated_at FROM tenancies WHERE id = 3");
+  assert.equal((await req("POST", "/admin/tenancies/3/signatures/agreement-date", { expectedRevision: r.data.revision, agreement_on: T,
+    updated_at: t.updated_at }, undefined, law)).status, 409);
+  assert.equal((await one("SELECT agreement_on FROM tenancies WHERE id = 3")).agreement_on, TENANT1.signed_on);
+});
+
+test("accepting the agreement date is refused (409, nothing written) when the signatures are saved during its write", async () => {
+  const law = { ...env, ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" };
+  const cur = (await req("GET", "/admin/tenancies/2/signatures", undefined, undefined, law)).data;
+  const done = await req("PUT", "/admin/tenancies/2/signatures", { expectedRevision: cur.revision, contract_revision: 0, tenants: 1,
+    signatures: [LANDLORD, TENANT1] }, undefined, law);
+  assert.equal(done.data.agreement.proposed, TENANT1.signed_on);
+  const before = await one("SELECT agreement_on, updated_at FROM tenancies WHERE id = 2"), events = await n("rental_events", "tenancy_id = 2");
+  // Another person corrects the signatures between this acceptance's reads and its write.
+  const raced = { ...law, DB: racing(() => saveSignatures(env, { tenancy_id: 2, expectedRevision: done.data.revision, contract_revision: 0,
+    tenants: 1, signatures: [LANDLORD, { ...TENANT1, evidence_ref: "Paper copy, office file SYN-99" }] }, "colleague@example.test")) };
+  const r = await req("POST", "/admin/tenancies/2/signatures/agreement-date", { expectedRevision: done.data.revision,
+    agreement_on: TENANT1.signed_on, updated_at: before.updated_at }, undefined, raced);
+  assert.equal(r.status, 409, JSON.stringify(r.data));
+  assert.deepEqual(await one("SELECT agreement_on, updated_at FROM tenancies WHERE id = 2"), before);
+  assert.equal(await n("rental_events", "tenancy_id = 2"), events + 1, "only the signatures' own line");
+});

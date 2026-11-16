@@ -419,7 +419,8 @@ const firstCharge = (env, today, id) => env.DB.prepare(`INSERT INTO charges (ten
 // opening charge stays), and the series goes on from the new date. Earlier months are an opening balance instead:
 // opening_balance (full service) may be set while there is no opening charge, which is then made on collect_from in
 // the same batch (not left to ensureCharges, which skips it for a move-out before the first rent charge).
-export async function updateTenancy({ request, env, admin, params: [id] }) {
+// guard: statements a caller adds to the batch, failing it when what that caller read moved on (ADM-19).
+export async function updateTenancy({ request, env, admin, params: [id], guard = [] }) {
   const law = await tenancyLaw(env), sentBody = asObject(await readJson(request));
   const cur = await loadTenancy(env, id), today = jerseyToday(), body = withRegime(law, sentBody, cur);
   const locked = { ...LOCKED, ...(cur.has_opening ? { opening_balance: OPENING } : {}) };
@@ -446,7 +447,7 @@ export async function updateTenancy({ request, env, admin, params: [id] }) {
   const info = calendarReady(env) && changed("deposit_received_on")
     ? [syncTenantChecks(env, (await readLegal(env)).periods, today, cur.rental_id)] : [];
   const before = "tenancy_id = ? AND kind = 'rent' AND edited = 0 AND due_on < ?";
-  await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [rentalEvent(env, { rental_id: cur.rental_id,
+  await save(env, admin, "tenancies", cur, body, r.value, (keys, of) => [...guard, rentalEvent(env, { rental_id: cur.rental_id,
     tenancy_id: cur.id, actor: admin, type: "tenancy.updated", data: { before: of(cur), after: of(r.value), ...checked.note } }), ...info,
   ...(moved ? [removed(env, before, cur.id, to), env.DB.prepare(`DELETE FROM charges WHERE ${before}`).bind(cur.id, to),
     firstCharge(env, today, cur.id), ensureCharges(env, today, cur.id)] : []),

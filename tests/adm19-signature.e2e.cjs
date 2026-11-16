@@ -73,7 +73,7 @@ const plusDays = (date, n) => new Date(Date.parse(date + 'T12:00:00Z') + n * 864
       const current = (await request(page, `/admin/tenancies/${tid}/signatures`)).data;
       assert.equal((await request(page, `/admin/tenancies/${tid}/signatures`, 'PUT', { expectedRevision: current.revision,
         contract_revision: current.contract_revision, tenants: 2, signatures: current.signatures.map(s => ({ party: s.party,
-          signed_on: s.signed_on, evidence_ref: s.evidence_ref })) })).status, 200);
+          signed_on: s.signed_on, evidence_ref: s.party === 'tenant_1' ? `Signing service, envelope SYN-${width}b` : s.evidence_ref })) })).status, 200);
       await party('Tenant 2').getByLabel('Signed on').fill(today);
       await party('Tenant 2').getByLabel('Where it is recorded').fill(`Paper copy, office file F-${width}`);
       await form.getByRole('button', { name: 'Save signatures' }).click();

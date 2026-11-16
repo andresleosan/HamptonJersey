@@ -3,15 +3,21 @@
 import { json } from "../http.js";
 import { answer, ownBody } from "./tenancy-origins.js";
 import { updateTenancy } from "./rent.js";
-import { acceptedAgreementDate, readSignatures, saveSignatures } from "../tenancy-signatures.js";
+import { acceptedAgreementDate, readSignatures, saveSignatures, signaturesGuard, stillSignatures } from "../tenancy-signatures.js";
 
 // ADM-19 x ADM-20: the proposed agreement date, once a person accepts it, goes through the tenancy's own save, so its
 // checks, regime label, history line and compare-and-set on updated_at (the tenancy the person read) all apply.
 async function acceptAgreementDate({ request, env, admin, params: [id] }) {
   const b = await ownBody(request, id), agreement_on = await acceptedAgreementDate(env, b);
   const body = { agreement_on, updated_at: b.updated_at, ...("law_confirmed" in b ? { law_confirmed: b.law_confirmed } : {}) };
-  return updateTenancy({ request: new Request("https://hampton.internal/", { method: "PUT", body: JSON.stringify(body) }), env, admin,
-    params: [id] });
+  // The tenancy's save carries a guard on the signatures' revision: a signatures save landing meanwhile fails its batch.
+  try {
+    return await updateTenancy({ request: new Request("https://hampton.internal/", { method: "PUT", body: JSON.stringify(body) }), env,
+      admin, params: [id], guard: [signaturesGuard(env, Number(id), b.expectedRevision)] });
+  } catch (e) {
+    await stillSignatures(env, Number(id), b.expectedRevision);
+    throw e;
+  }
 }
 
 export default [
