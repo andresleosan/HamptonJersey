@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+16-nov-2026 · **PRE-14, un paso más (apagada):** si una escritura queda abierta por un fallo, un admin puede verla y cerrarla desde la API aunque la copia semanal tenga la web en pausa (`/admin/backups/permits`). Sin cambio visible en el panel. Progreso 139 → 139 de 211.
+
 16-nov-2026 · **VIS-14 hecha:** cuando varias personas piden ver la misma casa, Viewings lo avisa y ofrece proponerles horas seguidas con un negociador o crear un open viewing con plazas (de 1 a 50, una por persona, sin sobreventa); el open viewing cuenta como una cita para las reglas del negociador y el calendario ocupado muestra sus plazas sin nombres. Migración 0104. **VIS-12 construida y apagada:** la cita confirmada puede ir al Google Calendar del negociador (en la cola de Luis: credenciales de Google y migraciones 0105 y 0106). **PRE-14:** disparo semanal de la copia y aviso en el Inbox construidos, apagados. Progreso 138 → 139.
 
 16-nov-2026 · **PRE-06 construida, en la cola de Luis:** el servidor ya sabe comprobar Cloudflare Access en el panel, la API de admin y los medios privados (ruta Staff), y una barrera aparte para Hermes y QA; el panel pide volver a iniciar sesión en otra pestaña sin perder lo escrito. Todo apagado tras PRE06_ACCESS_READY: lo que falta es crear las aplicaciones de Access en Cloudflare, poner sus variables y actualizar la copia del proxy de Hermes del VPS (pasos en la ficha). Progreso 138 → 138.

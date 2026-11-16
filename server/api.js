@@ -60,6 +60,7 @@ import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
 import { calendarRoutes, calendarOffRoutes, calendarReady } from "./viewing-calendar.js";
 import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./backup-write-gate.js";
+import backupRoutes, { BACKUP_ADMIN } from "./routes/backups.js";
 
 const ACCESS_MESSAGES = {
   access_required: "Your security sign-in has expired. Sign in again to continue.",
@@ -78,7 +79,9 @@ const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRou
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
-  const res = backupReady(env) ? await gated(request, env, segments, waitUntil) : await route(request, env, segments, waitUntil);
+  // PRE-14: closing an orphan permit has to work while the gate is closed, so it runs outside it.
+  const outside = backupReady(env) && segments[0] === "admin" && BACKUP_ADMIN.test("/" + segments.join("/"));
+  const res = backupReady(env) && !outside ? await gated(request, env, segments, waitUntil) : await route(request, env, segments, waitUntil);
   // Admin, session and chat answers carry personal data: never cache them anywhere.
   // PRE-06: except a panel image from the Staff media route, kept in that browser's cache only (server/media.js).
   const staffImage = segments[0] === "admin" && segments[1] === "media" && res.headers.get("cache-control") === STAFF_IMAGE_CACHE;
@@ -149,6 +152,7 @@ async function route(request, env, segments, waitUntil) {
     if (purposeReady(env)) routes = [...routes, ...marketingPreferenceRoutes]; // PRE-10: needs migration 0096
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
+    if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
     routes = [...routes, ...(calendarReady(env) ? calendarRoutes : calendarOffRoutes)]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
