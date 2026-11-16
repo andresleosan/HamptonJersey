@@ -202,3 +202,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [BUS-08] Compactar las observaciones diarias que no cambian (hoy una fila por anuncio y día en market_observations); pantalla del panel para la pasada diaria y sus anuncios no encontrados; enlace de la tarea del Inbox a esa pantalla · 16-nov-2026
 
 - ADM-21 (16-nov-2026): adaptar el CSV de contabilidad al programa que use Hampton (Xero, Sage, QuickBooks) si su importación pide otro formato; hoy es un CSV genérico documentado en docs/roadmap/work/ADM-21/columns.md.
+- Rentals (16-nov-2026, visto en ADM-19): a 390 px con zoom al 200 % la página de Rentals se desborda en horizontal (lista de cumplimiento y tarjeta de Repairs); el e2e de ADM-16 lo detecta. Ajustar su maquetación.
