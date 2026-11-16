@@ -78,6 +78,47 @@ function Review({ id, onApproved }) {
   </div>;
 }
 
+// AGE-11 for ANA-06: the client confirmed receiving this home of a sent link, with the real time and the logged
+// conversation in which they said so. Correcting or revoking it keeps the earlier revision, with a reason. Sends nothing.
+function Receipt({ grantId, o, conversations, onSaved }) {
+  const r = o.receipt, inForce = r?.status === "verified", id = `rc-${grantId}-${o.match_id}`;
+  const [mode, setMode] = useState(null), [when, setWhen] = useState(""), [evidence, setEvidence] = useState(""), [reason, setReason] = useState("");
+  const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  const save = async e => {
+    e.preventDefault();
+    if (busy) return;
+    if (mode === "record" && !when) return setMsg({ text: "Enter when the client received it. If nobody knows, do not record a receipt." });
+    setBusy(true); setMsg(null);
+    const base = { match_id: o.match_id, revision: r?.revision ?? 0, reason };
+    try {
+      onSaved(await api(`/admin/presentations/${grantId}/receipts`, { method: "POST", body: mode === "revoke" ? { ...base, status: "revoked" }
+        : { ...base, status: "verified", received_at: new Date(when).toISOString(), evidence_event_id: Number(evidence) || null } }));
+      setMode(null); setWhen(""); setEvidence(""); setReason("");
+    } catch (err) { setMsg({ text: err.message }); }
+    finally { setBusy(false); }
+  };
+  return <div>
+    <span className="muted">{inForce ? `Client confirmed receipt: received ${fmtDate(r.received_at)} (recorded by ${r.recorded_by}).`
+      : r ? "Receipt revoked." : "Receipt not confirmed yet."}</span>
+    {!mode ? <div className="inline">
+      <button type="button" className="btn ghost sm" onClick={() => setMode("record")}>{inForce ? "Correct receipt" : "Client confirmed receipt"}</button>
+      {inForce && <button type="button" className="btn ghost sm danger" onClick={() => setMode("revoke")}>Revoke receipt</button>}
+    </div> : <form className="grid2" onSubmit={save} noValidate aria-label={`Receipt of ${o.listing_id}`}>
+      {mode === "record" && <>
+        <label>When the client received it<input type="datetime-local" step="1" value={when} onChange={e => setWhen(e.target.value)}
+          aria-describedby={msg ? `${id}-msg` : undefined} /></label>
+        <label>Logged conversation in which they confirmed it<select value={evidence} onChange={e => setEvidence(e.target.value)}>
+          <option value="">Choose…</option>{conversations.map(c => <option key={c.id} value={c.id}>{fmtDate(c.at)} · {c.actor}</option>)}</select></label>
+        {!conversations.length && <p className="muted">Log the conversation with the client first (Contact card, Log conversation).</p>}
+      </>}
+      {(mode === "revoke" || r) && <label>Reason<input value={reason} maxLength={300} autoComplete="off" onChange={e => setReason(e.target.value)} /></label>}
+      <div className="inline"><button className="btn ghost sm" disabled={busy}>{busy ? "Saving…" : mode === "revoke" ? "Revoke receipt" : "Save receipt"}</button>
+        <button type="button" className="btn ghost sm" onClick={() => { setMode(null); setMsg(null); }}>Cancel</button></div>
+    </form>}
+    {msg && <p id={`${id}-msg`} role="alert" className="err">{msg.text}</p>}
+  </div>;
+}
+
 export default function PresentationLinks({ applicantId }) {
   const [data, setData] = useState(null), [picked, setPicked] = useState(() => new Set()), [link, setLink] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [open, setOpen] = useState(null);
@@ -125,7 +166,8 @@ export default function PresentationLinks({ applicantId }) {
             ? `Presentation approved by ${g.approval.approved_by}, ${fmtDate(g.approval.approved_at)} (version ${g.approval.version}).`
             : "Not reviewed yet: review and approve the presentation before you send the link."}</span></>}</p>
         <ul>{g.options.map(o => <li key={o.match_id}>{o.listing_id} · {o.title}: {o.choice ? <><strong>{ANSWER[o.choice]}</strong>
-          <span className="muted">, {fmtDate(o.answered_at)}</span>{o.reason && <> · “{o.reason}”</>}</> : <span className="muted">no answer yet</span>}</li>)}</ul>
+          <span className="muted">, {fmtDate(o.answered_at)}</span>{o.reason && <> · “{o.reason}”</>}</> : <span className="muted">no answer yet</span>}
+          {data.review && g.sent_at && <Receipt grantId={g.id} o={o} conversations={data.conversations} onSaved={setData} />}</li>)}</ul>
         {data.review && !g.sent_at && !g.revoked_at && (open === g.id ? <Review id={g.id} onApproved={reload} />
           : <div className="inline"><button type="button" className="btn ghost sm" onClick={() => setOpen(g.id)}>Review before sending</button></div>)}
         {!g.revoked_at && <div className="inline">
