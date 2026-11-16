@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F6",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503.",
   "falta": "Aplicar la migración 0109. PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
   "bloqueo": "",
@@ -30,7 +30,7 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Comprobar con llamadas reales de la app de Meta (PRE-02)",
   "resources": [
     "meta-webhooks"
   ],

@@ -5,7 +5,7 @@
   "origen": "texto",
   "fase": "F6",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Construido apagado: webhook firmado (PRE-08) guarda los mensajes de la página en channel_conversations/channel_messages (0109, retención 30 días como el chat web); Messages muestra Website chat | Facebook con Waiting/Answered/Handled, vínculo a contacto (MSG-03) y respuesta de una persona. Enviar exige META_SEND_READY, ventana de 24 h, messaging_type RESPONSE y que Pause all outbound no esté activo.",
   "falta": "Aplicar la migración 0109. PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
   "bloqueo": "",
@@ -40,7 +40,7 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Trámite de Meta (PRE-02) y Luis encendiendo META_MESSAGES_READY y META_SEND_READY tras aplicar 0109",
   "resources": [
     "web-chat",
     "meta-channel"

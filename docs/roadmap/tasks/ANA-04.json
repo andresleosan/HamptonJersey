@@ -5,7 +5,7 @@
   "origen": "texto",
   "fase": "F7-A",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "La medición de filtros queda conectada tras ANA04_SEARCH_STATS_READY: POST /api/search-stats cuenta marginales con tope de 5.000 al día, /api/config avisa a la web, Insights lee Search trends y la retención borra lo anterior a 90 días. Migración aditiva 0108 creada. Apagado, todo responde como antes.",
   "falta": "Aplicar la migración 0108 en D1. Aprobar el aviso de privacidad (PRE-09) y la retención de 90 días (PRE-12) antes de encender. Después, encender ANA04_SEARCH_STATS_READY en los dos wrangler.toml y comprobar el recorrido real. La cobertura real no se ha comprobado.",
   "bloqueo": "",
@@ -49,7 +49,7 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Luis: OK a mencionarlo en el aviso de privacidad (PRE-09) y a guardar 90 días de totales; luego aplicar 0108 y ANA04_SEARCH_STATS_READY",
   "resources": [
     "analytics-contract"
   ],

@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F0",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Construido apagado (REG15_ALERTS_READY=0 en los dos wrangler.toml). Un visitante deja email y criterios con consentimiento explícito; confirma con doble opt-in; queda como contacto con el permiso PRE-10 property_alerts por email. El reloj cruza las casas nuevas o cambiadas con el mismo motor (evaluate) y deja un correo al día en la cola existente; cada alerta lleva baja. Migración 0107 escrita, sin aplicar.",
   "falta": "Aplicar 0107 en producción. Decisión de Luis de abrir un formulario público que recoge emails y envía alertas (incluye su aprobación permanente de las dos plantillas en app_settings.saved_searches). AUT-17 activo (EMAIL_SERVICE_READY). Que el aviso de privacidad (PRE-09) mencione estas alertas y su versión se escriba en app_settings.saved_searches. Antes de encender (revisión independiente 16-nov, menores): decidir si recibir alertas cuenta como actividad para la retención de 12 meses.",
   "bloqueo": "Correo (AUT-17) · decisión de Luis · aviso PRE-09",
@@ -40,7 +40,7 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "Luis: abrir el formulario público (aplicar 0107, REG15_ALERTS_READY en los dos wrangler, fila app_settings.saved_searches), con AUT-17 activo y el aviso PRE-09",
   "resources": [
     "matching-contract",
     "email-pipeline",
