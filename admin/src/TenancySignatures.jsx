@@ -27,7 +27,26 @@ const label = (party, tenants) => (party === "landlord" ? "Landlord" : tenants =
 const toForm = d => ({ tenants: String(d.tenants), rows: Object.fromEntries(d.signatures.map(s => [s.party,
   { signed_on: s.signed_on, evidence_ref: s.evidence_ref }])) });
 
-export function TenancySignatures({ id, tick }) {
+// ADM-20's carry-over: the last signature's day, proposed as the agreement date. Nothing is recorded until a person
+// accepts it; the tenancy's own save then checks it (a confirmation the 2025 rules ask for is given in Edit details).
+function AgreementDate({ id, d, onDone, onStale }) {
+  const a = d.agreement, s = useSave(`ad${id}`);
+  const accept = async () => {
+    const ok = await s.run(() => api(`/admin/tenancies/${id}/signatures/agreement-date`, { method: "POST", body: { tenancy_id: id,
+      expectedRevision: d.revision, agreement_on: a.proposed, updated_at: a.updated_at } }), "");
+    if (ok) onDone();
+  };
+  const fields = Object.values(s.fe.errors);
+  return <div className="inline" role="group" aria-label="Proposed agreement date">
+    <p>The last party signed on <strong>{fmtDay(a.proposed)}</strong>{a.recorded ? <>, but the agreement date recorded is {fmtDay(a.recorded)}</>
+      : <>; the agreement date is not recorded</>}. Recorded as the agreement date, the {a.regime} rules apply.</p>
+    <button type="button" className="btn ghost sm" disabled={s.busy} onClick={accept}>Use {fmtDay(a.proposed)} as the agreement date</button>
+    {s.msg && !s.msg.ok && <p role="alert" className="err">{[s.msg.text, ...fields].join(" ")}{fields.length
+      ? " Record it in Edit details to answer this." : ""}{s.msg.stale && <> <button type="button" className="btn ghost sm" onClick={onStale}>Reload</button></>}</p>}
+  </div>;
+}
+
+export function TenancySignatures({ id, tick, onChanged }) {
   const ready = useSignatureReady(), [d, setD] = useState(null), [err, setErr] = useState(null), [form, setForm] = useState(null);
   const p = `sg${id}`, h = `h-${p}`, s = useSave(p), { fe } = s, sent = useRef([]), today = jerseyToday();
   const load = () => api(`/admin/tenancies/${id}/signatures`).then(x => { setD(x); setErr(null); }, e => setErr(e.message));
@@ -65,6 +84,7 @@ export function TenancySignatures({ id, tick }) {
     {d.signatures.length > 0 && <ul className="plain-list" aria-label="Signatures checked">{d.signatures.map(x => <li key={x.party}>
       <span><strong>{label(x.party, d.tenants)}</strong> signed {fmtDay(x.signed_on)}<span className="cell-note">{x.evidence_ref}</span>
         <span className="muted cell-note">Checked by {x.reviewed_by} on {fmtDate(x.reviewed_at)}</span></span></li>)}</ul>}
+    {d.agreement?.proposed && !form && <AgreementDate id={id} d={d} onDone={() => { load(); onChanged?.(); }} onStale={load} />}
     {!form && <Note msg={s.msg} />}
     {!form ? <div className="inline"><button type="button" className="btn ghost sm" onClick={() => { s.setMsg(null); setForm(toForm(d)); }}>
       {d.revision ? "Update signatures" : "Record signatures"}</button></div>

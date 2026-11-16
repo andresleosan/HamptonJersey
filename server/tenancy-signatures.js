@@ -3,6 +3,8 @@
 // is recorded (text, never a file or a link). The reviewer and the time are the session's and the server's. There is no
 // signing provider, callback, upload or message here, and nothing changes the tenancy, its charges or ADM-06's records.
 import { fail, now } from "./http.js";
+import { tenancyLaw } from "./legal-terms.js";
+import { regimeOf } from "./rentals.js";
 import { ensureChanged, rentalEvent } from "./routes/rentals.js";
 import { evidenceRef } from "./tenancy-origins.js";
 import { jerseyToday, realDate } from "./viewings.js";
@@ -38,10 +40,32 @@ export async function readSignatures(env, tenancy_id) {
   const t = await tenancyRow(env, tenancy_id);
   const [row, contract_revision] = await Promise.all([
     env.DB.prepare("SELECT * FROM tenancy_signature_evidence WHERE tenancy_id = ?").bind(t.id).first(), contractRevision(env, t.id)]);
-  const record = row && { ...row, signatures: JSON.parse(row.signatures) };
+  const record = row && { ...row, signatures: JSON.parse(row.signatures) }, st = status(record, contract_revision);
   return { tenancy_id: t.id, revision: row?.revision ?? 0, contract_revision, tenants: row?.tenants ?? 1,
-    signatures: record?.signatures ?? [], status: status(record, contract_revision),
+    signatures: record?.signatures ?? [], status: st, agreement: await agreement(env, t.id, st, record),
     updated_at: row?.updated_at ?? null, updated_by: row?.updated_by ?? null };
+}
+
+// ADM-20's carry-over, only with its 2025 rules on (null otherwise): the agreement is made when the last party signs,
+// so once every signature is checked that day is proposed as the tenancy's agreement date, unless already recorded.
+// A proposal only: nothing here writes it. updated_at: the tenancy's, for the save that accepts it.
+async function agreement(env, id, st, record) {
+  const law = await tenancyLaw(env);
+  if (!law) return null;
+  const t = await env.DB.prepare("SELECT agreement_on, updated_at FROM tenancies WHERE id = ?").bind(id).first();
+  const last = st.state === "complete" ? record.signatures.reduce((a, s) => (s.signed_on > a ? s.signed_on : a), "") : null;
+  const proposed = last && last !== t.agreement_on ? last : null;
+  return { recorded: t.agreement_on, proposed, regime: proposed && regimeOf(proposed, law), updated_at: t.updated_at };
+}
+
+// A person accepts the proposed agreement date: the one they saw (agreement_on), from the signatures they read
+// (expectedRevision). Answers the date for the tenancy's own save to record, which checks the tenancy they read.
+export async function acceptedAgreementDate(env, { tenancy_id, expectedRevision, agreement_on }) {
+  const d = await readSignatures(env, tenancy_id);
+  if (!d.agreement?.proposed) fail(409, "No agreement date is proposed now. Reload the page.");
+  if (d.revision !== expectedRevision) fail(409, STALE);
+  if (d.agreement.proposed !== agreement_on) fail(409, "The proposed agreement date changed meanwhile. Reload to see it.");
+  return d.agreement.proposed;
 }
 
 function validate({ expectedRevision, contract_revision, tenants, signatures }) {

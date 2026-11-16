@@ -358,7 +358,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
     <TenancyInspections id={id} tick={tick} onRepair={refresh} />
     <TenancyRecords id={id} tick={tick} />
-    <TenancySignatures id={id} tick={tick} />
+    <TenancySignatures id={id} tick={tick} onChanged={refresh} />
     <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />
 
     {full && <><h3 id={`h-charges-${id}`}>Charges</h3>

@@ -92,6 +92,15 @@ const plusDays = (date, n) => new Date(Date.parse(date + 'T12:00:00Z') + n * 864
         .map(el => `${el.tagName}.${el.className}`)), [], 'signatures fit at 200% zoom');
       await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
 
+      // ADM-20's carry-over: the last signature's day is proposed as the agreement date, and recorded only when accepted.
+      const proposal = sig.getByRole('group', { name: 'Proposed agreement date' });
+      await proposal.getByText(/^The last party signed on .*; the agreement date is not recorded\./).waitFor();
+      assert.equal((await request(page, `/admin/tenancies/${tid}`)).data.tenancy.agreement_on, null, 'a proposal is not recorded');
+      await proposal.getByRole('button', { name: /^Use .* as the agreement date$/ }).click();
+      await proposal.waitFor({ state: 'detached' });
+      await card.getByText(/^Agreed /).waitFor();
+      assert.equal((await request(page, `/admin/tenancies/${tid}`)).data.tenancy.agreement_on, today, 'accepted: the last signature\'s day');
+
       // History: counts only, never the references.
       await page.reload();
       await card.getByText(/^Signed externally, reviewed by/).waitFor();

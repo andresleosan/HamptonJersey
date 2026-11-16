@@ -54,7 +54,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/adm-06-tenancy-origin.e2e.cjs" ? { ADM06_TENANCY_ORIGIN_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-16-tenancy-exit.e2e.cjs" ? { ADM16_TENANCY_EXIT_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm-13-inspections.e2e.cjs" ? { ADM13_INSPECTIONS_READY: "1" } : {}),
-      ...(process.env.E2E_SCRIPT === "tests/adm19-signature.e2e.cjs" ? { ADM19_SIGNATURE_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/adm19-signature.e2e.cjs" ? { ADM19_SIGNATURE_READY: "1", ADM20_TENANCY_LAW_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm12-repairs.e2e.cjs" ? { ADM12_SUPPLIERS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/not-05-missing-payments.e2e.cjs" ? { NOT05_MISSING_PAYMENTS_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm09-arrears.e2e.cjs" ? { ADM09_ARREARS_READY: "1" } : {}),

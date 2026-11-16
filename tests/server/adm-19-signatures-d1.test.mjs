@@ -8,6 +8,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { call, adminCookie, SECRET } from "./helpers.mjs";
 import { jerseyToday, plusDays } from "../../server/viewings.js";
+import { regimeOf } from "../../server/rentals.js";
+import { tenancyLaw } from "../../server/legal-terms.js";
 import { saveSignatures, signatureReady } from "../../server/tenancy-signatures.js";
 
 const TS = "2026-10-07T10:00:00.000Z", T = jerseyToday(), START = plusDays(T, -30);
@@ -61,6 +63,9 @@ test("off by default: unset or '0' answers 404 everywhere and writes nothing; wr
     const put = await req("PUT", "/admin/tenancies/1/signatures", { expectedRevision: 0, contract_revision: 0, tenants: 1,
       signatures: [LANDLORD] }, undefined, off);
     assert.equal(put.status, 404);
+    const accept = await req("POST", "/admin/tenancies/1/signatures/agreement-date", { expectedRevision: 1, agreement_on: T,
+      updated_at: TS }, undefined, { ...off, ADM20_TENANCY_LAW_READY: "1" });
+    assert.equal(accept.status, 404);
   }
   assert.equal(await n("tenancy_signature_evidence"), 0);
   assert.equal(await n("rental_events", "type LIKE 'tenancy.signatures%'"), 0);
@@ -181,4 +186,37 @@ test("the signed contract's reference (ADM-06) moving on: a form that read the o
   assert.equal(again.status, 200);
   assert.deepEqual(again.data.signatures.map(s => s.reviewed_by), ["colleague@example.test", "colleague@example.test"]);
   assert.equal(again.data.status.state, "complete");
+});
+
+// ADM-20's carry-over: once every party signed, the last signature's day is proposed as the agreement date. It is only a
+// proposal: saving signatures never writes it, and a person accepts it through the tenancy's own save (ADM-20's checks,
+// regime label and history), against the signatures and the tenancy as they read them.
+test("the last signature's day is proposed as the agreement date; only a person's acceptance records it", async () => {
+  const law = { ...env, ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" };
+  // Without the 2025 rules there is no agreement date to propose.
+  assert.equal((await req("GET", "/admin/tenancies/3/signatures")).data.agreement, null);
+  assert.equal((await req("POST", "/admin/tenancies/3/signatures/agreement-date", { expectedRevision: 2, agreement_on: TENANT1.signed_on,
+    updated_at: TS })).status, 409);
+  const d = (await req("GET", "/admin/tenancies/3/signatures", undefined, undefined, law)).data;
+  assert.equal(d.status.state, "complete");
+  assert.deepEqual([d.agreement.recorded, d.agreement.proposed, d.agreement.updated_at], [null, TENANT1.signed_on, TS]);
+  assert.equal((await one("SELECT agreement_on FROM tenancies WHERE id = 3")).agreement_on, null, "saving signatures never writes it");
+  // Incomplete signatures propose nothing.
+  assert.equal((await req("GET", "/admin/tenancies/2/signatures", undefined, undefined, law)).data.agreement.proposed, null);
+  const accept = (body, who) => req("POST", "/admin/tenancies/3/signatures/agreement-date", body, who, law);
+  const good = { tenancy_id: 3, expectedRevision: d.revision, agreement_on: TENANT1.signed_on, updated_at: TS };
+  assert.equal((await call(law, "POST", "/admin/tenancies/3/signatures/agreement-date", { body: good })).status, 401);
+  assert.equal((await accept({ ...good, agreement_on: LANDLORD.signed_on })).status, 409, "only the date proposed");
+  assert.equal((await accept({ ...good, expectedRevision: d.revision - 1 })).status, 409, "against the signatures read");
+  assert.equal((await accept({ ...good, updated_at: "2026-01-01T00:00:00.000Z" })).status, 409, "against the tenancy read");
+  assert.equal((await accept({ ...good, tenancy_id: 1 })).status, 400);
+  assert.equal((await one("SELECT agreement_on FROM tenancies WHERE id = 3")).agreement_on, null);
+  const ok = await accept(good, "colleague@example.test");
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  const t = await one("SELECT agreement_on, regime, updated_by FROM tenancies WHERE id = 3"), policy = await tenancyLaw(law);
+  assert.deepEqual([t.agreement_on, t.regime, t.updated_by], [TENANT1.signed_on, regimeOf(TENANT1.signed_on, policy), "colleague@example.test"]);
+  const ev = await one("SELECT data FROM rental_events WHERE tenancy_id = 3 AND type = 'tenancy.updated' ORDER BY id DESC LIMIT 1");
+  assert.equal(JSON.parse(ev.data).after.agreement_on, TENANT1.signed_on);
+  const after = (await req("GET", "/admin/tenancies/3/signatures", undefined, undefined, law)).data.agreement;
+  assert.deepEqual([after.recorded, after.proposed], [TENANT1.signed_on, null], "nothing left to propose");
 });

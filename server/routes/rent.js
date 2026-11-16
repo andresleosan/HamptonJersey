@@ -419,7 +419,7 @@ const firstCharge = (env, today, id) => env.DB.prepare(`INSERT INTO charges (ten
 // opening charge stays), and the series goes on from the new date. Earlier months are an opening balance instead:
 // opening_balance (full service) may be set while there is no opening charge, which is then made on collect_from in
 // the same batch (not left to ensureCharges, which skips it for a move-out before the first rent charge).
-async function updateTenancy({ request, env, admin, params: [id] }) {
+export async function updateTenancy({ request, env, admin, params: [id] }) {
   const law = await tenancyLaw(env), sentBody = asObject(await readJson(request));
   const cur = await loadTenancy(env, id), today = jerseyToday(), body = withRegime(law, sentBody, cur);
   const locked = { ...LOCKED, ...(cur.has_opening ? { opening_balance: OPENING } : {}) };
