@@ -282,7 +282,7 @@ const PRIOR_CONSENT_DATE = `json_extract(payload, '$.before.marketing_opt_in_at'
 const SAFE_PRIOR_DATE = `date(substr(${PRIOR_CONSENT_DATE},1,10),'+0 days') = substr(${PRIOR_CONSENT_DATE},1,10)
   AND julianday(${PRIOR_CONSENT_DATE}) IS NOT NULL
   AND (length(${PRIOR_CONSENT_DATE}) = 10 OR substr(${PRIOR_CONSENT_DATE},12,2) BETWEEN '00' AND '23')`;
-const PENDING_MARKETING = `COALESCE((
+export const PENDING_MARKETING = `COALESCE((
   WITH history AS MATERIALIZED (
     SELECT id,type,CASE WHEN type IN ('applicant.duplicate_submitted','contact.consent_changed') AND typeof(data) = 'text'
       THEN CASE WHEN length(CAST(substr(data,1,32769) AS BLOB)) <= 32768

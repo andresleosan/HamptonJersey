@@ -34,6 +34,8 @@ ADM11_CALENDAR_READY = "1"
 AGE05_SEND_READY = "0"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.
 BACKUP_READY = "0"
+# PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, not applied). Sends nothing; keep equal in the other wrangler.toml.
+PRE10_PURPOSE_READY = "0"
 
 [triggers]
 crons = ["*/10 * * * *"]

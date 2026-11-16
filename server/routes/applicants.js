@@ -12,6 +12,8 @@ import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCount
 import { NO_SALE, EXEMPT, EXPIRING, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
+import { purposeReady, readPreferences } from "../communication-preferences.js";
+import { PENDING_MARKETING } from "./public.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
@@ -232,7 +234,8 @@ async function detail({ env, params: [id] }) {
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
-    ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }) });
+    ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
+    ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id) }) });
 }
 
 // Widen inspects lightweight global pairs, independently of the visible page.
@@ -590,6 +593,11 @@ async function updateContact({ request, env, admin, params: [id] }) {
   const marketing = !Object.hasOwn(body, "marketing") ? cur.marketing_opt_in_at : body.marketing ? cur.marketing_opt_in_at ?? ts : null;
   const consent = marketing !== cur.marketing_opt_in_at;
   if (!keys.length && !consent) return json({ contact: cur });
+  // PRE-10: switched on, the panel never records an opt-in of its own: it confirms only one the website sent after the
+  // last withdrawal (decision 1). A withdrawal meanwhile changes the contact's version, so the save below gets 409.
+  if (consent && marketing && purposeReady(env) && (await env.DB.prepare(`SELECT ${PENDING_MARKETING} AS decision
+    FROM contacts WHERE id = ?`).bind(cur.id).first())?.decision !== 1)
+    fail(409, "There is no marketing opt-in from the website waiting to be confirmed. Reload the contact.");
   // The panel only confirms an opt-in the website sent again, so a consent with no source came from the web.
   const consent_source = marketing && cur.consent_source == null ? "web" : cur.consent_source;
 
