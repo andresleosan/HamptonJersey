@@ -78,7 +78,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    // A stage change takes a new mark off in the same save.
    await button('Ready for the team').click();await status('Marked ready for the team.');
    await counted(1);
-   await page.getByLabel('Stage',{exact:true}).selectOption('viewing');
+   await page.getByLabel('Stage').selectOption('viewing');
    await page.getByRole('button',{name:'Apply stage',exact:true}).click();
    await page.getByRole('status').filter({hasText:'Stage changed to Viewing.'}).waitFor();
    await button('Ready for the team').waitFor();
