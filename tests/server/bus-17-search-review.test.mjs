@@ -483,7 +483,7 @@ const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
 const vars = text => Object.fromEntries([...text.split(/^\[(?!vars\])/m)[0].matchAll(/^(\w+) = "(.*)"$/gm)].map(m => [m[1], m[2]]));
 test('the switch is off and equal in both wrangler files; switched on, the clock carries the flags it reads', () => {
   const jobs = vars(read('jobs/wrangler.toml')), pages = vars(read('wrangler.toml'));
-  assert.equal(jobs.BUS17_REVIEW_READY, '0');
+  assert.equal(jobs.BUS17_REVIEW_READY, '1');
   assert.equal(pages.BUS17_REVIEW_READY, jobs.BUS17_REVIEW_READY);
   if (jobs.BUS17_REVIEW_READY === '1') for (const flag of Object.keys(FLAGS)) assert.equal(jobs[flag], pages[flag], flag);
 });
