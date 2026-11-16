@@ -56,10 +56,13 @@ const IMAGE = readFileSync('tests/fixtures/media-upload/baseline.jpg'), THUMB = 
       page.on('request', r => { if (r.url().includes('/api/') && !['GET', 'HEAD'].includes(r.method())) sent.push(`${r.method()} ${new URL(r.url()).pathname}`); });
       const listingWrites = () => sent.filter(w => w.endsWith(` ${LISTING}`)).map(w => w.split(' ')[0]);
       const expired = r => r.fulfill({ status: 302, headers: { location: ACCESS_LOGIN } });
-      await page.route('**/api/**', expired);
+      await page.waitForLoadState('networkidle'); // the editor's own loads are over before the draft is typed
       const draft = `Draft kept while Access asks again (${width})`;
       await title.fill(draft);
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      const save = page.getByRole('button', { name: 'Save', exact: true });
+      await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Save' && !b.disabled));
+      await page.route('**/api/**', expired);
+      await save.click();
       const dialog = page.getByRole('dialog', { name: 'Sign in again to continue' });
       await dialog.waitFor();
       await page.getByText('may or may not have been saved').waitFor();
