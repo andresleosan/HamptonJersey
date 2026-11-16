@@ -60,6 +60,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // The panel opt-in it walks through exists only with PRE-10 off.
       ...(process.env.E2E_SCRIPT === "tests/pre10-objection.e2e.cjs" ? { PRE10_PURPOSE_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pre12-requests.e2e.cjs" ? { PRE12_REQUESTS_READY: "1", PRE12_VIEWING_REVIEW_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/pre12-tenancy-link.e2e.cjs" ? { PRE12_REQUESTS_READY: "1", PRE12_TENANCY_LINK_READY: "1" } : {}),
       // PRE-06: switched off, as published; the test starts its own switched-on fixture for the closed Staff checks.
       ...(process.env.E2E_SCRIPT === "tests/pre06-access.e2e.cjs" ? { PRE06_ACCESS_READY: "0" } : {}),
       PUB21_DRIVE_READY: "1", // Properties Queue's Drive imports: tested switched on, off in production (master plan)

@@ -134,7 +134,9 @@ function Detail({ id }) {
         : <p>No holds: nothing the cleanup keeps for this contact.</p>}</div>}
     {d.erasure && <Erasure plan={d.erasure} />}
     {d.viewings && <ViewingReview r={r} viewings={d.viewings} team={team} done={done} reload={load} />}
-    {COPY_KINDS.includes(r.kind) && <Copy key={`p${r.revision}-${d.viewings?.filter(v => v.confirmed).map(v => v.id).join(".")}`}
+    {d.tenancies && <TenancyReview r={r} tenancies={d.tenancies} team={team} done={done} reload={load} />}
+    {COPY_KINDS.includes(r.kind) && <Copy key={`p${r.revision}-${d.viewings?.filter(v => v.confirmed).map(v => v.id).join(".")}-${
+      d.tenancies?.filter(t => t.link?.current).map(t => t.id).join(".")}`}
       r={r} team={team} onSaved={done("Copy marked as reviewed.")} reload={load} />}
     {open ? <Close key={`x${r.revision}`} r={r} onSaved={done("Request closed.")} reload={load} />
       : <div className="card"><h2>Result</h2><p>{RESULTS[r.result]}, recorded by {nameOf(team, r.closed_by)} on {fmtDate(r.closed_at)}.</p>
@@ -225,14 +227,19 @@ function Identity({ r, team, onSaved, reload }) {
   </div>;
 }
 
+const BY_HAND = {
+  rentals: () => "Rentals: not linked to contacts. Check Rentals by hand.",
+  viewing_requests: n => `Viewing requests with the same email or phone: ${n}. Other people can share an email or phone: check each one before deleting it from Viewings.`,
+  tenancies: n => `Tenancies linked to this contact: ${n}. They are kept under their own rules and never deleted from here.`,
+  tenancy_candidates: n => `Tenancies still to check below: ${n}.`,
+};
 function Erasure({ plan }) {
   return <div className="card"><h2>What a deletion would remove</h2>
     <p className="muted">Nothing is deleted here. To delete, archive each search and use Delete on the applicant.</p>
     {!plan.can_delete && <p className="warn">Held: the holds above keep this contact. Resolve them before deleting.</p>}
     <ul>{plan.remove.map(x => <li key={x.item}>{REMOVE[x.item]}: {x.count}</li>)}</ul>
     <h3>To check by hand</h3>
-    <ul>{plan.by_hand.map(x => <li key={x.item}>{x.item === "rentals" ? "Rentals: not linked to contacts. Check Rentals by hand."
-      : `Viewing requests with the same email or phone: ${x.count}. Other people can share an email or phone: check each one before deleting it from Viewings.`}</li>)}</ul>
+    <ul>{plan.by_hand.map(x => <li key={x.item}>{BY_HAND[x.item](x.count)}</li>)}</ul>
   </div>;
 }
 
@@ -257,6 +264,34 @@ function ViewingItem({ r, v, team, onSaved, reload }) {
     {r.state === "open" && <div className="inline"><button type="button" className={v.confirmed ? "btn ghost sm" : "btn sm"}
       disabled={a.busy} aria-label={`${action}: viewing request of ${what}`} onClick={() => a.send({ confirmed: !v.confirmed })}>
       {a.busy ? "Saving…" : action}</button></div>}
+    <Failure msg={a.msg} reload={reload} focus={a.said} /></li>;
+}
+
+// Tenancies carry no contact: those with the contact's email or phone, or started from their search, are linked by a
+// person one by one. A link lasts beyond this request; linked tenancies go in the copy.
+function TenancyReview({ r, tenancies, team, done, reload }) {
+  return <div className="card"><h2>Tenancies to check</h2>
+    <p className="muted">These tenancies have {r.contact.name}'s email or phone, or started from their search. Other people can share
+      an email or phone: link only the tenancies where this person is the tenant. Linked ones go in the copy with their address,
+      dates and tenant details, and a running one keeps the contact from being deleted.</p>
+    {tenancies.length ? <ul className="viewing-review">{tenancies.map(t => <TenancyItem key={t.id} r={r} t={t} team={team}
+      onSaved={done("Tenancy link saved.")} reload={reload} />)}</ul>
+      : <p>No tenancies with this contact's email or phone.</p>}
+  </div>;
+}
+
+function TenancyItem({ r, t, team, onSaved, reload }) {
+  const a = useChange(`pt${t.id}`, `/admin/privacy-requests/${r.id}/tenancies/${t.id}`, "POST", onSaved);
+  const l = t.link, on = l?.linked && l.current, what = `${t.address} from ${fmtDay(t.start_on)}`;
+  const action = on ? "Remove link" : l?.linked ? "Confirm again" : "Link as tenant";
+  return <li><p><strong>{t.address}</strong> · {t.tenant_name} · {t.tenant_email || "no email"} · {t.tenant_phone || "no phone"} ·
+    from {fmtDay(t.start_on)}{t.ended_on && ` to ${fmtDay(t.ended_on)}`}</p>
+    {l?.linked && <p>{on ? <span className="badge positive">Linked</span> : <span className="badge attention">Tenant details changed</span>}
+      {" "}by {nameOf(team, l.by)} on {fmtDate(l.at)}.{!on && " Confirm the link again or remove it."}</p>}
+    {r.state === "open" && <div className="inline"><button type="button" className={on ? "btn ghost sm" : "btn sm"} disabled={a.busy}
+      aria-label={`${action}: tenancy at ${what}`} onClick={() => a.send({ linked: !on })}>{a.busy ? "Saving…" : action}</button>
+      {l?.linked && !on && <button type="button" className="btn ghost sm" disabled={a.busy} aria-label={`Remove link: tenancy at ${what}`}
+        onClick={() => a.send({ linked: false })}>Remove link</button>}</div>}
     <Failure msg={a.msg} reload={reload} focus={a.said} /></li>;
 }
 

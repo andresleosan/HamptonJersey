@@ -11,6 +11,7 @@ import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.js
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
 import { TenancySignatures } from "./TenancySignatures.jsx";
+import { TenancyContact } from "./TenancyContact.jsx";
 import { RepairLinks } from "./RepairLinks.jsx";
 import { Suppliers } from "./Suppliers.jsx";
 import { Estimated } from "./LegalTerms.jsx";
@@ -360,6 +361,7 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         Update<span className="sr"> {x.label}</span></button></span></li>)}</ul></>}
     <TenancyInspections id={id} tick={tick} onRepair={refresh} />
     <TenancyRecords id={id} tick={tick} />
+    <TenancyContact id={id} tick={tick} />
     <TenancySignatures id={id} tick={tick} onChanged={refresh} />
     {!ended && <RepairLinks id={id} />}
     <TenancyExit id={id} tick={tick} moveOut={t.ended_on} />

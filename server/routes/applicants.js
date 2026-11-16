@@ -12,7 +12,7 @@ import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clear
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
-  OPEN_PRIVACY_REQUEST } from "../retention.js";
+  OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY } from "../retention.js";
 import { jerseyToday } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
@@ -774,6 +774,10 @@ async function remove({ request, env, admin, params: [id] }) {
     AND kind ${others.n ? "IN ('access', 'portability')" : "<> 'erasure'"}`;
   const held = "This contact has an open privacy request that this deletion would affect. Close it first.";
   if (privacy && await env.DB.prepare(heldBy).bind(contact.id).first()) fail(409, held);
+  // PRE-12 (D4, with its switch and migration 0113): nor while a team member's link makes it the tenant of a running tenancy.
+  if (!others.n && tenancyLinkReady(env) && await linkTable(env) && await env.DB.prepare(`SELECT 1 FROM contacts c
+    WHERE c.id = ?1 AND ${RUNNING_TENANCY}`).bind(contact.id, jerseyToday()).first())
+    fail(409, "This contact is linked as the tenant of a running tenancy. Remove the link on the rental first.");
   const ts = now();
   const refs = [{ entity_type: "applicant", entity_id: String(cur.id) },
     ...(others.n ? [] : [{ entity_type: "contact", entity_id: String(contact.id) }])];

@@ -79,6 +79,17 @@ export const noticeClaimSql = async env => (retentionNoticesReady(env) && await 
     AND n.state = 'queued' AND n.activity_at = c.last_activity_at AND c.email = outbound.recipient AND ${EXEMPT}${
   privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}))` : NO_NOTICE);
 
+// PRE-12 (D4, migration 0113): with PRE12_TENANCY_LINK_READY, a contact a team member linked as the tenant of a tenancy
+// still running (no move-out, or one still to come) is kept by the pass and by the applicant's Delete. The latest
+// decision counts, even if the tenant's details changed since (when in doubt, kept). An ended tenancy keeps nothing: its
+// period is PRE-33's. Switched off or without 0113, no statement names that table. For a query on contacts c, ?2 the
+// Jersey date.
+export const tenancyLinkReady = env => env?.PRE12_TENANCY_LINK_READY === "1";
+export const linkTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'tenancy_contact_links'").first();
+export const RUNNING_TENANCY = `EXISTS (SELECT 1 FROM tenancy_contact_links l JOIN tenancies t ON t.id = l.tenancy_id
+  WHERE l.contact_id = c.id AND l.linked = 1 AND (t.ended_on IS NULL OR t.ended_on > ?2)
+    AND l.id = (SELECT MAX(m.id) FROM tenancy_contact_links m WHERE m.tenancy_id = l.tenancy_id AND m.contact_id = c.id))`;
+
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts
 // nothing it depends on changes inside the batch (their searches have no sales nor open offers), so each statement acts
@@ -86,9 +97,10 @@ export const noticeClaimSql = async env => (retentionNoticesReady(env) && await 
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
 // PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too. notices (Q05,
 // above): null without 0112; "kept" with 0112, a contact kept by its notice stays; "given", switched on too, a contact
-// with an email needs its notice as well.
-const contactsDue = (held, notices) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
+// with an email needs its notice as well. tenants (RUNNING_TENANCY above): a contact linked to a running tenancy stays.
+const contactsDue = (held, notices, tenants) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
   AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}${
+  tenants ? ` AND NOT ${RUNNING_TENANCY}` : ""}${
   notices ? ` AND NOT ${NOTICE_KEPT}${notices === "given" ? ` AND ${NOTICE_GIVEN}` : ""}` : ""}
   ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
@@ -131,7 +143,8 @@ export async function runRetention(env, ts) {
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const notices = hasNotices ? (retentionNoticesReady(env) ? "given" : "kept") : null;
-  const CONTACTS = contactsDue(privacyHolds(env), notices), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+  const tenants = tenancyLinkReady(env) && !!(await linkTable(env)); // PRE-12 (D4): one look for 0113, only switched on
+  const CONTACTS = contactsDue(privacyHolds(env), notices, tenants), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs

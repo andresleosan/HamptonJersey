@@ -123,6 +123,11 @@ PRE12_VIEWING_REVIEW_READY = "1"
 # its text. Apply 0112 before switching on, and switch on (or off) in both wrangler.toml files at once. Must match the
 # other wrangler.toml.
 PRE12_RETENTION_NOTICE_READY = "0"
+# PRE-12 (D4): a team member links the tenant of a tenancy to a contact, one click each (a matching email or phone only
+# proposes it); linked tenancies enter the privacy copy (identity, address and dates) and a running one keeps its contact
+# from the retention pass and the applicant's Delete (migration 0113). Sends nothing. Apply 0113 before switching on.
+# Must match the other wrangler.toml.
+PRE12_TENANCY_LINK_READY = "0"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"
