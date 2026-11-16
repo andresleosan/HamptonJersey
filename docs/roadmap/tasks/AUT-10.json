@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "—",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404). Decisión de Luis (14-nov): cualquier admin, actual o futuro, puede cambiar modos; la autoridad se comprueba contra admins en la misma sentencia del cambio (operation_policy_managers deja de leerse).",
   "falta": "Comprobar un cambio de modo real en producción con una sesión de admin (Settings → Automations → Modes: cambiar uno y volver a Draft); está en COLA-LUIS porque necesita su sesión. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
   "bloqueo": "",
@@ -38,11 +38,11 @@
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "",
+  "externalBlocker": "Que Luis cambie un modo en Settings → Automations → Modes con su sesión y lo vuelva a Draft",
   "resources": [
     "automation-controls",
     "outbound-policy"
   ],
   "nextStep": "Cuando Luis haga el cambio de modo, leer operation_policy_versions (solo lectura) y cerrar AUT-10.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-16"
 }

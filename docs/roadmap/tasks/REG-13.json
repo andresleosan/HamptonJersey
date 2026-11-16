@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F0",
   "estado": "pendiente",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "",
   "falta": "El código no usa IA y «Anything else that matters?» se guarda tal cual. Falta convertirlo en imprescindibles y deseables («quiet street», «near Victoria College») que el equipo confirme en la ficha; el spec F1-A lo dejó fuera. Lo hará Hermes (AUT-13) cuando pueda recibir datos C2 (los requisitos, sin nombre ni teléfono): con un plan Business o Enterprise y su memoria apagada (pregunta 16). Con un modelo local (AUT-06), no pasaría por Hermes.",
   "bloqueo": "",
@@ -42,12 +42,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Vía Hermes/Pro verificada (PRE-32) para requisitos C2; los modelos locales (AUT-06) son posteriores.",
+  "externalBlocker": "PRE-32 y el Hermes de la fase 1b (AUT-13)",
   "resources": [
     "requirements-contract",
     "applicants-ui",
     "model-data-contract"
   ],
   "nextStep": "Proponer etiquetas extraídas que el empleado confirma antes de guardar, por la vía Hermes central cuando PRE-32 la verifique; mientras tanto, continuación humana.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-16"
 }

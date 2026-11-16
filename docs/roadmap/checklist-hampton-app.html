@@ -2231,7 +2231,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "—",
    "estado": "parcial",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "La app de Hampton (web, panel /admin y su API) vive en Cloudflare Pages con D1 y R2, y lo público va protegido: Turnstile en el registro y las reservas, mismo origen en las escrituras y tope diario en /api/stats.",
    "falta": "Ninguna automatización de la app usa todavía un modelo de IA (AUT-02). Además sigue en la cuenta de Cloudflare de AndresLeoSan y no en la de Hampton (PRE-28), y falta la regla WAF de límite de peticiones, que ya se puede crear con el dominio en Cloudflare (ANA-09).",
    "bloqueo": "",
@@ -2243,7 +2243,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/routes/public.js:93",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:453",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:703"
-   ]
+   ],
+   "actualizado": "2026-11-16"
   },
   {
    "id": "AUT-05",
@@ -2364,7 +2365,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "—",
    "estado": "parcial",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "Se preparó una inspección desconectada de propuestas Draft, Approve y Auto. Las decisiones humanas están en una lista cerrada del servidor y la inspección no concede ejecución ni declara un modo efectivo. Se probó una propuesta desconectada de comparación de políticas; lectura y escritura efectivas permanecen cerradas con 503, sin acceso a D1. 14-nov-2026: integrado en main (apagado), suite 2.334/2.334, build, release, navegador aislado 1280/390 y revisión independiente sin graves. Modo Draft/Approve/Auto por operación, versionado con CAS e historial solo de añadir; la guarda deniega siempre las decisiones humanas (match, criterios dictados, cierre por éxito) en cualquier modo. 14-nov-2026: 0047/0053/0054 aplicadas desde directorio temporal (Time Travel previo guardado), Pages 3217ea1 activo con el interruptor, suite 2.334/2.334, build, release y humo público 1280/390. Ruta POST /api/admin/automations/modes montada (401 sin sesión frente a 404). Decisión de Luis (14-nov): cualquier admin, actual o futuro, puede cambiar modos; la autoridad se comprueba contra admins en la misma sentencia del cambio (operation_policy_managers deja de leerse).",
    "falta": "Comprobar un cambio de modo real en producción con una sesión de admin (Settings → Automations → Modes: cambiar uno y volver a Draft); está en COLA-LUIS porque necesita su sesión. Los consumidores de la guarda (BUS-15, AUT-19, EST-09, AUT-13, AUT-01) lo llevan en su propio falta.",
    "bloqueo": "",
@@ -2392,7 +2393,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "modulo": "M04/M06",
    "deps": [],
    "criterio_aceptacion": "Activar Auto no aprueba matches, guarda criterios dictados ni resuelve búsquedas.",
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-16"
   },
   {
    "id": "AUT-11",
@@ -2451,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "texto",
    "fase": "—",
    "estado": "parcial",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "Hermes Agent v0.22.5 (Nous Research, código abierto) corre desde el 29-oct-2026 en el VPS de Optimyze. Es el Hermes de desarrollo de Optimyze. Está en un contenedor aislado, sin permisos de administrador ni Docker, solo sale a internet hacia una lista de dominios, su panel solo se abre por el tailnet y usa el plan de ChatGPT de Luis. El 30-oct Luis decidió que Hermes será el cerebro de IA de las automatizaciones (P-18) y aprobó el diseño del Hermes propio de Hampton (preguntas 15 y 16, §6.6): en el mismo VPS y en su propia jaula, sin herramientas de terminal ni de código, sin entrar nunca en la base de datos, con salida solo al modelo, Telegram y la app, y con el plan de ChatGPT de Luis solo para datos públicos y contadores. La parte de la app está en producción desde el 1-nov-2026 con la migración 0018, y la puerta está abierta desde el 3-nov-2026 (HERMES_KEY en Production), con el avisador de la fase 1a instalado en el VPS: la puerta /api/hermes con su propia llave (secreto HERMES_KEY; sin él, cerrada) y seis operaciones fijas. Son: el estado con los contadores y el resumen de las 8:00 ya escrito (con las fichas To confirm); los avisos «New applicant» y «New viewing request for …» con un enlace al panel y sin datos de la persona; pedir y tomar trabajo; devolver un borrador; y pausar los envíos. También la tabla jobs (migración 0018: un trabajo abierto por ficha, reintento a los 10 minutos y fallo al tercer intento), la hora de la última petición de Hermes (app_settings, clave hermes), el borrador de textos en el editor de la ficha (PUB-13) y la barra de pausa en todas las pantallas del panel, con «Resume sending», que solo existe en el panel. Además, el intermediario que guarda la llave fuera del contenedor de Hermes (hermes/key-proxy.mjs, decisión de Luis del 31-oct). Pruebas: la llave no abre nada más, la cookie del panel no abre la puerta y ninguna respuesta lleva nombres, emails, teléfonos ni números de personas. Desde el 1-nov-2026 la pantalla Automations (AUT-01) enseña la última petición de Hermes y avisa si deja de pedir trabajo, y el borrado diario quita los trabajos 90 días después de su última actividad: los cerrados y los que nadie tomó (decisión de Luis del 1-nov), y también los que Hermes dejó a medias; un borrador espera siempre a una persona (estas dos, decisión de Claude, spec A5). Desde el 3-nov-2026 el bloque del borrador solo lo ve quien está en la lista de borradores (AUT-15), vacía hasta la fase 1b.",
    "falta": "Plan de Luis del 2-nov-2026, en dos fases. La fase 1a, sin IA, funciona desde el 3-nov-2026: el intermediario de la llave, su proxy de salida y un avisador que solo envía corren en el VPS, fuera del taller; el avisador pregunta a la puerta (news cada minuto y status a las 8:00 de Jersey) y publica en el canal del equipo (AUT-14). Fase 1b, tras PRE-32: el Hermes de Hampton en su jaula (sin terminal ni código, memoria y skills propias apagadas, conversaciones borradas a los 30 días, salida solo al modelo, a Telegram y al intermediario), con un segundo bot solo para los chats privados de las dos cuentas de Luis, la toma de trabajo (jobs/next) y Luis en la lista de borradores (AUT-15). Antes de la 1b, la puerta tiene que distinguir las llamadas del avisador de las de Hermes (dos llaves o una etiqueta del intermediario), para que Automations no tome al avisador por Hermes, y antes de añadir a Luis a la lista de borradores. El intermediario del avisador ya solo deja pasar news y status: con la misma llave el avisador no puede pausar ni pedir o escribir borradores. Con el dominio ya en Cloudflare (1-nov-2026), crear un límite de peticiones a /api/hermes en el WAF. El intermediario usa APP_ORIGIN=https://www.hamptonestatesjersey.com: hamptonjersey.pages.dev responde 308 y el dominio sin www 301, y el intermediario no sigue redirecciones. Todo envío futuro a clientes o agencias debe mirar la pausa antes de salir. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito listing_text en docs/automations/acceptance.json antes de activarlo. Auditoría del 14-nov-2026 contra el plan maestro vigente: un trabajo tomado por Hermes y sin respuesta se vuelve a entregar solo hasta 3 veces (server/routes/hermes.js nextJob y server/routes/queue.js nextImport), y el plan dice que un despacho incierto no se repite a ciegas. Separar el reintento de un fallo de lectura de Drive (aceptable) del de un despacho al modelo (pasa a revisión humana), dentro del contrato de despacho de AUT-05/AUT-13. Traído de AUT-19 (15-nov): dictado de criterios interpretado por modelo (voz o texto libre): entregar el borrador por proposeCriteria (server/routes/applicants.js) con actor y origen hermes; falta la ruta en la puerta de Hermes con su permiso y decidir si un borrador puede sustituir una propuesta pendiente del equipo (hoy la sustituye). Requiere la vía verificada de PRE-32. Traído de AUT-01 (15-nov): coste del mes por automatización y registro de cada ejecución con su entrada y su salida (datos sensibles ocultos) en Settings › Automations, cuando Hermes gaste o ejecute tras PRE-32; hoy solo existe la lista de trabajos de Hermes.",
    "bloqueo": "",
@@ -2469,7 +2470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "server/retention.js (JOBS)",
     "docs/superpowers/specs/2026-11-03-hampton-app-hermes-drafters-design.md"
    ],
-   "actualizado": "2026-11-15"
+   "actualizado": "2026-11-16"
   },
   {
    "id": "AUT-14",
@@ -4315,7 +4316,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F0",
    "estado": "pendiente",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "",
    "falta": "El código no usa IA y «Anything else that matters?» se guarda tal cual. Falta convertirlo en imprescindibles y deseables («quiet street», «near Victoria College») que el equipo confirme en la ficha; el spec F1-A lo dejó fuera. Lo hará Hermes (AUT-13) cuando pueda recibir datos C2 (los requisitos, sin nombre ni teléfono): con un plan Business o Enterprise y su memoria apagada (pregunta 16). Con un modelo local (AUT-06), no pasaría por Hermes.",
    "bloqueo": "",
@@ -4325,7 +4326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:18",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): vía del modelo ya decidida: Hermes central; los modelos locales son posteriores."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-16"
   },
   {
    "id": "REG-14",
@@ -5070,7 +5071,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F6",
    "estado": "parcial",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
    "falta": "Tramo chat web: encendido el 16-nov-2026 (0093 aplicada, MSG03_CONTACT_LINK_READY=1); queda que alguien del equipo vincule un chat real una vez y lo vea en la ficha. Tramo correo: reenvíos seleccionados de Gmail cuando AUT-17 opere. Antes del 16-nov la pantalla Messages solo tenía el chat de la web (MSG-02) sin contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores. Traído de SAP-08 (16-nov): mostrar las conversaciones de correo en la pestaña Messages del aplicante cuando AUT-17 opere.",
    "bloqueo": "",

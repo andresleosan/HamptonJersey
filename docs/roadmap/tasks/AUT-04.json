@@ -5,7 +5,7 @@
   "origen": "texto",
   "fase": "—",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "La app de Hampton (web, panel /admin y su API) vive en Cloudflare Pages con D1 y R2, y lo público va protegido: Turnstile en el registro y las reservas, mismo origen en las escrituras y tope diario en /api/stats.",
   "falta": "Ninguna automatización de la app usa todavía un modelo de IA (AUT-02). Además sigue en la cuenta de Cloudflare de AndresLeoSan y no en la de Hampton (PRE-28), y falta la regla WAF de límite de peticiones, que ya se puede crear con el dominio en Cloudflare (ANA-09).",
   "bloqueo": "",
@@ -38,10 +38,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis/Hampton: titularidad de cuenta y configuración WAF pendientes de verificación.",
+  "externalBlocker": "PRE-32 (modelos de IA), PRE-28 (cuenta de Cloudflare de Hampton) y la regla WAF de ANA-09",
   "resources": [
     "automation-controls",
     "external-account-config"
   ],
-  "nextStep": "Verificar titularidad y protección WAF y diseñar únicamente los tramos IA aún pendientes."
+  "nextStep": "Verificar titularidad y protección WAF y diseñar únicamente los tramos IA aún pendientes.",
+  "actualizado": "2026-11-16"
 }

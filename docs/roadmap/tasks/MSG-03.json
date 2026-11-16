@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F6",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
   "falta": "Tramo chat web: encendido el 16-nov-2026 (0093 aplicada, MSG03_CONTACT_LINK_READY=1); queda que alguien del equipo vincule un chat real una vez y lo vea en la ficha. Tramo correo: reenvíos seleccionados de Gmail cuando AUT-17 opere. Antes del 16-nov la pantalla Messages solo tenía el chat de la web (MSG-02) sin contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores. Traído de SAP-08 (16-nov): mostrar las conversaciones de correo en la pestaña Messages del aplicante cuando AUT-17 opere.",
   "bloqueo": "",
@@ -39,7 +39,7 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Correo operativo (AUT-17) solo para el tramo de email.",
+  "externalBlocker": "Que alguien del equipo vincule un chat real una vez; el tramo de correo espera a AUT-17 y Messenger/Instagram/WhatsApp a Meta",
   "resources": [
     "web-chat",
     "meta-channel",
