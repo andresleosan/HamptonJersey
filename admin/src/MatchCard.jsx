@@ -5,6 +5,7 @@ import { REJECT_REASONS } from "../../server/applicants.js";
 import { CHECK_LABEL, unknownMusts } from "../../server/candidate-state.js";
 import { DISAGREE, provenance } from "./ConfirmedAvailability.jsx";
 import { ENQUIRY, KIND, OUTCOME, VIA, MatchEnquiry } from "./Enquiries.jsx";
+import MatchJourney, { JourneyStates } from "./MatchJourney.jsx";
 
 const RESULT = { meets: "Meets", fails: "Fails", unknown: "Unknown" };
 export const REASON_LABEL = Object.fromEntries(REJECT_REASONS);
@@ -32,7 +33,8 @@ export const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirme
 // onClarify(approved): approves or withdraws a clarification enquiry about the must-haves the property does not answer.
 // onEnquiry(match): AGE-03, after the shared enquiry of this match was prepared, joined, changed or recorded as sent.
 // bookViewing: SAP-09's Book viewing of this house for the search (a Viewings link), when the record offers it.
-export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
+// onJourney(body): EST-14, records what the client said about this home (match.journey, absent while EST-14 is off).
+export default function MatchCard({ match, onReview, onClarify, onEnquiry, onJourney, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
   children, legacy = false, bookViewing }) {
   const l = match.listing, title = l.title;
   const states = match.states, asked = match.clarification, outdated = states.decision === "approved_outdated";
@@ -88,6 +90,7 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
               <span className="muted"> · Not sent yet</span></>
             : <><span className="badge neutral">Not sent</span>
               {unknown && match.status !== "rejected" && <span className="muted"> · {unknown} to clarify: asking needs its own approval and shortlists nothing</span>}</>}</dd></div>
+        {match.journey && <JourneyStates journey={match.journey} />}
       </dl>
       {outdated && <p id={`outdated-${match.id}`} className="req-note">This approval does not cover the search and the property as they are now, so it
         approves no enquiry. Review again moves the match back to Found, to decide on today's details.</p>}
@@ -120,6 +123,7 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
           {enquiry && enquiry.status !== "answered" && (enquiry.kind === "general" || states.decision !== "approved") ? "View enquiry" : "Prepare enquiry"}<span className="sr"> for {title}</span></button>}
         {bookViewing && <a className="btn ghost sm quick" href={bookViewing}>Book viewing<span className="sr"> of {title}</span></a>}
       </div>
+      {match.journey && <MatchJourney match={match} onRecord={onJourney} disabled={disabled} busy={busy} />}
       {enquiring && enquiry !== undefined && <MatchEnquiry match={match} onChange={onEnquiry} />}
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}
         onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); cancel(); } }}>

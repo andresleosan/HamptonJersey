@@ -153,6 +153,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/not0809-inbox-actions.e2e.cjs" ? { NOT0809_INBOX_READY: "1", AGE03_ENQUIRIES_READY: "1",
         EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1", AGE06_RESPONSES_READY: "1", AGE08_CALL_TASKS_READY: "1",
         AUT19_CRITERIA_PROPOSALS_READY: "1" } : {}),
+      // EST-14: a match's journey and the client's word, switched on for its own test only (off in production).
+      ...(process.env.E2E_SCRIPT === "tests/est14-match-journey.e2e.cjs" ? { EST14_JOURNEY_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

@@ -137,6 +137,11 @@ VIS14_BLOCK_READY = "1"
 # (client always; advertiser or agency and the negotiator when chosen) with how and when, and the viewing is confirmed
 # only once all have accepted (migration 0114). Sends nothing; no client-facing page. Apply 0114 before switching on.
 VIS17_MULTIPART_READY = "1"
+# EST-14: each match's journey (Interested, Viewing booked, Viewed, Offer, Agreed, Not interested) from AGE-12's answers,
+# VIS-17's linked viewings with VIS-04's answer, offers, sales and ADM-06's tenancies, and the client's word recorded by
+# the team with a reason (migration 0116). Changes no criteria, match decision, availability or search; sends nothing.
+# Apply 0116 before switching on.
+EST14_JOURNEY_READY = "0"
 EMAIL_SERVICE_READY = "false"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"

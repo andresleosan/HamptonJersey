@@ -20,6 +20,7 @@ import { ON_MARKET, COMPLIANCE, COMPLIANCE_FIELDS } from "../../server/listing.j
 import { jerseyToday } from "../../server/viewings.js";
 import { BuyerOffers } from "./Sales.jsx";
 import { CONFIRMED } from "./MatchCard.jsx";
+import { INTEREST } from "./MatchJourney.jsx";
 import HermesDraft from "./HermesDraft.jsx";
 import ViewingAvailability from "./ViewingAvailability.jsx";
 import ListingReview from './ListingReview.jsx';
@@ -736,11 +737,13 @@ export default function ListingEditor({ id, onChange, guide = false }) {
 function MatchedApplicants({ rows, offered }) {
   const note = !offered && <p className="muted">This listing isn't offered to applicants.</p>;
   if (!rows.length) return note || <p className="muted">No applicants match this listing yet.</p>;
+  // EST-14: the client's own word on this home, per search; the column only while EST-14 gives it.
+  const client = rows.some(m => m.states?.interest);
   return <>{note}
     {rows.some(m => !m.states) && <p className="muted">States are shown for the first 50 searches. Open a search to see the states of the rest.</p>}
     <table className="list small matched">
       <thead><tr><th scope="col">Applicant</th><th scope="col">Looking</th><th scope="col">Evaluation</th><th scope="col">Decision</th>
-        <th scope="col">Availability</th><th scope="col">Enquiry</th><th scope="col">Score</th></tr></thead>
+        <th scope="col">Availability</th><th scope="col">Enquiry</th>{client && <th scope="col">Client</th>}<th scope="col">Score</th></tr></thead>
       <tbody>{rows.map(m => { const [label, tone] = MATCH_STATUS[m.status] ?? [m.status, "neutral"], s = m.states;
         const badge = ([tone, text] = []) => text ? <span className={`badge ${tone}`}>{text}</span> : "—";
         return <tr key={m.match_id}>
@@ -752,6 +755,7 @@ function MatchedApplicants({ rows, offered }) {
             {s?.decision === "approved_outdated" && <> <span className="badge attention">Approval out of date</span></>}</td>
           <td data-label="Availability">{badge(CONFIRMED[s?.availability])}</td>
           <td data-label="Enquiry">{badge(ENQUIRY_STATE[s?.enquiry])}</td>
+          {client && <td data-label="Client">{badge(INTEREST[s?.interest])}</td>}
           <td className="num">{m.score}</td>
         </tr>; })}</tbody>
     </table></>;

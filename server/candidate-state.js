@@ -21,7 +21,8 @@ export const availabilityState = confirmation => confirmation?.status === "avail
 // status and requirements_status: the match's own; decision_current: its approval covers the search and the property
 // as they are now; clarification: the approved one still standing, if any; confirmation: the one in force, if any;
 // consultation: the shared enquiry that covers the match now, if any (AGE-03: server/consultations.js).
-export const candidateState = ({ status, requirements_status, decision_current, clarification, confirmation, consultation }) => ({
+// journey: the match's journey (EST-14: server/match-journey.js), undefined while it is off.
+export const candidateState = ({ status, requirements_status, decision_current, clarification, confirmation, consultation, journey }) => ({
   evaluation: EVALUATION[requirements_status] ?? "to_confirm",
   decision: status === "found" ? "undecided" : status === "rejected" ? "rejected" : decision_current ? "approved" : "approved_outdated",
   availability: availabilityState(confirmation),
@@ -32,5 +33,8 @@ export const candidateState = ({ status, requirements_status, decision_current, 
   enquiry: consultation?.status === "answered" ? ANSWERED[consultation.response_outcome] ?? "answered"
     : consultation?.status === "awaiting_response" ? "awaiting_response"
     : consultation?.status === "sent" ? "sent_manually" : consultation ? "prepared" : clarification ? "clarification_approved" : "not_sent",
+  // EST-14 (M06's fifth): what the client said, or that a link sent waits for them; no_answer without either, never "no".
+  // It is not the employee's decision: a client's no rejects nothing and an employee's rejection says nothing of the client.
+  ...(journey ? { interest: journey.interest } : {}),
 });
 const ANSWERED = { available: "answered_available", unavailable: "answered_unavailable" };

@@ -4,17 +4,26 @@
   "titulo": "Resto del ciclo del match: Interested, Viewing booked, Viewed, Offer, Agreed y salidas",
   "origen": "plan",
   "fase": "—",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "M08/M09 · Reconciliación 7-nov: Relacionar interés, descarte con motivo, visita, oferta y acuerdo con el match correcto. Conservar historial de pasos; un descarte de cliente no cambia criterios automáticamente ni vuelve no disponible la propiedad. Una visita realizada, oferta o acuerdo mantiene activa la búsqueda hasta EST-09. Depende de: EST-13, AGE-12, VIS-17. Traído de EST-13 (15-nov): añadir interés y espera del cliente como dimensión propia en candidateState (quinta dimensión de M06, no construida en EST-13). Traído de VIS-04 (15-nov): relacionar la respuesta de la visita (Proceed, Need more information, Not interested) con el paso del match (Viewed, Offer, Not interested con motivo); hoy el resultado vive solo en la visita y deja una tarea al equipo, sin cambiar ningún match. Traído de EST-04 (15-nov): la dimensión de interés y espera del cliente en candidateState es la fuente de la rama «espera al aplicante» de In process. Traído de BUS-18 (15-nov): mostrar la dimensión de interés del cliente por búsqueda en Matched applicants de la ficha (admin/src/ListingEditor.jsx), con su propio estado; sin dato, nunca «No».",
+  "hecho": "17-nov-2026, construida en rama y apagada (migración aditiva 0116_match_journey.sql e interruptor EST14_JOURNEY_READY=\"0\"; no envía nada ni añade rutas públicas). Cada tarjeta de match (pestaña Matches del aplicante, Review y Matched applicants de la ficha) lleva su trayectoria (server/match-journey.js, campo journey) leída de los hechos que acreditan cada paso, en la búsqueda y la casa de ese match: respuesta del cliente en el enlace privado (AGE-12, presentation_options), visitas vinculadas por una persona a esa búsqueda (VIS-17, última propuesta con applicant_id, nunca por correo o teléfono) con la respuesta tras la visita (VIS-04), ofertas y venta (OFE/Sales, solo búsquedas de compra) y contrato de alquiler entrado desde esa casa y búsqueda (ADM-06, tenancy_origins). Pasos: Interested, Viewing being arranged, Viewing booked (solo si todos aceptaron la hora a la que está la visita), Viewed (solo completed; no-show nunca), Offer (pending/countered), Agreed (venta en curso o contrato), Completed y la salida Not interested; una oferta o acuerdo en vigor manda sobre la palabra del cliente. Historial de hasta 50 hechos, el más reciente primero, con fecha, autor y enlace a su registro (oferta, venta, visita, alquiler); las ofertas rechazadas y sus importes se conservan. Quinta dimensión de M06 en candidateState: interest (no_answer, waiting, interested, wants_viewing, call_me, more_info, not_interested); sin dato es «No answer recorded», nunca «No». El equipo registra lo que dijo el cliente con «Client interested» o «Client not interested» y motivo obligatorio (price, area, size, condition, other; nota privada obligatoria con other, ≤300) en POST /admin/matches/:id/journey: sesión de staff, mismo origen, SQL parametrizado, revisión por búsqueda×casa (409 si alguien registró antes, si la casa no es la del match o si la búsqueda no está activa), un batch con el paso y su evento match.interest_changed (sin la nota). Ni el descarte ni ningún paso cambia criterios, la decisión del empleado, la puntuación, la disponibilidad de la casa ni search_state: una visita, oferta o acuerdo deja la búsqueda activa hasta EST-09. El historial pertenece a la búsqueda y la casa (sobrevive a un recálculo que borra y recrea el match) y se borra con la búsqueda (ON DELETE CASCADE). BUS-18: columna Client en Matched applicants con el interés propio de cada búsqueda. Apagado, o encendido sin 0116, las tarjetas y las consultas son idénticas (prueba).",
+  "falta": "Aplicar 0116_match_journey.sql en D1 hampton, encender EST14_JOURNEY_READY y comprobar el recorrido en producción con lecturas (tarjetas de Matches y Matched applicants con journey y Client).",
   "bloqueo": "",
   "evidencia": [
-    "migrations/0009_matches.sql:33-35",
-    "migrations/0010_viewings.sql:35-49",
-    "migrations/0012_sales.sql:2-8",
-    "server/matching.js:9-12",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "server/match-journey.js (matchJourney, journeyReader, validateStep, POST /admin/matches/:id/journey)",
+    "migrations/0116_match_journey.sql (aditiva: CREATE TABLE match_journey_steps + trigger; no aplicada en remoto)",
+    "server/candidate-state.js (dimensión interest), server/routes/matches.js (matchCards con journey)",
+    "admin/src/MatchJourney.jsx, admin/src/MatchCard.jsx, admin/src/ApplicantMatches.jsx, admin/src/ListingEditor.jsx (columna Client)",
+    "tests/server/match-journey.test.mjs: 10/10 (decline_reason, viewed_requires_complete, old_proposal_no_booked, wrong_episode_no_transition, score_no_interest, client_decline_not_unavailable, different_search_separate, apagado = mismas tarjetas y SQL)",
+    "tests/server/match-journey-producers.test.mjs: 4/4 (AGE-12, VIS-17 + VIS-04, Sales con price_rejection_history y agreed_search_still_active, sale_other_operation_denied, tenancy ADM-06, source_link_exact)",
+    "tests/est14-match-journey.e2e.cjs aislado a 1280 y 390: ok (legacy_no_invented_offer: visita web no vinculada no cuenta; rejected_history_visible; source_link_exact de oferta y visita; teclado Enter/Escape con foco; error con aria-invalid; sin scroll lateral)",
+    "Decisión: el vínculo match↔hecho es búsqueda×casa (applicant_id, listing_id), sin tabla de enlaces nueva; los productores vivos ya llevan ambos ids · fuente: spec 2026-11-08-l1-match-lifecycle-design.md («Reusar tablas… no duplicar estado comercial») y plan EST-14 tarea 1",
+    "Decisión: solo dos acciones de staff (interested, not_interested); Viewing booked, Viewed, Offer y Agreed no se escriben nunca, se derivan de su fila (una petición que dice Offer o viewed da 400) · fuente: spec («consume hechos comprobados, nunca un nombre de estado arbitrario»)",
+    "Decisión: motivos price/area/size/condition/other, los mismos códigos que REJECT_REASONS · fuente: spec viewings-coordination §3",
+    "Decisión: Viewing booked exige una propuesta VIS-17 confirmada para la fecha y hora actuales de la visita; una confirmada antigua para otra hora no cuenta · fuente: spec («solo deriva de confirmaciones completas VIS-17»)",
+    "Decisión: la palabra más reciente del cliente gana entre AGE-12, VIS-04 y el registro del equipo; todas quedan en el historial · fuente: opción más simple y reversible (skill §4.5)",
+    "Decisión: sin tests/match-journey-ui.test.js; la interfaz se cubre con el e2e aislado, porque las pruebas node no cargan .jsx · fuente: plan EST-14 tarea 3 + AGENTS.md",
+    "Decisión: no se tocó admin/src/ApplicantDetail.jsx (SAP-09 en paralelo); el nombre del evento en el Timeline va a MEJORAS · fuente: encargo de esta sesión"
   ],
   "modulo": "M08/M09",
   "deps": [
@@ -55,6 +64,6 @@
     "viewings-contract",
     "sales-contract"
   ],
-  "nextStep": "Relacionar interés, descarte, visita y oferta con el match correcto manteniendo búsqueda e historial.",
-  "actualizado": "2026-11-15"
+  "nextStep": "Aplicar 0116 (aditiva), encender EST14_JOURNEY_READY y verificar con lecturas GET.",
+  "actualizado": "2026-11-17"
 }
