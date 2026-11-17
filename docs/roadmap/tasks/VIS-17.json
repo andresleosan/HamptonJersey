@@ -4,10 +4,10 @@
   "titulo": "Visitas multiparte con franjas compatibles y confirmaciones separadas",
   "origen": "plan",
   "fase": "F2",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "16-nov-2026, construida en rama y apagada (migración aditiva 0114_viewing_coordination.sql e interruptor VIS17_MULTIPART_READY=\"0\"; no envía nada ni añade rutas públicas). Desde el detalle de una visita activa el equipo propone una hora (negociador, día y hora libres ahora, reglas de la casa VIS-10 y Google Calendar VIS-12 si está conectado), elige quién debe aceptar (cliente siempre; anunciante o agencia y negociador si asiste) y puede vincular a mano una búsqueda abierta de esa persona y de la misma operación: se ven sus franjas REG-17 y si la hora cae dentro (horario desconocido no cuenta como libre). Cada respuesta se registra a mano: aceptada o rechazada, canal, cuándo y quién respondió, y quién la anotó. La visita conserva su hora y estado hasta que la escritura que encuentra todas las aceptaciones la mueve y confirma en un solo batch (dos últimas respuestas a la vez: una sola confirmación). Propuesta obsoleta, respuesta repetida o tardía: 409 sin escribir. Un rechazo cierra la propuesta sin tocar la visita. Reschedule, Cancel, Completed y No-show de la misma visita cierran su propuesta abierta, y Confirm queda bloqueado mientras haya una. Estados de coordinación (VIS-08): proposed, awaiting_confirmations, blocked, confirmed, declined, withdrawn. No toca la búsqueda ni el match ni pide acuerdo de comisión (EST-13). Las visitas coordinadas guardan su búsqueda en viewing_proposals.applicant_id (ANA-05).",
-  "falta": "Aplicar 0114 en D1 remota y encender VIS17_MULTIPART_READY; después comprobar el recorrido real (proponer, registrar respuestas, confirmación) con lecturas en producción. Por construir, traído de otras tareas: mostrar el estado de visita de cada búsqueda en Matched applicants (BUS-18; solo completed como Viewed) y que ANA-05 y la pestaña Viewings del aplicante (SAP-08) usen viewing_proposals.applicant_id en lugar del cruce por email o teléfono (las visitas nunca coordinadas siguen sin vínculo). Más adelante, con interruptor propio que solo enciende Luis y sin bloquear el criterio de aceptación: la respuesta del propio cliente y su feedback tras la visita (Proceed / Need more information / Not interested con motivo; feedback_by = applicant sin pisar el resultado del equipo) mediante un acceso de audiencia viewing (createViewingGrant, tarea 5 del plan, reutilizando la mecánica de presentation-access.js de AGE-12; un id conocido no basta y revocar corta el acceso), y la reserva de plaza de un open viewing desde la web o el enlace privado (VIS-14, grupos de 0104).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "migrations/0114_viewing_coordination.sql (aditiva: 2 tablas, 3 índices, 3 triggers)",
@@ -23,7 +23,8 @@
     "Decisión: la búsqueda vinculada vive en viewing_proposals.applicant_id, sin tabla viewing_context aparte; solo búsquedas abiertas de la misma persona (cruce SAP-08) y operación compatible · fuente: spec §2 + skill §4.5",
     "Decisión: evidencia = canal, fecha y hora de la respuesta, quién respondió (opcional) y quién la anotó; nunca en eventos · fuente: spec §2 y plan (PII fuera de eventos)",
     "Revisión independiente 16-nov corregida: una plaza de open viewing (VIS-14) cierra la propuesta abierta; repetir una respuesta en una propuesta «blocked» ya no escribe nada tras su 409; Confirm comprueba la propuesta abierta también dentro de su UPDATE; Google Calendar (VIS-12) se comprueba al proponer y en cada aceptación, con calendar_reviewed desde el panel; la propuesta guarda estado, negociador, fecha y hora de la visita (from_*) y la confirmación exige que sigan iguales (una propuesta de antes de apagar y volver a encender no mueve nada); la respuesta no puede ser anterior a la propuesta (al minuto)",
-    "npm test completo y npm run build en verde tras las correcciones de la revisión (16-nov-2026); e2e aislado 1280 y 390 en verde de nuevo"
+    "npm test completo y npm run build en verde tras las correcciones de la revisión (16-nov-2026); e2e aislado 1280 y 390 en verde de nuevo",
+    "17-nov-2026: cerrada por aceptación propia. 0114 aplicada tras marcador Time Travel y VIS17_MULTIPART_READY=1 (23b2868, desplegado: Pages y hampton-jobs ok). Revisión independiente: 2 graves (colocación en open viewing VIS-14 dejaba la propuesta abierta; reintento sobre propuesta bloqueada escribía tras un 409) y 5 menores, corregidos en 020d354c; segunda pasada sin graves. npm test 3315/3315; e2e vis17, vis14, vis04, vis08, vis-09, vis10, vis12, property-viewings y pre09 PASS a 1280 y 390 con los interruptores encendidos; smoke de producción solo lectura ok. La respuesta del cliente desde su enlace y la reserva de plaza de open viewing quedan para más adelante con interruptor de Luis (AGE-12)."
   ],
   "modulo": "M09",
   "deps": [
@@ -75,6 +76,6 @@
     "agency-consultations-contract",
     "notifications-schema"
   ],
-  "nextStep": "Aplicar 0114, encender VIS17_MULTIPART_READY y verificar el recorrido real con lecturas en producción.",
-  "actualizado": "2026-11-16"
+  "nextStep": "Conservar como completada.",
+  "actualizado": "2026-11-17"
 }

@@ -2,6 +2,10 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+17-nov-2026 · **VIS-17, visitas con varias partes (hecha):** en Viewings el equipo propone un horario libre y anota la respuesta de cada parte necesaria (cliente, agencia y negociador si asiste); la visita se confirma sola cuando todos aceptan, y si alguien rechaza o la visita cambia, la propuesta se cierra. No envía nada. Probar: abrir una visita › «Propose a time». Progreso 139 → 141.
+
+17-nov-2026 · **AGE-11, presentación revisada antes de enviar (hecha):** antes de mandar un enlace privado, el equipo revisa lo que verá el cliente y lo aprueba; «I have sent it» solo aparece tras aprobar, y el cliente ve exactamente lo aprobado. Además se puede anotar «Client confirmed receipt» con la conversación como prueba. Probar: ficha del aplicante › Private presentation › «Review before sending». Y PRE-12: el vínculo de alquileres con contactos queda encendido (Rentals).
+
 16-nov-2026 · **PRE-12, alquileres unidos a contactos (apagado):** en cada alquiler el equipo podrá confirmar a qué contacto pertenece el inquilino (nunca solo por coincidir el email); así una solicitud de acceso incluye sus alquileres (identidad, dirección y fechas) y un alquiler en curso impide borrar a esa persona. Las 6 decisiones del plan se tomaron según lo recomendado. Espera 0113 y el interruptor. Progreso 139 → 139 de 214.
 
 16-nov-2026 · **Migraciones aditivas aplicadas sin encender nada:** 0107 (alertas REG-15), 0108 (tendencias ANA-04), 0109 (Facebook MSG-01), 0110 (acceso del inquilino ADM-12) y 0112 (aviso de PRE-12). Cada función queda a un interruptor de distancia. Progreso 139 → 139 de 214.
