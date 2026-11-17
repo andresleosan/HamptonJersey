@@ -131,6 +131,9 @@ nav.main a:hover{color:var(--bronze-dk)}
 .search select{width:100%;min-width:0}
 .search select:disabled{color:var(--stone)}
 .search .btn{border:0}
+/* The search sits in its own band right under the property carousel, continuing the hero's dark ground. */
+.quick-band{background:var(--ink);padding-block:clamp(20px,3vw,32px)}
+.quick-band .search{margin-inline:auto}
 .hero .cta{display:flex;flex-wrap:wrap;gap:12px}
 .hero .btn.ghost{color:#fff;border-color:#fff}
 .hero .btn.ghost:hover{background:#fff;color:var(--ink)}
@@ -814,19 +817,19 @@ function home() {
   clearTourGate(); clearTourGate = () => {};
   clearGallery();
   const few = PUB.length <= FEW_MAX;
-  const feat = few ? PUB[0] : PUB.find(p => p.featured) || PUB.find(p => p.tourUrl || p.aerial) || PUB[0];
-  // In showcase mode the hero already presents `feat`, so the Featured block shows the next featured listing.
   // The star in the panel (featured_rank) picks the Featured blocks; the hero carousel shows every published listing.
   const spots = few ? [] : PUB.filter(p => p.featured).sort((a, b) => a.featured - b.featured).slice(0, 2); // star order from the panel
   const featChips = p => [p.tourUrl && "3D tour", p.aerial && "Aerial view", p.floorplans.length && "Floor plans",
     p.operation === "sale" && p.salePrice != null && "Mortgage calculator"].filter(Boolean);
-  const slides = few ? PUB : [feat]; // showcase hero: a carousel of every published listing, starred ones first
+  // The hero is always the property carousel: starred ones first (panel order), then the rest.
+  // ponytail: capped at 10 slides; page them if Hampton ever wants every listing in the hero.
+  const slides = few ? PUB : [...PUB.filter(p => p.featured).sort((a, b) => a.featured - b.featured), ...PUB.filter(p => !p.featured)].slice(0, 10);
   const bios = ["Founded Hampton Estates in 1982 and has guided generations of Jersey families through buying, selling and letting. Advice and valuations are always free.",
                 "Handles day-to-day sales and lettings, from first viewing to completion. Your first call for viewings, offers and rental enquiries."];
   const sel = (id, obj, cur) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${v}</option>`).join("")}</select>`;
   $("#app").innerHTML = `
-  <section class="hero${few && slides.length > 1 ? " hero-with-nav" : ""}" ${few ? 'aria-roledescription="carousel" aria-label="Featured properties"' : ""}>
-    ${few ? `<h1 class="sr">Homes for sale and to let in Jersey</h1><div class="hero-track" tabindex="0" aria-label="Property gallery">
+  <section class="hero${slides.length > 1 ? " hero-with-nav" : ""}" aria-roledescription="carousel" aria-label="Featured properties">
+    <h1 class="sr">Homes for sale and to let in Jersey</h1><div class="hero-track" tabindex="0" aria-label="Property gallery">
       ${slides.map((p, i) => `<article class="slide" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}" data-id="${esc(p.id)}">
         <img src="${esc(p.image)}" alt="" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}>
         <div class="wrap"><div class="place">${esc(p.place)}</div><h2>${esc(p.title)}</h2>
@@ -837,19 +840,16 @@ function home() {
       ${slides.length > 1 ? `<div class="hero-nav"><button type="button" class="hero-arrow" data-dir="-1" aria-label="Previous property" disabled>‹</button>
         <div class="hero-bars" aria-hidden="true">${slides.map((_, i) => `<span${i ? "" : ' class="is-current"'}></span>`).join("")}</div>
         <span id="hero-count" class="sr" aria-live="polite">1 of ${slides.length}</span>
-        <button type="button" class="hero-arrow" data-dir="1" aria-label="Next property">›</button></div>` : ""}` : `
-    <div class="slide"><img src="${esc(feat.image)}" alt="" fetchpriority="high"><div class="wrap">
-    <div class="place">Jersey, Channel Islands</div>
-    <h1>Homes across Jersey, since 1982</h1>
-    <p>Sales, lettings and free valuations from our St Helier office on Bath Street. Discreet, personal advice from a family firm that has known the island since 1982.</p>
-    <form class="search" id="quick">
+        <button type="button" class="hero-arrow" data-dir="1" aria-label="Next property">›</button></div>` : ""}
+  </section>
+  ${few ? "" : `<section class="quick-band"><div class="wrap">
+    <form class="search" id="quick" aria-label="Search properties">
       <label>Location${sel("q-region", {...REGIONS, all: "Anywhere"}, filter.region)}</label>
       <label>Looking for${sel("q-op", {...OPS, all: "Any"}, filter.op)}</label>
       <label>Bedrooms<select id="q-beds">${[0, ...UI_DIMENSIONS.bedrooms].map(n => `<option value="${n}" ${n === filter.beds ? "selected" : ""}>${n ? n + "+" : "Any"}</option>`).join("")}</select></label>
       <label>Max price<select id="q-max"></select></label>
       <button class="btn" type="submit">Search</button>
-    </form></div></div>`}
-  </section>
+    </form></div></section>`}
 
   <section class="block" id="portfolio" tabindex="-1"><div class="wrap">
     <div class="head"><div><h2>Latest properties</h2></div>
@@ -915,7 +915,7 @@ function home() {
   const picks = homePicks(PUB);
   $("#grid").classList.toggle("balanced", picks.length <= 4 && picks.length % 2 === 0);
   $("#grid").innerHTML = picks.map(p => card(p)).join("");
-  if (few) {
+  {
     const hero = $(".hero"), track = $(".hero-track", hero);
     const gallery = snapTrack(track, i => {
       const count = $("#hero-count", hero);
@@ -932,8 +932,8 @@ function home() {
       if (now && canBook(now)) { prop.value = now.id; prop.dispatchEvent(new Event("change", {bubbles: true})); }
       $("#book").scrollIntoView(); prop.focus({preventScroll: true});
     });
-    return;
   }
+  if (few) return;
   const fillMax = () => {
     const op = $("#q-op").value, list = MAX[op] || [];
     $("#q-max").innerHTML = `<option value="0">${list.length ? "No limit" : "Pick a type first"}</option>` +

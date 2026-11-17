@@ -113,6 +113,9 @@ async function shot(page, name, width) {
         const {ctx: manyCtx, page: many} = await open(browser, width, [...fixture, listing(5)]);
         await many.waitForSelector('#quick');
         assert.equal(await many.locator('.feature').count(), 2, 'two featured blocks at most with six listings');
+        assert.equal(await many.locator('.hero .slide').count(), 6, 'the Featured properties carousel stays with six listings');
+        assert.ok(await many.$eval('.quick-band', b => { const h = document.querySelector('.hero').getBoundingClientRect(), r = b.getBoundingClientRect(), f = b.querySelector('#quick').getBoundingClientRect();
+          return Math.abs(r.top - h.bottom) < 1 && f.left >= r.left && f.right <= r.right && b.nextElementSibling.id === 'portfolio'; }), 'search band right under the carousel, inside its band');
         assert.ok(await noOverflow(many)); assert.deepEqual(many.errors, []); await shot(many, 'home-many', width); await manyCtx.close();
       }
       if (cases.includes('navigation')) {
