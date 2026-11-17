@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+17-nov-2026 · **AGE-09, prueba de lo enviado a cada agencia (hecha):** en Enquiries, «Evidence of what was shared» muestra por cada consulta el texto que de verdad salió, quién lo aprobó o envió, qué búsquedas iban en ese envío y sus respuestas y llamadas, sin nombres ni contactos de clientes ni comisión. Solo lectura. Progreso 144 → 145.
+
 17-nov-2026 · **SAP-09, EST-14 y EST-10 (hechas):** en la ficha del aplicante, «Send shortlist» abre la presentación privada con las casas aptas marcadas y «Book viewing» reserva la visita con sus datos puestos (en casas de otra agencia propone hora y espera a que la agencia acepte: ya no se confirman sin ella). Cada match muestra su recorrido (respondió, visita reservada, vista, oferta) y el equipo puede anotar «interesado» o «no interesado» con motivo, sin tocar criterios. La lista de Applicants muestra a la vez «Requirement to confirm», «Viewing pending», «Viewing booked» y «Search review due», y se puede filtrar por ellas. Progreso 141 → 144.
 
 17-nov-2026 · **VIS-17, visitas con varias partes (hecha):** en Viewings el equipo propone un horario libre y anota la respuesta de cada parte necesaria (cliente, agencia y negociador si asiste); la visita se confirma sola cuando todos aceptan, y si alguien rechaza o la visita cambia, la propuesta se cierra. No envía nada. Probar: abrir una visita › «Propose a time». Progreso 139 → 141.

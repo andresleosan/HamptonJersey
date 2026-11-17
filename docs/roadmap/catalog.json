@@ -1425,7 +1425,7 @@
       "preferredSlot": "hermes",
       "priority": 137,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -10803,10 +10803,10 @@
       "titulo": "Prueba de presentación de aplicantes a cada agencia",
       "origen": "plan",
       "fase": "F2",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
       "hecho": "Construida apagada (AGE09_EVIDENCE_READY=\"0\", sin migración; solo lee): cada consulta de la sección Enquiries abre «Evidence of what was shared» (GET /api/admin/consultations/:id/evidence, solo personal, sin ruta pública ni escrituras ni envíos). Separa la comprobación común (consulta general: qué preguntó, cuándo, por qué canal y cuántos matches aprobados se habían unido) de la presentación del caso de un cliente concreto (el tamaño del hogar de la búsqueda que lo declaró o los imprescindibles de su clarificación), siempre sin nombre ni contacto. Solo cuenta como compartido lo enviado: envío anotado a mano o correo aceptado por el proveedor (AGE-05); aprobado, en cola, devuelto o sin confirmar no comparte nada. Muestra el texto realmente enviado, quién aprobó el envío (AGE-05) o quién lo envió y anotó, los matches servidos con quién los unió y la aprobación vigente al unirse, los intentos de envío, las respuestas (AGE-06, incluidas las anteriores y la cancelación), la llamada (AGE-08) y sus fechas, con un aviso de que no establece comisión.",
-      "falta": "Encender AGE09_EVIDENCE_READY=\"1\" en wrangler.toml (no hay migración que aplicar; el reloj no lo lee) y, tras el despliegue, comprobar el recorrido real con lecturas: GET /api/admin/consultations/<id>/evidence de una consulta enviada y el botón «Evidence of what was shared» en Enquiries.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",
@@ -10826,7 +10826,8 @@
         "Decisión: la evidencia no lleva comisión, dirección del destinatario, ni nombre o contacto del cliente; dice que no establece comisión ni honorarios · fuente: spec §D («evidencia técnica no certifica derechos de comisión») y paso 7 del plan maestro.",
         "Decisión: interruptor AGE09_EVIDENCE_READY=\"0\" porque el personal ve un botón nuevo; apagado, ninguna consulta lleva la marca y la ruta da 404; antes de 0077 también 404 · fuente: encargo.",
         "Pruebas 17-nov: tests/server/consultation-evidence.test.mjs 14/14 (apagado/sin AGE-03/antes de 0077 = como antes, solo personal, 400 por página mal formada, comprobación general sin presentación, match unido tras el envío real y antes de anotarlo no cuenta, solo el hogar declarado tras el envío, nota de hogar solo como has_note, 200 eventos más recientes con events_truncated, 50 correos más recientes, clarificación, correo aprobado sin salir y correo aceptado con su versión, correo devuelto y versión 2 enviada a mano sin aprobación de esa versión, mismo envío dos veces = un intento, respuestas y llamada con fechas, paginación por orden de unión y cursor no vinculado = 409); tests/consultation-evidence-ui.test.js 4/4 (envío fallido y sin confirmar no presentan, versión enviada, lista parcial, fechas y texto enviado, sin derecho de comisión, más matches, error y reintento); age-03/05/06/08 y afines en verde.",
-        "Navegador 17-nov: tests/age09-evidence.e2e.cjs en contenedor aislado (E2E_PRODUCTION_READONLY=0) a 1280 y 390: el teclado abre la evidencia, comprobación general aparte del hogar declarado, matches servidos con su aprobación, respuesta, sin nombres/contactos/comisión, consulta sin enviar = nada compartido, sin desbordes laterales, nada enviado."
+        "Navegador 17-nov: tests/age09-evidence.e2e.cjs en contenedor aislado (E2E_PRODUCTION_READONLY=0) a 1280 y 390: el teclado abre la evidencia, comprobación general aparte del hogar declarado, matches servidos con su aprobación, respuesta, sin nombres/contactos/comisión, consulta sin enviar = nada compartido, sin desbordes laterales, nada enviado.",
+        "17-nov-2026: cerrada por aceptación propia. Sin migración; AGE09_EVIDENCE_READY=1 (bf8c5d3a, desplegado: Pages y hampton-jobs ok). Revisión independiente: 2 graves (casas unidas después del envío contadas como enviadas; tope de 200 eventos perdía los más nuevos) y 6 menores corregidos en a9bd4515; segunda pasada sin graves (3 menores a MEJORAS). npm test 3384/3384; e2e age09, age03, age05, age06, age08, sap02, est14 PASS a 1280 y 390 con el interruptor encendido; suite AUT-20 17/17; smoke de producción solo lectura ok."
       ],
       "modulo": "M06",
       "deps": [
@@ -10866,7 +10867,7 @@
         "consultations-contract",
         "events-contract"
       ],
-      "nextStep": "Encender AGE09_EVIDENCE_READY y verificar en producción la evidencia de una consulta enviada.",
+      "nextStep": "Conservar como completada.",
       "actualizado": "2026-11-17"
     },
     {
