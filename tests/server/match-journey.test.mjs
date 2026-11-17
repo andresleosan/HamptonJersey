@@ -101,6 +101,32 @@ test("projection: offers and agreements outrank a word, keep rejected prices and
   assert.deepEqual(let_.history[0], { kind: "tenancy", at: at(6), id: 5, rental_id: 2 });
 });
 
+test("review: VIS-04's answer is dated by feedback_at only, and editing a viewing later changes no word", () => {
+  const no = step(1, "not_interested", at(5));
+  const done = viewing({ status: "completed", outcome: "proceed", feedback_at: null, updated_at: at(2) });
+  const before = matchJourney(facts({ steps: [no], viewings: [done] }), NOW);
+  assert.deepEqual([before.interest, before.stage], ["not_interested", "not_interested"]);
+  const edited = matchJourney(facts({ steps: [no], viewings: [{ ...done, updated_at: at(9) }] }), NOW);
+  assert.deepEqual([edited.interest, edited.stage], ["not_interested", "not_interested"], "a notes edit is no answer");
+  assert.equal(matchJourney(facts({ viewings: [done] }), NOW).interest, "no_answer", "a completion without feedback_at says nothing");
+});
+
+test("review: a link sent after the client's word keeps the step of that word and hides its date", () => {
+  const j = matchJourney(facts({ steps: [step(1, "interested", at(1))], answers: [sent({ sent_at: at(3) })] }), NOW);
+  assert.deepEqual([j.interest, j.stage], ["waiting", "interested"]);
+  const no = matchJourney(facts({ steps: [step(1, "not_interested", at(1))], answers: [sent({ sent_at: at(3) })] }), NOW);
+  assert.deepEqual([no.interest, no.stage], ["waiting", "not_interested"]);
+});
+
+test("review: a client's no, then a viewing linked or booked later: the newer fact wins the step, the word stays", () => {
+  const no = step(1, "not_interested", at(1));
+  const later = matchJourney(facts({ steps: [no], viewings: [viewing({ status: "confirmed", booked: 1, linked_at: at(4), booked_at: at(5) })] }), NOW);
+  assert.deepEqual([later.interest, later.stage], ["not_interested", "viewing_booked"]);
+  const earlier = matchJourney(facts({ steps: [step(1, "not_interested", at(6))],
+    viewings: [viewing({ status: "confirmed", booked: 1, linked_at: at(4), booked_at: at(5) })] }), NOW);
+  assert.equal(earlier.stage, "not_interested");
+});
+
 test("candidate state: the client's interest is a fifth dimension of its own, absent while EST-14 is off", () => {
   const base = { status: "shortlisted", requirements_status: "meets", decision_current: true };
   assert.equal("interest" in candidateState(base), false);
@@ -227,6 +253,16 @@ test("wrong_episode_no_transition: another property, a stale revision or a close
   // Retention: deleting the search deletes its steps.
   assert.deepEqual(rows(env, "SELECT \"table\", on_delete FROM pragma_foreign_key_list('match_journey_steps')"),
     [{ table: "applicants", on_delete: "CASCADE" }]);
+});
+
+test("review: once recorded, a journey that cannot be read now answers null, never 500", async () => {
+  const env = world({ EST14_JOURNEY_READY: "1", AGE12_PRESENTATIONS_READY: "1" }), a = await searching(env);
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = stmts => stmts.some(s => /presentation_options/.test(s.sql)) ? Promise.reject(new Error("no such table: presentation_options")) : batch(stmts);
+  const r = await record(env, a, { action: "interested" });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.journey, null);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM match_journey_steps").n, 1);
 });
 
 test("history outlives a recompute: the steps belong to the search and the property, not to one match row", async () => {
