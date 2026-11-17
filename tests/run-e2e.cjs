@@ -155,6 +155,9 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
         AUT19_CRITERIA_PROPOSALS_READY: "1" } : {}),
       // EST-14: a match's journey and the client's word, switched on for its own test only (off in production).
       ...(process.env.E2E_SCRIPT === "tests/est14-match-journey.e2e.cjs" ? { EST14_JOURNEY_READY: "1" } : {}),
+      // EST-10: the list's work labels from VIS-17's linked viewings and BUS-17's open review, switched on for its own test only.
+      ...(process.env.E2E_SCRIPT === "tests/est10-work-labels-live.e2e.cjs" ? { EST10_LABELS_READY: "1", VIS17_MULTIPART_READY: "1",
+        BUS17_REVIEW_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

@@ -6,18 +6,26 @@
   "fase": "F1-A",
   "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "La lista muestra simultáneamente etiquetas basadas en matches guardados de Hampton: nuevas propiedades, pendientes de revisión y preseleccionadas; permite filtrar por etiqueta y conserva un filtro equivalente al anterior sin pendientes ni preselecciones. La preselección no confirma disponibilidad. El parámetro de cola anterior sigue aceptándose por compatibilidad.",
-  "falta": "Integrar señales reales de visita pendiente/confirmada, dato esencial sin comprobar y revisión interna a 21 días BUS-17; completar el contrato de etiquetas de trabajo sin cerrar búsquedas ni cambiar criterios. Depende de EST-09, BUS-17 y VIS-17.",
+  "hecho": "La lista de Applicants muestra a la vez las etiquetas de matches (nuevas, pendientes de revisión, preseleccionadas, In process) y filtra por cada una. Construido y apagado (EST10_LABELS_READY=0, sin migración): el servidor devuelve work_labels por búsqueda y añade, en la misma consulta y por índices, «Must-have to confirm» (match no rechazado con requirements_rank 1), «Viewing pending» / «Viewing booked» (solo visitas vinculadas a la búsqueda por una persona con la propuesta de VIS-17; reservada solo si la visita está confirmada y es de hoy o posterior) y «Search review due» (revisión BUS-17 abierta mientras su tarea del Inbox no está hecha). Cada etiqueta filtra; ninguna cierra búsquedas, cambia criterios ni envía nada. Una fuente apagada o sin migrar no se lee ni se ofrece (nunca se muestra como cero). Apagado, la lista lee el mismo SQL y devuelve la misma respuesta.",
+  "falta": "Encender EST10_LABELS_READY en wrangler.toml (no hay migración que aplicar) y comprobar el recorrido en producción con lecturas GET de /admin/applicants (work_labels presentes, filtros por etiqueta).",
   "bloqueo": "",
   "evidencia": [
-    "server/routes/applicants.js:64-71",
-    "server/applicants.js:29-31",
-    "admin/src/Applicants.jsx:56-57",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f1a-design.md:43",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "server/search-work-labels.js (workLabelsFor, sourceLabels, labelColumns, WORK_LABEL_TEXT; sin imports para el panel)",
+    "server/routes/applicants.js (list: columnas EST-10 en la CTE listed, filtros work_label nuevos, work_labels en fila y respuesta)",
+    "admin/src/Applicants.jsx (insignias desde work_labels del servidor, opciones de filtro solo de las fuentes leídas, textos de ayuda)",
+    "wrangler.toml: EST10_LABELS_READY = \"0\" (jobs/wrangler.toml no lo lee: el reloj no cambia)",
+    "tests/server/search-work-labels.test.mjs: 7/7 (review_and_waiting_together, no_7day_no_matches_rule, ready_not_search_resolved, missing_essential_unknown, no_visit_confirmation_from_request, text_not_color_only)",
+    "tests/server/search-label-sources.test.mjs: 5/5 (fuentes reales VIS-17/BUS-17/matches, visit_unlinked_pending_not_booked, review7_days_after_close, filtros sin cambiar búsquedas, plan por índices viewing_proposals_applicant y search_reviews_one_open sin SCAN, apagado = mismo SQL/binds/respuesta, missing_provider_pending_not_zero con VIS-17 apagado y con base anterior a 0099)",
+    "tests/est10-work-labels-live.e2e.cjs (aislado, 1280 y 390): cuatro etiquetas a la vez, visita por email no vinculada sin etiqueta, filtros por teclado, sin scroll lateral, búsquedas sin cambios; tests/est10-work-labels.e2e.cjs (sintético) sigue pasando",
+    "Regresiones focales: matches, sap02-match-counts, bus-17-search-review, vis-17-coordination: 74/74",
+    "npm test completo: 3351 pruebas JS, 3348 pasan juntas; las 3 que agotaron tiempo con la máquina cargada (pre10-contact-d1, pre06-coverage, ofe-06-store, sobre D1 local de wrangler, archivos no tocados) pasan 32/32 por separado; Python 29/29; npm run build y check:release correctos",
+    "Decisión: «No matches a 7 días» no se conserva como etiqueta; la ausencia la señala solo la revisión BUS-17 (21 días y luego 7 tras cada cierre) · fuente: docs/superpowers/specs/2026-11-08-search-review-criteria-design.md (B02 y párrafo EST-10) y plan EST-10 (no_7day_no_matches_rule)",
+    "Decisión: una visita cuenta solo si una persona la vinculó a la búsqueda (viewing_proposals.applicant_id); las que coinciden por email o teléfono no generan etiqueta · fuente: migrations/0114_viewing_coordination.sql (applicant_id elegido por una persona, nunca inferido) y plan EST-10 (visit_unlinked_pending_not_booked)",
+    "Decisión: «dato esencial sin comprobar» = match no rechazado con requirements_rank 1 (imprescindible, mascotas, vivienda o zona sin respuesta de la propiedad) · fuente: server/requirements.js requirementsSummary y plan EST-10 (missing_essential_unknown)",
+    "Decisión: las etiquetas nuevas siguen el alcance de la cola de trabajo existente (búsquedas activas de vivienda sin archivar); las comerciales siguen en «Manual review» y la ficha del applicant ya muestra cada fuente · fuente: opción más simple y reversible (skill §4.5)",
+    "Decisión: sin migración: los índices viewing_proposals_applicant (0114), search_reviews_one_open (0099), matches_page y notifications.task_key UNIQUE ya cubren las lecturas · fuente: EXPLAIN QUERY PLAN en tests/server/search-label-sources.test.mjs",
     "docs/superpowers/plans/2026-11-08-est-10-concurrent-search-work-labels.md",
-    "tests/est10-work-labels.e2e.cjs",
-    "tests/server/matches.test.mjs"
+    "docs/superpowers/specs/2026-11-08-search-review-criteria-design.md"
   ],
   "modulo": "M13",
   "deps": [
@@ -58,5 +66,6 @@
     "notifications-schema",
     "viewings-contract"
   ],
-  "nextStep": "Integrar productores reales de BUS-17 y VIS-17 y completar las etiquetas pendientes sin inferir disponibilidad."
+  "nextStep": "Encender EST10_LABELS_READY (sin migración) y verificar con lecturas GET de la lista de Applicants.",
+  "actualizado": "2026-11-17"
 }
