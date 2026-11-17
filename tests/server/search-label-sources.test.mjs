@@ -4,7 +4,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, T0, captured, plan } from "./listing-client.mjs";
-import { jerseyToday } from "../../server/viewings.js";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { jerseyToday, jerseyNow } from "../../server/viewings.js";
 
 const ON = { EST10_LABELS_READY: "1", VIS17_MULTIPART_READY: "1", BUS17_REVIEW_READY: "1" };
 const run = (env, sql, ...args) => env.DB.raw.prepare(sql).run(...args);
@@ -27,18 +32,22 @@ function search(env, name, over = {}) {
 const match = (env, a, listing, status = "found", rank = 0) => run(env, `INSERT INTO matches (applicant_id, listing_id, score, checks, status,
   reject_reason, requirements_rank, created_at, updated_at) VALUES (?, ?, 50, '[]', ?, ?, ?, ?, ?)`, a, listing, status,
   status === "rejected" ? "area" : null, rank, T0, T0);
-// A viewing; linked: a VIS-17 proposal naming the search (state as given), never an email or phone that matches.
-function viewing(env, a, { status = "requested", date = shift(2), proposal = null } = {}) {
+// A viewing; linked: VIS-17 proposals naming a search (revisions 1, 2… as [search, state, date]), never an email or phone
+// that matches. proposal: one revision for search a.
+function viewing(env, a, { status = "requested", date = shift(2), time = "10:00", end = "10:30", proposal = null,
+  proposals = proposal ? [[a, proposal]] : [] } = {}) {
   const neg = get(env, "SELECT id FROM negotiators ORDER BY id LIMIT 1").id;
   const email = get(env, "SELECT c.email FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE a.id = ?", a).email;
   const v = Number(run(env, `INSERT INTO viewing_requests (listing_id, kind, date, time, end_time, name, email, status, created_at, negotiator_id)
-    VALUES ('HE-R001', 'viewing', ?, '10:00', '10:30', 'Fixture', ?, ?, ?, ?)`, date, email, status, T0, neg).lastInsertRowid);
-  if (proposal) run(env, `INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id, date, time, end_time, required,
-      from_status, from_date, from_time, state, created_at, created_by, closed_at, closed_by)
-    VALUES (?, 1, ?, ?, ?, '10:00', '10:30', '["client"]', 'requested', ?, '10:00', ?, ?, 'admin@example.test', ?, ?)`,
-    v, a, neg, date, date, proposal, T0, proposal === "open" ? null : T0, proposal === "open" ? null : "admin@example.test");
+    VALUES ('HE-R001', 'viewing', ?, ?, ?, 'Fixture', ?, ?, ?, ?)`, date, time, end, email, status, T0, neg).lastInsertRowid);
+  proposals.forEach(([who, state, on = date], i) => run(env, `INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id,
+      date, time, end_time, required, from_status, from_date, from_time, state, created_at, created_by, closed_at, closed_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, '["client"]', 'requested', ?, ?, ?, ?, 'admin@example.test', ?, ?)`,
+    v, i + 1, who, neg, on, time, end, date, time, state, T0, state === "open" ? null : T0, state === "open" ? null : "admin@example.test"));
   return v;
 }
+// Jersey now, as the list reads it: a viewing of today counts while its end is later.
+const clock = jerseyNow(), nowKey = `${clock.date} ${clock.time}`, ahead = end => `${clock.date} ${end}` > nowKey;
 // BUS-17's review of a search, its Inbox task open unless done, the review closed when closed.
 function review(env, a, { done = false, closed = false, cycle = 1 } = {}) {
   const r = Number(run(env, `INSERT INTO search_reviews (applicant_id, episode, cycle, due_at, opened_at, alternatives, closed_at, outcome)
@@ -67,6 +76,19 @@ function world(flags = ON, schema = {}) {
   id.rejected = search(env, "Rejected essential"); match(env, id.rejected, "HE-R001", "rejected", 1);
   id.resolved = search(env, "Resolved", { search_state: "resolved", resolution_reason: "found_elsewhere", resolved_at: T0, resolved_by: "admin@example.test" });
   viewing(env, id.resolved, { status: "confirmed", proposal: "confirmed" });
+  // An open proposal and a request whose time has passed, nobody having closed them: nothing pending.
+  id.stale = search(env, "Stale"); viewing(env, id.stale, { date: shift(-5), proposals: [[id.stale, "open", shift(-4)]] });
+  // Linked to A by mistake, then re-linked to B (revision 2): only the latest proposal links it.
+  id.relinkA = search(env, "Relinked first"); id.relinkB = search(env, "Relinked second");
+  viewing(env, id.relinkB, { status: "confirmed", date: shift(3), proposals: [[id.relinkA, "superseded"], [id.relinkB, "confirmed"]] });
+  // An open proposal left on a viewing cancelled meanwhile (switched off): not pending.
+  id.cancelled = search(env, "Cancelled"); viewing(env, id.cancelled, { status: "cancelled", date: shift(3), proposal: "open" });
+  // Today: one already over, one still to come (each as the clock reads it now).
+  id.ended = search(env, "Ended today"); viewing(env, id.ended, { status: "confirmed", date: clock.date, time: "00:00", end: "00:01", proposal: "confirmed" });
+  id.later = search(env, "Later today"); viewing(env, id.later, { status: "confirmed", date: clock.date, time: "23:58", end: "23:59", proposal: "confirmed" });
+  // A commercial search is not in the work queue: no label is read for it.
+  id.commercial = search(env, "Commercial", { search_category: "commercial", commercial_kind: "property" });
+  viewing(env, id.commercial, { status: "confirmed", proposal: "confirmed" });
   return { env, id };
 }
 const labelsOf = (data, id) => Object.fromEntries(Object.entries(id).map(([k, v]) => [k, data.applicants.find(a => a.id === v)?.work_labels]));
@@ -84,6 +106,9 @@ test("each label comes from its real source, several at once, and no source is i
     done: [], closed: [], // review7_days_after_close: Done or closed, nothing until BUS-17 opens the next
     essential: ["review", "essential"], rejected: [],
     resolved: null, // ready_not_search_resolved: a resolved search keeps its history only
+    stale: [], relinkA: [], relinkB: ["viewing_booked"], cancelled: [],
+    ended: ahead("00:01") ? ["viewing_booked"] : [], later: ahead("23:59") ? ["viewing_booked"] : [],
+    commercial: null,
   });
   for (const a of data.applicants) for (const k of ["essential", "viewing_pending", "viewing_booked", "search_review"]) assert.equal(k in a, false);
 });
@@ -91,9 +116,14 @@ test("each label comes from its real source, several at once, and no source is i
 test("each new label filters the list, and reading changes no search", async () => {
   const { env, id } = world();
   const before = env.DB.raw.prepare("SELECT id, search_state, updated_at, matches_revision FROM applicants ORDER BY id").all();
-  for (const [label, ids] of [["viewing_pending", [id.pending, id.held]], ["viewing_booked", [id.booked]], ["search_review", [id.review]],
-    ["essential", [id.essential]], ["review", [id.review, id.essential]]])
+  const today = [...(ahead("00:01") ? [id.ended] : []), ...(ahead("23:59") ? [id.later] : [])];
+  for (const [label, ids] of [["viewing_pending", [id.pending, id.held]], ["viewing_booked", [id.booked, id.relinkB, ...today]],
+    ["search_review", [id.review]], ["essential", [id.essential]], ["review", [id.review, id.essential]]])
     assert.deepEqual((await list(env, `&work_label=${label}`)).applicants.map(a => a.id), ids, label);
+  // no_pending keeps its meaning (no match waiting for review or shortlisted), whatever other labels a search carries.
+  const none = (await list(env, "&work_label=no_pending")).applicants;
+  assert.deepEqual(none.find(a => a.id === id.booked).work_labels, ["viewing_booked"]);
+  assert.equal(none.some(a => a.found > 0 || a.shortlisted > 0), false);
   assert.deepEqual(env.DB.raw.prepare("SELECT id, search_state, updated_at, matches_revision FROM applicants ORDER BY id").all(), before);
 });
 
@@ -121,6 +151,33 @@ test("off, the list's SQL, binds and response are those of before", async () => 
   assert.equal("work_labels" in a, false);
   assert.equal(a.applicants.some(r => "work_labels" in r), false);
   assert.equal((await req(off.env, "/admin/applicants?work_label=viewing_booked")).status, 400);
+});
+
+// The list as it was before EST-10 (42b168f6), loaded beside the current one: switched off, both run the same SQL.
+test("off, the list runs exactly the SQL of before EST-10", async t => {
+  let old;
+  try { old = execFileSync("git", ["show", "42b168f6:server/routes/applicants.js"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }); }
+  catch { return t.skip("git history not available"); }
+  const dir = mkdtempSync(join(tmpdir(), "est10-baseline-")), file = join(dir, "applicants.mjs");
+  const server = new URL("../../server/", import.meta.url).href;
+  writeFileSync(file, old.replaceAll('from "../../site/', `from "${new URL("../../site/", import.meta.url).href}`)
+    .replaceAll('from "../', `from "${server}`).replaceAll('from "./', `from "${server}routes/`));
+  try {
+    const lists = [(await import(pathToFileURL(file).href)).default, (await import("../../server/routes/applicants.js")).default]
+      .map(routes => routes.find(([method, path]) => method === "GET" && path.test("/admin/applicants"))[2]);
+    for (const q of ["sort=oldest", "work_label=review&queue=Waiting%20for%20review", "archived=1&q=Fixture", "expiring=1"]) {
+      const sql = [];
+      for (const handler of lists) {
+        const { env } = world({ ...ON, EST10_LABELS_READY: "0", SAP02_COUNTS_READY: "1" });
+        const seen = captured(env, /WITH listed/);
+        const r = await handler({ request: new Request(`https://example.test/api/admin/applicants?${q}`), env });
+        assert.equal(r.status, 200);
+        sql.push(seen.map(s => ({ sql: s.sql, args: s.args.filter((_, i) => i !== 2) })));
+      }
+      assert.deepEqual(sql[1], sql[0], q);
+      assert.equal(sql[0].length, 1);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("missing_provider_pending_not_zero: a source off or not migrated is not read and its labels are not offered", async () => {

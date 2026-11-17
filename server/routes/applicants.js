@@ -13,7 +13,7 @@ import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
   OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY } from "../retention.js";
-import { jerseyToday } from "../viewings.js";
+import { jerseyToday, jerseyNow } from "../viewings.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
 import { PENDING_MARKETING } from "./public.js";
@@ -120,7 +120,7 @@ async function list({ request, env }) {
   // SAP-02, EST-04: switched off, or with enquiries off, the list is read exactly as before.
   const counted = countsReady(env), waitingSql = counted ? waitingSearches(env) : null;
   // EST-10: with its switch, the labels of the sources that can be read, as columns of the same query; null = as before.
-  const today = jerseyToday(), extra = await labelColumns(env, today);
+  const clock = jerseyNow(), today = clock.date, extra = await labelColumns(env, clock);
   const workPredicates = { new: "fresh", review: "found > 0", shortlisted: "shortlisted > 0", no_pending: "found = 0 AND shortlisted = 0",
     ...(waitingSql && { in_process: "in_process" }), ...(extra && Object.fromEntries(extra.labels.map(k => [k, k]))) };
   if (workLabel && !Object.hasOwn(workPredicates, workLabel)) fail(400, "Invalid work label");

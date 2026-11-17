@@ -101,8 +101,9 @@ export default function Applicants() {
       Review whether they still need the search. They are protected from automatic deletion.</p>}
     <p className="muted">Work labels describe saved Hampton matches; shortlisted does not mean availability is confirmed.{shows.in_process
       && " In process: one of the homes is waiting for the agency (an open enquiry) or for the client (a private link sent, not answered)."}{shows.work_labels
-      && " Must-have to confirm: a match with an essential fact the property does not answer yet."}{shows.work_labels?.includes("viewing_booked")
-      && " Viewing pending or booked: a viewing linked to this search; pending until everyone has accepted the time."}{shows.work_labels?.includes("search_review")
+      && " Requirement to confirm: a match where the property does not answer a must-have, pets, housing or area yet, or where"
+      + " how much a requirement matters is not stated."}{shows.work_labels?.includes("viewing_booked")
+      && " Viewing pending or booked: a viewing still to come that a person linked to this search; pending until everyone has accepted the time."}{shows.work_labels?.includes("search_review")
       && " Search review due: the internal review after 21 days without a complete option, open in the Inbox."}</p>
     {shows.match_counts && <p className="muted">Matches: found counts every match not rejected; confirmed, the homes a person confirmed as
       available; available, the confirmed ones shortlisted on today's details and still offered.</p>}
