@@ -13,6 +13,7 @@ import { candidateState, unknownMusts } from "../candidate-state.js";
 import availabilityRoutes, { confirmationReader } from "../availability-confirmations.js";
 import { notConfirmedUnavailable } from "../property-facts.js";
 import consultationRoutes, { enquiryReader } from "../consultations.js";
+import evidenceRoutes from "../consultation-evidence.js";
 import { journeyReader, journeyRoutes } from "../match-journey.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
@@ -329,5 +330,6 @@ export default [
   ["GET", /^\/admin\/review$/, next, true],
   ...availabilityRoutes, // EST-16: they answer { enabled: false } or 404 until EST16_AVAILABILITY_READY and migration 0072
   ...consultationRoutes(ENQUIRY_GATES), // AGE-03: { enabled: false } or 404 until AGE03_ENQUIRIES_READY and migration 0077
+  ...evidenceRoutes, // AGE-09: 404 until AGE09_EVIDENCE_READY, with AGE-03
   ...journeyRoutes, // EST-14: 404 until EST14_JOURNEY_READY and migration 0116
 ];

@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate, safeHref } from "./format.js";
 import { provenance } from "./ConfirmedAvailability.jsx";
+import ConsultationEvidence from "./ConsultationEvidence.jsx";
 
 // AGE-03: the shared enquiry about a property (server/consultations.js). For staff only. The app sends nothing: the
 // panel gives the recipient and the text to copy, and a person records having sent it. Everything here stays empty
 // until the server reports enabled (AGE03_ENQUIRIES_READY and migration 0077).
 // AGE-05: when the server also reports send (AGE05_SEND_READY and migration 0080), a person chooses the advertiser's
 // contact and may approve and queue one email for exactly that version. Without it, nothing below changes.
+// AGE-09: an enquiry the server marks with evidence (AGE09_EVIDENCE_READY) opens what it shared; without it, nothing shows.
 export const ENQUIRY = { manual_pending: ["attention", "To send manually"], sent: ["positive", "Sent manually"],
   queued: ["attention", "Queued by email"], needs_review: ["attention", "Awaiting email check"],
   awaiting_response: ["attention", "Awaiting a useful answer"], answered: ["positive", "Answered"], cancelled: ["neutral", "Cancelled"] };
@@ -125,6 +127,7 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
   const mail = c.contact?.email, emailRef = `HE-OUT-${c.email_ref}`, emailed = c.status === "sent" && c.email_ref;
   const [sent, setSent] = useState(() => ({ sent_at: localNow(), via: "", evidence_ref: "" }));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  const [evidence, setEvidence] = useState(false); // AGE-09: opened by a person, read again after each change
   const operation = useRef(crypto.randomUUID()); // one id for this record of sending, retries included
   const takeBack = useRef(null); // one id per queued version taken back to manual sending, retries included
   useEffect(() => { setTo(gone ? "" : String(r.id)); setWho(c.contact?.key ?? ""); setStated(!!c.occupants_from_this_match); setErrors({});
@@ -240,6 +243,9 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
       { method: "POST", body: { revision: c.revision } }), "Enquiry cancelled.")}>Cancel enquiry</button>
       <span className="muted">No approved match counts for it now.</span></div>}
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+    {c.evidence && <div className="inline"><button type="button" className="btn ghost sm" aria-expanded={evidence} aria-controls={`${id}-evidence`}
+      onClick={() => setEvidence(v => !v)}>{evidence ? "Hide evidence" : "Evidence of what was shared"}</button></div>}
+    {c.evidence && evidence && <div id={`${id}-evidence`}><ConsultationEvidence key={`${c.status}-${c.revision}-${c.response?.recorded_at}`} consultationId={c.id} /></div>}
   </div>;
 }
 

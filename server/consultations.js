@@ -23,6 +23,7 @@ import { serviceReady, readEmailSettings, emailAddress } from "./email.js";
 import { confirmationReader, availabilityReady, confirmationStatements, propagate, REASONS } from "./availability-confirmations.js";
 import { taskStatements } from "./notification-tasks.js";
 import { CHECK_LABEL } from "./candidate-state.js";
+import { evidenceReady } from "./consultation-evidence.js";
 
 export const enquiriesReady = env => env?.AGE03_ENQUIRIES_READY === "1";
 // AGE-05 needs EST-15 too: a property confirmed as not available must take what is pending out before anything is sent.
@@ -282,6 +283,8 @@ export function enquiries(gates) {
         : status === "awaiting_response" ? { can_cancel: !ids.length } : {}),
       // AGE-08: when the call to the advertiser is (or was) due, while it waits for a useful answer.
       ...(callsReady(env) && ANSWERABLE.includes(status) && sent_at ? { call_due_at: callDue(sent_at) } : {}),
+      // AGE-09: the evidence of what this enquiry shared can be opened.
+      ...(evidenceReady(env) ? { evidence: true } : {}),
       ...(send ? { contact, approval: c.approved_revision === revision ? { by: c.approved_by, at: c.approved_at } : null, email_ref: c.email_ref,
         ...(c.status === "queued" ? { held: sendReady(env) ? await emailStop(env, true) : "Sending enquiries by email was switched off here. It "
           + "stops only once it is off for the clock too: then it returns to manual sending. Return it to manual now to be sure." } : {}) } : {}),

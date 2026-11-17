@@ -69,6 +69,10 @@ AGE06_RESPONSES_READY = "1"
 BUS01_MARKET_MATCHING_READY = "1"
 # AGE-08: one Inbox task to call the advertiser two working days after an enquiry was sent with no useful answer (no migration; sends nothing). Must match the other wrangler.toml.
 AGE08_CALL_TASKS_READY = "1"
+# AGE-09: each enquiry opens the evidence of what it shared with the advertiser (general check or one search's own case),
+# who approved it, the matches it served, the answers and the call (no migration; reads only, needs AGE03_ENQUIRIES_READY).
+# Writes and sends nothing; the clock does not read it.
+AGE09_EVIDENCE_READY = "0"
 # SPR-03: a confirmation that says available captures one shared property record, its files and downloads (migration 0084, applied 15-nov-2026; needs EST16_AVAILABILITY_READY). Sends nothing.
 SPR03_CAPTURE_READY = "1"
 # AGE-10: the team marks which captured photos are fit for a private presentation, with their provenance (migration 0085, applied 15-nov-2026; needs SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Publishes and sends nothing.
