@@ -3,95 +3,28 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
 
-const dir=new URL('../../migrations/',import.meta.url), proposal=new URL('../../server/proposed-schema/owner-requests-rebuild.sql',import.meta.url);
-const at='2026-11-13T00:00:00.000Z';
-// This unactivated rebuild proposal deliberately accepts only its reviewed 0051 baseline.
-function dbAtBaseline(through=51){
- const db=new DatabaseSync(':memory:'); db.exec('PRAGMA foreign_keys=ON');
- for(const n of readdirSync(dir).filter(n=>/^[0-9].*\.sql$/.test(n)&&Number(n.slice(0,4))<=through).sort())db.exec(readFileSync(new URL(n,dir),'utf8'));
+const dir=new URL('../../migrations/',import.meta.url), at='2026-11-13T00:00:00.000Z';
+const file=readdirSync(dir).find(n=>n.startsWith('0118_'));
+// PUB-10: 0118 only adds; it neither rebuilds events/notifications nor installs the settings row that opens intake.
+test('0118 is additive and leaves every existing table, row and schema object unchanged',()=>{
+ assert.ok(file,'migration 0118 exists');
+ const sql=readFileSync(new URL(file,dir),'utf8'),outside=sql.replace(/--.*$/gm,'').replace(/BEGIN[\s\S]*?END;/g,'');
+ for(const s of outside.split(';').map(x=>x.trim()).filter(Boolean))assert.match(s,/^CREATE (TABLE|INDEX|TRIGGER) /,s);
+ const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
+ for(const n of readdirSync(dir).filter(n=>/^[0-9].*\.sql$/.test(n)&&n<file).sort())db.exec(readFileSync(new URL(n,dir),'utf8'));
  db.exec(readFileSync(new URL('../fixtures/seed.sql',import.meta.url),'utf8'));
  db.exec(`INSERT INTO events(id,at,actor,entity_type,entity_id,type) VALUES(9001,'${at}','system','admin','fixture','fixture');
-   INSERT INTO notifications(id,event_id,category,title,action_required,created_at,task_key) VALUES(9001,9001,'task','Fixture',1,'${at}','fixture:owner-migration');
-   INSERT INTO notification_reads VALUES('admin@example.test',9001,1);
-   INSERT INTO notification_task_operations VALUES('admin@example.test','fixture-operation',9001,'fixture-hash',1);
-   INSERT INTO notification_observations VALUES('fixture:owner-migration','check','1:gas','fixture','fixture',1,'rental','1',9001);`);
- return db;
-}
-test('proposed rebuild preserves historical tables, indexes, triggers and children',()=>{
- const db=dbAtBaseline(); const tables=db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(x=>x.name);
- const before=Object.fromEntries(tables.map(n=>[n,db.prepare(`SELECT * FROM ${n}`).all()]));
- const triggers=db.prepare("SELECT name,sql FROM sqlite_schema WHERE type='trigger' ORDER BY name").all();
- const indexes=db.prepare("SELECT name,sql FROM sqlite_schema WHERE type='index' AND sql IS NOT NULL ORDER BY name").all();
- db.exec('BEGIN');db.exec(readFileSync(proposal,'utf8'));db.exec('COMMIT');
- for(const n of tables)assert.deepEqual(db.prepare(`SELECT * FROM ${n}`).all(),before[n],n);
- assert.deepEqual(db.prepare("SELECT name,sql FROM sqlite_schema WHERE type='trigger' ORDER BY name").all(),triggers);
- assert.deepEqual(db.prepare("SELECT name,sql FROM sqlite_schema WHERE type='index' AND sql IS NOT NULL ORDER BY name").all(),indexes);
- assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
- db.prepare("INSERT INTO events(at,actor,entity_type,entity_id,type) VALUES(?,?,?,?,?)").run(at,'system','owner_request','synthetic-owner','owner.requested');
- db.close();
-});
-
-test('schema drift aborts rebuild without changing existing historical data',()=>{
- const db=dbAtBaseline();
- db.exec("CREATE TRIGGER synthetic_extra AFTER INSERT ON events BEGIN SELECT 1; END");
- const before=db.prepare('SELECT * FROM notifications WHERE id=9001').get();
- db.exec('BEGIN');
- assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
- db.exec('ROLLBACK');
- assert.deepEqual(db.prepare('SELECT * FROM notifications WHERE id=9001').get(),before);
- assert.ok(db.prepare("SELECT 1 FROM sqlite_schema WHERE type='trigger' AND name='synthetic_extra'").get());
- assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
- db.close();
-});
-
-test('canonical 0052 remains unreviewed drift for the 0051 owner rebuild proposal',()=>{
- const db=dbAtBaseline(52);
+   INSERT INTO notifications(id,event_id,category,title,action_required,created_at,task_key) VALUES(9001,9001,'task','Fixture',1,'${at}','fixture:owner-migration');`);
  const tables=db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(x=>x.name);
- const before=Object.fromEntries(tables.map(n=>[n,db.prepare(`SELECT * FROM ${n}`).all()]));
- const structure=db.prepare("SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL ORDER BY type,name").all();
- db.exec('BEGIN');
- assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
- db.exec('ROLLBACK');
- for(const n of tables)assert.deepEqual(db.prepare(`SELECT * FROM ${n}`).all(),before[n],n);
- assert.deepEqual(db.prepare("SELECT type,name,sql FROM sqlite_schema WHERE sql IS NOT NULL ORDER BY type,name").all(),structure);
+ const rows=()=>Object.fromEntries(tables.map(n=>[n,db.prepare(`SELECT * FROM ${n}`).all()]));
+ const before=rows(),schema=db.prepare('SELECT type,name,sql FROM sqlite_schema ORDER BY type,name').all();
+ db.exec(sql);
+ assert.deepEqual(rows(),before);
+ const after=db.prepare('SELECT type,name,sql FROM sqlite_schema ORDER BY type,name').all();
+ assert.deepEqual(after.filter(o=>schema.some(s=>s.name===o.name)),schema);
+ assert.deepEqual(after.filter(o=>!schema.some(s=>s.name===o.name)).map(o=>o.name).sort(),
+  ['owner_request_receipts','owner_requests','owner_requests_created','owner_requests_erased','owner_requests_policy','owner_requests_status','sqlite_autoindex_owner_request_receipts_1','sqlite_autoindex_owner_request_receipts_2','sqlite_autoindex_owner_requests_1','sqlite_autoindex_owner_requests_2']);
+ assert.equal(db.prepare("SELECT COUNT(*) n FROM app_settings WHERE key='owner_enquiries'").get().n,0);
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  db.close();
-});
-
-test('unexpected cascading foreign key to events fails closed before data loss',()=>{
- const db=dbAtBaseline();
- db.exec('CREATE TABLE synthetic_cascade(id INTEGER PRIMARY KEY,event_id INTEGER REFERENCES events(id) ON DELETE CASCADE); INSERT INTO synthetic_cascade VALUES(1,9001)');
- db.exec('BEGIN');
- assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
- db.exec('ROLLBACK');
- assert.deepEqual(db.prepare('SELECT * FROM synthetic_cascade').all().map(x=>({...x})),[{id:1,event_id:9001}]);
- assert.equal(db.prepare('SELECT COUNT(*) AS n FROM events WHERE id=9001').get().n,1);
- assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
- db.close();
-});
-
-test('unexpected cascading foreign key to notifications fails closed before data loss',()=>{
- const db=dbAtBaseline();
- db.exec('CREATE TABLE synthetic_notice_cascade(id INTEGER PRIMARY KEY,notice_id INTEGER REFERENCES notifications(id) ON DELETE CASCADE); INSERT INTO synthetic_notice_cascade VALUES(1,9001)');
- db.exec('BEGIN');
- assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/);
- db.exec('ROLLBACK');
- assert.deepEqual(db.prepare('SELECT * FROM synthetic_notice_cascade').all().map(x=>({...x})),[{id:1,notice_id:9001}]);
- assert.equal(db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE id=9001').get().n,1);
- assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
- db.close();
-});
-
-test('unrelated new table is rejected conservatively before a rebuild',()=>{
- const db=dbAtBaseline(); db.exec('CREATE TABLE synthetic_unrelated(id INTEGER PRIMARY KEY); INSERT INTO synthetic_unrelated VALUES(1)');
- db.exec('BEGIN'); assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/); db.exec('ROLLBACK');
- assert.equal(db.prepare('SELECT COUNT(*) n FROM synthetic_unrelated').get().n,1);
- assert.equal(db.prepare('SELECT COUNT(*) n FROM notifications WHERE id=9001').get().n,1); db.close();
-});
-
-test('unexpected metadata definition is rejected before a rebuild',()=>{
- const db=dbAtBaseline(); db.exec('CREATE TABLE _cf_METADATA(key INTEGER PRIMARY KEY,value BLOB,event_id INTEGER REFERENCES events(id) ON DELETE CASCADE); INSERT INTO _cf_METADATA VALUES(1,NULL,9001)');
- db.exec('BEGIN'); assert.throws(()=>db.exec(readFileSync(proposal,'utf8')),/CHECK constraint failed/); db.exec('ROLLBACK');
- assert.equal(db.prepare('SELECT COUNT(*) n FROM _cf_METADATA').get().n,1);
- assert.equal(db.prepare('SELECT COUNT(*) n FROM events WHERE id=9001').get().n,1); db.close();
 });

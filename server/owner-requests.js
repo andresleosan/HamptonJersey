@@ -4,8 +4,6 @@ import {verifyTurnstile} from './turnstile.js';
 import {EMAIL} from './viewings.js';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keys=['request_id','name','phone','email','address','operation','valuation_requested','privacy_version','token'];
-// No policy reference or deployment flag substitutes for a working erasure/reconciliation workflow.
-const OWNER_ERASURE_WORKFLOW_IMPLEMENTED=false;
 const clean=(v,max)=>typeof v==='string'&&v.trim().length>0&&v.trim().length<=max?v.trim():null;
 export function validateOwnerRequest(input){
  const errors={};if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!keys.includes(k)))return {errors:{form:'Invalid request'}};
@@ -19,7 +17,7 @@ export function validateOwnerRequest(input){
 }
 export const ownerRequestHash=v=>sha256(JSON.stringify({name:v.name,phone:v.phone,email:v.email,address:v.address,operation:v.operation,valuation_requested:v.valuation_requested,privacy_version:v.privacy_version}));
 export async function ownerPolicy(env){
- if(env.OWNER_REQUESTS_READY!=='1'||!OWNER_ERASURE_WORKFLOW_IMPLEMENTED)return null;
+ if(env.OWNER_REQUESTS_READY!=='1')return null;
  const r=await env.DB.prepare("SELECT json_extract(value,'$.privacy_version') AS version FROM app_settings WHERE key='owner_enquiries' AND json_extract(value,'$.enabled')=1 AND length(json_extract(value,'$.privacy_version')) BETWEEN 1 AND 120").first();
  return r?.version?String(r.version):null;
 }
@@ -27,7 +25,7 @@ export async function ownerStorageAvailable(env){
  const r=await env.DB.prepare("SELECT COUNT(*) AS n FROM sqlite_schema WHERE type='table' AND name='owner_requests'").first();return Number(r?.n)===1;
 }
 export async function ownerSchemaAvailable(env){
- const r=await env.DB.prepare("SELECT COUNT(*) AS n FROM sqlite_schema WHERE (type='table' AND name IN ('owner_requests','owner_request_receipts')) OR (type='trigger' AND name IN ('owner_requests_policy','owner_requests_created'))").first();return Number(r?.n)===4;
+ const r=await env.DB.prepare("SELECT COUNT(*) AS n FROM sqlite_schema WHERE (type='table' AND name IN ('owner_requests','owner_request_receipts')) OR (type='trigger' AND name IN ('owner_requests_policy','owner_requests_created','owner_requests_erased'))").first();return Number(r?.n)===5;
 }
 export async function createOwnerRequest(env,request,input,{verify=verifyTurnstile,policyReader=ownerPolicy}={}){
  const r=validateOwnerRequest(input);if(r.errors)return {errors:r.errors};const v=r.value;

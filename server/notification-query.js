@@ -31,6 +31,7 @@ export function taskTarget(value,manual=false) {
 
 // PRE-14: backups:<run> exists through its system backup.failed event, not backup_runs: migration 0094 may be unapplied.
 // ADM-12: case-codes:<day> exists through its system case_codes.cap_reached event (server/case-auth-email.js).
+// PUB-10: owner-request:<id> exists while its row does; owner=false (migration 0118 not applied) never names the table.
 export function targetExists(kind,id,context='NULL',owner=false) {
   const tenancy=`json_extract(${context},'$.tenancy_id')`,repair=`json_extract(${context},'$.repair_id')`;
   return `(CASE ${kind}
@@ -53,7 +54,8 @@ export function targetExists(kind,id,context='NULL',owner=false) {
       OR (${id} GLOB 'backups:*' AND EXISTS(SELECT 1 FROM events be WHERE be.entity_type='collection' AND be.entity_id=${id}
         AND be.type='backup.failed' AND be.actor='system'))
       OR (${id} GLOB 'case-codes:*' AND EXISTS(SELECT 1 FROM events ce WHERE ce.entity_type='collection' AND ce.entity_id=${id}
-        AND ce.type='case_codes.cap_reached' AND ce.actor='system'))) ${owner ? `WHEN 'owner_request' THEN EXISTS(SELECT 1 FROM owner_requests WHERE id=${id})` : ''} ELSE 0 END)`;
+        AND ce.type='case_codes.cap_reached' AND ce.actor='system'))
+      ${owner ? `OR (${id} GLOB 'owner-request:*' AND EXISTS(SELECT 1 FROM owner_requests WHERE id=substr(${id},15)))` : ''}) ELSE 0 END)`;
 }
 
 export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${kind} AND ${event}.entity_id=${id})
@@ -124,7 +126,7 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   else if(numeric&&n.entity_type==='sale')link=`#/sales/${n.entity_id}`;
   else if(numeric&&n.entity_type==='rental')link=`#/rentals/${n.entity_id}`;
   else if(numeric&&n.entity_type==='payment')link=`#/rentals?payment=${n.entity_id}`;
-  else if(n.entity_type==='owner_request'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(n.entity_id))link=`#/owners/${n.entity_id}`;
+  else if(n.entity_type==='collection'&&/^owner-request:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(n.entity_id))link=`#/owners/${n.entity_id.slice(14)}`; // PUB-10, migration 0118
   else if(weekly)link=`#/insights/weekly/${week}`;
   else if(n.entity_type==='collection'&&n.entity_id==='unmatched-payments')link='#/rentals?payments=unmatched';
   else if(n.entity_type==='collection'&&/^market-sweep:[0-9a-f-]{36}$/.test(n.entity_id))link='#/automations'; // BUS-08
