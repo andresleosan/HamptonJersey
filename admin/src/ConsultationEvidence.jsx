@@ -31,35 +31,39 @@ export default function ConsultationEvidence({ consultationId }) {
   const id = `evidence-${consultationId}`, alert = failed && <p role="alert" className="err">{failed}{" "}
     <button type="button" className="btn ghost sm" onClick={d ? more : load} disabled={busy}>Try again</button></p>;
   if (!d) return <div className="fields-group">{alert || <p role="status">Loading the evidence…</p>}</div>;
-  const c = d.consultation, sent = d.shared, r = c.recipient, manual = d.attempts.find(a => a.type === "sent_manually");
+  const c = d.consultation, sent = d.shared, r = c.recipient, app = d.emails.some(m => m.status === "accepted");
   return <section className="fields-group" aria-labelledby={`${id}-h`}>
     <h3 id={`${id}-h`}>Evidence of what was shared</h3>
     <p className="muted">What this enquiry shared with {r.removed ? "the advertiser (personal data removed)" : r.name} and when, as recorded here. It records
       facts only: it does not establish any commission or fee.</p>
     {sent ? <>
-      <p><strong>Sent {fmtDate(d.general_checks[0]?.sent_at ?? d.presentations[0]?.sent_at ?? manual?.sent_at)}</strong>
-        {` by ${how(d.general_checks[0]?.via ?? d.presentations[0]?.via ?? manual?.via)}`}
-        {manual && ` · recorded by ${manual.by}, who sent it`}{manual?.evidence_ref && <span className="muted"> · Evidence: {manual.evidence_ref}</span>}</p>
+      <p><strong>Sent {fmtDate(sent.sent_at)} · version {sent.revision}</strong>{` by ${how(sent.via)}`}
+        {app ? ` from the app · queued by ${sent.by}` : ` · recorded by ${sent.by}, who sent it`}
+        {sent.evidence_ref && <span className="muted"> · Evidence: {sent.evidence_ref}</span>}</p>
       {d.general_checks.map((g, i) => <p key={i}>General check: asked about {g.asked.includes("availability") ? "availability and viewing times" : "viewing times"}.
         It names no client. {g.matches_at_sending} approved {g.matches_at_sending === 1 ? "match" : "matches"} had joined it when it was sent.</p>)}
       {d.presentations.length ? <ul>{d.presentations.map(p => <li key={p.match_id}>{search(p.applicant_id, p.match_id)}: the text carried
         {" "}{p.shared.map(k => CASE[k]?.(p) ?? k).join(" and ")}, with no name or contact.</li>)}</ul>
         : <p>No client was presented: the text carried nothing about any one search.</p>}
       <label>Text sent<textarea readOnly value={sent.text} /></label>
-    </> : <p role="status">Nothing has been shared with the advertiser yet: no sending was recorded and no email was accepted. No client was presented.</p>}
+    </> : c.status === "needs_review" ? <p role="status">The email service did not confirm whether the email went out. It is not counted as
+        shared until a person checks and records it; no client is counted as presented meanwhile.</p>
+      : <p role="status">Nothing has been shared with the advertiser yet: no sending was recorded and no email was accepted. No client was presented.</p>}
 
-    {d.approvals.length > 0 && <ul>{d.approvals.map((a, i) => <li key={i}>Sending approved by {a.by} · {fmtDate(a.at)} · version {a.revision}</li>)}</ul>}
+    {d.approvals.length > 0 && <ul>{d.approvals.map((a, i) => <li key={i}>Sending approved by {a.by} · {fmtDate(a.at)} · version {a.revision}
+      {sent && (a.of_sent_version ? " (the version sent)" : " (not the version sent)")}</li>)}</ul>}
 
     <h4>Matches it served <span className="muted">({d.matches_total})</span></h4>
     {d.matches.length ? <ul>{d.matches.map(m => <li key={m.match_id}>{search(m.applicant_id, m.match_id)}
       {m.approval ? ` · approved by ${m.approval.by}, ${fmtDate(m.approval.at)}` : " · approval not found"}
       {` · joined by ${m.linked_by}, ${fmtDate(m.linked_at)}`}
       {sent && (m.before_sending ? " · had joined when it was sent" : " · joined after it was sent")}
-      {m.response_note && <span className="muted"> · Said about this search: {m.response_note}</span>}</li>)}</ul>
+      {m.has_note && <span className="muted"> · the advertiser said something about this search: see its match</span>}</li>)}</ul>
       : <p className="muted">No match is linked to it now.</p>}
     {d.next_cursor != null && <div className="inline"><button type="button" className="btn ghost sm" onClick={more} disabled={busy}>Show more matches</button></div>}
 
     <h4>Sending</h4>
+    {d.events_truncated && <p className="req-note">Partial list: only the latest 200 steps of this enquiry are shown here.</p>}
     <ol>{d.attempts.map((a, i) => <li key={i}>{STEP[a.type] ?? a.type} · {fmtDate(a.at)} · {a.by}
       {a.revision ? ` · version ${a.revision}` : ""}{a.reason ? ` · ${a.reason.replaceAll("_", " ")}` : ""}</li>)}</ol>
     {d.emails.map(m => <p key={m.ref} className="muted">Email HE-OUT-{m.ref} · version {m.version} · {EMAIL[m.status] ?? m.status} · {fmtDate(m.updated_at)}

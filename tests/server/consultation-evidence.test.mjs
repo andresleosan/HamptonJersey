@@ -113,13 +113,15 @@ test("staff only, by id: a visitor gets nothing, a malformed page is refused, an
 
 test("a general check sent for two searches presents neither: it served their approved matches and named no client", async () => {
   const env = world(), { id, families, ms } = await enquiry(env, ["Ana Le Gros", "Ben Carter"]);
-  ok(await markSent(env, id));
+  const now = new Date().toISOString(); // sent just now, after both joined
+  ok(await markSent(env, id, sendBody({ sent_at: now })));
   const e = ok(await evidence(env, id));
   assert.deepEqual(e.presentations, [], "a general check is not the presentation of a client");
   assert.equal(e.general_checks.length, 1);
   const [check] = e.general_checks;
   assert.deepEqual([check.identifies_client, check.asked, check.sent_at, check.via, check.by, check.matches_at_sending],
-    [false, ["availability", "viewing_times"], SENT_AT, "email", ADMIN, 2]);
+    [false, ["availability", "viewing_times"], now, "email", ADMIN, 2]);
+  assert.equal(e.shared.revision, 1, "the version that went out");
   assert.equal(e.shared.text, row(env, "SELECT body FROM consultations WHERE id = ?", id).body, "the text that went out");
   assert.deepEqual([e.shared.household_size, e.shared.client_identity], [null, false]);
   // Which approved matches it served: who joined each, when, and the approval it joined under.
@@ -138,15 +140,65 @@ test("a general check sent for two searches presents neither: it served their ap
   assert.equal(after.general_checks[0].matches_at_sending, 2);
 });
 
+test("a search that joined after the real sending, before it was recorded, did not take part in it", async () => {
+  const env = world(), { id, ms } = await enquiry(env, ["Ana Le Gros"]);
+  const ago = h => new Date(Date.now() - h * 3600e3).toISOString();
+  run(env, "UPDATE consultations SET prepared_at = ? WHERE id = ?", ago(10), id);
+  run(env, "UPDATE consultation_matches SET linked_at = ? WHERE consultation_id = ?", ago(10), id);
+  // Actually sent eight hours ago; Ben joins five hours ago; the sending is recorded now, with its real time.
+  const ben = await shortlist(env, await searching(env, "Ben Carter"));
+  ok(await prepare(env, ben, { advertiser_id: ok(await req(env, "GET", `/admin/matches/${ben}/consultation`)).advertisers[0].id }));
+  run(env, "UPDATE consultation_matches SET linked_at = ? WHERE match_id = ?", ago(5), ben);
+  ok(await req(env, "POST", `/admin/consultations/${id}/manual-send`, sendBody({ sent_at: ago(8) })));
+  const e = ok(await evidence(env, id));
+  assert.deepEqual(e.matches.map(m => [m.match_id, m.before_sending]), [[ms[0], true], [ben, false]]);
+  assert.equal(e.general_checks[0].matches_at_sending, 1);
+});
+
+test("what was said of one household stays on its match: the evidence says only that a note exists", async () => {
+  const env = world(), { id, ms } = await enquiry(env, ["Ana Le Gros", "Ben Carter"]);
+  ok(await markSent(env, id));
+  ok(await req(env, "POST", `/admin/consultations/${id}/response`, { operation_id: randomUUID(), revision: 1, outcome: "no_answer",
+    answered_at: new Date().toISOString(), via: "phone", answered_by: "Desk", evidence_ref: "Call log FIXTURE",
+    case_notes: [{ match_id: ms[1], note: "Said no to the FIXTURE-NOTE family" }] }));
+  const e = ok(await evidence(env, id));
+  assert.deepEqual(e.matches.map(m => m.has_note ?? false), [false, true]);
+  assert.ok(!JSON.stringify(e).includes("FIXTURE-NOTE"), "never the note itself");
+});
+
+test("only the newest 200 steps are read, and the evidence says the list is partial", async () => {
+  const env = world(), { id } = await enquiry(env, ["Ana Le Gros"]);
+  ok(await markSent(env, id));
+  for (let i = 0; i < 250; i++) run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type, data) VALUES (?, 'system', 'listing', ?,
+    'consultation.call_due', json_object('version', 1, 'consultation_id', ?))`, new Date().toISOString(), HOME, id);
+  ok(await req(env, "POST", `/admin/consultations/${id}/response`, { operation_id: randomUUID(), revision: 1, outcome: "no_answer",
+    answered_at: new Date().toISOString(), via: "phone", answered_by: "Desk", evidence_ref: "Call log FIXTURE" }));
+  const e = ok(await evidence(env, id));
+  assert.equal(e.events_truncated, true);
+  assert.deepEqual(e.responses.map(r => r.outcome), ["no_answer"], "the newest step is kept");
+  assert.equal(e.calls.events.length, 199);
+  const fresh = world(), small = await enquiry(fresh, ["Ana Le Gros"]);
+  assert.equal(ok(await evidence(fresh, small.id)).events_truncated, false);
+});
+
+test("only the newest 50 emails are listed; the one that went out is read by its own reference", async () => {
+  const env = world(), { id } = await enquiry(env, ["Ana Le Gros"]);
+  for (let i = 0; i < 60; i++) run(env, `INSERT INTO outbound (ref, dedupe_key, template, entity_id, version, recipient_hash, status, created_at, updated_at)
+    VALUES (?, ?, 'enquiry', ?, ?, ?, 'cancelled', ?, ?)`, `ref${i}`, `dedupe${i}`, String(id), i + 1, "h".repeat(64), T0, T0);
+  const e = ok(await evidence(env, id));
+  assert.deepEqual([e.emails.length, e.emails[0].ref, e.emails.at(-1).ref], [50, "ref10", "ref59"]);
+});
+
 test("only what the text carried is shared: the household size of the one search that stated it, once it was sent", async () => {
   const env = world(), { id, families, ms } = await enquiry(env, ["Ana Le Gros", "Ben Carter"], { household: true });
   // Prepared, not sent: nothing was shared with anyone.
   const waiting = ok(await evidence(env, id));
   assert.deepEqual([waiting.shared, waiting.general_checks, waiting.presentations], [null, [], []]);
-  ok(await markSent(env, id));
+  const now = new Date().toISOString();
+  ok(await markSent(env, id, sendBody({ sent_at: now })));
   const e = ok(await evidence(env, id));
   assert.deepEqual(e.presentations, [{ match_id: ms[0], applicant_id: families[0], shared: ["household_size"], household_size: 3,
-    identifies_client: false, sent_at: SENT_AT, via: "email" }]);
+    identifies_client: false, sent_at: now, via: "email" }]);
   assert.equal(e.shared.household_size, 3);
   assert.match(e.shared.text, /household of 3 people/);
   assert.deepEqual(leaks(e), []);
@@ -192,6 +244,7 @@ test("an approved email that has not left presents no one; one the provider took
   assert.equal(e.shared.text, env.sent[0].text, "what actually went out");
   assert.deepEqual(e.presentations.map(p => [p.match_id, p.shared, p.via]), [[m, ["household_size"], "email"]]);
   assert.equal(e.general_checks[0].via, "email");
+  assert.deepEqual([e.shared.revision, e.approvals.map(a => a.of_sent_version)], [1, [true]], "the approval of the version that went out");
   assert.deepEqual(leaks(e), [], "not even the address it went to");
 });
 
@@ -206,6 +259,11 @@ test("an email taken back before it left is not a presentation", async () => {
   assert.deepEqual([e.shared, e.presentations, e.general_checks], [null, [], []]);
   assert.deepEqual([e.emails[0].status, "text" in e.emails[0]], ["cancelled", false]);
   assert.deepEqual(e.attempts.map(a => [a.type, a.reason ?? null]).at(-1), ["email_not_sent", "returned"]);
+  // Version 2, which nobody approved for email, is then sent by hand: the approval of version 1 approved nothing that went out.
+  ok(await req(env, "POST", `/admin/consultations/${id}/manual-send`, sendBody({ revision: 2, sent_at: new Date().toISOString() })));
+  const sent = ok(await evidence(env, id));
+  assert.equal(sent.shared.revision, 2);
+  assert.deepEqual(sent.approvals.map(a => [a.revision, a.of_sent_version]), [[1, false]]);
 });
 
 test("the same sending recorded twice is one attempt; answers and the call follow with their dates", async () => {
@@ -238,4 +296,20 @@ test("the matches it served come a page at a time", async () => {
   assert.deepEqual([next.matches.map(m => m.match_id), next.next_cursor], [[ms[2]], null]);
   assert.equal(next.matches_total, 3);
   assert.deepEqual(rows(env, "SELECT type FROM events WHERE type LIKE 'consultation.%'").length, 1, "reading writes nothing");
+});
+
+test("in the order they joined: a match that joins between two pages comes last, and a cursor no longer linked asks to reload", async () => {
+  const env = world(), agency = await advertiser(env), [ana, ben, cy] = [await searching(env, "Ana Le Gros"), await searching(env, "Ben Carter"),
+    await searching(env, "Cy Hamon")];
+  const [ma, mb, mc] = [await shortlist(env, ana), await shortlist(env, ben), await shortlist(env, cy)];
+  const id = ok(await prepare(env, mb, { advertiser_id: agency }), 201).consultation.id;
+  ok(await prepare(env, mc, { advertiser_id: agency }));
+  run(env, "UPDATE consultation_matches SET linked_at = ? WHERE match_id = ?", "2026-11-01T10:00:00.000Z", mb);
+  run(env, "UPDATE consultation_matches SET linked_at = ? WHERE match_id = ?", "2026-11-01T11:00:00.000Z", mc);
+  const first = ok(await evidence(env, id, "?limit=1"));
+  assert.deepEqual([first.matches.map(m => m.match_id), first.next_cursor], [[mb], mb]);
+  ok(await prepare(env, ma, { advertiser_id: agency })); // the lowest id, joining last
+  const next = ok(await evidence(env, id, `?limit=2&cursor=${mb}`));
+  assert.deepEqual([next.matches.map(m => m.match_id), next.next_cursor, next.matches_total], [[mc, ma], null, 3]);
+  assert.equal((await evidence(env, id, "?cursor=999999")).status, 409);
 });
