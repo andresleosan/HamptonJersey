@@ -13,6 +13,7 @@ import { candidateState, unknownMusts } from "../candidate-state.js";
 import availabilityRoutes, { confirmationReader } from "../availability-confirmations.js";
 import { notConfirmedUnavailable } from "../property-facts.js";
 import consultationRoutes, { enquiryReader } from "../consultations.js";
+import { journeyReader, journeyRoutes } from "../match-journey.js";
 
 const REASONS = REJECT_REASONS.map(([v]) => v);
 // The reviews a match in each status may get; back to found is Undo.
@@ -45,7 +46,8 @@ const CARD = `${EVAL_APPLICANT} AS eval_applicant, ${EVAL_LISTING} AS eval_listi
 export const MATCHES_SQL = `SELECT ${CARD} FROM matches m JOIN listings l ON l.id = m.listing_id JOIN applicants a ON a.id = m.applicant_id`;
 // confirmationOf (EST-16): the confirmed availability in force for a listing, if any; matchCards supplies it.
 // enquiriesOf (AGE-03): the enquiries a match joined; absent while AGE-03 is off.
-export const matchCard = (m, confirmationOf = () => undefined, enquiriesOf) => {
+// journeyOf (EST-14): the match's journey; absent while EST-14 is off.
+export const matchCard = (m, confirmationOf = () => undefined, enquiriesOf, journeyOf) => {
   const {eval_applicant,eval_listing,area_preference_rank,decision_current,clarification:asked,...card} = m;
   const a = JSON.parse(eval_applicant), listing = JSON.parse(eval_listing), r = evaluate(a,listing);
   card.ranking_version=a.match_ranking_version;
@@ -57,8 +59,10 @@ export const matchCard = (m, confirmationOf = () => undefined, enquiriesOf) => {
   // while its own approval does; an enquiry joined under an approval that no longer stands says nothing of the match.
   const joined = enquiriesOf?.(card.id), approved = card.status === 'shortlisted' && !!decision_current;
   const consultation = joined?.find(c => c.kind === 'general' && approved) ?? joined?.find(c => c.kind === 'clarification' && clarification);
-  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification,confirmation,consultation}),
-    ...(clarification ? {clarification} : {}), ...(confirmation ? {availability:confirmation} : {}), ...(joined ? {enquiry:consultation ?? null} : {})});
+  const journey = journeyOf?.(card.id);
+  const states = requirements_status => ({states:candidateState({status:card.status,requirements_status,decision_current,clarification,confirmation,consultation,journey}),
+    ...(clarification ? {clarification} : {}), ...(confirmation ? {availability:confirmation} : {}), ...(joined ? {enquiry:consultation ?? null} : {}),
+    ...(journey ? {journey} : {})});
   if(card.status==='rejected'){
     const requirements_status=['meets','pending','alternative','excluded'][card.requirements_rank];
     return {...card,checks:JSON.parse(card.checks),requirements_status,...states(requirements_status)};
@@ -79,11 +83,11 @@ export const matchCard = (m, confirmationOf = () => undefined, enquiriesOf) => {
     ...(refresh ? {requirements_refresh_needed:true} : {})};
 };
 // The cards of these rows, each with the confirmation in force for its listing and the enquiries it joined: one read
-// of each for all of them, and none while EST-16 or AGE-03 is off.
+// of each for all of them, and none while EST-16 or AGE-03 is off. EST-14: and their journeys, none while it is off.
 export async function matchCards(env, rows) {
-  const [confirmationOf, enquiriesOf] = await Promise.all([confirmationReader(env, rows.map(row => JSON.parse(row.listing).id)),
-    enquiryReader(env, rows.map(row => row.id))]);
-  return rows.map(row => matchCard(row, confirmationOf, enquiriesOf));
+  const [confirmationOf, enquiriesOf, journeyOf] = await Promise.all([confirmationReader(env, rows.map(row => JSON.parse(row.listing).id)),
+    enquiryReader(env, rows.map(row => row.id)), journeyReader(env, rows.map(row => row.id))]);
+  return rows.map(row => matchCard(row, confirmationOf, enquiriesOf, journeyOf));
 }
 
 // The review queue: the found matches of active searches (spec §5), from matches m JOIN applicants a.
@@ -325,4 +329,5 @@ export default [
   ["GET", /^\/admin\/review$/, next, true],
   ...availabilityRoutes, // EST-16: they answer { enabled: false } or 404 until EST16_AVAILABILITY_READY and migration 0072
   ...consultationRoutes(ENQUIRY_GATES), // AGE-03: { enabled: false } or 404 until AGE03_ENQUIRIES_READY and migration 0077
+  ...journeyRoutes, // EST-14: 404 until EST14_JOURNEY_READY and migration 0116
 ];

@@ -247,6 +247,9 @@ fieldset.plain{border:0;padding:0;margin:0;min-width:0}
 .match-states dt{flex:none;width:76px;color:var(--stone);font-size:12px;line-height:21px} .match-states dd{display:block;margin:0;min-width:0;overflow-wrap:anywhere}
 .result{font-weight:600} .result.meets{color:var(--ok)} .result.fails{color:var(--err)} .result.unknown{color:var(--stone)}
 .match-actions,.reasons{margin:4px 0 0;gap:8px;align-items:center}
+/* EST-14: a match's journey history and what the client said */
+.journey-decline{display:grid;gap:8px;max-width:420px;margin-top:8px} .journey-decline p{margin:0}
+.journey-history{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px} .journey-history li{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
 /* AGE-03: an enquiry, on a match card and on the property */
 .enquiry{display:grid;gap:10px;min-width:0;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)} .enquiry p,.enquiry .inline{margin:0}
 .enquiry .inline{align-items:center} .enquiry textarea{min-height:200px} .enquiry address{font-style:normal;overflow-wrap:anywhere}
