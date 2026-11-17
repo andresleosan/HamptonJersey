@@ -1,0 +1,308 @@
+{
+  "task": "AUT-20",
+  "updated": "2026-11-17",
+  "commits": {
+    "server_suite": "83e7a674",
+    "visual_journey": "the commit that adds tests/aut20-journey.e2e.cjs (git log -1 -- tests/aut20-journey.e2e.cjs)"
+  },
+  "simulated": [
+    "email provider: env.EMAIL in memory (server suite); no email binding and no clock Worker in the browser fixture, so nothing is sent",
+    "clock: BUS-17 pass run by the test on the same local D1; future dates injected or set with t.mock.timers"
+  ],
+  "not_covered": [
+    "real email delivery, real provider, production and external activations (separate steps, CONTINUIDAD-AVANZAR)"
+  ],
+  "screenshots_note": "Not committed. Each run of the browser journey writes them under E2E_ARTIFACT_DIR (default /tmp/hampton-browser-captures/run-*).",
+  "cases": [
+    {
+      "case": "A01",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A01 · A02: a must-have parking not met is never complete at the top score; unknown pets stay pending"
+    },
+    {
+      "case": "A02",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A01 · A02: a must-have parking not met is never complete at the top score; unknown pets stay pending"
+    },
+    {
+      "case": "A03",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A04 · X4 · A03: the sweep keeps a failed source's adverts, retries a partial read once, and three websites stay one home"
+    },
+    {
+      "case": "A04",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A04 · X4 · A03: the sweep keeps a failed source's adverts, retries a partial read once, and three websites stay one home"
+    },
+    {
+      "case": "A05",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A05: without a person's approval no enquiry exists or goes out, after matching and a rematch",
+      "screen": "tests/aut20-journey.e2e.cjs › record",
+      "screenshots": [
+        "aut20-record-1280.png",
+        "aut20-record-390.png",
+        "aut20-record-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A06",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A06 · X1: two people approve and prepare at once: one shared enquiry, no mixed data, no summed occupants",
+      "screen": "tests/aut20-journey.e2e.cjs › enquiries",
+      "screenshots": [
+        "aut20-enquiries-1280.png",
+        "aut20-enquiries-390.png",
+        "aut20-enquiries-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A07",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A07: two working days after sending, one call task with every phone; the answers update it",
+      "screen": "tests/aut20-journey.e2e.cjs › enquiries",
+      "screenshots": [
+        "aut20-enquiries-1280.png",
+        "aut20-enquiries-390.png",
+        "aut20-enquiries-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A08",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A08 · A09 · X4: the confirmed answer updates every match in scope, captures the home, and a partial capture is never complete",
+      "screen": "tests/aut20-journey.e2e.cjs › matches-review",
+      "screenshots": [
+        "aut20-matches-review-1280.png",
+        "aut20-matches-review-390.png",
+        "aut20-matches-review-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A09",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A08 · A09 · X4: the confirmed answer updates every match in scope, captures the home, and a partial capture is never complete",
+      "screen": "tests/aut20-journey.e2e.cjs › matches-review",
+      "screenshots": [
+        "aut20-matches-review-1280.png",
+        "aut20-matches-review-390.png",
+        "aut20-matches-review-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A10",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A10 · A11: the agency's proposal waits for every confirmation; a confirmed and completed viewing keeps the search active",
+      "screen": "tests/aut20-journey.e2e.cjs › viewing",
+      "screenshots": [
+        "aut20-viewing-1280.png",
+        "aut20-viewing-390.png",
+        "aut20-viewing-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A11",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A10 · A11: the agency's proposal waits for every confirmation; a confirmed and completed viewing keeps the search active",
+      "screen": "tests/aut20-journey.e2e.cjs › viewing",
+      "screenshots": [
+        "aut20-viewing-1280.png",
+        "aut20-viewing-390.png",
+        "aut20-viewing-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A12",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A12 · X1 · X5: on Jersey day 21 one internal review with at most 20 alternatives, nothing sent or changed; again 7 days after its close",
+      "screen": "tests/aut20-journey.e2e.cjs › inbox",
+      "screenshots": [
+        "aut20-inbox-1280.png",
+        "aut20-inbox-390.png",
+        "aut20-inbox-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A13",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A13 · X1: a dictated change waits for a person; two people confirming at once apply it once",
+      "screen": "tests/aut20-journey.e2e.cjs › inbox",
+      "screenshots": [
+        "aut20-inbox-1280.png",
+        "aut20-inbox-390.png",
+        "aut20-inbox-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A14",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A16 · A14: a person closes one search; the home is confirmed not available; the next sweep and rematch keep both decisions"
+    },
+    {
+      "case": "A15",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A15 · X4 · X5: six calendar months after the confirmation only the external photos go, in batches; history stays",
+      "screen": "tests/aut20-journey.e2e.cjs › history",
+      "screenshots": [
+        "aut20-history-1280.png",
+        "aut20-history-390.png",
+        "aut20-history-1280-zoom200.png"
+      ]
+    },
+    {
+      "case": "A16",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A16 · A14: a person closes one search; the home is confirmed not available; the next sweep and rematch keep both decisions"
+    },
+    {
+      "case": "X1",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A06 · X1 / A13 · X1 / A12 · X1 · X5 / X3"
+    },
+    {
+      "case": "X2",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › X2: a material change after approval and before sending: nothing goes out and the new version needs a new approval"
+    },
+    {
+      "case": "X3",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › X3: the provider accepts but the acknowledgement is lost: one email only, and a person settles it"
+    },
+    {
+      "case": "X4",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › A04 · X4 · A03 / A08 · A09 · X4 / A15 · X4 · X5"
+    },
+    {
+      "case": "X5",
+      "status": "pass",
+      "commit": "83e7a674",
+      "test": "tests/server/aut-20-search-journey.test.mjs › X5: Jersey dates: day 21, the 7-day repeat, the call's two working days and six calendar months across DST and month ends"
+    }
+  ],
+  "visual": {
+    "run": "E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/aut20-journey.e2e.cjs npm run test:e2e:isolated",
+    "result": "pass (1280, 390, 1280 at 200% zoom = 640 CSS px at device scale 2)",
+    "checks": [
+      "screenshots of every screen",
+      "main actions reached with Tab from the top of the page",
+      "no sideways scroll",
+      "no console or page errors",
+      "no failed same-origin request (no 4xx/5xx, no network failure)",
+      "outbound empty and no search changed"
+    ],
+    "screens": [
+      {
+        "name": "applicants",
+        "screenshots": [
+          "aut20-applicants-1280.png",
+          "aut20-applicants-390.png",
+          "aut20-applicants-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "record",
+        "screenshots": [
+          "aut20-record-1280.png",
+          "aut20-record-390.png",
+          "aut20-record-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "matches-review",
+        "screenshots": [
+          "aut20-matches-review-1280.png",
+          "aut20-matches-review-390.png",
+          "aut20-matches-review-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "enquiries",
+        "screenshots": [
+          "aut20-enquiries-1280.png",
+          "aut20-enquiries-390.png",
+          "aut20-enquiries-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "viewing",
+        "screenshots": [
+          "aut20-viewing-1280.png",
+          "aut20-viewing-390.png",
+          "aut20-viewing-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "inbox",
+        "screenshots": [
+          "aut20-inbox-1280.png",
+          "aut20-inbox-390.png",
+          "aut20-inbox-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "history",
+        "screenshots": [
+          "aut20-history-1280.png",
+          "aut20-history-390.png",
+          "aut20-history-1280-zoom200.png"
+        ]
+      },
+      {
+        "name": "client",
+        "screenshots": [
+          "aut20-client-1280.png",
+          "aut20-client-390.png",
+          "aut20-client-1280-zoom200.png"
+        ]
+      }
+    ],
+    "keyboard": [
+      "Applicants · Work label filter (1280): Tab ×28",
+      "Record · Send shortlist (1280): Tab ×20",
+      "Record · Book viewing (1280): Tab ×21",
+      "Matches · Approve this presentation (1280): Tab ×44",
+      "Property · Evidence of what was shared (1280): Tab ×126",
+      "Viewing · Record answer (1280): Tab ×25",
+      "Inbox · open the review (1280): Tab ×36",
+      "Inbox · Done (1280): Tab ×37",
+      "Property · History (1280): Tab ×30",
+      "Client page · I'm interested (1280): Tab ×2",
+      "Client page · Send answer (1280): Tab ×4",
+      "Applicants · Work label filter (390): Tab ×28",
+      "Record · Send shortlist (390): Tab ×20",
+      "Record · Book viewing (390): Tab ×21",
+      "Matches · Approve this presentation (390): Tab ×44",
+      "Property · Evidence of what was shared (390): Tab ×126",
+      "Viewing · Record answer (390): Tab ×25",
+      "Inbox · open the review (390): Tab ×36",
+      "Inbox · Done (390): Tab ×37",
+      "Property · History (390): Tab ×30",
+      "Client page · I'm interested (390): Tab ×2",
+      "Client page · Send answer (390): Tab ×4",
+      "Client page · I'm interested (1280-zoom200): Tab ×2",
+      "Client page · Send answer (1280-zoom200): Tab ×4"
+    ]
+  }
+}

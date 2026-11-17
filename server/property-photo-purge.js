@@ -7,8 +7,9 @@
 // media (EST-19 spec §5), and not the cover, a private document (PUB-11), a file another row shares, a file a capture
 // keeps (SPR-03) or a photo reviewed for clients (AGE-10); nothing of a property still published or with a sale, an open
 // offer, a tenancy or a rental closure in progress. The panel shows what it would delete and when; a person starts it
-// (EST19_PURGE_READY), at most PURGE_BATCH photos per click, storage first, then the rows and one event per property
-// with the ids of what went (no personal data). A failure leaves the rows, so the next click finishes it once.
+// (EST19_PURGE_READY), at most PURGE_BATCH photos per click: first the rows, checked again, with one event per property
+// listing the ids of what went (no personal data), then their files in storage. If storage fails, the files are left
+// and recorded on each property (listing.photo_files_left); a later click does not delete them again.
 // Nothing here touches the listing, its confirmations, captures, enquiries, viewings or any person.
 import { json, fail, now } from "./http.js";
 import { unavailabilityReady, standsUnavailable } from "./property-facts.js";
