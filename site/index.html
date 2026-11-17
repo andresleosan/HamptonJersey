@@ -131,9 +131,13 @@ nav.main a:hover{color:var(--bronze-dk)}
 .search select{width:100%;min-width:0}
 .search select:disabled{color:var(--stone)}
 .search .btn{border:0}
-/* The search sits in its own band right under the property carousel, continuing the hero's dark ground. */
-.quick-band{background:var(--ink);padding-block:clamp(20px,3vw,32px)}
-.quick-band .search{margin-inline:auto}
+/* The search sits right under the property carousel on the page's own ground (no band), as wide as the content column so its edges line up with the hero text and the grid below. */
+.quick-band{padding-block:clamp(20px,3vw,32px) 0}
+.quick-band .search{max-width:none;border:1px solid var(--line);box-shadow:var(--shadow)}
+/* The button fills the end of the bar and the bar's own corners round it: no white gaps at its corners. */
+.search .btn{border-radius:0}
+/* Keyboard focus on the carousel: a thin inset ring on the photo, not an outline clipped along the bottom edge. */
+.hero-track:focus-visible{outline:2px solid var(--paper);outline-offset:-6px}
 .hero .cta{display:flex;flex-wrap:wrap;gap:12px}
 .hero .btn.ghost{color:#fff;border-color:#fff}
 .hero .btn.ghost:hover{background:#fff;color:var(--ink)}

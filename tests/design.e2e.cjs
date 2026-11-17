@@ -116,6 +116,9 @@ async function shot(page, name, width) {
         assert.equal(await many.locator('.hero .slide').count(), 6, 'the Featured properties carousel stays with six listings');
         assert.ok(await many.$eval('.quick-band', b => { const h = document.querySelector('.hero').getBoundingClientRect(), r = b.getBoundingClientRect(), f = b.querySelector('#quick').getBoundingClientRect();
           return Math.abs(r.top - h.bottom) < 1 && f.left >= r.left && f.right <= r.right && b.nextElementSibling.id === 'portfolio'; }), 'search band right under the carousel, inside its band');
+        assert.ok(await many.$eval('.quick-band', b => getComputedStyle(b).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(b.querySelector('.btn')).borderRadius === '0px'), 'search band is transparent and its button has no rounded corners that leave gaps');
+        await many.focus('.hero-track'); await many.keyboard.press('Shift+Tab'); await many.keyboard.press('Tab');
+        assert.ok(await many.$eval('.hero-track', t => !getComputedStyle(t).outlineColor.includes('165, 107, 61')), 'carousel focus ring is not the bronze line along the bottom edge');
         assert.ok(await noOverflow(many)); assert.deepEqual(many.errors, []); await shot(many, 'home-many', width); await manyCtx.close();
       }
       if (cases.includes('navigation')) {
