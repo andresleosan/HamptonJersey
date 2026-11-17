@@ -18,6 +18,7 @@ import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
 import { PENDING_MARKETING } from "./public.js";
 import { BY_EMAIL, BY_PHONE, VIEWING_COLUMNS, viewingArgs } from "./applicant-tabs.js";
+import { labelColumns, workLabelsFor } from "../search-work-labels.js";
 
 const STAGES = OPTIONS.stages.map(([v]) => v);
 const OPERATION_LABEL = { ...Object.fromEntries(OPTIONS.operation), transfer: "Business transfer" };
@@ -118,8 +119,10 @@ async function list({ request, env }) {
   if (queue && !QUEUES.includes(queue)) fail(400, "Invalid queue");
   // SAP-02, EST-04: switched off, or with enquiries off, the list is read exactly as before.
   const counted = countsReady(env), waitingSql = counted ? waitingSearches(env) : null;
+  // EST-10: with its switch, the labels of the sources that can be read, as columns of the same query; null = as before.
+  const today = jerseyToday(), extra = await labelColumns(env, today);
   const workPredicates = { new: "fresh", review: "found > 0", shortlisted: "shortlisted > 0", no_pending: "found = 0 AND shortlisted = 0",
-    ...(waitingSql && { in_process: "in_process" }) };
+    ...(waitingSql && { in_process: "in_process" }), ...(extra && Object.fromEntries(extra.labels.map(k => [k, k]))) };
   if (workLabel && !Object.hasOwn(workPredicates, workLabel)) fail(400, "Invalid work label");
   if (budget && !(/^\d+(\.\d+)?$/.test(budget) && Number(budget) > 0)) fail(400, "Invalid budget");
   if (parish && !PARISHES.includes(parish)) fail(400, "Invalid parish");
@@ -127,7 +130,7 @@ async function list({ request, env }) {
   if (contact && contact !== "quiet") fail(400, "Invalid contact filter");
   const cutoff = quietCutoff();
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
-  const today = jerseyToday(), expiring = p.get("expiring") === "1", retentionReview = p.get("retention_review") === "1";
+  const expiring = p.get("expiring") === "1", retentionReview = p.get("retention_review") === "1";
   const where = [retentionReview ? RETENTION_REVIEW : expiring ? expiringSql(env) : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
   const args = expiring || retentionReview ? [today] : [];
   if (searchState) { where.push("a.search_state = ?"); args.push(searchState); }
@@ -169,13 +172,13 @@ async function list({ request, env }) {
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},${waiting ? ` a.id IN (${waiting}) AS in_process,` : ""}
        CASE WHEN ${expiringSql(env)} THEN ${KEPT_UNTIL} END AS expires_on,
        CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
-       COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet
+       COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet${extra?.sql ?? ""}
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
        WHERE ${where.join(" AND ")})
      SELECT id, operation, search_category, stage, search_state, lost_reason, created_at, assigned_to, assigned_name, name, phone, email,
        CASE WHEN search_state = 'active' AND archived_at IS NULL AND search_category = 'residential' THEN ${QUEUE} END AS queue,
-       found, shortlisted,${waiting ? " in_process," : ""} expires_on, retention_review, archived_at, last_contact_at, gone_quiet FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
-    .bind(today, today, cutoff, ...args, ...(queue ? [queue] : [])).all();
+       found, shortlisted,${waiting ? " in_process," : ""} expires_on, retention_review, archived_at, last_contact_at, gone_quiet${extra ? extra.labels.map(k => `, ${k}`).join("") : ""} FROM listed ${workWhere} ORDER BY created_at ${dir}, id ${dir}`)
+    .bind(today, today, cutoff, ...(extra?.args ?? []), ...args, ...(queue ? [queue] : [])).all();
   };
   // AGE-12 or enquiries switched on before their migration: the list without AGE-12's part, then without both.
   let waiting = waitingSql, results;
@@ -187,6 +190,12 @@ async function list({ request, env }) {
     }
   }
   if (!results) ({ results } = await read(waiting));
+  // EST-10: each search's labels, worked out once here from the facts just read (those columns are not returned).
+  if (extra) results = results.map(r => {
+    const labelled = { ...r, work_labels: workLabelsFor(r) };
+    for (const k of extra.labels) delete labelled[k];
+    return labelled;
+  });
   // SAP-02: per search, the homes a person confirmed as available, those of them still proposable and those
   // confirmed not available, in one read for the whole list.
   const counts = counted ? await candidateCounts(env) : null;
@@ -197,7 +206,7 @@ async function list({ request, env }) {
   // AUT-19: the searches with a proposal waiting to be confirmed; absent when switched off.
   const proposed = await searchesWithProposal(env);
   return json({ applicants: proposed?.size ? listed.map(a => (proposed.has(a.id) ? { ...a, criteria_proposal: true } : a)) : listed,
-    ...(counted && { match_counts: true }), ...(waiting && { in_process: true }) });
+    ...(counted && { match_counts: true }), ...(waiting && { in_process: true }), ...(extra && { work_labels: extra.labels }) });
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it

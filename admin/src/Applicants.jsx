@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS, SEARCH_STATES } from "../../server/applicants.js";
 import SearchRun from "./SearchRun.jsx";
+import { WORK_LABEL_TEXT } from "../../server/search-work-labels.js";
 
 const OPERATIONS = [["", "All"], ...OPTIONS.operation, ["transfer", "Business transfer"]];
 const OPERATION_LABEL = Object.fromEntries(OPERATIONS);
@@ -17,12 +18,14 @@ const WORK_LABELS = [["new", "New properties found"], ["review", "Waiting for re
 // in_process is absent while both are off.
 const IN_PROCESS = ["in_process", "In process"];
 const NO_PENDING = ["no_pending", "No matches awaiting review or shortlisted"];
-const workLabels = a => a.queue == null ? null : [
+// EST-10: switched on, the server sends each search's labels (work_labels: null outside the work queue).
+const workLabels = a => a.work_labels !== undefined ? a.work_labels?.map(k => [k, WORK_LABEL_TEXT[k]]) ?? null : a.queue == null ? null : [
   ...(a.queue === "New properties found" ? [WORK_LABELS[0]] : []),
   ...(a.found > 0 ? [WORK_LABELS[1]] : []),
   ...(a.shortlisted > 0 ? [WORK_LABELS[2]] : []),
   ...(a.in_process ? [IN_PROCESS] : []),
 ];
+const TONE_OF = { shortlisted: "active", in_process: "active", viewing_pending: "active", viewing_booked: "positive" };
 // E8: Expiring holds the searches of the contacts deleted within a month, archived ones too.
 const LISTS = [["current", "Current"], ["archived", "Archived"], ["retention_review", "Review retention"], ["expiring", "Expiring"]];
 const SEARCH_LABEL = Object.fromEntries(SEARCH_STATES);
@@ -38,7 +41,8 @@ export default function Applicants() {
   const [budget, setBudget] = useState(""), [parish, setParish] = useState(""), [source, setSource] = useState("");
   const [contact, setContact] = useState("");
   const [searchState, setSearchState] = useState("");
-  const [shows, setShows] = useState({}); // what the server counts: match_counts (SAP-02), in_process (EST-04)
+  // What the server counts: match_counts (SAP-02), in_process (EST-04), work_labels (EST-10: the labels it can read).
+  const [shows, setShows] = useState({});
   // A half-typed or invalid amount filters nothing until it is a number.
   const amount = Number(budget) > 0 ? String(Number(budget)) : "";
   useEffect(() => { api("/admin/users").then(d => setUsers(d.users), () => {}); }, []);
@@ -48,7 +52,7 @@ export default function Applicants() {
     const p = new URLSearchParams({ sort, ...(stage && { stage }), ...(assigned && { assigned }), ...(queue && { work_label: queue }),
       ...(q.trim() && { q: q.trim() }), ...(list !== "current" && { [list]: "1" }), ...(amount && { budget: amount }),
       ...(parish && { parish }), ...(source && { source }), ...(contact && { contact }), ...(searchState && { search_state: searchState }) });
-    const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setShows({ match_counts: d.match_counts, in_process: d.in_process }); setError(null); } },
+    const t = setTimeout(() => api(`/admin/applicants?${p}`).then(d => { if (!stale) { setRows(d.applicants); setShows({ match_counts: d.match_counts, in_process: d.in_process, work_labels: d.work_labels }); setError(null); } },
       e => { if (!stale) setError(e.message); }), 200);
     return () => { stale = true; clearTimeout(t); };
   }, [list, sort, stage, assigned, queue, q, amount, parish, source, contact, searchState]);
@@ -77,7 +81,8 @@ export default function Applicants() {
       <label>Stage<select value={stage} onChange={e => setStage(e.target.value)}><option value="">All</option>
         {OPTIONS.stages.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Work label<select value={queue} onChange={e => setQueue(e.target.value)}><option value="">All</option>
-        {[...WORK_LABELS, ...(shows.in_process ? [IN_PROCESS] : []), NO_PENDING].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+        {[...WORK_LABELS, ...(shows.in_process ? [IN_PROCESS] : []),
+          ...(shows.work_labels ?? []).map(k => [k, WORK_LABEL_TEXT[k]]), NO_PENDING].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <label>Assigned to<select value={assigned} onChange={e => setAssigned(e.target.value)}><option value="">Anyone</option>
         {users.map(u => <option key={u.email} value={u.email}>{u.name || u.email}</option>)}</select></label>
       <label>{op === "rent" ? "Home rent (£ pcm)" : op === "buy" ? "Home price (£)" : "Home budget (£)"}<input type="number" min="1" step="1"
@@ -95,7 +100,10 @@ export default function Applicants() {
     {list === "retention_review" && <p className="muted">Contacts with an open search and at least 11 months without recorded activity.
       Review whether they still need the search. They are protected from automatic deletion.</p>}
     <p className="muted">Work labels describe saved Hampton matches; shortlisted does not mean availability is confirmed.{shows.in_process
-      && " In process: one of the homes is waiting for the agency (an open enquiry) or for the client (a private link sent, not answered)."}</p>
+      && " In process: one of the homes is waiting for the agency (an open enquiry) or for the client (a private link sent, not answered)."}{shows.work_labels
+      && " Must-have to confirm: a match with an essential fact the property does not answer yet."}{shows.work_labels?.includes("viewing_booked")
+      && " Viewing pending or booked: a viewing linked to this search; pending until everyone has accepted the time."}{shows.work_labels?.includes("search_review")
+      && " Search review due: the internal review after 21 days without a complete option, open in the Inbox."}</p>
     {shows.match_counts && <p className="muted">Matches: found counts every match not rejected; confirmed, the homes a person confirmed as
       available; available, the confirmed ones shortlisted on today's details and still offered.</p>}
     <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "applicant" : "applicants"}</p>
@@ -117,7 +125,7 @@ export default function Applicants() {
         <td className={a.stage === "lost" && a.lost_reason ? "stage lost" : "stage"}><StageBadge stage={a.stage} />{a.stage === "lost"
           && a.lost_reason && <span className="muted"> {a.lost_reason}</span>}</td>
         <td data-label="Work labels">{workLabels(a) === null ? <span className="muted">{a.search_category === "commercial" && a.search_state === "active" && !a.archived_at ? "Manual review" : "History only"}</span>
-          : workLabels(a).length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{workLabels(a).map(([key, label]) => <span key={key} className={`badge ${key === "shortlisted" || key === "in_process" ? "active" : "attention"}`}>{label}</span>)}</div>
+          : workLabels(a).length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{workLabels(a).map(([key, label]) => <span key={key} className={`badge ${TONE_OF[key] ?? "attention"}`}>{label}</span>)}</div>
           : <span className="muted">No matches awaiting review or shortlisted</span>}</td>
         <td className="num" data-label="Matches">{matchCounts(a)
           ? <><a href={`#/applicants/${a.id}/matches`}>{matchCounts(a)}<span className="sr"> for {a.name}</span></a>
