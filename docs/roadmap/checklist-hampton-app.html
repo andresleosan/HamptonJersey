@@ -2730,16 +2730,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Validación integral del recorrido de búsqueda",
    "origen": "plan",
    "fase": "—",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "desarrollo",
-   "hecho": "Validación integral ejecutada sobre una sola D1 local con los módulos reales y sus interruptores encendidos solo en la prueba: directorio y barrido diario, alta de dos búsquedas de un contacto y de otros dos hogares, matching, revisión humana, consulta compartida, llamada, respuesta confirmada, captura, presentación privada, visita multiparte, dictado, cierre humano, indisponibilidad, barrido y rematch del día siguiente, revisión interna del día 21 y su repetición a los 7 días, y purga de fotos a los seis meses. Las 16 comprobaciones A01–A16 y los cinco casos transversales (X1 concurrencia de empleados y ticks; X2 cambio material tras aprobar; X3 envío aceptado con acuse perdido; X4 lectura, captura y purga parcial con reintento; X5 fechas de Jersey, cambios de hora y meses) pasan juntos: sin duplicados, con el historial conservado y las decisiones humanas respetadas. Correo solo por el proveedor simulado; sin cambios de código de producción, migraciones, interruptores ni envíos.",
-   "falta": "Tarea 3 del plan: evidencia visual del recorrido (capturas a 1280 y 390, teclado, zoom 200 %, consola y red sin errores) con acceptance.md y evidence-index.json. Las comprobaciones A01–A16 y X1–X5 ya pasan juntas (tests/server/aut-20-search-journey.test.mjs).",
+   "hecho": "Validación integral ejecutada sobre una sola D1 local con los módulos reales y sus interruptores encendidos solo en la prueba: directorio y barrido diario, alta de dos búsquedas de un contacto y de otros dos hogares, matching, revisión humana, consulta compartida, llamada, respuesta confirmada, captura, presentación privada, visita multiparte, dictado, cierre humano, indisponibilidad, barrido y rematch del día siguiente, revisión interna del día 21 y su repetición a los 7 días, y purga de fotos a los seis meses. Las 16 comprobaciones A01–A16 y los cinco casos transversales (X1 concurrencia de empleados y ticks; X2 cambio material tras aprobar; X3 envío aceptado con acuse perdido; X4 lectura, captura y purga parcial con reintento; X5 fechas de Jersey, cambios de hora y meses) pasan juntos: sin duplicados, con el historial conservado y las decisiones humanas respetadas. Correo solo por el proveedor simulado; sin cambios de código de producción, migraciones, interruptores ni envíos. Evidencia visual (tarea 3 del plan): recorrido de navegador aislado sobre las pantallas del viaje con todos sus interruptores encendidos solo en su escenario (AGE-09 incluido): lista de Applicants con etiquetas, ficha y Matches con el recorrido y la revisión de la presentación, Enquiries con la evidencia de AGE-09, página del cliente, visita VIS-17 a la espera de la agencia, revisión BUS-17 en el Inbox e historial tras la purga EST-19; a 1280, 390 y 1280 con zoom 200 %, acciones principales alcanzables con Tab, sin desplazamiento lateral, sin errores de consola ni peticiones fallidas, nada enviado y ninguna búsqueda cambiada.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/work/AUT-20/resultados.md (tabla de resultado y evidencia por comprobación)",
-    "tests/server/aut-20-search-journey.test.mjs: 17/17 (A01–A16 y X1–X5; la última prueba exige las 21 juntas; AUT20_REPORT=1 imprime la evidencia)",
+    "docs/roadmap/work/AUT-20/acceptance.md y evidence-index.json (caso → commit → prueba y capturas; qué es simulado; activaciones externas aparte)",
+    "tests/server/aut-20-search-journey.test.mjs: 17/17 (A01–A16 y X1–X5 juntas; commit 83e7a674)",
+    "tests/aut20-journey.e2e.cjs (E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/aut20-journey.e2e.cjs npm run test:e2e:isolated): PASS a 1280, 390 y 1280 con zoom 200 %; 24 capturas por ejecución en E2E_ARTIFACT_DIR (no se guardan en el repositorio)",
+    "Simulado: proveedor de correo (env.EMAIL en memoria; el fixture del navegador no tiene correo ni reloj, no se envía nada) · fuera: entrega real, producción y activaciones externas",
+    "docs/roadmap/MEJORAS.md: cuatro observaciones [EST-19] [AGE-08] [EST-15] [NOT-11]; comentario de cabecera de server/property-photo-purge.js corregido (solo comentario)",
     "docs/superpowers/plans/2026-11-08-aut-20-integrated-search-acceptance.md",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "17-nov-2026: cerrada por aceptación propia sobre main integrado (7e50c222): suite AUT-20 17/17 (A01–A16 y X1–X5 juntas en una D1 local) y recorrido de navegador tests/aut20-journey.e2e.cjs PASS a 1280, 390 y 1280 al 200 %, sin errores de consola ni de red y sin envíos. Sin defectos de producción; 4 observaciones a MEJORAS. Correo real, producción y activaciones externas quedan fuera (acceptance.md)."
    ],
    "modulo": "M13b",
    "deps": [

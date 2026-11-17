@@ -17,7 +17,8 @@
     "Simulado: proveedor de correo (env.EMAIL en memoria; el fixture del navegador no tiene correo ni reloj, no se envía nada) · fuera: entrega real, producción y activaciones externas",
     "docs/roadmap/MEJORAS.md: cuatro observaciones [EST-19] [AGE-08] [EST-15] [NOT-11]; comentario de cabecera de server/property-photo-purge.js corregido (solo comentario)",
     "docs/superpowers/plans/2026-11-08-aut-20-integrated-search-acceptance.md",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "17-nov-2026: cerrada por aceptación propia sobre main integrado (7e50c222): suite AUT-20 17/17 (A01–A16 y X1–X5 juntas en una D1 local) y recorrido de navegador tests/aut20-journey.e2e.cjs PASS a 1280, 390 y 1280 al 200 %, sin errores de consola ni de red y sin envíos. Sin defectos de producción; 4 observaciones a MEJORAS. Correo real, producción y activaciones externas quedan fuera (acceptance.md)."
   ],
   "modulo": "M13b",
   "deps": [
@@ -185,6 +186,6 @@
   "resources": [
     "integrated-journey-tests"
   ],
-  "nextStep": "Conservar como completada. Las activaciones externas (correo real, interruptores en producción) son pasos separados según CONTINUIDAD-AVANZAR; las mejoras observadas están en MEJORAS (EST-19, AGE-08, EST-15, NOT-11).",
+  "nextStep": "Conservar como completada.",
   "actualizado": "2026-11-17"
 }
