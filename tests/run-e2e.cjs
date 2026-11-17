@@ -161,6 +161,14 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // EST-10: the list's work labels from VIS-17's linked viewings and BUS-17's open review, switched on for its own test only.
       ...(process.env.E2E_SCRIPT === "tests/est10-work-labels-live.e2e.cjs" ? { EST10_LABELS_READY: "1", VIS17_MULTIPART_READY: "1",
         BUS17_REVIEW_READY: "1" } : {}),
+      // AUT-20: the integrated search journey's screens, with every switch of the journey on for its own test only.
+      ...(process.env.E2E_SCRIPT === "tests/aut20-journey.e2e.cjs" ? { EST10_LABELS_READY: "1", EST14_JOURNEY_READY: "1",
+        SAP02_COUNTS_READY: "1", EST01_SEARCH_STATE_READY: "1", EST16_AVAILABILITY_READY: "1", EST15_UNAVAILABILITY_READY: "1",
+        SPR03_CAPTURE_READY: "1", SPR08_SECTIONS_READY: "1", AGE03_ENQUIRIES_READY: "1", AGE05_SEND_READY: "1", EMAIL_SERVICE_READY: "true",
+        AGE06_RESPONSES_READY: "1", AGE08_CALL_TASKS_READY: "1", AGE09_EVIDENCE_READY: "1", AGE10_PHOTOS_READY: "1", AGE11_REVIEW_READY: "1",
+        AGE12_PRESENTATIONS_READY: "1", VIS08_CYCLE_READY: "1", VIS17_MULTIPART_READY: "1", BUS07_PROVENANCE_READY: "1",
+        BUS10_IDENTITY_READY: "1", BUS17_REVIEW_READY: "1", AUT19_CRITERIA_PROPOSALS_READY: "1", NOT0809_INBOX_READY: "1",
+        EST19_TRASH_READY: "1", EST19_PURGE_READY: "1" } : {}),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       TURNSTILE_SITE_KEY: example.TURNSTILE_SITE_KEY,
       TURNSTILE_SECRET: example.TURNSTILE_SECRET,

@@ -162,24 +162,17 @@ Ninguno. Ninguna comprobación necesitó cambiar código de producción.
 
 ## Observaciones (no invalidan el recorrido)
 
-- **Comentario de cabecera de `server/property-photo-purge.js` (líneas 10-11).** Dice «storage first, then the rows… A failure leaves the rows», pero el código, su comentario interno y `tests/server/est-19-trash.test.mjs` hacen lo contrario:
-  - borran primero las filas;
-  - si falla el almacenamiento, los archivos quedan huérfanos y registrados en `listing.photo_files_left`;
-  - el reintento ya no los borra.
+Las cuatro están en [MEJORAS](../../MEJORAS.md), cada una con su tarea:
 
-  Es una decisión documentada y probada en EST-19, no un fallo de este recorrido. Si se quiere que el reintento termine de borrar esos archivos, es una mejora para EST-19.
-- **`callDue` (AGE-08).** Cuenta los días de lunes a viernes, como dice su contrato, y no tiene en cuenta los festivos de Jersey: del jueves 30 de abril de 2026 pasa al lunes 4 de mayo, que es festivo. Es una mejora posible para AGE-08.
-- **Lecturas antiguas (A14).** La regla de que una lectura web antigua no reactiva se cumple por tres vías:
-  - la propiedad vinculada nunca es candidata de mercado;
-  - una lectura con `source_at` anterior no pasa a ser la última;
-  - esa lectura no escribe cambios.
+- **EST-19.** Si falla el almacenamiento, la purga ya borró las filas y deja los archivos huérfanos, anotados en `listing.photo_files_left`; el reintento no los borra. El comentario de cabecera de `server/property-photo-purge.js` decía lo contrario y ya está corregido (solo el comentario).
+- **AGE-08.** `callDue` cuenta de lunes a viernes, sin los festivos de Jersey: del jueves 30 de abril de 2026 pasa al lunes 4 de mayo, que es festivo.
+- **EST-15.** La regla de que una lectura web antigua no reactiva se cumple por la estructura: la propiedad vinculada nunca es candidata de mercado, y una lectura con `source_at` anterior ni pasa a ser la última ni escribe cambios. `server/est-15-scoped-unavailability.js`, que formula esa regla de forma pura, no tiene llamadas.
+- **NOT-11.** Las tareas de BUS-17 y AUT-19 nacen sin responsable ni plazo; los asigna una persona (reclamar o editar). Solo la llamada de AGE-08 trae plazo propio.
 
-  `server/est-15-scoped-unavailability.js`, que formula esa regla de forma pura, no tiene llamadas desde otro módulo.
-- **Inbox (NOT-11).** Las tareas de BUS-17 y AUT-19 nacen sin responsable ni plazo; los asigna una persona (reclamar o editar). Solo la llamada de AGE-08 trae plazo propio.
-- **AGE-09.** La evidencia de presentación de aplicantes a agencias queda apagada en esta suite. No es una de A01–A16, y su módulo está en revisión independiente.
+La suite de servidor deja AGE-09 apagado, porque no es una de A01–A16. El recorrido de navegador sí lo enciende y muestra su evidencia ([acceptance.md](acceptance.md)).
 
 ## Qué no se verificó aquí
 
-- **Interfaz.** No hay evidencia visual ni de interfaz (MCP a 1280/390, teclado, foco, zoom al 200 %, consola y red). La suite comprueba el recorrido en el servidor y las rutas del panel, no la pantalla.
+- **Interfaz.** Está cubierta aparte, en el recorrido de navegador `tests/aut20-journey.e2e.cjs`: capturas a 1280 y 390, teclado, zoom del 200 %, y consola y red sin errores. Ver [acceptance.md](acceptance.md) y [evidence-index.json](evidence-index.json).
 - **Servicios reales.** No se probaron el envío real de correo, el proveedor real ni producción: el transporte es el simulado, que demuestra el contrato local pero no una entrega real.
 - **Relojes del servidor.** Los pasos que usan la hora real (envío manual, respuestas, VIS-17) se ejecutan con la fecha del momento. Las fechas futuras de los relojes (día 21, seis meses) se inyectan o se simulan con `t.mock.timers`, como en las pruebas de cada módulo.
