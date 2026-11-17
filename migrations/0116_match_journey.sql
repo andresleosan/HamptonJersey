@@ -1,7 +1,7 @@
 -- EST-14: what the client said about one home of one search, as a person on the team records it (by phone, in person…):
 -- interested, or not interested with a reason. Read and written by server/match-journey.js with EST14_JOURNEY_READY=1
--- only; switched off, nothing reads this table. Additive: one new table, its index and a trigger; no existing row or
--- table changes.
+-- only; switched off, nothing reads this table. Additive: one new table (its UNIQUE constraint gives it the only index it
+-- needs, no CREATE INDEX) and a trigger; no existing row or table changes.
 --
 -- A step belongs to the search and the property (applicant_id, listing_id), so it outlives a match that a recompute
 -- removes and finds again; match_id is the card it was recorded on. revision numbers the steps of that pair 1, 2, 3…

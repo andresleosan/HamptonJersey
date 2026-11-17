@@ -101,6 +101,25 @@ test("VIS-17 and VIS-04: booked only by every acceptance at the viewing's time, 
   assert.deepEqual([(await card(env, a, SALE)).journey.stage, (await card(env, a, SALE)).states.interest], ["viewed", "interested"]);
 });
 
+test("review: booked with the negotiator asked only while the viewing keeps that negotiator", async () => {
+  const env = world(), a = await searching(env);
+  await shortlist(env, a, SALE);
+  const v = insert(env, "viewing_requests", { listing_id: SALE, listing_ref: SALE, kind: "In person", date: "2026-10-22", time: "10:00",
+    end_time: "10:30", name: "Fixture Viewer", email: "nobody@example.test", status: "confirmed", created_at: T0, updated_at: T0, negotiator_id: 1 });
+  insert(env, "viewing_proposals", { viewing_id: v, revision: 1, applicant_id: a, negotiator_id: 1, date: "2026-10-22", time: "10:00",
+    end_time: "10:30", from_status: "requested", from_negotiator_id: 1, from_date: "2026-10-21", from_time: "10:00",
+    required: '["client","staff"]', state: "confirmed", created_at: T0, created_by: ADMIN, closed_at: T0, closed_by: ADMIN });
+  assert.equal((await card(env, a, SALE)).journey.stage, "viewing_booked");
+  run(env, "UPDATE viewing_requests SET negotiator_id = 2 WHERE id = ?", v);
+  assert.equal((await card(env, a, SALE)).journey.stage, "viewing_requested", "the negotiator who accepted no longer holds it");
+  // Without the negotiator among those asked, a change of negotiator keeps it booked.
+  run(env, "DELETE FROM viewing_proposals WHERE viewing_id = ?", v);
+  insert(env, "viewing_proposals", { viewing_id: v, revision: 1, applicant_id: a, negotiator_id: 1, date: "2026-10-22", time: "10:00",
+    end_time: "10:30", from_status: "requested", from_negotiator_id: 1, from_date: "2026-10-21", from_time: "10:00",
+    required: '["client"]', state: "confirmed", created_at: T0, created_by: ADMIN, closed_at: T0, closed_by: ADMIN });
+  assert.equal((await card(env, a, SALE)).journey.stage, "viewing_booked");
+});
+
 test("offers and sales through Sales: price_rejection_history, then agreed_search_still_active", async () => {
   const env = world(), a = await searching(env), b = await searching(env);
   await shortlist(env, a, SALE);

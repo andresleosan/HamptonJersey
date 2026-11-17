@@ -35,8 +35,10 @@ export function matchJourney({ operation, steps = [], answers = [], viewings = [
       grant_id: a.grant_id })),
   ];
   const sentOnly = answers.filter(a => a.sent_at).map(a => ({ kind: "sent", at: a.sent_at, grant_id: a.grant_id }));
-  const seen = viewings.map(v => ({ kind: "viewing", at: v.feedback_at ?? v.updated_at ?? v.created_at, id: v.id, status: v.status,
-    date: v.date, time: v.time, booked: !!v.booked, outcome: v.outcome, note: v.outcome_note }));
+  // A viewing's moment: when VIS-04's answer was recorded, else when it was booked (every acceptance) or linked to this
+  // search (VIS-17). Never updated_at: editing a viewing's notes is no fact of the journey.
+  const seen = viewings.map(v => ({ kind: "viewing", at: v.feedback_at ?? v.booked_at ?? v.linked_at ?? v.created_at, id: v.id, status: v.status,
+    date: v.date, time: v.time, booked: !!v.booked, outcome: v.outcome, note: v.outcome_note, answered_at: v.feedback_at }));
   const offered = operation === "buy" ? offers : [];
   const sales = offered.filter(o => o.sale_id).map(o => ({ kind: "sale", at: o.sale_closed_at ?? o.sale_at, id: o.sale_id, status: o.sale_status }));
   const history = [...words, ...sentOnly, ...seen,
@@ -45,21 +47,28 @@ export function matchJourney({ operation, steps = [], answers = [], viewings = [
     .sort((x, y) => (y.at ?? "").localeCompare(x.at ?? "") || KIND_ORDER[x.kind] - KIND_ORDER[y.kind]);
 
   // The client's latest word, from any source; a link sent after it, still in force and unanswered, waits for them.
-  const said = [...words, ...seen.filter(v => v.status === "completed" && v.outcome).map(v => ({ at: v.at, value: OUTCOME[v.outcome] }))]
+  // VIS-04's answer counts only with the moment it was recorded (feedback_at); a completion without one says nothing.
+  const said = [...words, ...seen.filter(v => v.status === "completed" && v.outcome && v.answered_at)
+    .map(v => ({ at: v.answered_at, value: OUTCOME[v.outcome] }))]
     .map(w => ({ at: w.at, value: ANSWER[w.value] ?? w.value })).sort((x, y) => y.at.localeCompare(x.at))[0];
   const waiting = answers.some(a => a.sent_at && !a.choice && !a.revoked_at && (!a.expires_at || a.expires_at > at) && (!said || a.sent_at > said.at));
   const interest = waiting ? "waiting" : said?.value ?? "no_answer";
+  // The step follows the last word given, not the wait: a new link sent afterwards takes no step back.
+  const word = said?.value;
+  // A client's no ends the journey unless a viewing step came after it: then the newer fact wins (a person linked or
+  // booked a viewing for this search after the no, so the client changed their mind). The no stays as the client's word.
+  const viewingSince = !!said && seen.some(v => ["requested", "confirmed", "completed"].includes(v.status) && v.at > said.at);
 
   const sale = sales.find(s => s.status === "in_progress") ?? sales.find(s => s.status === "completed");
   const agreed = (operation === "rent" && tenancies.length) || sale?.status === "in_progress"
     || offered.some(o => o.status === "accepted" && !o.sale_id);
   const stage = agreed ? "agreed" : sale ? "completed"
     : offered.some(o => OPEN_OFFER.includes(o.status)) ? "offer"
-    : interest === "not_interested" ? "not_interested"
+    : word === "not_interested" && !viewingSince ? "not_interested"
     : seen.some(v => v.status === "completed") ? "viewed"
     : seen.some(v => v.status === "confirmed" && v.booked) ? "viewing_booked"
     : seen.some(v => v.status === "requested" || v.status === "confirmed") ? "viewing_requested"
-    : INTERESTED.includes(interest) ? "interested" : "none";
+    : INTERESTED.includes(word) ? "interested" : "none";
   return { revision: Math.max(0, ...steps.map(s => s.revision)), interest, ...(said ? { interest_at: said.at } : {}), stage,
     history: history.slice(0, HISTORY) };
 }
@@ -74,13 +83,16 @@ const READS = {
   answers: env => env?.AGE12_PRESENTATIONS_READY === "1" && `SELECT o.match_id AS of, o.grant_id, o.choice, o.reason, o.answered_at,
     g.sent_at, g.revoked_at, g.expires_at FROM presentation_options o JOIN presentation_grants g ON g.id = o.grant_id
     WHERE o.match_id IN (SELECT value FROM json_each(?))`,
-  // The viewings of this property whose latest proposal naming a search names this one (VIS-17); booked: every person
-  // asked accepted a proposal for the time the viewing is at now.
+  // The viewings of this property whose latest proposal naming a search names this one (VIS-17), linked when that
+  // proposal was made; booked: every person asked accepted a proposal for the time the viewing is at now, and with the
+  // negotiator it has now when the negotiator was asked (booked_at: when that acceptance confirmed it).
   viewings: env => vis17Ready(env) && `SELECT m.id AS of, v.id, v.status, v.date, v.time, v.outcome, v.outcome_note, v.feedback_at,
-    v.created_at, v.updated_at, EXISTS (SELECT 1 FROM viewing_proposals c WHERE c.viewing_id = v.id AND c.state = 'confirmed'
-      AND c.date = v.date AND c.time = v.time) AS booked
+    v.created_at, p.created_at AS linked_at, b.closed_at AS booked_at, b.closed_at IS NOT NULL AS booked
     FROM matches m JOIN viewing_proposals p ON p.applicant_id = m.applicant_id JOIN viewing_requests v ON v.id = p.viewing_id
       AND v.listing_id = m.listing_id
+    LEFT JOIN viewing_proposals b ON b.id = (SELECT MAX(c.id) FROM viewing_proposals c WHERE c.viewing_id = v.id AND c.state = 'confirmed'
+      AND c.date = v.date AND c.time = v.time AND (c.negotiator_id IS v.negotiator_id
+        OR NOT EXISTS (SELECT 1 FROM json_each(c.required) r WHERE r.value = 'staff')))
     WHERE ${IDS} AND p.revision = (SELECT MAX(q.revision) FROM viewing_proposals q WHERE q.viewing_id = p.viewing_id AND q.applicant_id IS NOT NULL)`,
   offers: () => `SELECT m.id AS of, o.id, o.status, o.amount, o.counter_amount, o.created_at, o.updated_at, s.id AS sale_id,
     s.status AS sale_status, s.created_at AS sale_at, s.closed_at AS sale_closed_at FROM matches m JOIN applicants a ON a.id = m.applicant_id
@@ -171,7 +183,8 @@ async function record({ request, env, admin, params: [id] }) {
     throw e;
   }
   if (!inserted.meta.changes) fail(409, STALE);
-  return json({ journey: (await journeyReader(env, [m.id]))(m.id) });
+  // Recorded: a read that cannot be made now (a producer switched on before its migration) answers null, never 500.
+  return json({ journey: (await journeyReader(env, [m.id]))?.(m.id) ?? null });
 }
 
 export const journeyRoutes = [["POST", /^\/admin\/matches\/(\d+)\/journey$/, record, true]];

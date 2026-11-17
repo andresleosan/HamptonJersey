@@ -39,7 +39,7 @@ function fact(h, listingId) {
 // The two rows of the card's states (inside its <dl>): the client's word and the journey's step.
 export function JourneyStates({ journey: j }) {
   return <>
-    <div><dt>Client</dt><dd>{badge(INTEREST[j.interest] ?? ["neutral", j.interest])}{j.interest_at && ` · ${fmtDate(j.interest_at)}`}</dd></div>
+    <div><dt>Client</dt><dd>{badge(INTEREST[j.interest] ?? ["neutral", j.interest])}{j.interest_at && j.interest !== "waiting" && ` · ${fmtDate(j.interest_at)}`}</dd></div>
     <div><dt>Journey</dt><dd>{badge(STAGE[j.stage] ?? ["neutral", j.stage])}</dd></div>
   </>;
 }
