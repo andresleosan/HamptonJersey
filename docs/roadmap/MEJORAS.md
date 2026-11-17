@@ -234,3 +234,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-18] review/newLink guardan con case_data_write y releen con case_data_read: quien solo escribe recibe 403 tras decidir y puede decidir sin ver las respuestas · exigir ambas capacidades para decidir · 17-nov-2026
 - [ADM-18] Confirmar en Pages que las reglas de _headers (no-store, noindex, DENY) se aplican a /rental-application servida desde una Function · impacto bajo (la página no lleva datos personales) · 17-nov-2026
 - [ADM-18] El cupo de 30 códigos diarios de case-access lo comparten reparaciones (ADM-12) y solicitudes (ADM-18) · separar si molesta · 17-nov-2026
+- [PRE-12] La nota OWNER_NOT_INCLUDED de la copia de acceso aparece si cualquier solicitud de propietario comparte email o teléfono (p. ej. teléfono de casa compartido), y una nueva de un tercero invalida una copia ya aprobada (409) · mostrarla siempre que exista la tabla o pasarla solo al plan interno · 17-nov-2026
+- [PRE-12] ownerRequestCount compara el teléfono por igualdad exacta; viewings usa los 9 últimos dígitos con normalizePhone · usar el mismo criterio · 17-nov-2026
