@@ -148,6 +148,33 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    await fits('coordination');
    if(shots)await detail.screenshot({path:join(shots,`sap09-proposed-${width}.png`)});
    assert.equal(d1(`SELECT search_state FROM applicants WHERE id=${ana}`)[0].search_state,'active','search_stays_active');
+
+   // Again for the same home: refused, pointing to the viewing already held (M1).
+   await page.goto(base+`admin/#/applicants/${ana}/matches`);
+   await matchCard(`SAP09 agency ${width}`).getByRole('link',{name:/^Book viewing/}).click();
+   await form.getByRole('note').filter({hasText:'Advertised by'}).waitFor();
+   await pick(form.locator('.slot-picker'));
+   await form.getByRole('button',{name:'Propose this time'}).click();
+   await form.getByRole('alert').filter({hasText:'already has an active viewing of this property'}).waitFor();
+   assert.equal(await form.getByRole('link',{name:'Open the viewing already held'}).getAttribute('href'),`#/viewings?viewing=${v.id}`);
+   assert.equal(d1(`SELECT COUNT(*) n FROM viewing_requests WHERE listing_id='${agency}'`)[0].n,1);
+
+   // The team's own New viewing, without a search, never confirms the agency's home (G2).
+   await page.goto(base+'admin/#/viewings');
+   await page.getByRole('button',{name:'New viewing'}).click();
+   await form.getByLabel('Property').selectOption(agency);
+   await pick(form.locator('.slot-picker'));
+   await form.getByLabel('Name').fill('Walk In');await form.getByLabel('Email').fill(`walkin-${width}@example.test`);
+   await form.getByRole('button',{name:'Book viewing'}).click();
+   await form.getByRole('alert').filter({hasText:'Another agency advertises this property'}).waitFor();
+   assert.equal(d1(`SELECT COUNT(*) n FROM viewing_requests WHERE listing_id='${agency}'`)[0].n,1);
+   await form.getByRole('button',{name:'Close'}).click();
+
+   // A home no longer offered offers no Book viewing (M2).
+   d1(`UPDATE listings SET availability='sold' WHERE id='${own}'`);
+   await page.goto(base+`admin/#/applicants/${ana}/matches`);
+   await matchCard(`SAP09 own ${width}`).waitFor();
+   assert.equal(await matchCard(`SAP09 own ${width}`).getByRole('link',{name:/^Book viewing/}).count(),0);
    await page.close();
   }
   assert.deepEqual(errors,[]);

@@ -7,7 +7,8 @@
 import { json, fail, readJson, now } from "../http.js";
 import { logEvent } from "../events.js";
 import { validateViewing, jerseyNow, isFree, addMinutes, SLOT_MINUTES } from "../viewings.js";
-import { loadAvailability, bookStatement, policySnapshot } from "../viewing-store.js";
+import { loadAvailability, bookStatement, policySnapshot, PUBLIC_BOOKING_BLOCKED_SQL } from "../viewing-store.js";
+import { listingProvenance } from "../listing-provenance.js";
 import { noticeCheck } from "../house-rules.js";
 import { touchByViewing } from "../retention.js";
 import { calendarBusyCheck } from "../viewing-calendar.js";
@@ -28,13 +29,24 @@ async function start({ request, env, admin, params: [aid] }) {
   const r = validateViewing({ listing_id: body.listing_id, kind: body.kind, negotiator_id: body.negotiator_id, date: body.date,
     time: body.time, name: search.name, email: search.email, phone: search.phone }, { today: clock.date, panel: true });
   if (r.errors) {
-    const { name, email, phone, ...rest } = r.errors;
-    if (name || email || phone) fail(409, "Add a name and an email or phone to this contact first.");
+    const { name, email, phone, ...rest } = r.errors, bad = name ? "name" : email ? "email" : phone ? "phone" : null;
+    if (bad) fail(409, `This contact's ${bad} cannot be used (${r.errors[bad].toLowerCase()}). Correct it on their record first.`);
     return fields(rest);
   }
   const v = { ...r.value, notes: null };
-  const listing = v.listing_id && await env.DB.prepare("SELECT operation FROM listings WHERE id = ?").bind(v.listing_id).first();
+  const listing = v.listing_id && await env.DB.prepare(`SELECT operation,
+    archived_at IS NOT NULL OR availability IN (${PUBLIC_BOOKING_BLOCKED_SQL}) AS gone FROM listings WHERE id = ?`).bind(v.listing_id).first();
   if (!listing) return fields({ listing_id: "Choose the property" });
+  if (listing.gone) return fields({ listing_id: "This property is no longer offered." });
+  // Only a home another agency advertises (BUS-07): Hampton's own are booked at once with New viewing.
+  if ((await listingProvenance(env, v.listing_id)).kind !== "co_listed")
+    fail(409, "Hampton advertises this property itself: book the viewing with New viewing.");
+  // One active viewing per person and home: a second would hold another time for the same answer.
+  const active = await env.DB.prepare(`SELECT id FROM viewing_requests WHERE listing_id = ?3 AND status IN ('requested', 'confirmed')
+    AND ((?1 IS NOT NULL AND email = ?1) OR (?2 IS NOT NULL AND phone = ?2)) ORDER BY id LIMIT 1`)
+    .bind(v.email, v.phone, v.listing_id).first();
+  if (active) return json({ error: "This client already has an active viewing of this property. Open it to propose another time.",
+    viewing_id: active.id }, 409);
   if (!operationFits(listing.operation, search.operation))
     return fields({ listing_id: `This search is to ${search.operation}; this property is for ${listing.operation === "sale" ? "sale" : "rent"}` });
   const required = validRequired(["client", "advertiser", ...(body.staff === true ? ["staff"] : [])]);

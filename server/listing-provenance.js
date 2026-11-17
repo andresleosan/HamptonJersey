@@ -56,6 +56,12 @@ function provenanceOf(id, advertisers = [], photos = []) {
   return { kind: 'hampton', basis: null, advertisers: [], labels: [] };
 }
 
+// SAP-09: one listing's provenance, read whatever the switch (reading needs no table), for the server's own booking rules.
+export async function listingProvenance(env, id) {
+  const [advertisers, photos] = (await env.DB.batch(originStatements(env, [id]))).map(r => r.results);
+  return provenanceOf(id, advertisers, photos);
+}
+
 // SPR-07: a change of price or availability, from the before and after the history keeps. A period change that keeps
 // the monthly equivalent (£24,000 a year to £2,000 a month) is not one; a save that changed neither is not one.
 // A business has two prices compared each on its own, never summed: its premium and its rent per month.
@@ -117,7 +123,8 @@ async function answer(env, id, status = 200) {
       WHERE k.listing_id=? AND ${STANDING}`).bind(id).first();
     if (link) publications = (await readLinkedPublications(env, [[id, link.property_id]])).get(id) ?? [];
   }
-  return json({ provenance: provenanceOf(id, advertisers, photos),
+  // operation: SAP-09's New viewing checks it fits the search it books for.
+  return json({ provenance: provenanceOf(id, advertisers, photos), operation: listing.operation,
     authorizations: [...photos.map(p => ({ by: p.provider, permission: p.rights_status, photos: p.photos, basis: 'import' })),
       ...advertisers.filter(a => a.photo_permission).map(a => ({ by: a.name, permission: a.photo_permission, basis: 'directory' }))],
     linking: can, link, history, publications }, status, { 'cache-control': 'private, no-store' });

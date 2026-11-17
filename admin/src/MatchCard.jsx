@@ -12,7 +12,7 @@ export const hasPetRefusal = match => match.pets_refused === true;
 // BUS-15 (M04): what a Shortlist approves, said wherever one can be given.
 export const APPROVAL_SCOPE = "Shortlisting approves a first availability enquiry about the property, nothing else: "
   + "no must-have is waived, no client details are shared and the search stays as it is.";
-const OFFERED = ["for_sale", "to_let", "lease"];
+export const OFFERED = ["for_sale", "to_let", "lease"];
 // DESIGN.md "Badges de estado": a listing that is no longer offered.
 const AVAILABILITY_TONE = { under_offer: "attention", sold: "closed" };
 const many = (n, word) => (n == null ? null : `${n} ${word}${n === 1 ? "" : "s"}`);

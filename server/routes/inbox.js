@@ -8,6 +8,7 @@ import { cycleOn, REMINDER_CHANNELS, outcomeReady, followUp } from "../viewing-c
 import { vis14Ready } from "../viewing-groups.js";
 import { calendarBusyCheck, afterViewingChange } from "../viewing-calendar.js";
 import { coordinationOn, closeOpenProposal } from "../viewing-coordination.js";
+import { provenanceReady, listingProvenance } from "../listing-provenance.js";
 
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
@@ -91,6 +92,10 @@ async function create({ request, env, admin, waitUntil }) {
   const v = { ...r.value, notes: readNotes(body) };
   if (v.listing_id && !(await env.DB.prepare("SELECT 1 FROM listings WHERE id = ?").bind(v.listing_id).first()))
     return fields({ listing_id: "Unknown property" });
+  // SAP-09: with BUS-07 and VIS-17 on, a home another agency advertises is never booked as confirmed by the team: its time
+  // is proposed from the applicant's record and confirmed once the agency accepts. Either off: as before.
+  if (v.listing_id && provenanceReady(env) && await coordinationOn(env) && (await listingProvenance(env, v.listing_id)).kind === "co_listed")
+    return json({ error: AGENCY_HOME, code: "agency_listing" }, 409);
   const day = await dayOf(env, v, clock), slots = day?.slots;
   if (day?.property_viewings_enabled === false) return fields({ listing_id: "Viewings are disabled for this property." });
   if (!slots) return fields({ negotiator_id: "Choose an active negotiator" });
@@ -125,6 +130,13 @@ const TO = { confirm: "confirmed", cancel: "cancelled", complete: "completed", n
 // VIS-17: what each action makes of the viewing's open proposal.
 const CLOSES = { reschedule: "superseded", cancel: "cancelled", complete: "cancelled", no_show: "cancelled" };
 const COORDINATING = "This viewing is being coordinated with several people. Record their answers, or propose another time.";
+// SAP-09: another agency's home: booked only once the agency accepts a proposed time (VIS-17).
+const AGENCY_HOME = "Another agency advertises this property, so it cannot be booked as confirmed here. Use Book viewing on the "
+  + "applicant's record to propose the time; it is confirmed once the client and the agency accept.";
+const AGENCY_PENDING = "This viewing needs the agency's acceptance: propose a time and record their answer.";
+// A viewing that asked an advertiser to accept a time, none of whose proposals was ever agreed by everyone (VIS-17).
+const AGENCY_SQL = `NOT (EXISTS (SELECT 1 FROM viewing_proposals ap, json_each(ap.required) ar WHERE ap.viewing_id = ? AND ar.value = 'advertiser')
+  AND NOT EXISTS (SELECT 1 FROM viewing_proposals cp WHERE cp.viewing_id = ? AND cp.state = 'confirmed'))`;
 
 // The columns an action sets, its event data (and name, when it is not the status), and the conditions its UPDATE
 // must still meet: for a reschedule the clash it must not have (C6). cycle: VIS-08 is on; ts: the time of the write.
@@ -205,6 +217,12 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   const coordination = await coordinationOn(env), agreeing = coordination && body.action === "confirm";
   const openProposal = () => env.DB.prepare("SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'").bind(id).first();
   if (agreeing && await openProposal()) fail(409, COORDINATING);
+  // SAP-09: a viewing of a home another agency advertises (BUS-07), once the agency was asked to accept a time, is never
+  // confirmed by a plain Confirm, even after its proposal was moved, superseded or declined. Checked again inside the
+  // UPDATE. Hampton's own homes keep VIS-17's rule: with nothing open, the old Confirm works again.
+  const agencyHome = agreeing && !!cur.listing_id && (await listingProvenance(env, cur.listing_id)).kind === "co_listed";
+  const awaitingAgency = () => env.DB.prepare(`SELECT 1 WHERE NOT ${AGENCY_SQL}`).bind(id, id).first();
+  if (agencyHome && await awaitingAgency()) fail(409, AGENCY_PENDING);
   const ch = await change(env, body.action, body, cur, jerseyNow(), admin, cycle, ts);
   if (ch.errors) return fields(ch.errors);
   const slot = body.action === "confirm" ? cur : body.action === "reschedule" ? { ...cur, ...ch.set } : null;
@@ -214,7 +232,7 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   if (cal?.reviewed) ch.data = { ...ch.data, calendar_reviewed: true };
   const cols = Object.keys(ch.set), ref = { entity_type: "viewing", entity_id: String(id) };
   const guards = [ch.guard, ch.property, agreeing && { sql: "NOT EXISTS (SELECT 1 FROM viewing_proposals WHERE viewing_id = ? AND state = 'open')",
-    binds: [id] }].filter(Boolean);
+    binds: [id] }, agencyHome && { sql: AGENCY_SQL, binds: [id, id] }].filter(Boolean);
   const type = `viewing.${ch.event ?? (body.action === "reschedule" ? "rescheduled" : TO[body.action])}`;
   // The lock and the slot check are part of the UPDATE; the event, the touch and the notice follow only if it changed
   // the row.
@@ -244,6 +262,7 @@ export async function runAction({ env, admin, id, body, waitUntil }) {
   if (!after) fail(404, "Viewing not found");
   if (after.updated_at !== body.updated_at) fail(409, stale);
   if (agreeing && await openProposal()) fail(409, COORDINATING);
+  if (agencyHome && await awaitingAgency()) fail(409, AGENCY_PENDING);
   if (body.action === "confirm") fail(409, "This property's notice changed while you were confirming. Check it and confirm again.");
   return taken();
 }

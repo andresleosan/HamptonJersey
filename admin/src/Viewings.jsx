@@ -10,7 +10,7 @@ import ViewingGroups from "./ViewingGroups.jsx";
 import ViewingCoordination from "./ViewingCoordination.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
 import { CalendarFact, CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
-import { bookingMode } from "./quick-actions.js";
+import { bookingMode, searchGate, fillEmpty } from "./quick-actions.js";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
 const TABS = { requests: "Requests", upcoming: "Upcoming", outcome: "Needs outcome", past: "Past" };
@@ -26,7 +26,9 @@ const Msg = ({ m }) => m && <p role={m.ok ? "status" : "alert"} className={m.ok 
 // SAP-09: why New viewing for a search cannot book this house yet (quick-actions.js bookingMode).
 const WAIT = { checking: "Checking who advertises this property…",
   unknown: "Could not check who advertises this property, so it cannot be booked from here.",
-  blocked: "Another agency advertises this property, and agreeing a time with everyone is switched off here. Agree the time with the agency first." };
+  blocked: "Another agency advertises this property, and agreeing a time with everyone is switched off here. Agree the time with the agency first.",
+  inactive: "This search is not active. Reopen it to arrange a viewing.",
+  mismatch: "This property does not fit this search: one is to buy and the other to rent. Choose another property." };
 // VIS-08: the two stages that are dates beside the status (stageOf), named only once the server reports the cycle on.
 const STAGE = { reminded: ["Reminded", "positive"], feedback: ["Feedback received", "positive"] };
 const CHANNEL = { phone: "Phone", email: "Email", whatsapp: "WhatsApp", in_person: "In person" };
@@ -456,7 +458,9 @@ function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDir
     api(`/admin/applicants/${applicant}`).then(d => {
       if (!live) return;
       const p = { name: d.contact.name ?? "", email: d.contact.email ?? "", phone: d.contact.phone ?? "" };
-      setPerson(p); setF(x => ({ ...x, ...p }));
+      setPerson({ ...p, operation: d.applicant.operation,
+        active: !d.applicant.archived_at && ["active", "needs_review"].includes(d.applicant.search_state) });
+      setF(x => fillEmpty(x, p));
     }, e => { if (live) { setPerson(null); setMsg({ text: e.message }); } });
     return () => { live = false; };
   }, [applicant]);
@@ -464,12 +468,13 @@ function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDir
     if (!applicant || !f.listing_id) return;
     let live = true, id = f.listing_id;
     setOrigin({ id });
-    api(`/admin/listings/${encodeURIComponent(id)}/provenance`).then(d => live && setOrigin({ id, value: d.provenance }),
+    api(`/admin/listings/${encodeURIComponent(id)}/provenance`).then(d => live && setOrigin({ id, value: d.provenance, operation: d.operation }),
       () => live && setOrigin({ id, value: null }));
     return () => { live = false; };
   }, [applicant, f.listing_id, check]);
   const provenance = origin.id === f.listing_id ? origin.value : undefined;
-  const mode = applicant ? bookingMode({ listingId: f.listing_id, provenance, coordination }) : "book";
+  const gate = applicant ? searchGate(person, origin.id === f.listing_id && f.listing_id ? origin.operation : undefined) : null;
+  const mode = gate ?? (applicant ? bookingMode({ listingId: f.listing_id, provenance, coordination }) : "book");
   const typed = k => f[k].trim() !== (person?.[k] ?? "");
   const dirty = !!(typed("name") || typed("email") || typed("phone") || f.notes.trim() || slot.time);
   useEffect(() => { onDirty("form", dirty); }, [dirty]);
@@ -507,7 +512,7 @@ function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDir
         phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}), ...checked } });
       onBooked(id, `Viewing booked for ${fmtDay(slot.date, true)} at ${slot.time}.`);
     } catch (err) {
-      focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
+      focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message, viewing: err.data?.viewing_id });
       setCalendar(err.data?.code ? { code: err.data.code, slot: { negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time } } : null);
       setReviewed(false);
       // A property can be disabled or its hours changed after these times were read.
@@ -536,7 +541,7 @@ function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDir
     {mode === "checking" && <p role="status" className="muted">{WAIT.checking}</p>}
     {mode === "unknown" && <p role="alert" className="err">{WAIT.unknown}{" "}
       <button type="button" className="linkish" onClick={() => setCheck(n => n + 1)}>Try again</button></p>}
-    {mode === "blocked" && <p className="warn" role="note">{WAIT.blocked}</p>}
+    {["blocked", "inactive", "mismatch"].includes(mode) && <p className="warn" role="note">{WAIT[mode]}</p>}
     {mode === "propose" && <p className="warn" role="note">Advertised by {provenance.labels?.join(", ") || "another agency"}. This time is held
       as a request, not booked: it is confirmed only once the client and the agency accept. Record their answers on the viewing.
       Nothing is sent from here.</p>}
@@ -566,5 +571,6 @@ function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDir
     <div className="inline"><button className="btn">{mode === "propose" ? (busy ? "Proposing…" : "Propose this time") : busy ? "Booking…" : "Book viewing"}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     <Msg m={msg} />
+    {msg?.viewing && <p><a href={`#/viewings?viewing=${msg.viewing}`}>Open the viewing already held</a></p>}
   </form>;
 }
