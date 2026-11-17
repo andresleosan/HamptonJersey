@@ -61,7 +61,7 @@ test("Pages routes /admin/* to Functions, and only the paths it routed before be
     assert.ok(!routes.include.includes("/*"), "the public site must not run a Function for every file");
     assert.deepEqual(routes.exclude, []);
     assert.deepEqual([...routes.include].sort(),
-      ["/admin/*", "/api/*", "/media/*", "/p/*", "/properties", "/robots.txt", "/sitemap.xml"]);
+      ["/admin/*", "/api/*", "/media/*", "/p/*", "/properties", "/rental-application", "/robots.txt", "/sitemap.xml"]);
   } finally { rmSync(out, { recursive: true, force: true }); }
   // A hand-written _routes.json would replace the generated one; none may leave /admin out.
   assert.equal(existsSync(join(ROOT, "site/_routes.json")), false);

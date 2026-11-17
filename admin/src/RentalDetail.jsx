@@ -13,6 +13,7 @@ import { TenancyInspections } from "./RentalInspection.jsx";
 import { TenancySignatures } from "./TenancySignatures.jsx";
 import { TenancyContact } from "./TenancyContact.jsx";
 import { RepairLinks } from "./RepairLinks.jsx";
+import { APP_STATUS, RentalApplications } from "./RentalApplication.jsx";
 import { Suppliers } from "./Suppliers.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
@@ -154,6 +155,8 @@ export default function RentalDetail({ id, selection='', onChange }) {
               <button type="button" className="btn sm" onClick={() => { setMsg(null); setAdding(true); }}>New tenancy</button>
               {originReady && <button type="button" className="btn ghost sm" onClick={() => { setMsg(null); setFromAgreed(true); }}>From Let agreed</button>}</div>}
         </section>}
+
+        <RentalApplications rental={r} />
 
         <section className="card" aria-labelledby="h-checks"><h2 id="h-checks">Checks</h2>{note("checks")}
           {data.legal?.status === "estimated" && <p><Estimated legal={data.legal} /></p>}
@@ -426,6 +429,10 @@ const EVENT = {
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
     ? REPAIR_STATUS[d.after.status] : keys(d.after)}`,
   "tenancy.created": d => `Tenancy entered for ${d.tenant_name}`,
+  // ADM-18: the application's number and status only; its answers stay in Rental applications.
+  "rental_application.opened": d => `Rental application ${d.application_id} opened`,
+  "rental_application.submitted": d => `Rental application ${d.application_id} sent by the applicant`,
+  "rental_application.reviewed": d => `Rental application ${d.application_id}: ${APP_STATUS[d.status]?.[1].toLowerCase() ?? d.status}`,
   "tenancy.origin_linked": d => `Tenancy started from Let agreed listing ${d.listing_id}`,
   "tenancy.signed_contract_recorded": d => `Signed contract reference recorded (revision ${d.revision})`,
   // ADM-19: counts only; the names, days and references stay in the tenancy card.
