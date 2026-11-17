@@ -138,7 +138,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
         EST16_AVAILABILITY_READY: "1", SPR08_SECTIONS_READY: "1", BUS07_PROVENANCE_READY: "0" } : {}),
       // AGE-12 presents AGE-10's suitable photos of SPR-03's capture on a client's private link.
       ...(process.env.E2E_SCRIPT === "tests/age12-private-presentation.e2e.cjs" ? { AGE12_PRESENTATIONS_READY: "1", AGE10_PHOTOS_READY: "1",
-        SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),
+        SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1", AGE11_REVIEW_READY: "0" } : {}),
       // AGE-11 reviews and approves the snapshot of AGE-12's link before it is sent, so its test has AGE-12's switches on too.
       ...(process.env.E2E_SCRIPT === "tests/age11-presentation-review.e2e.cjs" ? { AGE11_REVIEW_READY: "1", AGE12_PRESENTATIONS_READY: "1",
         AGE10_PHOTOS_READY: "1", SPR03_CAPTURE_READY: "1", EST16_AVAILABILITY_READY: "1", SAP02_COUNTS_READY: "1" } : {}),

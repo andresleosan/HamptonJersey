@@ -56,9 +56,9 @@ const sqlOf = async env => {
   return seen;
 };
 
-test('both wrangler files carry the switch, off', () => {
+test('both wrangler files carry the switch, on (0113 applied 16-nov-2026)', () => {
   const flag = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8').match(/^PRE12_TENANCY_LINK_READY = "(\d)"$/m)?.[1];
-  assert.equal(flag('wrangler.toml'), '0');
+  assert.equal(flag('wrangler.toml'), '1');
   assert.equal(flag('jobs/wrangler.toml'), flag('wrangler.toml'));
 });
 

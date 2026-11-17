@@ -76,7 +76,7 @@ AGE10_PHOTOS_READY = "1"
 # AGE-12: a client's private link to the homes presented, with their answer on each (migration 0086; needs AGE10_PHOTOS_READY, SPR03_CAPTURE_READY and EST16_AVAILABILITY_READY). Public route that collects client answers: only Luis switches it on.
 AGE12_PRESENTATIONS_READY = "1"
 # AGE-11: a person reviews and approves the snapshot of a private presentation (homes, availability confirmation and its date, price, AGE-10's suitable photos) before sending AGE-12's link; any change after the approval needs approving again, and the client's page shows only the approved snapshot (migration 0115; needs AGE12_PRESENTATIONS_READY). Sends nothing.
-AGE11_REVIEW_READY = "0"
+AGE11_REVIEW_READY = "1"
 # NOT-08/NOT-09: Inbox Agency replies/Messages from real tasks, and Approve/Call/Reply/Snooze in each notice (migration 0088, applied 15-nov-2026). Sends nothing.
 NOT0809_INBOX_READY = "1"
 # PUB-16: a rental recorded as let shows Let agreed for 24 hours, then leaves the website; 24 hours after a letting or sale its other viewings get Inbox tasks (migration 0087, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
@@ -129,14 +129,14 @@ PRE12_RETENTION_NOTICE_READY = "0"
 # proposes it); linked tenancies enter the privacy copy (identity, address and dates) and a running one keeps its contact
 # from the retention pass and the applicant's Delete (migration 0113). Sends nothing. Apply 0113 before switching on.
 # Must match the other wrangler.toml.
-PRE12_TENANCY_LINK_READY = "0"
+PRE12_TENANCY_LINK_READY = "1"
 AUT18_TEAM_READY = "1"
 ADM19_SIGNATURE_READY = "1"
 VIS14_BLOCK_READY = "1"
 # VIS-17: a viewing coordinated with several people: the team proposes one time, records each required person's answer
 # (client always; advertiser or agency and the negotiator when chosen) with how and when, and the viewing is confirmed
 # only once all have accepted (migration 0114). Sends nothing; no client-facing page. Apply 0114 before switching on.
-VIS17_MULTIPART_READY = "0"
+VIS17_MULTIPART_READY = "1"
 EMAIL_SERVICE_READY = "false"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"
