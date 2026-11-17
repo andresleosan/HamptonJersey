@@ -4,10 +4,10 @@
   "titulo": "Cola de trabajo con varias etiquetas a la vez, más Viewing booked y No matches a 7 días",
   "origen": "plan",
   "fase": "F1-A",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "La lista de Applicants muestra a la vez las etiquetas de matches (nuevas, pendientes de revisión, preseleccionadas, In process) y filtra por cada una. Construido y apagado (EST10_LABELS_READY=0, sin migración): el servidor devuelve work_labels por búsqueda y añade, en la misma consulta, por índices y solo para búsquedas activas de vivienda sin archivar, «Requirement to confirm» (match no rechazado con requirements_rank 1), «Viewing pending» / «Viewing booked» (solo visitas cuya última propuesta de VIS-17 vincula una persona a esta búsqueda y que aún no han terminado, hora de Jersey; pendiente = propuesta abierta por venir sobre visita solicitada o confirmada, o solicitud por venir; reservada = visita confirmada por venir) y «Search review due» (revisión BUS-17 abierta mientras su tarea del Inbox no está hecha). Cada etiqueta filtra; ninguna cierra búsquedas, cambia criterios ni envía nada. Una fuente apagada o sin migrar no se lee ni se ofrece (nunca se muestra como cero). Apagado, la lista ejecuta exactamente el SQL anterior a EST-10 (42b168f6) y devuelve la misma respuesta.",
-  "falta": "Encender EST10_LABELS_READY en wrangler.toml (no hay migración que aplicar) y comprobar el recorrido en producción con lecturas GET de /admin/applicants (work_labels presentes, filtros por etiqueta).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/search-work-labels.js (workLabelsFor, sourceLabels, labelColumns, WORK_LABEL_TEXT; sin imports para el panel)",
@@ -26,7 +26,8 @@
     "docs/superpowers/plans/2026-11-08-est-10-concurrent-search-work-labels.md",
     "docs/superpowers/specs/2026-11-08-search-review-criteria-design.md",
     "Decisión (revisión 17-nov): «dato esencial sin comprobar» = match no rechazado con requirements_rank 1, que incluye imprescindible, mascotas, vivienda o zona sin respuesta, prioridad no declarada y matches antiguos sin prioridades; la etiqueta se llama «Requirement to confirm» y la ayuda lo dice · fuente: server/requirements.js requirementsSummary",
-    "Decisión (revisión 17-nov): el filtro «No matches awaiting review or shortlisted» conserva su significado (ningún match pendiente ni preseleccionado) aunque la búsqueda lleve etiquetas de visita o revisión, que se ven en la misma fila · fuente: opción más simple y coherente con su texto (skill §4.5)"
+    "Decisión (revisión 17-nov): el filtro «No matches awaiting review or shortlisted» conserva su significado (ningún match pendiente ni preseleccionado) aunque la búsqueda lleve etiquetas de visita o revisión, que se ven en la misma fila · fuente: opción más simple y coherente con su texto (skill §4.5)",
+    "17-nov-2026: cerrada por aceptación propia. Sin migración; EST10_LABELS_READY=1 (7c12b483, desplegado). Revisión independiente: 2 graves al encender (visita contada para una búsqueda antigua; visita pasada o cancelada como pendiente) corregidos en 67cb6296; segunda pasada sin graves; prueba de SQL idéntico al de 42b168f6 con el interruptor apagado. npm test 3366/3366; e2e est10 (sintético y real), est01, sap02 (fijado EST10=0 en su escenario), bus17, est15, est16 PASS a 1280 y 390; smoke de producción solo lectura ok. search-lifecycle falla por .dev.vars, fallo anterior conocido."
   ],
   "modulo": "M13",
   "deps": [
@@ -67,6 +68,6 @@
     "notifications-schema",
     "viewings-contract"
   ],
-  "nextStep": "Encender EST10_LABELS_READY (sin migración) y verificar con lecturas GET de la lista de Applicants.",
+  "nextStep": "Conservar como completada.",
   "actualizado": "2026-11-17"
 }

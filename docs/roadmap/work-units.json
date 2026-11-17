@@ -725,7 +725,7 @@
       "preferredSlot": "vps",
       "priority": 119,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -4228,7 +4228,7 @@
       "preferredSlot": "vps",
       "priority": 212,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -4378,7 +4378,7 @@
       "preferredSlot": "vps",
       "priority": 216,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {

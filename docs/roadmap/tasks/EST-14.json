@@ -4,10 +4,10 @@
   "titulo": "Resto del ciclo del match: Interested, Viewing booked, Viewed, Offer, Agreed y salidas",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "desarrollo",
   "hecho": "17-nov-2026, construida en rama y apagada (migración aditiva 0116_match_journey.sql e interruptor EST14_JOURNEY_READY=\"0\"; no envía nada ni añade rutas públicas). Cada tarjeta de match (pestaña Matches del aplicante, Review y Matched applicants de la ficha) lleva su trayectoria (server/match-journey.js, campo journey) leída de los hechos que acreditan cada paso, en la búsqueda y la casa de ese match: respuesta del cliente en el enlace privado (AGE-12, presentation_options), visitas vinculadas por una persona a esa búsqueda (VIS-17, última propuesta con applicant_id, nunca por correo o teléfono) con la respuesta tras la visita (VIS-04), ofertas y venta (OFE/Sales, solo búsquedas de compra) y contrato de alquiler entrado desde esa casa y búsqueda (ADM-06, tenancy_origins). Pasos: Interested, Viewing being arranged, Viewing booked (solo si todos aceptaron la hora a la que está la visita), Viewed (solo completed; no-show nunca), Offer (pending/countered), Agreed (venta en curso o contrato), Completed y la salida Not interested; una oferta o acuerdo en vigor manda sobre la palabra del cliente. Historial de hasta 50 hechos, el más reciente primero, con fecha, autor y enlace a su registro (oferta, venta, visita, alquiler); las ofertas rechazadas y sus importes se conservan. Quinta dimensión de M06 en candidateState: interest (no_answer, waiting, interested, wants_viewing, call_me, more_info, not_interested); sin dato es «No answer recorded», nunca «No». El equipo registra lo que dijo el cliente con «Client interested» o «Client not interested» y motivo obligatorio (price, area, size, condition, other; nota privada obligatoria con other, ≤300) en POST /admin/matches/:id/journey: sesión de staff, mismo origen, SQL parametrizado, revisión por búsqueda×casa (409 si alguien registró antes, si la casa no es la del match o si la búsqueda no está activa), un batch con el paso y su evento match.interest_changed (sin la nota). Ni el descarte ni ningún paso cambia criterios, la decisión del empleado, la puntuación, la disponibilidad de la casa ni search_state: una visita, oferta o acuerdo deja la búsqueda activa hasta EST-09. El historial pertenece a la búsqueda y la casa (sobrevive a un recálculo que borra y recrea el match) y se borra con la búsqueda (ON DELETE CASCADE). BUS-18: columna Client en Matched applicants con el interés propio de cada búsqueda. Apagado, o encendido sin 0116, las tarjetas y las consultas son idénticas (prueba).",
-  "falta": "Aplicar 0116_match_journey.sql en D1 hampton, encender EST14_JOURNEY_READY y comprobar el recorrido en producción con lecturas (tarjetas de Matches y Matched applicants con journey y Client).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "server/match-journey.js (matchJourney, journeyReader, validateStep, POST /admin/matches/:id/journey)",
@@ -25,7 +25,8 @@
     "Decisión: sin tests/match-journey-ui.test.js; la interfaz se cubre con el e2e aislado, porque las pruebas node no cargan .jsx · fuente: plan EST-14 tarea 3 + AGENTS.md",
     "Decisión: no se tocó admin/src/ApplicantDetail.jsx (SAP-09 en paralelo); el nombre del evento en el Timeline va a MEJORAS · fuente: encargo de esta sesión",
     "Decisión: tras un «not interested» del cliente, una visita vinculada o reservada después (VIS-17) gana el paso (Viewing booked/Viewed) y la palabra del cliente sigue siendo Not interested; si la palabra es posterior, la salida Not interested gana. Una oferta o acuerdo en vigor manda siempre · fuente: revisión independiente 17-nov (el hecho más reciente gana)",
-    "Decisión: la respuesta VIS-04 se fecha solo con feedback_at (una completada sin él no cuenta como palabra); el paso sigue la última palabra dada, no la espera de un enlace enviado después; Viewing booked exige además el negociador que aceptó cuando se le pidió (required con staff) · fuente: revisión independiente 17-nov"
+    "Decisión: la respuesta VIS-04 se fecha solo con feedback_at (una completada sin él no cuenta como palabra); el paso sigue la última palabra dada, no la espera de un enlace enviado después; Viewing booked exige además el negociador que aceptó cuando se le pidió (required con staff) · fuente: revisión independiente 17-nov",
+    "17-nov-2026: cerrada por aceptación propia. 0116 aplicada tras marcador Time Travel y EST14_JOURNEY_READY=1 (7c12b483, desplegado). Revisión independiente sin graves; sus menores corregidos en 688c97f0 (fecha de la respuesta VIS-04 solo por feedback_at, etapa por la última palabra del cliente, el hecho más nuevo gana, negociador en Viewing booked, ruta sin 500 tras escribir). npm test 3366/3366; e2e est14, est13, sap02, sap08, sap09, sap10, age03/06/08/11/12, vis04, vis17 PASS a 1280 y 390 con los interruptores encendidos; smoke de producción solo lectura ok."
   ],
   "modulo": "M08/M09",
   "deps": [
@@ -66,6 +67,6 @@
     "viewings-contract",
     "sales-contract"
   ],
-  "nextStep": "Aplicar 0116 (aditiva), encender EST14_JOURNEY_READY y verificar con lecturas GET.",
+  "nextStep": "Conservar como completada.",
   "actualizado": "2026-11-17"
 }
