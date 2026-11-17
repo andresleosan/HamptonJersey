@@ -126,10 +126,10 @@ test('invalid periods or inconsistent counts are unavailable rather than fabrica
   assert.equal(result.available,false);
 });
 
-test('both wrangler files carry the ANA-04 switch, off and equal', async () => {
+test('both wrangler files carry the ANA-04 switch, on (17-nov-2026) and equal', async () => {
   const {readFileSync} = await import('node:fs');
   const flag = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8').match(/^ANA04_SEARCH_STATS_READY = "(\d)"$/m)?.[1];
-  assert.equal(flag('wrangler.toml'), '0');
+  assert.equal(flag('wrangler.toml'), '1');
   // Equal whatever the value: the clock and the panel both run the 90-day prune, so it is switched on in both at once.
   assert.equal(flag('jobs/wrangler.toml'), flag('wrangler.toml'));
 });

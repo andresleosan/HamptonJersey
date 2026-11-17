@@ -48,8 +48,8 @@ VIS14_BLOCK_READY = "1"
 EMAIL_SERVICE_READY = "false"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"
-# ANA-04: anonymous daily counts of the website's search filters and Insights' Search trends, with their 90-day retention (migration 0108). Off until 0108 is applied and the PRE-09 notice and PRE-12 retention are approved. Must match the other wrangler.toml.
-ANA04_SEARCH_STATS_READY = "0"
+# ANA-04: anonymous daily counts of the website's search filters and Insights' Search trends, with their 90-day retention (migration 0108). Switched on 17-nov-2026 by Luis (0108 applied). Must match the other wrangler.toml.
+ANA04_SEARCH_STATS_READY = "1"
 # OFE-06: weekly internal sale review (migration 0053); still off until the team sets a day and time.
 OFE06_WEEKLY_REVIEW_READY = "1"
 # ADM-17: versioned legal periods (migration 0063); keep equal in ../wrangler.toml.

@@ -545,6 +545,11 @@ export function renderPrivacy(root) {
       Matterport, YouTube and Vimeo, which play our property tours and videos, receive it only when you open one. Each
       uses what it receives under its own privacy policy.</p>
 
+    <h2>Search statistics</h2>
+    <p>When anyone uses the search filters on our website, we add one to a daily total for each choice, for example
+      "to rent" or "2 bedrooms". These totals are not linked to you, your device or your other choices, and we delete
+      them after 90 days.</p>
+
     <h2>How long we keep it</h2>
     <p>While any of your searches is active or awaiting our team's review, we keep your contact details and search record
       so we can continue helping you. After 11 months without activity on your record, our team reviews whether you still
