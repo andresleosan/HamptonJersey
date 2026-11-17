@@ -38,9 +38,9 @@
     {
       "id": "PRE-09",
       "requires": "integrated",
-      "reason": "Su plan exige el aviso de privacidad aprobado antes de activar las métricas.",
+      "reason": "El aviso ya menciona las estadísticas de búsqueda (17-nov, aprobado por Luis). Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
       "basis": "explicit",
-      "scope": "whole"
+      "scope": "partial"
     },
     {
       "id": "PRE-12",
@@ -55,5 +55,5 @@
     "analytics-contract"
   ],
   "nextStep": "Con PRE-09 y PRE-12 aprobados: encender ANA04_SEARCH_STATS_READY en ambos wrangler.toml y verificar el recorrido.",
-  "actualizado": "2026-11-16"
+  "actualizado": "2026-11-17"
 }

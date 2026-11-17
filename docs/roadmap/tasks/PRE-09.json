@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Hampton",
   "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo.",
-  "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street).",
+  "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street). 17-nov-2026: datos de registro en trámite (Luis); el aviso público no muestra ### a los visitantes, se completa cuando lleguen los números.",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
     "site/apply.js:496-613",
@@ -46,5 +46,5 @@
     "tenant-portal"
   ],
   "nextStep": "Cuando Hampton dé su razón social y su número JOIC, añadirlos en «Who we are» de renderPrivacy (site/apply.js). El enlace al aviso en el portal se hace en ADM-18, que construye el portal.",
-  "actualizado": "2026-11-16"
+  "actualizado": "2026-11-17"
 }

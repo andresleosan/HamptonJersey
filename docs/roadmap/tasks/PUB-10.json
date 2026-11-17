@@ -29,9 +29,9 @@
     {
       "id": "PRE-03",
       "requires": "decision",
-      "reason": "Formulario espera confirmación de registro JOIC de Hampton.",
+      "reason": "Formulario espera confirmación de registro JOIC de Hampton. Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
       "basis": "explicit",
-      "scope": "whole"
+      "scope": "partial"
     },
     {
       "id": "PRE-09",
@@ -46,5 +46,6 @@
     "public-site",
     "owner-contact"
   ],
-  "nextStep": "Completar supresión y conciliación verificables, política y evidencia de Hampton; revisar el esquema y su propuesta antes de cualquier activación o migración autorizada."
+  "nextStep": "Completar supresión y conciliación verificables, política y evidencia de Hampton; revisar el esquema y su propuesta antes de cualquier activación o migración autorizada.",
+  "actualizado": "2026-11-17"
 }

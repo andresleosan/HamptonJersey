@@ -16846,9 +16846,9 @@
         {
           "id": "PRE-29",
           "requires": "decision",
-          "reason": "Los criterios de asequibilidad y la política de registros de Hampton deben estar aprobados; el plan prohíbe inventarlos al construir.",
+          "reason": "Criterios de asequibilidad y registros: configurables y apagados hasta que Hampton los apruebe. Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
           "basis": "explicit",
-          "scope": "whole"
+          "scope": "partial"
         },
         {
           "id": "ADM-12",
@@ -16866,7 +16866,7 @@
         "applicants-contract"
       ],
       "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados.",
-      "actualizado": "2026-11-15"
+      "actualizado": "2026-11-17"
     },
     {
       "id": "ADM-19",
@@ -17789,9 +17789,9 @@
         {
           "id": "PRE-03",
           "requires": "decision",
-          "reason": "Formulario espera confirmación de registro JOIC de Hampton.",
+          "reason": "Formulario espera confirmación de registro JOIC de Hampton. Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
           "basis": "explicit",
-          "scope": "whole"
+          "scope": "partial"
         },
         {
           "id": "PRE-09",
@@ -17806,7 +17806,8 @@
         "public-site",
         "owner-contact"
       ],
-      "nextStep": "Completar supresión y conciliación verificables, política y evidencia de Hampton; revisar el esquema y su propuesta antes de cualquier activación o migración autorizada."
+      "nextStep": "Completar supresión y conciliación verificables, política y evidencia de Hampton; revisar el esquema y su propuesta antes de cualquier activación o migración autorizada.",
+      "actualizado": "2026-11-17"
     },
     {
       "id": "PUB-11",
@@ -18830,9 +18831,9 @@
         {
           "id": "PRE-09",
           "requires": "integrated",
-          "reason": "Su plan exige el aviso de privacidad aprobado antes de activar las métricas.",
+          "reason": "El aviso ya menciona las estadísticas de búsqueda (17-nov, aprobado por Luis). Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
           "basis": "explicit",
-          "scope": "whole"
+          "scope": "partial"
         },
         {
           "id": "PRE-12",
@@ -18847,7 +18848,7 @@
         "analytics-contract"
       ],
       "nextStep": "Con PRE-09 y PRE-12 aprobados: encender ANA04_SEARCH_STATS_READY en ambos wrangler.toml y verificar el recorrido.",
-      "actualizado": "2026-11-16"
+      "actualizado": "2026-11-17"
     },
     {
       "id": "ANA-05",
@@ -19486,7 +19487,7 @@
       "estado": "bloqueado",
       "responsable": "Hampton",
       "hecho": "Los dos requisitos están anotados: ESTADO exige la JFSC antes de usar la gestión completa de alquileres (R21) y el aviso de privacidad espera el número de la JOIC.",
-      "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado.",
+      "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado. Decisión de Luis 17-nov-2026: los registros están en trámite; mientras, el resto se construye con marcadores ### y solo la activación espera los números reales.",
       "bloqueo": "Dato de Hampton",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:592",
@@ -19504,7 +19505,8 @@
       "resources": [
         "compliance-evidence"
       ],
-      "nextStep": "Hampton confirma registros y el alcance aplicable; registrar evidencia sin dar el requisito por cumplido."
+      "nextStep": "Hampton confirma registros y el alcance aplicable; registrar evidencia sin dar el requisito por cumplido.",
+      "actualizado": "2026-11-17"
     },
     {
       "id": "PRE-04",
@@ -19659,7 +19661,7 @@
       "estado": "parcial",
       "responsable": "Hampton",
       "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo.",
-      "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street).",
+      "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street). 17-nov-2026: datos de registro en trámite (Luis); el aviso público no muestra ### a los visitantes, se completa cuando lleguen los números.",
       "bloqueo": "Dato de Hampton",
       "evidencia": [
         "site/apply.js:496-613",
@@ -19698,7 +19700,7 @@
         "tenant-portal"
       ],
       "nextStep": "Cuando Hampton dé su razón social y su número JOIC, añadirlos en «Who we are» de renderPrivacy (site/apply.js). El enlace al aviso en el portal se hace en ADM-18, que construye el portal.",
-      "actualizado": "2026-11-16"
+      "actualizado": "2026-11-17"
     },
     {
       "id": "PRE-10",

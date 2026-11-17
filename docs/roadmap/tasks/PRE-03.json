@@ -7,7 +7,7 @@
   "estado": "bloqueado",
   "responsable": "Hampton",
   "hecho": "Los dos requisitos están anotados: ESTADO exige la JFSC antes de usar la gestión completa de alquileres (R21) y el aviso de privacidad espera el número de la JOIC.",
-  "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado.",
+  "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado. Decisión de Luis 17-nov-2026: los registros están en trámite; mientras, el resto se construye con marcadores ### y solo la activación espera los números reales.",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:592",
@@ -25,5 +25,6 @@
   "resources": [
     "compliance-evidence"
   ],
-  "nextStep": "Hampton confirma registros y el alcance aplicable; registrar evidencia sin dar el requisito por cumplido."
+  "nextStep": "Hampton confirma registros y el alcance aplicable; registrar evidencia sin dar el requisito por cumplido.",
+  "actualizado": "2026-11-17"
 }

@@ -25,9 +25,9 @@
     {
       "id": "PRE-29",
       "requires": "decision",
-      "reason": "Los criterios de asequibilidad y la política de registros de Hampton deben estar aprobados; el plan prohíbe inventarlos al construir.",
+      "reason": "Criterios de asequibilidad y registros: configurables y apagados hasta que Hampton los apruebe. Decisión de Luis 17-nov-2026: los registros de Hampton (JFSC, JOIC, razón social) están en trámite; se construye con marcadores ### y solo la activación espera los números reales.",
       "basis": "explicit",
-      "scope": "whole"
+      "scope": "partial"
     },
     {
       "id": "ADM-12",
@@ -45,5 +45,5 @@
     "applicants-contract"
   ],
   "nextStep": "Definir y construir solicitud del inquilino y enlace al contrato con criterios de asequibilidad aprobados.",
-  "actualizado": "2026-11-15"
+  "actualizado": "2026-11-17"
 }
