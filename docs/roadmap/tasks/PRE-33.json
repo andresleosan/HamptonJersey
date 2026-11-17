@@ -4,14 +4,15 @@
   "titulo": "Paquete para el abogado de Jersey: cláusula de datos de los contratos, contrato entre Hampton y Optimyze y preguntas sobre captar propietarios",
   "origen": "plan",
   "fase": "—",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "Luis",
-  "hecho": "",
-  "falta": "Claude prepara el borrador en inglés (2-nov-2026) y Luis se lo pasa a Hampton para su abogado. Lleva: la cláusula de protección de datos de los contratos de venta y de alquiler (informa, sin pedir consentimiento ni prometer que los datos se guardan para siempre); el esquema del contrato de encargo entre Hampton y Optimyze (art. 19, PRE-13), con las cláusulas tipo y la evaluación para el acceso desde Colombia; cuánto guardar un alquiler o una venta después de terminar (PRE-12); y las preguntas sobre captar propietarios: el texto del consentimiento para ofrecer valoraciones (REG-16), las cartas a «The Owner», los datos de ventas por dirección, los carteles, los folletos, las recomendaciones, la investigación de empresas (BUS-20), la publicidad por teléfono y correo en Jersey y si las agencias deben estar en un sistema de reclamaciones. Revisar también el nuevo párrafo Email sent to the app del aviso de privacidad (AUT-17), con conservación de contenido 30 días, metadatos y deduplicación 90 días y huella de baja mientras siga vigente. Traído de ADM-11 (14-nov): incluir en el paquete del abogado los plazos del calendario de cumplimiento: 28 días para la copia de licencia y EICR al inquilino, 28 para notificar cambios de licencia y 1 año del checklist eléctrico; desde cuándo corren para un inquilino nuevo (hoy, inicio del contrato) y cada cuánto se revisan los 29 riesgos (hoy, fecha que pone el equipo). Se marcan validados en Settings › Legal terms. Traído de ADM-20 (15-nov): el abogado valida también la fecha de entrada en vigor (regime2025From), el tope de años del plazo fijo inicial (initialTermYears), qué alojamiento entra en el ámbito y qué sumas son premium; después se guarda Legal terms como validado con esos dos parámetros.",
+  "hecho": "17-nov-2026: borrador en inglés preparado en docs/roadmap/work/PRE-33/paquete-abogado.md, autónomo y sin datos personales: contexto de Hampton App y nueve temas, cada uno con qué hace hoy la app, preguntas concretas, documento pedido y tareas que desbloquea: (1) cláusula de datos para contratos de gestión, alquiler, venta y ofertas; (2) conservación tras terminar un alquiler o una venta y plazo de respuesta a solicitudes (PRE-12), con el texto del aviso previo; (3) contrato de encargo Hampton–Optimyze (art. 19) con anexo de subencargados, acceso remoto desde Colombia y acuerdos con Cloudflare (incl. Workers AI y DPF), Google, OpenAI y DeepSeek (reserva de Hermes), Telegram, Meta y el servidor de Hermes (PRE-13, PRE-28, PRE-34); (4) revisión del aviso de privacidad, párrafos Web chat y Email sent to the app y casilla de noticias (PRE-09, AUT-17, MSG-02) y futuro párrafo del chat automático; (5) captar propietarios: consentimiento para ofrecer valoraciones (REG-16), cartas a «The Owner», datos de ventas por dirección, carteles, folletos, recomendaciones, investigación de empresas (BUS-20), publicidad por teléfono y correo y sistema de reclamaciones; (6) plazos legales de Rentals de ADM-11, ADM-17 y ADM-20 (desde cuándo corren los 28 días, revisión de los 29 riesgos, regime2025From, initialTermYears, ámbito y premium); (7) plantilla de carta de aviso de revisión de renta (ADM-15); (8) validación de la tabla de categorías de vivienda (BUS-13); (9) opcional: plantilla de contrato (ADM-19), borradores de atrasos y renovación y diligencia debida (OFE-07). Lista de anexos con rutas. Razón social, número y registros JFSC/JOIC y ubicación del servidor quedan como ### con nota.",
+  "falta": "Luis lo revisa y lo envía al abogado; después, incorporar sus respuestas.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
-    "site/apply.js (Email sent to the app)"
+    "site/apply.js (Email sent to the app)",
+    "docs/roadmap/work/PRE-33/paquete-abogado.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -24,6 +25,6 @@
     "data-processing-agreements",
     "retention-policy"
   ],
-  "nextStep": "Preparar el borrador solicitado para revisión del abogado y entrega por Luis; no tratarlo como criterio legal validado.",
-  "actualizado": "2026-11-15"
+  "nextStep": "Luis revisa docs/roadmap/work/PRE-33/paquete-abogado.md, rellena los ### (razón social, número, registros JFSC/JOIC, ubicación del servidor), adjunta los anexos A–H con datos ficticios y lo envía al abogado; con sus respuestas, actualizar PRE-12, PRE-13, ADM-15, ADM-17/20, BUS-13, REG-16, BUS-20, PRE-09 y MSG-02.",
+  "actualizado": "2026-11-17"
 }
