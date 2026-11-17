@@ -154,8 +154,9 @@ test('an erasure request lists what a deletion would remove and what holds keep,
   assert.deepEqual(r.data.holds.map(h => h.code), ['open_offer', 'open_search']);
   assert.equal(r.data.erasure.can_delete, false);
   assert.deepEqual(r.data.erasure.remove.map(x => [x.item, x.count]),
-    [['contact', 1], ['searches', 1], ['offers', 1], ['matches', 0], ['marketing_preferences', 0]]);
-  assert.deepEqual(r.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 1], ['rentals', null]]);
+    [['contact', 1], ['searches', 1], ['offers', 1], ['matches', 0], ['marketing_preferences', 0],
+      ['rental_applications', 0]]);
+  assert.deepEqual(r.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 1], ['owner_requests', 0], ['rentals', null]]);
   assert.deepEqual(counts(env), before, 'nothing deleted or written by reading the plan');
   // Empty details never match someone else's: a contact without email matches no viewing request with an empty one.
   const noEmail = Number(db.prepare(`INSERT INTO contacts (name,email,phone,last_activity_at,created_at,updated_at)
@@ -165,7 +166,7 @@ test('an erasure request lists what a deletion would remove and what holds keep,
   const unknown = (await create(env, cookie, { kind: 'erasure' })).data.request;
   await call(env, 'POST', `${BASE}/${unknown.id}/contact`, { cookie, body: { revision: 1, contact_id: noEmail } });
   const none = await call(env, 'GET', `${BASE}/${unknown.id}`, { cookie });
-  assert.deepEqual(none.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['rentals', null]]);
+  assert.deepEqual(none.data.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['owner_requests', 0], ['rentals', null]]);
   // A sale, in any state, is a hold too.
   db.prepare("UPDATE offers SET status='accepted' WHERE id=?").run(offer);
   db.prepare(`UPDATE applicants SET search_state='resolved', resolved_at=?, resolved_by='admin@example.test',
@@ -356,7 +357,7 @@ test('the erasure plan compares viewing phones normalised, as contacts store the
   const r = (await create(env, cookie, { kind: 'erasure' })).data.request;
   await call(env, 'POST', `${BASE}/${r.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
   const plan = (await call(env, 'GET', `${BASE}/${r.id}`, { cookie })).data.erasure;
-  assert.deepEqual(plan.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 2], ['rentals', null]]);
+  assert.deepEqual(plan.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 2], ['owner_requests', 0], ['rentals', null]]);
 });
 
 test('closing as sent re-checks the reviewed copy in the same write', async () => {
@@ -672,4 +673,115 @@ test('viewing review: a decision clears the copy review; an edited viewing or a 
   env.DB.raw.prepare(`INSERT INTO privacy_request_audit (request_id, revision, action, actor, at) VALUES (?, ?, 'contact_linked', 'admin@example.test', ?)`)
     .run(request.id, r.revision, '2999-01-01T00:00:00.000Z');
   assert.deepEqual(await inCopy(), []);
+});
+
+// PUB-10 (0118) and ADM-18 (0117): owner requests are matched to a person only by email or phone; rental applications
+// belong to a search by id. The search finds both, the erasure plan and the copy cover them, and the retention cleanup
+// of a contact is not blocked by either.
+function ownerRequest(env, { email = 'pre12-person@example.test', phone = '+447700900121', name = 'Synthetic Owner' } = {}) {
+  const db = env.DB.raw, id = randomUUID();
+  db.prepare(`INSERT INTO app_settings (key,value,updated_at,updated_by) VALUES ('owner_enquiries',?,?,'fixture')
+    ON CONFLICT (key) DO NOTHING`).run(JSON.stringify({ enabled: true, privacy_version: 'fixture-v1' }), T);
+  db.prepare(`INSERT INTO owner_requests (id,request_id,payload_hash,name,phone,email,address,operation,valuation_requested,
+    privacy_version,created_at,updated_at) VALUES (?,?,?,?,?,?,'1 Fixture Road','sale',1,'fixture-v1',?,?)`)
+    .run(id, randomUUID(), 'f'.repeat(64), name, phone, email, T, T);
+  return id;
+}
+function rentalApplication(env, applicant) {
+  const db = env.DB.raw;
+  db.prepare(`INSERT OR IGNORE INTO landlords (id,name,created_at,updated_at) VALUES (90,'Fixture landlord',?,?)`).run(T, T);
+  db.prepare(`INSERT OR IGNORE INTO rentals (id,landlord_id,address,parish,service,created_at,updated_at)
+    VALUES (90,90,'9 Fixture Street','St Helier','let_only',?,?)`).run(T, T);
+  const answers = JSON.stringify({ employment: { status: 'employed', employer: 'Fixture Ltd', role: null },
+    incomes: [{ amount: 40000, period: 'annual', basis: 'gross', currency: 'GBP' }], dependants: 0,
+    references: [{ kind: 'employer', name: 'Referee Person', email: 'referee@example.test' }], guarantor: null });
+  return Number(db.prepare(`INSERT INTO rental_applications (rental_id,applicant_id,rent,status,answers,submitted_at,
+    created_at,created_by,updated_at,updated_by) VALUES (90,?,2000,'submitted',?,?,?,'admin@example.test',?,'applicant')`)
+    .run(applicant, answers, T, T, T).lastInsertRowid);
+}
+const n = (env, table) => env.DB.raw.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+
+test('PUB-10/ADM-18: the search finds owner requests by email or phone, also from someone with no contact', async () => {
+  const env = on(), cookie = await adminCookie(), p = person(env);
+  const own = ownerRequest(env), alone = ownerRequest(env, { email: 'owner-only@example.test', phone: '+447700900999' });
+  ownerRequest(env, { email: 'someone@example.test', phone: '+447700900888', name: 'Someone Else' });
+  for (const [q, contacts, owners] of [['pre12-person@', [p.id], [own]], ['900121', [p.id], [own]],
+    ['owner-only@', [], [alone]], ['900999', [], [alone]]]) {
+    const r = await call(env, 'POST', `${BASE}/contact-search`, { cookie, body: { q } });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.data.contacts.map(c => c.id), contacts, q);
+    assert.deepEqual(r.data.owner_requests.map(o => o.id), owners, q);
+  }
+  // Before 0118 the search answers as before, with no owner requests.
+  const old = { ...makeEnv({ skip: [118] }), PRE12_REQUESTS_READY: '1' };
+  person(old);
+  const r = await call(old, 'POST', `${BASE}/contact-search`, { cookie, body: { q: 'pre12-person@' } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.data.owner_requests, []);
+});
+
+test('PUB-10/ADM-18: the erasure plan counts rental applications and owner requests; the existing deletes remove them', async () => {
+  const env = on(), cookie = await adminCookie(), p = person(env, { state: 'resolved' });
+  const own = ownerRequest(env);
+  ownerRequest(env, { email: 'someone@example.test', phone: '+447700900888', name: 'Someone Else' });
+  rentalApplication(env, p.applicant);
+  const made = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${made.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const before = [n(env, 'rental_applications'), n(env, 'owner_requests')];
+  const { erasure } = (await call(env, 'GET', `${BASE}/${made.id}`, { cookie })).data;
+  assert.deepEqual(erasure.remove.map(x => [x.item, x.count]), [['contact', 1], ['searches', 1], ['offers', 0], ['matches', 0],
+    ['marketing_preferences', 0], ['rental_applications', 1]]);
+  assert.deepEqual(erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['owner_requests', 1], ['rentals', null]]);
+  assert.deepEqual([n(env, 'rental_applications'), n(env, 'owner_requests')], before, 'reading the plan deletes nothing');
+  // The applicant's Delete takes its rental applications; the owner request is erased on its own page.
+  await call(env, 'POST', `${BASE}/${made.id}/close`, { cookie, body: { revision: 2, result: 'fulfilled' } });
+  env.DB.raw.prepare('UPDATE applicants SET archived_at=? WHERE id=?').run(T, p.applicant);
+  const del = await call(env, 'DELETE', `/admin/applicants/${p.applicant}`, { cookie, body: { confirm: 'Synthetic Person' } });
+  assert.equal(del.status, 200, del.text);
+  assert.equal(n(env, 'rental_applications'), 0);
+  assert.equal((await call(env, 'DELETE', `/admin/owner-requests/${own}`, { cookie })).status, 200);
+  assert.equal(n(env, 'owner_requests'), 1);
+  // Before 0117 and 0118 the plan is as before.
+  const old = { ...makeEnv({ skip: [117, 118] }), PRE12_REQUESTS_READY: '1' }, q = person(old);
+  const m = (await create(old, cookie, { kind: 'erasure' })).data.request;
+  await call(old, 'POST', `${BASE}/${m.id}/contact`, { cookie, body: { revision: 1, contact_id: q.id } });
+  const plan = (await call(old, 'GET', `${BASE}/${m.id}`, { cookie })).data.erasure;
+  assert.deepEqual(plan.remove.map(x => x.item), ['contact', 'searches', 'offers', 'matches', 'marketing_preferences']);
+  assert.deepEqual(plan.by_hand.map(x => x.item), ['viewing_requests', 'rentals']);
+});
+
+test('PUB-10/ADM-18: the copy lists rental applications without their answers and names owner requests, only when there are any', async () => {
+  const env = on(), cookie = await adminCookie(), { p, request } = await verified(env, cookie);
+  const before = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  assert.equal('rental_applications' in before.copy, false, 'same copy as before for someone without them');
+  assert.equal(before.copy.not_included.some(x => ['rental_applications', 'owner_requests'].includes(x.section)), false);
+  const id = rentalApplication(env, p.applicant);
+  ownerRequest(env);
+  const after = (await call(env, 'GET', `${BASE}/${request.id}/copy`, { cookie })).data;
+  assert.notEqual(after.sha256, before.sha256);
+  const [sample] = after.copy.rental_applications;
+  assert.equal(sample.id, id);
+  assert.equal(sample.status, 'submitted');
+  // Every column is in the copy or named with its reason; the answers stay behind ADM-18's own permission.
+  const named = after.copy.not_included.filter(x => x.section === 'rental_applications').flatMap(x => x.fields ?? []);
+  const missing = env.DB.raw.prepare('PRAGMA table_info(rental_applications)').all().map(c => c.name)
+    .filter(c => !(c in sample) && !named.includes(c));
+  assert.deepEqual(missing, []);
+  assert.equal('answers' in sample, false);
+  for (const s of ['Fixture Ltd', 'referee@example.test', 'Synthetic Owner']) assert.equal(JSON.stringify(after.copy).includes(s), false, s);
+  assert.ok(after.copy.not_included.some(x => x.section === 'owner_requests' && x.reason.length > 10));
+  // Without 0117 and 0118 the copy is built as before.
+  const old = { ...makeEnv({ skip: [117, 118] }), PRE12_REQUESTS_READY: '1' };
+  const r = (await verified(old, cookie)).request;
+  assert.equal((await call(old, 'GET', `${BASE}/${r.id}/copy`, { cookie })).status, 200);
+});
+
+test('PUB-10/ADM-18: the retention cleanup deletes a due contact with a rental application; owner requests are not touched', async () => {
+  const env = on(), held = inactive(env, '+447700900341');
+  rentalApplication(env, held.applicant);
+  const own = ownerRequest(env, { email: 'quiet341@example.test', phone: '+447700900341' });
+  await runRetention(env, PASS);
+  assert.equal(exists(env, held.id), false);
+  assert.equal(n(env, 'rental_applications'), 0);
+  assert.equal(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM owner_requests WHERE id=?').get(own).n, 1, 'no period given by Hampton');
 });

@@ -80,8 +80,8 @@ test('switched off, or without 0113: no route, same copy and hash, rentals by ha
     copies.push(JSON.stringify({ ...copy.copy, request_id: null }));
     const erasure = await request(env, cookie, c.id, 'erasure');
     const plan = (await call(env, 'GET', `${BASE}/${erasure.id}`, { cookie })).data.erasure;
-    assert.deepEqual(plan.by_hand.map(x => [x.item, x.count]), off ? [['viewing_requests', 0], ['rentals', null]]
-      : [['viewing_requests', 0], ['tenancies', 0], ['tenancy_candidates', 1]]);
+    assert.deepEqual(plan.by_hand.map(x => [x.item, x.count]), off ? [['viewing_requests', 0], ['owner_requests', 0], ['rentals', null]]
+      : [['viewing_requests', 0], ['owner_requests', 0], ['tenancies', 0], ['tenancy_candidates', 1]]);
   }
   // Same person, same data: the same copy whatever the switch and the schema (its request id aside).
   assert.equal(new Set(copies).size, 1);
@@ -183,7 +183,8 @@ test('the erasure plan counts linked tenancies and candidates, and deletes no te
   await setLink(env, cookie, t3, c.id, false);
   const r = await request(env, cookie, c.id, 'erasure');
   const d = (await call(env, 'GET', `${BASE}/${r.id}`, { cookie })).data;
-  assert.deepEqual(d.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['tenancies', 1], ['tenancy_candidates', 1]]);
+  assert.deepEqual(d.erasure.by_hand.map(x => [x.item, x.count]), [['viewing_requests', 0], ['owner_requests', 0], ['tenancies', 1],
+    ['tenancy_candidates', 1]]);
   assert.deepEqual(d.tenancies.map(x => x.id).sort(), [t1, t2, t3].sort());
   const closed = await call(env, 'POST', `${BASE}/${r.id}/close`, { cookie, body: { revision: d.request.revision, result: 'fulfilled' } });
   assert.equal(closed.status, 200, closed.text);

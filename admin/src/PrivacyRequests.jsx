@@ -17,7 +17,7 @@ const HOLDS = { sale: "Has a sale, in any state: kept.", open_offer: "Has an ope
   privacy_request: "Has another open privacy request (not an erasure one): close it first.",
   running_tenancy: "Linked as the tenant of a running tenancy: kept while it runs, or remove the link if it is not theirs." };
 const REMOVE = { contact: "Contact record", searches: "Searches", offers: "Offers", matches: "Matches",
-  marketing_preferences: "Marketing preferences" };
+  marketing_preferences: "Marketing preferences", rental_applications: "Rental applications" };
 const ACTIONS = { created: "Recorded", updated: "Details changed", contact_linked: "Contact linked", identity_verified: "Identity checked",
   copy_viewed: "Copy opened", copy_reviewed: "Copy reviewed", closed: "Closed" };
 const COPY_KINDS = ["access", "portability"];
@@ -185,8 +185,8 @@ function Details({ r, team, onSaved, reload }) {
 }
 
 function ContactCard({ r, onSaved, reload }) {
-  const [q, setQ] = useState(""), [found, setFound] = useState(null), [searching, setSearching] = useState(!r.contact && r.state === "open");
-  const search = useChange("ps", "/admin/privacy-requests/contact-search", "POST", x => setFound(x.contacts));
+  const [q, setQ] = useState(""), [found, setFound] = useState(null), [owners, setOwners] = useState([]), [searching, setSearching] = useState(!r.contact && r.state === "open");
+  const search = useChange("ps", "/admin/privacy-requests/contact-search", "POST", x => { setFound(x.contacts); setOwners(x.owner_requests ?? []); });
   const link = useChange("pl", `/admin/privacy-requests/${r.id}/contact`, "POST", onSaved);
   return <div className="card"><h2>Contact</h2>
     <p>{r.contact ? <>Linked to <strong>{r.contact.name}</strong>.</> : "No contact linked."} Linking another contact clears the identity check and the copy review.</p>
@@ -201,6 +201,9 @@ function ContactCard({ r, onSaved, reload }) {
         <button type="button" className="btn ghost sm" disabled={link.busy || r.contact?.id === c.id}
           onClick={() => link.send({ revision: r.revision, contact_id: c.id })}>Link {c.name}</button></li>)}</ul>
         : <p role="status">No contacts found.</p>)}
+      {owners.length > 0 && <><p>Owner requests with this name, email or phone. Check each one is this person's before erasing it on its page.</p>
+        <ul aria-label="Owner requests found">{owners.map(o => <li key={o.id}>{o.name} · {o.email} · {o.phone} · {fmtDate(o.created_at)}{" "}
+          <a className="btn ghost sm" href={`#/owners/${o.id}`}>Open owner request</a></li>)}</ul></>}
       <Failure msg={search.msg} reload={reload} focus={search.said} />
       <Failure msg={link.msg} reload={reload} focus={link.said} /></>}
   </div>;
@@ -231,6 +234,7 @@ function Identity({ r, team, onSaved, reload }) {
 const BY_HAND = {
   rentals: () => "Rentals: not linked to contacts. Check Rentals by hand.",
   viewing_requests: n => `Viewing requests with the same email or phone: ${n}. Other people can share an email or phone: check each one before deleting it from Viewings.`,
+  owner_requests: n => `Owner requests with the same email or phone: ${n}. Other people can share an email or phone: find them with the contact search above (searching does not change the link), check each one and erase it on its page.`,
   tenancies: n => `Tenancies linked to this contact: ${n}. They are kept under their own rules and never deleted from here.`,
   tenancy_candidates: n => `Tenancies still to check below: ${n}.`,
 };

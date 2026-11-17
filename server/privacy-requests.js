@@ -111,15 +111,27 @@ async function link({ request, env, admin, params: [id] }) {
   } catch (e) { if (/FOREIGN KEY/i.test(String(e?.message))) fail(404, "Contact not found"); throw e; }
 }
 
-// Search posted, so a name, email or phone never goes in an address or a log line.
+// Search posted, so a name, email or phone never goes in an address or a log line. PUB-10: owner requests carry no
+// contact, so the same search lists them too (from migration 0118), for a person to open and erase each one.
+const WHERE_PERSON = `lower(name) LIKE ?1 ESCAPE '\\' OR lower(email) LIKE ?1 ESCAPE '\\' OR replace(phone, ' ', '') LIKE ?1 ESCAPE '\\'`;
 async function searchContacts({ request, env }) {
   const q = (await readJson(request))?.q;
   if (typeof q !== "string" || q.trim().length < 2 || q.length > 100) return bad({ q: "Type at least 2 characters" });
   const like = `%${q.trim().toLowerCase().replace(/[\\%_]/g, c => `\\${c}`)}%`;
-  const { results } = await env.DB.prepare(`SELECT id, name, email, phone FROM contacts WHERE lower(name) LIKE ?1 ESCAPE '\\'
-    OR lower(email) LIKE ?1 ESCAPE '\\' OR replace(phone, ' ', '') LIKE ?1 ESCAPE '\\' ORDER BY name, id LIMIT 10`).bind(like).all();
-  return json({ contacts: results });
+  const { results } = await env.DB.prepare(`SELECT id, name, email, phone FROM contacts WHERE ${WHERE_PERSON}
+    ORDER BY name, id LIMIT 10`).bind(like).all();
+  const owners = await hasTable(env, "owner_requests") ? (await env.DB.prepare(`SELECT id, name, email, phone, status, created_at
+    FROM owner_requests WHERE ${WHERE_PERSON} ORDER BY created_at DESC, id LIMIT 10`).bind(like).all()).results : [];
+  return json({ contacts: results, owner_requests: owners });
 }
+const hasTable = async (env, name) =>
+  !!(await env.DB.prepare("SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?").bind(name).first());
+
+// PUB-10: the owner requests with the contact's email or phone (both stored normalised); only possible matches, as
+// viewing requests, for a person to check and erase one by one. Before 0118, none.
+const ownerRequestCount = async (env, contactId) => (await env.DB.prepare(`SELECT COUNT(*) AS n FROM owner_requests o
+  JOIN contacts c ON c.id = ? WHERE (c.email <> '' AND lower(o.email) = lower(c.email)) OR (c.phone <> '' AND o.phone = c.phone)`)
+  .bind(contactId).first()).n;
 
 // The person's identity, checked by a team member: who (the signed-in admin, never the body), how and when.
 async function verify({ request, env, admin, params: [id] }) {
@@ -224,15 +236,21 @@ async function decideTenancy({ request, env, admin, params: [id, tenancy] }) {
   await setTenancyLink(env, Number(tenancy), r.contact_id, b.linked, admin, r.id); // still open and on that contact when written
   return json({ tenancies: await tenanciesFor(env, r.contact_id) });
 }
+// ADM-18: rental applications belong to a search by id and go with it (0117, ON DELETE CASCADE); before 0117, none.
 async function erasurePlan(env, contactId, kept) {
+  const applications = await hasTable(env, "rental_applications"), owners = await hasTable(env, "owner_requests");
   const n = await env.DB.prepare(`SELECT
     (SELECT COUNT(*) FROM applicants WHERE contact_id = ?1) AS searches,
     (SELECT COUNT(*) FROM offers o JOIN applicants s ON s.id = o.applicant_id WHERE s.contact_id = ?1) AS offers,
     (SELECT COUNT(*) FROM matches m JOIN applicants s ON s.id = m.applicant_id WHERE s.contact_id = ?1) AS matches,
-    (SELECT COUNT(*) FROM marketing_preferences WHERE contact_id = ?1) AS marketing_preferences`).bind(contactId).first();
+    (SELECT COUNT(*) FROM marketing_preferences WHERE contact_id = ?1) AS marketing_preferences${applications ? `,
+    (SELECT COUNT(*) FROM rental_applications a JOIN applicants s ON s.id = a.applicant_id WHERE s.contact_id = ?1) AS rental_applications`
+    : ""}`).bind(contactId).first();
   return { can_delete: kept.length === 0,
-    remove: [{ item: "contact", count: 1 }, ...["searches", "offers", "matches", "marketing_preferences"].map(item => ({ item, count: n[item] }))],
+    remove: [{ item: "contact", count: 1 }, ...["searches", "offers", "matches", "marketing_preferences",
+      ...(applications ? ["rental_applications"] : [])].map(item => ({ item, count: n[item] }))],
     by_hand: [{ item: "viewing_requests", count: await possibleViewings(env, contactId) },
+      ...(owners ? [{ item: "owner_requests", count: await ownerRequestCount(env, contactId) }] : []),
       ...(tenancyLinkReady(env) ? await tenancyItems(env, contactId) : [{ item: "rentals", count: null }])] };
 }
 
@@ -320,6 +338,25 @@ const VIEWING_NOT_INCLUDED = [
     reason: "Points to another person's record of ours; reviewed by hand, as it can hold other people's details." },
 ];
 
+// ADM-18: the columns any team member sees in a property's list of applications. The answers and the decision stay
+// behind ADM-18's own permission for that home (case_data_read), so a person allowed to read them reviews them separately.
+// Named only when there are any, so a copy without them keeps its hash.
+const APPLICATION = ["id", "applicant_id", "rent", "status", "submitted_at", "decided_at", "created_at", "updated_at"];
+const APPLICATION_NOT_INCLUDED = [
+  { section: "rental_applications", fields: ["rental_id", "revision", "submit_operation_id"],
+    reason: "Our internal record numbers and codes; they say nothing about you." },
+  { section: "rental_applications", fields: ["answers", "affordability_status", "policy_version", "decision_reason"],
+    reason: "Your answers about work, income, referees and guarantor, and our decision, are reviewed separately by the team "
+      + "member allowed to read applications for that home, as they can hold other people's details." },
+  { section: "rental_applications", fields: ["created_by", "updated_by", "decided_by"], reason: STAFF },
+];
+const rentalApplications = async (env, contactId) => (await hasTable(env, "rental_applications") ? (await env.DB.prepare(`SELECT
+  ${cols(APPLICATION, "a")} FROM rental_applications a JOIN applicants s ON s.id = a.applicant_id WHERE s.contact_id = ?
+  ORDER BY a.id`).bind(contactId).all()).results : []);
+// PUB-10: owner requests are matched only by email or phone, so they are named for a person to check, never copied here.
+const OWNER_NOT_INCLUDED = { section: "owner_requests", reason: "Requests sent through our «Sell or let» form are matched to you "
+  + "only by email or phone, so our team checks each one before sharing it." };
+
 // REG-15: the website alerts this person confirmed (never their tokens). Only when there are any, so a copy someone
 // already reviewed keeps its hash; without migration 0107 there are none.
 async function propertyAlerts(env, contactId) {
@@ -357,11 +394,14 @@ async function buildCopy(env, r) {
   const alerts = await propertyAlerts(env, r.contact_id), facebook = await facebookConversations(env, r.contact_id);
   const viewings = await confirmedViewings(env, r);
   const tenancies = tenancyLinkReady(env) ? await linkedTenancies(env, r.contact_id) : [];
+  const applications = await rentalApplications(env, r.contact_id);
+  const owners = await hasTable(env, "owner_requests") ? await ownerRequestCount(env, r.contact_id) : 0;
   const not_included = [...NOT_INCLUDED, ...(viewings.length ? VIEWING_NOT_INCLUDED : []),
-    ...(tenancies.length ? TENANCY_NOT_INCLUDED : []), ...(facebook ? [FACEBOOK_NOT_INCLUDED] : [])];
+    ...(tenancies.length ? TENANCY_NOT_INCLUDED : []), ...(facebook ? [FACEBOOK_NOT_INCLUDED] : []),
+    ...(applications.length ? APPLICATION_NOT_INCLUDED : []), ...(owners ? [OWNER_NOT_INCLUDED] : [])];
   const copy = { schema_version: 1, controller: "Hampton Estates LTD", request_id: r.id, contact, searches, offers,
     matches, marketing_preferences: prefs, ...(viewings.length ? { viewing_requests: viewings } : {}),
-    ...(tenancies.length ? { tenancies } : {}),
+    ...(tenancies.length ? { tenancies } : {}), ...(applications.length ? { rental_applications: applications } : {}),
     ...(alerts.length ? { property_alerts: alerts } : {}), not_included };
   const document = JSON.stringify(copy, null, 2);
   return { copy, document, sha256: await sha256(document) };
@@ -391,7 +431,8 @@ function toCsv(copy) {
   const rows = [["section", "record", "field", "value"]];
   const add = (section, record, obj) => { for (const [k, v] of Object.entries(obj)) rows.push([section, String(record), k, v == null ? "" : String(v)]); };
   add("contact", 1, copy.contact);
-  for (const s of ["searches", "offers", "matches", "marketing_preferences", "viewing_requests", "tenancies", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
+  for (const s of ["searches", "offers", "matches", "marketing_preferences", "viewing_requests", "tenancies",
+    "rental_applications", "property_alerts"]) (copy[s] ?? []).forEach((x, i) => add(s, i + 1, x));
   copy.not_included.forEach((n, i) => rows.push(["not_included", String(i + 1), n.section,
     `${n.fields ? `${n.fields.join(" ")}: ` : ""}${n.reason}`]));
   return rows.map(r => r.map((v, i) => csvCell(i === 3 ? csvText(v) : v)).join(",")).join("\r\n") + "\r\n";
