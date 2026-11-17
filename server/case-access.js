@@ -23,9 +23,10 @@ const NOT_READY = "Tenant links are not available yet.";
 const EXPIRED = "This code has expired or has been used. Ask for a new code.";
 const SESSION_MS = 30 * 60e3, MAX_TRIES = 5, MAX_DAYS = 366;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-// The purposes built so far and the operations each allows. rental_application, tenancy_reference and renewal_response
-// come with ADM-18, ADM-19 and ADM-14, which add their own entry here.
-const OPERATIONS = { repair_report: ["read", "submit"] };
+// The purposes built so far, the operations each allows and the kind of case each is given on. tenancy_reference and
+// renewal_response come with ADM-19 and ADM-14, which add their own entry here.
+const OPERATIONS = { repair_report: ["read", "submit"], rental_application: ["read", "submit"] };
+const PURPOSE_KIND = { repair_report: "tenancy", rental_application: "rental_application" };
 
 // R04: the start of the Jersey day after the date chosen (midnight always exists in Jersey: clocks change at 01:00 GMT).
 export const caseExpiresAt = date => [3600, 0].map(o => jerseyViewingInstant(plusDays(date, 1), "00:00", o)).find(Boolean);
@@ -37,54 +38,76 @@ export const keyed = handler => async ctx => {
   catch (e) { if (/no such table/.test(e?.message ?? "")) fail(503, NOT_READY); throw e; }
 };
 
-// A grant in force: sent, not revoked or closed, before its expiry, on a tenancy still running in a property not archived,
-// whose tenant's email is still the one the link was made for (its hash, source_revision), while its purpose's policy is
-// approved and in force at the revision the grant was made under (a new approval is a new revision: old grants stay
-// ended). In a batch the email is bound as read.
-const FROM = "case_grants g JOIN tenancies t ON t.id = g.case_id JOIN rentals r ON r.id = t.rental_id";
-const LIVE = `g.case_kind = 'tenancy' AND g.status = 'active' AND g.expires_at > ? AND (t.ended_on IS NULL OR t.ended_on > ?)
-  AND r.archived_at IS NULL AND EXISTS (SELECT 1 FROM case_purpose_policies p WHERE p.purpose = g.purpose
-    AND p.revision = g.policy_revision AND p.status = 'approved' AND p.valid_from <= ? AND (p.expires_at IS NULL OR p.expires_at > ?))`;
+// A grant in force: sent, not revoked or closed, before its expiry, while its purpose's policy is approved and in force at
+// the revision the grant was made under (a new approval is a new revision: old grants stay ended), on a case still open
+// whose party's email is still the one the link was made for (its hash, source_revision). Each kind of case says where
+// its party's email is, when it is open and which switch serves it: a tenancy (ADM-12's repair link) while it runs in a
+// property not archived; a rental application (ADM-18) while draft or submitted, in a property not archived. In a batch
+// the email is bound as read. Each kind's SQL names only its own tables, so one never needs the other's migration.
+const SOURCES = {
+  tenancy: { ready: caseAccessReady, join: "JOIN tenancies t ON t.id = g.case_id JOIN rentals r ON r.id = t.rental_id",
+    email: "t.tenant_email", rental: "t.rental_id", open: "(t.ended_on IS NULL OR t.ended_on > ?) AND r.archived_at IS NULL",
+    args: ts => [day(ts)], staff: async (env, id) => ({ kind: "tenancy", id }),
+    row: `SELECT t.tenant_email AS email, t.ended_on, r.archived_at FROM tenancies t JOIN rentals r ON r.id = t.rental_id WHERE t.id = ?` },
+  rental_application: { ready: env => env?.ADM18_APPLICATION_READY === "1",
+    join: `JOIN rental_applications a ON a.id = g.case_id JOIN rentals r ON r.id = a.rental_id
+      JOIN applicants ap ON ap.id = a.applicant_id JOIN contacts c ON c.id = ap.contact_id`,
+    email: "c.email", rental: "a.rental_id", open: "a.status IN ('draft', 'submitted') AND r.archived_at IS NULL", args: () => [],
+    // Staff hold ADM-18's capability on the property the application is for.
+    staff: async (env, id) => ({ kind: "rental",
+      id: (await env.DB.prepare("SELECT rental_id FROM rental_applications WHERE id = ?").bind(id).first())?.rental_id ?? 0 }),
+    row: `SELECT c.email, NULL AS ended_on, r.archived_at FROM rental_applications a JOIN rentals r ON r.id = a.rental_id
+      JOIN applicants ap ON ap.id = a.applicant_id JOIN contacts c ON c.id = ap.contact_id WHERE a.id = ?` },
+};
+const POLICY = `g.status = 'active' AND g.expires_at > ? AND EXISTS (SELECT 1 FROM case_purpose_policies p WHERE p.purpose = g.purpose
+  AND p.revision = g.policy_revision AND p.status = 'approved' AND p.valid_from <= ? AND (p.expires_at IS NULL OR p.expires_at > ?))`;
 const day = ts => jerseyToday(new Date(ts));
-const live = ts => [ts, day(ts), ts, ts];
+const LIVE = (kind, ts) => [`g.case_kind = '${kind}' AND ${POLICY} AND ${SOURCES[kind].open}`, [ts, ts, ts, ...SOURCES[kind].args(ts)]];
 export async function grantInForce(env, where, value, ts) {
+  const kind = (await env.DB.prepare(`SELECT g.case_kind FROM case_grants g WHERE ${where}`).bind(value).first())?.case_kind;
+  const s = SOURCES[kind];
+  if (!s?.ready(env)) return null;
+  const [live, args] = LIVE(kind, ts);
   const g = await env.DB.prepare(`SELECT g.id, g.case_kind, g.case_id, g.purpose, g.party_ref, g.source_revision, g.expires_on,
-    g.expires_at, t.tenant_email, t.rental_id, r.address FROM ${FROM} WHERE ${where} AND ${LIVE}`).bind(value, ...live(ts)).first();
-  const email = g && emailAddress(g.tenant_email ?? "");
+    g.expires_at, ${s.email} AS party_email, ${s.rental} AS rental_id, r.address FROM case_grants g ${s.join} WHERE ${where} AND ${live}`)
+    .bind(value, ...args).first();
+  const email = g && emailAddress(g.party_email ?? "");
   if (email && await sha256(email) === g.source_revision) return { ...g, email };
-  // Not in force: when it is because of its tenancy, that is recorded so it never comes back.
-  const open = g ?? await env.DB.prepare(`SELECT g.case_id FROM case_grants g WHERE ${where} AND g.case_kind = 'tenancy'
-    AND g.status IN ('dormant', 'active')`).bind(value).first();
-  if (open) await closeStale(env, open.case_id, ts);
+  // Not in force: when it is because of its case, that is recorded so it never comes back.
+  const open = g ?? await env.DB.prepare(`SELECT g.case_id FROM case_grants g WHERE ${where} AND g.case_kind = ?
+    AND g.status IN ('dormant', 'active')`).bind(value, kind).first();
+  if (open) await closeStale(env, open.case_id, ts, kind);
   return null;
 }
 // Inside a batch: fails it (NOT NULL, like ensureChanged) unless that grant is still in force with the same email.
-export const stillInForce = (env, g, ts) => env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL WHERE NOT EXISTS
-  (SELECT 1 FROM ${FROM} WHERE g.id = ? AND t.tenant_email = ? AND ${LIVE})`).bind(g.id, g.tenant_email, ...live(ts));
+export const stillInForce = (env, g, ts) => {
+  const s = SOURCES[g.case_kind], [live, args] = LIVE(g.case_kind, ts);
+  return env.DB.prepare(`INSERT INTO landlords (name) SELECT NULL WHERE NOT EXISTS
+    (SELECT 1 FROM case_grants g ${s.join} WHERE g.id = ? AND ${s.email} = ? AND ${live})`).bind(g.id, g.party_email, ...args);
+};
 
-// Spec «cambio receptor invalida hijos»: a tenancy's open grants whose recipient email changed, or all of them once the
+// Spec «cambio receptor invalida hijos»: a case's open grants whose recipient email changed, or all of them once the
 // tenancy ended or its property was archived, are closed for good with the reason, so putting the old email back,
 // moving the move-out or restoring the property revives neither them nor their sessions.
-export async function closeStale(env, tenancyId, ts) {
-  const t = await env.DB.prepare(`SELECT t.tenant_email, t.ended_on, r.archived_at FROM tenancies t JOIN rentals r ON r.id = t.rental_id
-    WHERE t.id = ?`).bind(tenancyId).first();
-  const email = emailAddress(t?.tenant_email ?? ""), archived = !!t?.archived_at, ended = !t || (!!t.ended_on && t.ended_on <= day(ts));
-  await env.DB.prepare(`UPDATE case_grants SET status = 'closed', closed_at = ?, closed_reason = ? WHERE case_kind = 'tenancy'
+export async function closeStale(env, caseId, ts, kind = "tenancy") {
+  const t = await env.DB.prepare(SOURCES[kind].row).bind(caseId).first();
+  const email = emailAddress(t?.email ?? ""), archived = !!t?.archived_at, ended = !t || (!!t.ended_on && t.ended_on <= day(ts));
+  await env.DB.prepare(`UPDATE case_grants SET status = 'closed', closed_at = ?, closed_reason = ? WHERE case_kind = ?
     AND case_id = ? AND status IN ('dormant', 'active') AND (? OR source_revision <> ?)`)
-    .bind(ts, archived ? "property_archived" : ended ? "tenancy_ended" : "recipient_changed", tenancyId, archived || ended ? 1 : 0,
+    .bind(ts, archived ? "property_archived" : ended ? "tenancy_ended" : "recipient_changed", kind, caseId, archived || ended ? 1 : 0,
       email ? await sha256(email) : "").run();
 }
 
 const denied = () => fail(403, "You are not authorised to give this access on this case.");
 async function capability(env, g, actor) {
-  const request = { caseRef: g.caseRef, capability: "case_data_write", purpose: g.purpose };
+  const request = { caseRef: await SOURCES[g.caseRef.kind].staff(env, g.caseRef.id), capability: "case_data_write", purpose: g.purpose };
   const snapshot = await requireCaseCapability(env, request, actor).catch(e => (e?.status === 403 ? denied() : Promise.reject(e)));
   return { request, snapshot, guard: await prepareCaseCapabilityGuard(env, request, actor, snapshot) };
 }
 
 // A dormant grant; its link token is returned this once and kept only as its hash.
 export async function createCaseGrant(env, { caseRef, purpose, party_ref, recipient_ref, expires_on, source_revision }, actor) {
-  if (!OPERATIONS[purpose] || caseRef?.kind !== "tenancy" || !Number.isSafeInteger(caseRef.id) || typeof party_ref !== "string"
+  if (!OPERATIONS[purpose] || caseRef?.kind !== PURPOSE_KIND[purpose] || !Number.isSafeInteger(caseRef.id) || typeof party_ref !== "string"
     || typeof recipient_ref !== "string" || !/^[0-9a-f]{64}$/.test(source_revision ?? "")) fail(400, "This access is not available.");
   const today = jerseyToday();
   if (!realDate(expires_on) || expires_on < today || expires_on > plusDays(today, MAX_DAYS))

@@ -10,6 +10,7 @@ Estados: `pendiente` (sin envolver), `cubierta` (envuelta y con prueba propia), 
 | `functions/media/[id].js` → `server/media.js` | Solo lee D1 y R2 (probado). | excluida |
 | `functions/p/[id].js` → `server/seo.js` | Solo lee (probado, también con `?src=qr`: la apertura QR se cuenta por `/api`). | excluida |
 | `functions/properties.js` → `server/seo.js` | Sin D1 (probado). | excluida |
+| `functions/rental-application.js` | Sin D1 ni R2: según `ADM18_APPLICATION_READY` sirve la página del aplicante (ADM-18) o la del sitio (probado en `tests/adm-18-application-page.test.js`). | excluida |
 | `functions/sitemap.xml.js` → `server/seo.js` | Solo lee (probado). | excluida |
 | `functions/robots.txt.js` → `server/seo.js` | Sin datos (probado). | excluida |
 | `functions/admin/_middleware.js` → `server/access.js` | Sin D1 ni R2: solo valida la aserción de Access (PRE-06) y sirve los archivos del panel (probado). | excluida |

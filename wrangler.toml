@@ -99,6 +99,15 @@ ADM12_SUPPLIERS_READY = "1"
 # secret CASE_CHALLENGE_HMAC_KEY, migrations 0046 and 0049 (ADM-18 capabilities) to create links, and AUT-17 (the EMAIL
 # binding here and EMAIL_SERVICE_READY) to send codes. Collects reports from tenants: only Luis switches it on.
 ADM12_CASE_ACCESS_READY = "0"
+# ADM-18: the applicant's rental application through a private link (same sign-in as ADM-12; migration 0117, not applied)
+# and the team's decision with the affordability rule. Needs CASE_CHALLENGE_HMAC_KEY, migrations 0046 and 0049 (ADM-18
+# capabilities on the property), AUT-17 to send codes, and Hampton's approved criteria. Collects employment and income
+# from applicants: only Luis switches it on.
+ADM18_APPLICATION_READY = "0"
+# ADM-18: Hampton's affordability criteria, pending their approval (17-nov-2026). While any value is ### every result is
+# "needs human review": version, basis "gross" or "net", max_rent_share (most of a year's income the year's rent may take,
+# 0 to 1) and sources (where the rule comes from).
+ADM18_AFFORDABILITY_POLICY = '{"version":"###","basis":"###","max_rent_share":"###","sources":"###"}'
 # ADM-09: arrears drafts (+1/+5/+14 letter, not validated by a lawyer) and recorded write-offs; net debt everywhere (migration 0045, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.
 ADM09_ARREARS_READY = "1"
 # ADM-10: close each month's landlord statement as a frozen revision; record sent and paid by hand (migration 0090, applied 15-nov-2026). Sends nothing. Must match the other wrangler.toml.

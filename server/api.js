@@ -72,6 +72,8 @@ import facebookRoutes from "./meta-messages.js";
 import caseAccessRoutes from "./routes/case-access.js";
 import repairReportRoutes from "./routes/repair-reports.js";
 import { caseAccessReady } from "./case-access.js";
+import rentalApplicationRoutes from "./routes/rental-applications.js";
+import { applicationReady } from "./rental-applications.js";
 
 const ACCESS_MESSAGES = {
   access_required: "Your security sign-in has expired. Sign in again to continue.",
@@ -96,7 +98,8 @@ export async function handleApi(request, env, segments, waitUntil = () => {}) {
   // Admin, session and chat answers carry personal data: never cache them anywhere.
   // PRE-06: except a panel image from the Staff media route, kept in that browser's cache only (server/media.js).
   const staffImage = segments[0] === "admin" && segments[1] === "media" && res.headers.get("cache-control") === STAFF_IMAGE_CACHE;
-  const tenantLink = caseAccessReady(env) && /^(case-access|repair-report)$/.test(segments[0] ?? ""); // ADM-12, switched on only
+  const tenantLink = (caseAccessReady(env) && /^(case-access|repair-report)$/.test(segments[0] ?? "")) // ADM-12, switched on only
+    || (applicationReady(env) && /^(case-access|rental-application)$/.test(segments[0] ?? "")); // ADM-18, switched on only
   if ((/^(admin|me|session|hermes|chat|qa|presentation)$/.test(segments[0] ?? "") || tenantLink) && !staffImage) res.headers.set("cache-control", "no-store");
   // AGE-12 / ADM-12: a client's private presentation and a tenant's repair link are never indexed and never say where
   // they were opened from.
@@ -176,6 +179,8 @@ async function route(request, env, segments, waitUntil) {
     if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109
     // ADM-12: the tenant's repair link; needs migration 0110, CASE_CHALLENGE_HMAC_KEY, and 0046/0049 to create links.
     if (caseAccessReady(env)) routes = [...routes, ...caseAccessRoutes, ...repairReportRoutes];
+    // ADM-18: the rental application; needs migration 0117, the same sign-in (0110 and the key) and 0046/0049.
+    if (applicationReady(env)) routes = [...routes, ...(caseAccessReady(env) ? [] : caseAccessRoutes), ...rentalApplicationRoutes];
     routes = [...routes, ...(calendarReady(env) ? calendarRoutes : calendarOffRoutes)]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];

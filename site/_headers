@@ -18,3 +18,10 @@
   Cache-Control: no-store
   X-Frame-Options: DENY
   X-Robots-Tag: noindex
+# ADM-18: an applicant's private link to a rental application (served only with ADM18_APPLICATION_READY).
+/rental-application
+  ! Referrer-Policy
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+  X-Frame-Options: DENY
+  X-Robots-Tag: noindex

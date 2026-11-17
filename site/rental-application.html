@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Rental application · Hampton Estates</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<!-- ADM-18: an applicant's private link to fill in a rental application (served only with ADM18_APPLICATION_READY, see
+functions/rental-application.js). No analytics, fonts or anything else from a third party; nothing kept in the browser. -->
+<style>
+:root{--ink:#151515;--paper:#fff;--mist:#f4f3f0;--line:#e3e0da;--stone:#6b665e;--bronze:#a56b3d;--bronze-dk:#86542d;--ok:#2f6b4f;--err:#a32020;
+  --field-line:#8f8a82;--display:"Tenor Sans","Gill Sans",Optima,sans-serif;--body:Montserrat,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 14px/1.5 var(--body)}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+header{border-bottom:1px solid var(--line);padding-block:18px}
+.brand{font-family:var(--display);font-size:19px;letter-spacing:.06em}
+h1{font-family:var(--display);font-weight:400;font-size:26px;margin:32px 0 0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:19px;margin:8px 0 0}
+.lead{color:var(--stone);max-width:68ch}
+.card{border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:16px;max-width:760px;margin-block:24px 40px}
+.field{display:grid;gap:6px}
+.field>span,legend{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--stone)}
+.hint{font-size:13px;color:var(--stone);margin:0}
+input[type=text],input[type=email],select{font:inherit;color:inherit;border:1px solid var(--field-line);border-radius:10px;padding:10px 12px;background:#fbfaf8;width:100%;min-height:44px}
+input:focus,select:focus{outline:none;border-color:var(--bronze);background:#fff;box-shadow:0 0 0 3px rgba(165,107,61,.15)}
+input[aria-invalid=true]{border-color:var(--err)}
+.code{max-width:12ch;letter-spacing:.3em;font-size:18px}
+fieldset{border:0;margin:0;padding:0;min-width:0;display:grid;gap:8px}
+.group{border-top:1px solid var(--line);padding-top:16px}
+.grid-list{display:grid;gap:16px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.opt{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer}
+.opt input{accent-color:var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:#fff;
+  padding:10px 20px;font:600 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.btn:hover:not(:disabled){background:var(--bronze-dk);border-color:var(--bronze-dk)}
+.btn.ghost{background:#fff;color:var(--ink)}
+.btn.ghost:hover:not(:disabled){color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.note{background:var(--mist);border-radius:10px;padding:12px 14px;margin:0}
+.ok{color:var(--ok);font-weight:600;margin:0}
+.err{color:var(--err);margin:0}
+footer{border-top:1px solid var(--line);padding-block:24px;color:var(--stone);font-size:13px}
+footer a,.note a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><span class="brand">Hampton Estates</span></div></header>
+<main class="wrap" id="app" aria-live="polite"><h1>Rental application</h1><p role="status">Loading…</p></main>
+<footer><div class="wrap"><p>Questions, or a request about your personal data: call <a href="tel:+441534727582">+44 1534 727582</a>
+  or read our <a href="/#/privacy" rel="noopener noreferrer">privacy notice</a>.</p></div></footer>
+<script type="module">
+// The link's token is in the fragment: read once, removed from the address bar and kept only in memory. Opening the page
+// sends nothing; "Email me a code" asks for a 6-digit code at the applicant's email and the right code opens a 30-minute
+// session (an HttpOnly cookie). A link in the address bar always starts its own sign-in, ending any session left in this
+// browser first. Built with textContent only; nothing is stored in the browser; no files or documents are sent.
+const token = location.hash.slice(1);
+if (location.hash) history.replaceState(null, "", location.pathname);
+
+const GONE = "This link is not available. Please contact Hampton Estates.";
+const ENDED = "Your session has ended. Open the link from your message again to get a new code.";
+const WORK = [["employed", "Employed"], ["self_employed", "Self-employed"], ["not_working", "Not working"], ["retired", "Retired"], ["student", "Student"]];
+const PERIOD = [["monthly", "A month"], ["weekly", "A week"], ["annual", "A year"]];
+const BASIS = [["gross", "Before tax (gross)"], ["net", "After tax (net)"]];
+const CURRENCY = [["GBP", "Pounds (GBP)"], ["other", "Another currency"]];
+const REFEREE = [["landlord", "Current or last landlord"], ["employer", "Employer"], ["personal", "Personal"]];
+const app = document.getElementById("app");
+
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children.filter(c => c != null && c !== false));
+  return node;
+}
+const show = (...nodes) => { app.replaceChildren(el("h1", { textContent: "Rental application", tabIndex: -1 }), ...nodes); app.querySelector("h1").focus(); };
+const status = text => show(el("p", { role: "status", textContent: text }));
+const post = async (path, body) => {
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, cache: "no-store", body: JSON.stringify(body) });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+};
+const button = (text, ghost) => el("button", { className: ghost ? "btn ghost" : "btn", type: ghost ? "button" : "submit", textContent: text });
+const signOut = () => fetch("/api/case-access/sign-out", { method: "POST", cache: "no-store" }).catch(() => {});
+function signOutButton() {
+  const out = button("Sign out", true);
+  out.addEventListener("click", async () => { busy(out, "Signing out…"); await signOut();
+    status("You have signed out. To come back, open the link Hampton Estates sent you."); });
+  return out;
+}
+const field = (label, input, hint) => el("label", { className: "field" }, el("span", { textContent: label }), hint && el("p", { className: "hint", textContent: hint }), input);
+const text = (name, type = "text", max = 120) => el("input", { type, name, maxLength: max, autocomplete: "off" });
+const select = (name, options) => el("select", { name }, ...options.map(([value, label]) => el("option", { value, textContent: label })));
+function busy(btn, label) { const was = btn.textContent; btn.disabled = true; btn.textContent = label; return () => { btn.disabled = false; btn.textContent = was; }; }
+
+function askForCode(message) {
+  const send = button("Email me a code"), alert = el("p", { className: "err", role: "alert" });
+  const form = el("form", { className: "card", noValidate: true }, el("p", { textContent: "To open your application, we will email a 6-digit code to the "
+    + "address Hampton Estates has for you. It works for 10 minutes." }), message && el("p", { className: "err", textContent: message }), alert,
+    el("div", { className: "row" }, send));
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const done = busy(send, "Sending…");
+    try {
+      const r = await post("/api/case-access/challenge", { bootstrap: token });
+      if (r.status === 202) return enterCode(r.data.challenge_id);
+      if (r.status === 404) return status(GONE);
+      alert.textContent = r.data.error || "We could not send a code. Please try again later.";
+    } catch { alert.textContent = "We could not reach Hampton Estates. Check your connection and try again."; }
+    done();
+  });
+  show(el("p", { className: "lead", textContent: "Use this page to send Hampton Estates your application to rent a home." }), form);
+}
+
+function enterCode(challengeId) {
+  const input = el("input", { type: "text", className: "code", name: "code", inputMode: "numeric", autocomplete: "one-time-code", maxLength: 6, required: true });
+  const check = button("Check code"), again = button("Send a new code", true), alert = el("p", { className: "err", role: "alert", id: "code-error" });
+  input.setAttribute("aria-describedby", "code-error");
+  const form = el("form", { className: "card", noValidate: true }, el("p", { textContent: "We have emailed you a code. If it does not arrive in a few "
+    + "minutes, check your spam folder or ask for a new one: always use the latest code." }), field("6-digit code", input), alert,
+    el("div", { className: "row" }, check, again));
+  const wrong = msg => { alert.textContent = msg; input.setAttribute("aria-invalid", "true"); input.focus(); };
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const code = input.value.replace(/\s/g, "");
+    if (!/^\d{6}$/.test(code)) return wrong("Enter the 6 digits from the email.");
+    const done = busy(check, "Checking…");
+    try {
+      const r = await post("/api/case-access/verify", { challenge_id: challengeId, code });
+      if (r.ok) return load();
+      if (r.status === 404) return status(GONE);
+      wrong(r.data.error || "That code is not right.");
+    } catch { wrong("We could not reach Hampton Estates. Check your connection and try again."); }
+    done();
+  });
+  again.addEventListener("click", () => askForCode());
+  show(form);
+  input.focus();
+}
+
+// A list of up to `max` rows (incomes, referees), each made by row(); "Add" adds one more.
+function rows(legend, hint, row, max, addLabel, first) {
+  const list = el("div", { className: "grid-list" }), add = button(addLabel, true), items = [];
+  const push = () => { const r = row(items.length + 1); items.push(r); list.append(r.node); add.hidden = items.length >= max; };
+  add.addEventListener("click", () => { push(); items.at(-1).node.querySelector("input,select").focus(); });
+  if (first) push();
+  return { node: el("fieldset", { className: "group" }, el("legend", { textContent: legend }), el("p", { className: "hint", textContent: hint }), list, el("div", { className: "row" }, add)),
+    values: () => items.map(i => i.value()).filter(Boolean) };
+}
+const incomeRow = n => {
+  const amount = el("input", { type: "text", name: `amount-${n}`, inputMode: "numeric", autocomplete: "off", maxLength: 9 });
+  const period = select(`period-${n}`, PERIOD), basis = select(`basis-${n}`, BASIS), currency = select(`currency-${n}`, CURRENCY);
+  return { node: el("div", { className: "grid" }, field(`Income ${n}: amount in whole pounds`, amount, "Leave it empty if you prefer to discuss it."),
+    field("How often", period), field("Before or after tax", basis), field("Currency", currency)),
+    value: () => { const a = amount.value.replace(/[,\s£]/g, ""); return { amount: a === "" ? null : /^\d+$/.test(a) ? Number(a) : a,
+      period: period.value, basis: basis.value, currency: currency.value }; } };
+};
+const refereeRow = n => {
+  const kind = select(`ref-kind-${n}`, REFEREE), name = text(`ref-name-${n}`), email = text(`ref-email-${n}`, "email", 254);
+  return { node: el("div", { className: "grid" }, field(`Referee ${n}`, kind), field("Name", name), field("Email", email)),
+    value: () => (name.value.trim() || email.value.trim() ? { kind: kind.value, name: name.value, email: email.value } : null) };
+};
+
+// The form, once. operationId makes a resend after a lost answer the same application.
+function applicationForm(ctx) {
+  const operationId = crypto.randomUUID();
+  const work = el("fieldset", {}, el("legend", { textContent: "Your work" }), ...WORK.map(([value, label]) =>
+    el("label", { className: "opt" }, el("input", { type: "radio", name: "work", value }), el("span", { textContent: label }))));
+  const employer = text("employer"), role = text("role");
+  const incomes = rows("Income", "Your household's regular income. Add each one separately, with how often it is paid.", incomeRow, 4, "Add another income", true);
+  const dependants = el("input", { type: "text", name: "dependants", inputMode: "numeric", autocomplete: "off", maxLength: 2 });
+  const referees = rows("Referees", "Up to 3 people Hampton Estates may contact for a reference. Hampton Estates will ask you before contacting them.", refereeRow, 3, "Add a referee", true);
+  const hasGuarantor = el("input", { type: "checkbox", name: "has-guarantor" }), gName = text("guarantor-name"), gEmail = text("guarantor-email", "email", 254);
+  const gFields = el("div", { className: "grid", hidden: true }, field("Guarantor's name", gName), field("Guarantor's email", gEmail));
+  hasGuarantor.addEventListener("change", () => { gFields.hidden = !hasGuarantor.checked; });
+  const send = button("Send application"), alert = el("p", { className: "err", role: "alert" });
+  const form = el("form", { className: "card", noValidate: true },
+    el("p", {}, "Home: ", el("strong", { textContent: ctx.address }), `, £${ctx.rent.toLocaleString("en-GB")} a month.`),
+    work, el("div", { className: "grid" }, field("Employer (optional)", employer), field("Job title (optional)", role)), incomes.node,
+    field("Children or other dependants living with you (optional)", dependants), referees.node,
+    el("fieldset", { className: "group" }, el("legend", { textContent: "Guarantor" }), el("label", { className: "opt" }, hasGuarantor,
+      el("span", { textContent: "I have a guarantor (only if Hampton Estates asked for one)" })), gFields),
+    el("p", { className: "note" }, "Please do not attach documents here: if Hampton Estates needs proof, the team will tell you how to send it. "
+      + "A person at Hampton Estates reviews every application; nothing is decided automatically. ", el("a", { href: "/#/privacy", textContent: "Privacy notice" })),
+    alert, el("div", { className: "row" }, send, signOutButton()));
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const situation = form.querySelector("input[name=work]:checked")?.value;
+    if (!situation) { alert.textContent = "Choose your work situation."; return work.querySelector("input").focus(); }
+    const d = dependants.value.trim();
+    const answers = { employment: { status: situation, employer: employer.value, role: role.value }, incomes: incomes.values(),
+      dependants: d === "" ? null : /^\d+$/.test(d) ? Number(d) : d, references: referees.values(),
+      guarantor: hasGuarantor.checked ? { name: gName.value, email: gEmail.value } : null };
+    const done = busy(send, "Sending…");
+    alert.textContent = "";
+    try {
+      const r = await post("/api/rental-application/submit", { operation_id: operationId, revision: ctx.revision, answers });
+      if (r.ok) return received(r.data.receipt);
+      if (r.status === 404) return status(ENDED);
+      alert.textContent = r.data.fields ? Object.values(r.data.fields).join(" ") : r.data.error || "Your application could not be sent. Please try again.";
+    } catch { alert.textContent = "We could not confirm that your application was sent. Please try again: it will not be sent twice."; }
+    done();
+  });
+  show(form);
+}
+function received(receipt) {
+  show(el("div", { className: "card" }, el("p", { className: "ok", role: "status", textContent: "Thank you. Your application has been sent." }),
+    el("p", { textContent: `Reference ${receipt.id.slice(0, 8).toUpperCase()}. A person at Hampton Estates will review it and contact you.` }),
+    el("div", { className: "row" }, signOutButton())));
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/rental-application", { cache: "no-store" });
+    if (r.ok) {
+      const ctx = await r.json();
+      if (ctx.status === "draft") return applicationForm(ctx);
+      return show(el("div", { className: "card" }, el("p", { className: "ok", textContent: "Your application has been sent. A person at Hampton Estates "
+        + "will review it and contact you." }), el("div", { className: "row" }, signOutButton())));
+    }
+    if (token) return askForCode();
+    status(r.status === 404 ? "Open the link Hampton Estates sent you again to fill in your application." : GONE);
+  } catch { status("We could not load this page. Please check your connection and try again."); }
+}
+
+(async () => { if (token) { await signOut(); return askForCode(); }
+  load(); })();
+</script>
+</body>
+</html>
