@@ -10,6 +10,7 @@ import ViewingGroups from "./ViewingGroups.jsx";
 import ViewingCoordination from "./ViewingCoordination.jsx";
 import { useHouseRules, HouseRulesFacts, NoticeConfirm, noticeShort } from "./HouseRules.jsx";
 import { CalendarFact, CalendarReviewed, REVIEWABLE } from "./Calendar.jsx";
+import { bookingMode } from "./quick-actions.js";
 
 // Spec §5: a viewing from the request to its outcome, and the team's own bookings (C14).
 const TABS = { requests: "Requests", upcoming: "Upcoming", outcome: "Needs outcome", past: "Past" };
@@ -22,6 +23,10 @@ const EMPTY = {
 const listingOf = v => v.listing_title || v.listing_ref || "General enquiry / valuation";
 const tel = p => p.replace(/[^\d+]/g, "");
 const Msg = ({ m }) => m && <p role={m.ok ? "status" : "alert"} className={m.ok ? "ok" : "err"}>{m.text}</p>;
+// SAP-09: why New viewing for a search cannot book this house yet (quick-actions.js bookingMode).
+const WAIT = { checking: "Checking who advertises this property…",
+  unknown: "Could not check who advertises this property, so it cannot be booked from here.",
+  blocked: "Another agency advertises this property, and agreeing a time with everyone is switched off here. Agree the time with the agency first." };
 // VIS-08: the two stages that are dates beside the status (stageOf), named only once the server reports the cycle on.
 const STAGE = { reminded: ["Reminded", "positive"], feedback: ["Feedback received", "positive"] };
 const CHANNEL = { phone: "Phone", email: "Email", whatsapp: "WhatsApp", in_person: "In person" };
@@ -41,10 +46,12 @@ const stillThere = (d, id) => !!d?.viewings.some(x => x.id === id);
 const couldCount = v => ["requested", "confirmed"].includes(v.status)
   || (v.status === "completed" && ["proceed", "more_info"].includes(v.outcome) && v.date >= plusDays(jerseyToday(), -30));
 
-// listing: the #/viewings?listing=<id> filter (the listing editor's "Active interest" link).
-export default function Viewings({ listing, requestedId }) {
+// listing: the #/viewings?listing=<id> filter (the listing editor's "Active interest" link). applicant: SAP-09's Book
+// viewing from that search (#/viewings?applicant=<id>), which opens New viewing with its contact.
+export default function Viewings({ listing, requestedId, applicant }) {
+  const forSearch = /^[1-9]\d{0,15}$/.test(applicant ?? "") ? applicant : null;
   const [tab, setTab] = useState("requests"), [data, setData] = useState(null), [loadErr, setLoadErr] = useState(null);
-  const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(false);
+  const [sel, setSel] = useState(null), [msg, setMsg] = useState(null), [creating, setCreating] = useState(!!forSearch);
   const [interest, setInterest] = useState(null), [interestErr, setInterestErr] = useState(null);
   const [focusTo, setFocusTo] = useState(null), [counts, setCounts] = useState({});
   // notes: the open viewing's notes; step: its open outcome or reschedule form; form: New viewing; interest: the open
@@ -184,7 +191,8 @@ export default function Viewings({ listing, requestedId }) {
       <a href="#/viewings">Show all viewings</a></p>}
     {/* The card's changes read the list again too; the list's last message is about something else by then. */}
     {listing && <Interest data={interest} error={interestErr} reload={() => { setMsg(null); return load(); }} onDirty={onDirty} />}
-    {creating && <NewViewing listing={listing} onBooked={booked} onClose={closeForm} onDirty={onDirty} />}
+    {creating && <NewViewing listing={listing} applicant={forSearch} coordination={data ? !!data.coordination : undefined}
+      onBooked={booked} onClose={closeForm} onDirty={onDirty} />}
     {/* VIS-14: houses with several open requests, once the server reports it on. */}
     {data?.groups && tab === "requests" && <ViewingGroups listing={listing} onChanged={() => load()} />}
     <div className="seg" role="group" aria-label="Viewings">{Object.entries(TABS).map(([k, t]) =>
@@ -426,7 +434,9 @@ function RescheduleForm({ v, house, refresh, onSave, onClose, onDirty, onSlot })
 }
 
 // C14: a booking taken by phone or in the office, confirmed at once. Email or phone is enough.
-function NewViewing({ listing, onBooked, onClose, onDirty }) {
+// SAP-09, applicant: the search it is for, whose contact fills the form. Then a house another agency advertises is not
+// booked: its time is proposed to everyone (VIS-17, coordination: whether it is on) and confirmed only once they accept.
+function NewViewing({ listing, applicant, coordination, onBooked, onClose, onDirty }) {
   const [f, setF] = useState({ listing_id: listing ?? "", kind: KINDS[0], name: "", email: "", phone: "", notes: "" });
   const [slot, setSlot] = useState({ negotiator_id: null, date: null, time: null }), [listings, setListings] = useState(null);
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
@@ -434,8 +444,34 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
   // VIS-10: the chosen property's house rules; a time sooner than its notice needs staff to say access is agreed.
   const house = useHouseRules(f.listing_id, refresh), [agreed, setAgreed] = useState(false), short = noticeShort(house, slot);
   const [calendar, setCalendar] = useState(null), [reviewed, setReviewed] = useState(false); // VIS-12, after a refusal
+  // SAP-09: person: the search's contact as its record has it (undefined while read, null when it failed); origin: who
+  // advertises the chosen house ({ id, value }: value undefined while read, null when it failed); staff: the attending
+  // negotiator must accept the proposed time too.
+  const [person, setPerson] = useState(), [origin, setOrigin] = useState({ id: null }), [check, setCheck] = useState(0);
+  const [staff, setStaff] = useState(false);
   useEffect(() => { head.current?.focus(); api("/admin/listings?slim=1").then(d => setListings(d.listings), e => setMsg({ text: e.message })); }, []);
-  const dirty = !!(f.name.trim() || f.email.trim() || f.phone.trim() || f.notes.trim() || slot.time);
+  useEffect(() => {
+    if (!applicant) return;
+    let live = true;
+    api(`/admin/applicants/${applicant}`).then(d => {
+      if (!live) return;
+      const p = { name: d.contact.name ?? "", email: d.contact.email ?? "", phone: d.contact.phone ?? "" };
+      setPerson(p); setF(x => ({ ...x, ...p }));
+    }, e => { if (live) { setPerson(null); setMsg({ text: e.message }); } });
+    return () => { live = false; };
+  }, [applicant]);
+  useEffect(() => {
+    if (!applicant || !f.listing_id) return;
+    let live = true, id = f.listing_id;
+    setOrigin({ id });
+    api(`/admin/listings/${encodeURIComponent(id)}/provenance`).then(d => live && setOrigin({ id, value: d.provenance }),
+      () => live && setOrigin({ id, value: null }));
+    return () => { live = false; };
+  }, [applicant, f.listing_id, check]);
+  const provenance = origin.id === f.listing_id ? origin.value : undefined;
+  const mode = applicant ? bookingMode({ listingId: f.listing_id, provenance, coordination }) : "book";
+  const typed = k => f[k].trim() !== (person?.[k] ?? "");
+  const dirty = !!(typed("name") || typed("email") || typed("phone") || f.notes.trim() || slot.time);
   useEffect(() => { onDirty("form", dirty); }, [dirty]);
   useEffect(() => () => onDirty("form", false), []);
   // After a refused submit, the first highlighted field takes the focus.
@@ -447,18 +483,28 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
   const submit = async e => {
     e.preventDefault();
     if (busy) return;
+    if (mode !== "book" && mode !== "propose") return setMsg({ text: WAIT[mode] });
     const local = {};
-    if (!f.name.trim()) local.name = "Enter their name";
-    if (!f.email.trim() && !f.phone.trim()) local.email = "Enter an email address or a phone number";
+    if (mode === "book" && !f.name.trim()) local.name = "Enter their name";
+    if (mode === "book" && !f.email.trim() && !f.phone.trim()) local.email = "Enter an email address or a phone number";
     if (!slot.time) local.time = "Choose a negotiator, a day and a time";
     if (short && !agreed) local.notice_confirmed = "Confirm that access is agreed with the tenant, or choose a later time";
     if (Object.keys(local).length) { focusErr.current = true; setErrors(local); setMsg({ text: "Please check the highlighted fields." }); return; }
     setBusy(true); setMsg(null);
+    const checked = reviewed && REVIEWABLE.includes(calendar?.code) ? { calendar_reviewed: calendar.slot } : {};
     try {
+      // The held request opens with its proposal (VIS-17), where each answer is recorded.
+      if (mode === "propose") {
+        const { id } = await api(`/admin/applicants/${applicant}/viewing-proposals`, { method: "POST", body: { listing_id: f.listing_id,
+          kind: f.kind, negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, staff, ...(short ? { notice_confirmed: true } : {}),
+          ...checked } });
+        onDirty("form", false); setUnsaved(false);
+        location.hash = `#/viewings?viewing=${id}`;
+        return;
+      }
       const { id } = await api("/admin/viewings", { method: "POST", body: { listing_id: f.listing_id || null, kind: f.kind,
         negotiator_id: slot.negotiator_id, date: slot.date, time: slot.time, name: f.name, email: f.email.trim() || null,
-        phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}),
-        ...(reviewed && REVIEWABLE.includes(calendar?.code) ? { calendar_reviewed: calendar.slot } : {}) } });
+        phone: f.phone.trim() || null, notes: f.notes.trim() || null, ...(short ? { notice_confirmed: true } : {}), ...checked } });
       onBooked(id, `Viewing booked for ${fmtDay(slot.date, true)} at ${slot.time}.`);
     } catch (err) {
       focusErr.current = true; setErrors(err.data?.fields || {}); setMsg({ text: err.message });
@@ -472,7 +518,9 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
 
   return <form ref={form} className="card view-new" onSubmit={submit} aria-labelledby="h-new" noValidate>
     <h2 id="h-new" ref={head} tabIndex={-1}>New viewing</h2>
-    <p className="muted">For a booking by phone or in the office. It is confirmed straight away.</p>
+    {applicant && <p>For the search of {person ? <a href={`#/applicants/${applicant}`}>{person.name}</a>
+      : <a href={`#/applicants/${applicant}`}>this applicant</a>}{person === undefined && <span className="muted"> · loading their details…</span>}</p>}
+    {mode !== "propose" && <p className="muted">For a booking by phone or in the office. It is confirmed straight away.</p>}
     <div className="grid2">
       <label>Property<select value={f.listing_id} onChange={e => {
         setF(x => ({ ...x, listing_id: e.target.value })); setSlot(s => ({ ...s, date: null, time: null }));
@@ -485,20 +533,37 @@ function NewViewing({ listing, onBooked, onClose, onDirty }) {
       <label>Viewing type<select value={f.kind} onChange={set("kind")} {...invalid("kind")}>
         {KINDS.map(k => <option key={k}>{k}</option>)}</select>{error("kind")}</label>
     </div>
+    {mode === "checking" && <p role="status" className="muted">{WAIT.checking}</p>}
+    {mode === "unknown" && <p role="alert" className="err">{WAIT.unknown}{" "}
+      <button type="button" className="linkish" onClick={() => setCheck(n => n + 1)}>Try again</button></p>}
+    {mode === "blocked" && <p className="warn" role="note">{WAIT.blocked}</p>}
+    {mode === "propose" && <p className="warn" role="note">Advertised by {provenance.labels?.join(", ") || "another agency"}. This time is held
+      as a request, not booked: it is confirmed only once the client and the agency accept. Record their answers on the viewing.
+      Nothing is sent from here.</p>}
     <HouseRulesFacts house={house} own />
     <SlotPicker value={slot} onChange={s => { setSlot(s); setAgreed(false); setCalendar(null); setReviewed(false); setErrors(({ negotiator_id, date, time, notice_confirmed, ...x }) => x); }}
       listingId={f.listing_id} refresh={refresh} errors={errors} />
     {short ? <NoticeConfirm house={house} checked={agreed} error={errors.notice_confirmed} id="e-nv-notice_confirmed"
       onChange={b => { setAgreed(b); setErrors(({ notice_confirmed, ...x }) => x); }} /> : error("notice_confirmed")}
-    <div className="grid2">
-      <label>Name<input value={f.name} maxLength={120} autoComplete="off" onChange={set("name")} {...invalid("name")} />{error("name")}</label>
-      <label>Email<input type="email" value={f.email} maxLength={254} autoComplete="off" onChange={set("email")} {...invalid("email")} />{error("email")}</label>
-      <label>Phone<input type="tel" value={f.phone} maxLength={40} autoComplete="off" onChange={set("phone")} {...invalid("phone")} />{error("phone")}</label>
-    </div>
-    <p className="muted">An email address or a phone number is enough.</p>
-    <label>Internal notes (optional)<textarea className="short" value={f.notes} maxLength={4000} onChange={set("notes")} /></label>
+    {mode === "propose" ? <>
+      <p>Client: <strong>{person?.name}</strong>{[person?.email, person?.phone].filter(Boolean).map(x => ` · ${x}`)}
+        <span className="muted"> (from their record)</span></p>
+      <fieldset className="choices-set"><legend>Who must accept</legend>
+        <div className="choices">
+          <label className="check"><input type="checkbox" checked disabled /> Client and the advertising agency (always)</label>
+          <label className="check"><input type="checkbox" checked={staff} onChange={e => setStaff(e.target.checked)} /> Negotiator (attending)</label>
+        </div></fieldset>
+    </> : <>
+      <div className="grid2">
+        <label>Name<input value={f.name} maxLength={120} autoComplete="off" onChange={set("name")} {...invalid("name")} />{error("name")}</label>
+        <label>Email<input type="email" value={f.email} maxLength={254} autoComplete="off" onChange={set("email")} {...invalid("email")} />{error("email")}</label>
+        <label>Phone<input type="tel" value={f.phone} maxLength={40} autoComplete="off" onChange={set("phone")} {...invalid("phone")} />{error("phone")}</label>
+      </div>
+      <p className="muted">An email address or a phone number is enough.</p>
+      <label>Internal notes (optional)<textarea className="short" value={f.notes} maxLength={4000} onChange={set("notes")} /></label>
+    </>}
     {REVIEWABLE.includes(calendar?.code) && <CalendarReviewed checked={reviewed} onChange={setReviewed} />}
-    <div className="inline"><button className="btn">{busy ? "Booking…" : "Book viewing"}</button>
+    <div className="inline"><button className="btn">{mode === "propose" ? (busy ? "Proposing…" : "Propose this time") : busy ? "Booking…" : "Book viewing"}</button>
       <button type="button" className="btn ghost" onClick={onClose}>Close</button></div>
     <Msg m={msg} />
   </form>;

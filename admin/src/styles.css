@@ -628,3 +628,5 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 @media (max-width:760px){.privacy .btn{min-height:44px}}
 /* PRE-06: the security sign-in dialog; its two actions reach 44px on a phone (DESIGN.md). */
 @media (max-width:760px),(pointer:coarse){.access-reauth .btn{min-height:44px}}
+/* SAP-09: the applicant's quick actions (Send shortlist, Book viewing): a 32px panel target, 44px on a phone (DESIGN.md). */
+.btn.quick{min-height:32px} @media (max-width:760px),(pointer:coarse){.btn.quick{min-height:44px}}

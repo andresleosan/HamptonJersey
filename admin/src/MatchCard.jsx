@@ -31,8 +31,9 @@ export const CONFIRMED = { not_confirmed: ["neutral", "Not confirmed"], confirme
 // onRejecting (it opens the reasons on R), and children (more actions, after Reject).
 // onClarify(approved): approves or withdraws a clarification enquiry about the must-haves the property does not answer.
 // onEnquiry(match): AGE-03, after the shared enquiry of this match was prepared, joined, changed or recorded as sent.
+// bookViewing: SAP-09's Book viewing of this house for the search (a Viewings link), when the record offers it.
 export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy, disabled = null, shortcuts = false, rejecting: shown, onRejecting,
-  children, legacy = false }) {
+  children, legacy = false, bookViewing }) {
   const l = match.listing, title = l.title;
   const states = match.states, asked = match.clarification, outdated = states.decision === "approved_outdated";
   // AGE-03: undefined while it is off; null: no enquiry covers this match now.
@@ -117,6 +118,7 @@ export default function MatchCard({ match, onReview, onClarify, onEnquiry, busy,
         {enquiry !== undefined && (enquiry || (!off && (states.decision === "approved" || asked))) && <button type="button" className="btn ghost sm"
           aria-expanded={enquiring} onClick={() => setEnquiring(v => !v)}>
           {enquiry && enquiry.status !== "answered" && (enquiry.kind === "general" || states.decision !== "approved") ? "View enquiry" : "Prepare enquiry"}<span className="sr"> for {title}</span></button>}
+        {bookViewing && <a className="btn ghost sm quick" href={bookViewing}>Book viewing<span className="sr"> of {title}</span></a>}
       </div>
       {enquiring && enquiry !== undefined && <MatchEnquiry match={match} onChange={onEnquiry} />}
       {rejecting && match.status === "found" && <div className="inline reasons" role="group" aria-label={`Why reject ${title}?`}

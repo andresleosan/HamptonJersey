@@ -1,5 +1,6 @@
 import ApplicantMatches from "./ApplicantMatches.jsx";
 import PresentationLinks from "./PresentationLinks.jsx";
+import { bookViewingHref } from "./quick-actions.js";
 import SearchRun, { searchScope } from "./SearchRun.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
@@ -92,6 +93,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
   const tabs = useRef({}), formRef = useRef(null), lostRef = useRef(null), focusError = useRef(false);
   const stageRef = useRef(null), ownerRef = useRef(null);
   const [reviewing,setReviewing]=useState(false);
+  // SAP-09: Send shortlist shows once the private presentation card is on; each press opens it on Matches.
+  const [presenting, setPresenting] = useState(false), [shortlistAsked, setShortlistAsked] = useState(0);
   const [marketing,setMarketing]=useState({phase:"idle"}), [marketingHistoryReady,setMarketingHistoryReady]=useState(true);
   const marketingGeneration=useRef(0), marketingInFlight=useRef(false), marketingHeading=useRef(null), marketingConfirm=useRef(null);
   useEffect(() => {
@@ -484,6 +487,8 @@ export default function ApplicantDetail({ id, tab, onChange }) {
         {tel && <a className="btn ghost sm" href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
         {c.email && <a className="btn ghost sm" href={`mailto:${c.email}`}>Email</a>}
         <button type="button" className="btn ghost sm" onClick={logConversation}>Log conversation</button>
+        {presenting && <button type="button" className="btn ghost sm quick" onClick={() => { go("matches"); setShortlistAsked(n => n + 1); }}>Send shortlist</button>}
+        {!archived && <a className="btn ghost sm quick" href={bookViewingHref(id)}>Book viewing</a>}
         <a href="#/applicants">Back to applicants</a>
       </div>
     </div>
@@ -599,7 +604,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       {data.search_review && <SearchReview review={data.search_review} />}
       {data.widen && <Widen alternatives={data.widen} applicant={a} dirty={dirty} onUse={applyWiden} />}
       <ApplicantMatches applicantId={id} applicant={a} counts={data.matchCounts} onChange={refreshMatches} onBusy={setReviewing} />
-      <PresentationLinks applicantId={id} />
+      <PresentationLinks applicantId={id} start={shortlistAsked} visible={cur === "matches"} onEnabled={setPresenting} />
     </div>
     {hasOffers && <div role="tabpanel" id="panel-offers" aria-labelledby="tab-offers" hidden={cur !== "offers"} tabIndex={0}>
       <Offers id={id} data={offers} err={offersErr} canRecord={buyer && !archived} />
