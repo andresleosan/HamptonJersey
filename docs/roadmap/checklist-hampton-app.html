@@ -1585,15 +1585,29 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Prueba de presentación de aplicantes a cada agencia",
    "origen": "plan",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "M06 · Reconciliación 7-nov: Guardar quién aprobó, qué consulta se envió realmente, qué matches autorizados vincula, respuesta/llamada y sus fechas. Distinguir una comprobación común de la presentación de un cliente concreto; registrar solo datos efectivamente compartidos. La trazabilidad puede servir a la gestión humana de acuerdos, sin imponer la comisión en el primer mensaje. Depende de: AGE-03, AGE-05, EST-18. Traído de AGE-03 (15-nov): la evidencia de consultas está en consultations (texto, versión, quién y cuándo, sent_evidence_ref) y en consultation_matches (quién unió cada match); los eventos consultation.prepared y consultation.sent_manually llevan solo identificadores. Traído de AGE-06 (15-nov): mostrar en el historial los eventos consultation.response_recorded y consultation.cancelled (solo ids, resultado, canal, alcance); la fila guarda solo la última respuesta. Traído de AGE-08 (15-nov): la evidencia agregada puede contar las llamadas a partir de consultation.call_due y del cierre de la tarea consultation:\u003coperation_id>:call; AGE-08 no agrega nada.",
+   "hecho": "Construida apagada (AGE09_EVIDENCE_READY=\"0\", sin migración; solo lee): cada consulta de la sección Enquiries abre «Evidence of what was shared» (GET /api/admin/consultations/:id/evidence, solo personal, sin ruta pública ni escrituras ni envíos). Separa la comprobación común (consulta general: qué preguntó, cuándo, por qué canal y cuántos matches aprobados se habían unido) de la presentación del caso de un cliente concreto (el tamaño del hogar de la búsqueda que lo declaró o los imprescindibles de su clarificación), siempre sin nombre ni contacto. Solo cuenta como compartido lo enviado: envío anotado a mano o correo aceptado por el proveedor (AGE-05); aprobado, en cola, devuelto o sin confirmar no comparte nada. Muestra el texto realmente enviado, quién aprobó el envío (AGE-05) o quién lo envió y anotó, los matches servidos con quién los unió y la aprobación vigente al unirse, los intentos de envío, las respuestas (AGE-06, incluidas las anteriores y la cancelación), la llamada (AGE-08) y sus fechas, con un aviso de que no establece comisión.",
+   "falta": "Encender AGE09_EVIDENCE_READY=\"1\" en wrangler.toml (no hay migración que aplicar; el reloj no lo lee) y, tras el despliegue, comprobar el recorrido real con lecturas: GET /api/admin/consultations/\u003cid>/evidence de una consulta enviada y el botón «Evidence of what was shared» en Enquiries.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:296",
     "migrations/0009_matches.sql:27-38",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "docs/superpowers/plans/2026-11-08-age-09-consultation-evidence.md",
+    "server/consultation-evidence.js, admin/src/ConsultationEvidence.jsx, admin/src/Enquiries.jsx, server/routes/matches.js, server/consultations.js (marca evidence en cada consulta), wrangler.toml",
+    "Decisión: sin migración; todo lo que pide la evidencia ya lo escriben AGE-03/05/06/08 (consultations, consultation_matches, events, outbound, tarea consultation:\u003cop>:call) y AGE-09 solo lo lee · fuente: plan AGE-09 («adaptar tablas/servicios existentes en vez de duplicarlos»).",
+    "Decisión: presentación de un cliente = consulta enviada cuyo texto llevó el caso de una búsqueda (occupants de occupants_match_id, o los imprescindibles de una clarificación); nunca nombre ni contacto, que AGE-03 no envía. Una consulta general es comprobación común y no presenta a nadie · fuente: spec 2026-11-08-list2-agency-batch-design §D y plan maestro, paso 7.",
+    "Decisión: enviado = sent_at anotado a mano o correo aceptado por el proveedor; aprobado, en cola, devuelto o sin confirmar no comparte nada · fuente: plan, casos approved_unsent_not_presented y failed_send_not_introduction.",
+    "Decisión: quién aprobó = send_approved de AGE-05; en envío manual, la persona que lo envió y lo anotó (AGE-03 no tiene aprobación aparte). Cada match servido muestra quién lo unió y la última aprobación (match.reviewed a shortlisted o clarificación aprobada) anterior a la unión · fuente: AGE-03/AGE-05 y SKILL §4.5.",
+    "Decisión: un match sirvió al envío si se unió antes de anotarse el envío (sent_recorded_at, o sent_at) · fuente: opción más simple y reversible (SKILL §4.5).",
+    "Decisión: getConsultationEvidence(env,id,{cursor,limit}) en server/consultation-evidence.js y la ruta montada en server/routes/matches.js junto a las de AGE-03 (no existe server/routes/consultations.js); la paginación (cursor = último match, límite 1-50) recorre los matches servidos, la lista que crece; los eventos de una consulta se leen hasta 200 · fuente: plan tareas 1-2 reconciliado con el código integrado.",
+    "Decisión: los eventos consultation.response_recorded y consultation.cancelled (traído de AGE-06) y consultation.call_due/call_closed con la tarea :call (traído de AGE-08) se muestran en el detalle de cada consulta, no en un historial global, que Luis aplazó · fuente: spec §D.",
+    "Decisión: funciona hoy con el envío manual; cuando AGE-05 envíe, lee sus correos (outbound, template 'enquiry') y toma como texto enviado el del correo aceptado, sin cambios; sin las columnas de 0080/0082 no las pide · fuente: encargo y plan maestro (AGE-05 apagada).",
+    "Decisión: la evidencia no lleva comisión, dirección del destinatario, ni nombre o contacto del cliente; dice que no establece comisión ni honorarios · fuente: spec §D («evidencia técnica no certifica derechos de comisión») y paso 7 del plan maestro.",
+    "Decisión: interruptor AGE09_EVIDENCE_READY=\"0\" porque el personal ve un botón nuevo; apagado, ninguna consulta lleva la marca y la ruta da 404; antes de 0077 también 404 · fuente: encargo.",
+    "Pruebas 17-nov: tests/server/consultation-evidence.test.mjs 9/9 (apagado/sin AGE-03/antes de 0077 = como antes, solo personal, 400 por página mal formada, comprobación general sin presentación, solo el hogar declarado tras el envío, clarificación, correo aprobado sin salir y correo aceptado, correo devuelto, mismo envío dos veces = un intento, respuestas y llamada con fechas, paginación sin escrituras); tests/consultation-evidence-ui.test.js 3/3 (envío fallido no presenta, fechas y texto enviado, sin derecho de comisión, más matches, error y reintento); age-03/05/06/08 y afines en verde.",
+    "Navegador 17-nov: tests/age09-evidence.e2e.cjs en contenedor aislado (E2E_PRODUCTION_READONLY=0) a 1280 y 390: el teclado abre la evidencia, comprobación general aparte del hogar declarado, matches servidos con su aprobación, respuesta, sin nombres/contactos/comisión, consulta sin enviar = nada compartido, sin desbordes laterales, nada enviado."
    ],
    "modulo": "M06",
    "deps": [
@@ -1601,7 +1615,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "AGE-05",
     "EST-18"
    ],
-   "actualizado": "2026-11-15"
+   "actualizado": "2026-11-17"
   },
   {
    "id": "AGE-10",
