@@ -5,13 +5,14 @@ import assert from "node:assert/strict";
 import { makeEnv, seedListing, call, adminCookie, T0 } from "./helpers.mjs";
 
 // Tuesday 20 October 2026, 13:05 in Jersey (BST). Proposals are for Wednesday 11:00 with Joshua (negotiator 2).
-const NOW = Date.parse("2026-10-20T12:05:00.000Z"), WED = "2026-10-21", ID = "HE-R001";
+// HE-R100 came in the agency import (BUS-07: co-listed); HE-R001 is Hampton's own.
+const NOW = Date.parse("2026-10-20T12:05:00.000Z"), WED = "2026-10-21", ID = "HE-R100", OWN = "HE-R001";
 
 async function world(t, { ready = true, skip = [] } = {}) {
   t.mock.timers.enable({ apis: ["Date"], now: NOW });
   const env = makeEnv({ skip });
   if (ready) env.VIS17_MULTIPART_READY = "1";
-  seedListing(env);
+  seedListing(env); seedListing(env, { id: ID, title: "Agency home" });
   return { env, cookie: await adminCookie() };
 }
 const insert = (env, table, row) => {
@@ -26,6 +27,14 @@ const start = (env, cookie, applicant, o = {}) => call(env, "POST", `/admin/appl
   body: { listing_id: ID, kind: "In person", negotiator_id: 2, date: WED, time: "11:00", ...o } });
 const one = (env, sql, ...args) => env.DB.raw.prepare(sql).get(...args);
 const count = (env, table) => one(env, `SELECT COUNT(*) n FROM ${table}`).n;
+const row = (env, id) => one(env, "SELECT * FROM viewing_requests WHERE id = ?", id);
+const act = (env, cookie, id, action, o = {}) => call(env, "PUT", `/admin/viewings/${id}`,
+  { cookie, body: { action, updated_at: row(env, id).updated_at, ...o } });
+const book = (env, cookie, listing, o = {}) => call(env, "POST", "/admin/viewings", { cookie, body: { listing_id: listing, kind: "In person",
+  negotiator_id: 2, date: WED, time: "11:00", name: "Bo Example", email: "bo@example.je", ...o } });
+const held = (env, listing, time, email) => Number(env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, agent, kind,
+  date, time, end_time, name, email, status, created_at, negotiator_id) VALUES (?, ?, 'Gilberto Franco', 'In person', '2026-10-22', ?, ?,
+  'Cy Example', ?, 'requested', ?, 1)`).run(listing, listing, time, time.replace(":00", ":30"), email, T0).lastInsertRowid);
 
 test("switched off, or on before 0114: the route does not exist and writes nothing", async t => {
   for (const [ready, skip] of [[false, []], [true, [114]]]) {
@@ -119,4 +128,89 @@ test("refusals: an inactive search, a wrong operation, a missing property and an
   assert.equal((await start(env, cookie, 999999)).status, 404);
   assert.equal(count(env, "viewing_requests"), 0);
   assert.equal(count(env, "viewing_proposals"), 0);
+});
+
+test("only another agency's home, still offered, once per person: Hampton's own, withdrawn, archived and a second hold refused", async t => {
+  const { env, cookie } = await world(t);
+  const applicant = search(env, contact(env));
+  const own = await start(env, cookie, applicant, { listing_id: OWN });
+  assert.equal(own.status, 409);
+  assert.match(own.data.error, /Hampton advertises this property itself/);
+  env.DB.raw.prepare("UPDATE listings SET availability = 'withdrawn' WHERE id = ?").run(ID);
+  assert.equal((await start(env, cookie, applicant)).data.fields.listing_id, "This property is no longer offered.");
+  env.DB.raw.prepare("UPDATE listings SET availability = 'for_sale', archived_at = ? WHERE id = ?").run(T0, ID);
+  assert.equal((await start(env, cookie, applicant)).data.fields.listing_id, "This property is no longer offered.");
+  env.DB.raw.prepare("UPDATE listings SET archived_at = NULL WHERE id = ?").run(ID);
+  const first = await start(env, cookie, applicant);
+  assert.equal(first.status, 201);
+  const again = await start(env, cookie, applicant, { time: "14:00" });
+  assert.equal(again.status, 409);
+  assert.equal(again.data.viewing_id, first.data.id, "points to the viewing already held");
+  assert.equal(count(env, "viewing_requests"), 1);
+});
+
+test("a contact detail that cannot be used is named", async t => {
+  const { env, cookie } = await world(t);
+  const applicant = search(env, contact(env, { email: "not-an-email" }));
+  const r = await start(env, cookie, applicant);
+  assert.equal(r.status, 409);
+  assert.match(r.data.error, /^This contact's email cannot be used/);
+  assert.equal(count(env, "viewing_requests"), 0);
+});
+
+test("G1: a held agency viewing is never confirmed by a plain Confirm, after a move or a superseded proposal", async t => {
+  const { env, cookie } = await world(t);
+  const applicant = search(env, contact(env));
+  const id = (await start(env, cookie, applicant)).data.id;
+  assert.equal((await act(env, cookie, id, "confirm")).status, 409, "open proposal");
+  assert.equal((await act(env, cookie, id, "reschedule", { negotiator_id: 2, date: WED, time: "14:00" })).status, 200);
+  assert.equal(one(env, "SELECT state FROM viewing_proposals").state, "superseded");
+  const c = await act(env, cookie, id, "confirm");
+  assert.equal(c.status, 409);
+  assert.equal(c.data.error, "This viewing needs the agency's acceptance: propose a time and record their answer.");
+  assert.equal(row(env, id).status, "requested");
+  // Agreed by everyone through VIS-17: confirmed.
+  const p = (await call(env, "POST", `/admin/viewings/${id}/proposals`, { cookie, body: { expected_revision: 1, negotiator_id: 2, date: WED,
+    time: "15:00", required: ["client", "advertiser"], applicant_id: applicant } })).data.proposal;
+  for (const participant of ["client", "advertiser"]) assert.equal((await call(env, "POST", `/admin/viewings/${id}/proposals/${p.id}/responses`,
+    { cookie, body: { revision: p.revision, participant, response: "accepted", channel: "phone", answered_at: "2026-10-20T12:05:00.000Z" } })).status, 200);
+  assert.deepEqual([row(env, id).status, row(env, id).time], ["confirmed", "15:00"]);
+});
+
+test("G1: viewings without an advertiser's proposal confirm as before", async t => {
+  const { env, cookie } = await world(t);
+  const plain = held(env, OWN, "10:00", "cy@example.je");
+  assert.equal((await act(env, cookie, plain, "confirm")).status, 200);
+  const clientOnly = held(env, OWN, "12:00", "di@example.je");
+  assert.equal((await call(env, "POST", `/admin/viewings/${clientOnly}/proposals`, { cookie, body: { expected_revision: 0, negotiator_id: 2,
+    date: WED, time: "14:00", required: ["client"] } })).status, 201);
+  assert.equal((await act(env, cookie, clientOnly, "reschedule", { negotiator_id: 1, date: "2026-10-22", time: "13:00" })).status, 200);
+  assert.equal((await act(env, cookie, clientOnly, "confirm")).status, 200, "a client-only proposal never needed the agency");
+  // A website request: on Hampton's own home VIS-17's rule stands (declined, nothing open: Confirm works again); on the
+  // agency's home the declined agency was never agreed with, so Confirm is refused.
+  for (const [listing, time, expected] of [[OWN, "15:00", 200], [ID, "16:00", 409]]) {
+    const v = held(env, listing, time, `web-${time.slice(0, 2)}@example.je`);
+    const p = (await call(env, "POST", `/admin/viewings/${v}/proposals`, { cookie, body: { expected_revision: 0, negotiator_id: 2,
+      date: WED, time: "16:30", required: ["client", "advertiser"] } })).data.proposal;
+    assert.equal((await call(env, "POST", `/admin/viewings/${v}/proposals/${p.id}/responses`, { cookie, body: { revision: p.revision,
+      participant: "advertiser", response: "declined", channel: "email", answered_at: "2026-10-20T12:05:00.000Z" } })).status, 200);
+    assert.equal((await act(env, cookie, v, "confirm")).status, expected, listing);
+  }
+  env.BUS07_PROVENANCE_READY = "1";
+  const prov = await call(env, "GET", `/admin/listings/${ID}/provenance`, { cookie });
+  assert.deepEqual([prov.data.provenance.kind, prov.data.operation], ["co_listed", "sale"], "M5: New viewing reads the operation with it");
+});
+
+test("G2: with BUS-07 and VIS-17 on, New viewing does not confirm another agency's home; either off, as before", async t => {
+  const { env, cookie } = await world(t);
+  env.BUS07_PROVENANCE_READY = "1";
+  const r = await book(env, cookie, ID);
+  assert.equal(r.status, 409);
+  assert.equal(r.data.code, "agency_listing");
+  assert.equal(count(env, "viewing_requests"), 0);
+  assert.equal((await book(env, cookie, OWN)).status, 201, "Hampton's own home books at once");
+  env.BUS07_PROVENANCE_READY = "0";
+  assert.equal((await book(env, cookie, ID, { time: "14:00" })).status, 201, "provenance off: as before");
+  env.BUS07_PROVENANCE_READY = "1"; env.VIS17_MULTIPART_READY = "0";
+  assert.equal((await book(env, cookie, ID, { time: "15:00" })).status, 201, "coordination off: as before");
 });

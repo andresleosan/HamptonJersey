@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
 import {isActive} from '../../server/applicants.js';
-import MatchCard,{APPROVAL_SCOPE,REASON_LABEL,hasPetRefusal} from './MatchCard.jsx';
+import MatchCard,{APPROVAL_SCOPE,REASON_LABEL,OFFERED,hasPetRefusal} from './MatchCard.jsx';
 import {bookViewingHref} from './quick-actions.js';
 const GROUPS=[['found','Found'],['shortlisted','Shortlisted'],['rejected','Rejected']];
 // SAP-03: the same groups and cards, narrowed to what each card's own states say (the server counts them: summary,
@@ -134,7 +134,7 @@ export default function ApplicantMatches({applicantId,applicant:a,counts,onChang
     {(!p||p.loading)&&<p role="status">Loading {title.toLowerCase()} matches…</p>}
     {p?.error?<div role="alert"><p className="err">{p.error}</p><button type="button" className="btn ghost" onClick={()=>load(status,stack)}>Retry {title}</button></div>
      :rows.length?<ul className="match-list">{rows.map(m=><li key={m.id}><MatchCard match={m} legacy={p.rankingVersion===0}
-      busy={busy||p.loading} disabled={readOnly} bookViewing={!readOnly&&m.states.decision==='approved'?bookViewingHref(applicantId,m.listing.id):undefined} onReview={r=>review(m,r)} onClarify={approved=>clarify(m,approved)} onEnquiry={()=>load(status,stack)} onJourney={body=>journey(m,body)}>
+      busy={busy||p.loading} disabled={readOnly} bookViewing={!readOnly&&m.states.decision==='approved'&&OFFERED.includes(m.listing.availability)&&!m.listing.archived_at?bookViewingHref(applicantId,m.listing.id):undefined} onReview={r=>review(m,r)} onClarify={approved=>clarify(m,approved)} onEnquiry={()=>load(status,stack)} onJourney={body=>journey(m,body)}>
       {!readOnly&&<label className="check"><input type="checkbox" checked={picked.has(m.id)} disabled={hasPetRefusal(m)}
        onChange={e=>setPicked(s=>{const n=new Set(s);if(e.target.checked)n.add(m.id);else n.delete(m.id);return n;})}/>Select<span className="sr"> {m.listing.title}</span></label>}
      </MatchCard></li>)}</ul>
