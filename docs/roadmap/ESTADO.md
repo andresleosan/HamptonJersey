@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+17-nov-2026 · **ANA-04, tendencias de búsqueda de la web (hecha):** la web cuenta, solo como totales del día, qué filtros se usan (operación, zona, dormitorios, precio máximo); el equipo lo ve en Insights › Search trends y se borra a los 90 días. Comprobado con dos búsquedas reales de Luis. Progreso 148 → 149 de 214.
+
 17-nov-2026 · **PRE-32, plan de ChatGPT de Hermes (hecha):** Hermes usa ChatGPT Pro por Codex (no la API), con el entrenamiento desactivado; DeepSeek queda como reserva normal por decisión de Luis (su acuerdo pasa a PRE-13). Progreso 147 → 148 de 214.
 
 17-nov-2026 · **AUT-10, modos Draft/Approve/Auto (hecha):** Luis cambió un modo real en Settings → Automations → Modes y lo devolvió a Draft; comprobado en D1 (revisión 3). Cualquier admin puede cambiar modos. Progreso 146 → 147 de 214.
