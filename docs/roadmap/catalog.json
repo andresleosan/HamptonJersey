@@ -17170,7 +17170,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
-      "falta": "Tramo chat web: encendido el 16-nov-2026 (0093 aplicada, MSG03_CONTACT_LINK_READY=1); queda que alguien del equipo vincule un chat real una vez y lo vea en la ficha. Tramo correo: reenvíos seleccionados de Gmail cuando AUT-17 opere. Antes del 16-nov la pantalla Messages solo tenía el chat de la web (MSG-02) sin contacto. Messenger, Instagram y WhatsApp Business (con un número de Hampton y plantillas aprobadas fuera de las 24 h) esperan a Meta, y el email general al servicio de correo. Hoy la ficha del aplicante solo tiene enlaces Call, WhatsApp (wa.me) y Email que abren apps externas. Alcance vigente (plan maestro, 10-nov-2026): chat web, respuestas desde la app y reenvíos seleccionados de Gmail (alias configured_gmail_mailbox, sin conectar el buzón entero ni cambiar el remitente). Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores. Traído de SAP-08 (16-nov): mostrar las conversaciones de correo en la pestaña Messages del aplicante cuando AUT-17 opere.",
+      "falta": "Solo el tramo de correo del alcance vigente: reenvíos seleccionados de Gmail cuando AUT-17 opere (hoy bloqueado por el dominio, ver COLA-LUIS). El tramo chat web está comprobado. Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
       "bloqueo": "",
       "evidencia": [
         "admin/src/App.jsx:122-136",
@@ -17180,7 +17180,8 @@
         "16-nov-2026 vínculo chat-contacto: migrations/0093_chat_contact_link.sql, server/chat-contact.js, server/routes/chats.js (contact_link en el detalle solo encendido), admin/src/ChatContact.jsx, admin/src/Messages.jsx, admin/src/ApplicantDetail.jsx.",
         "Pruebas: tests/server/msg-03-contact-link.test.mjs (7 casos: apagado con y sin 0093, sugerencia sin vínculo automático, mismo nombre no es la misma persona, retención intacta, CAS 409, revincular/desvincular con eventos, contacto borrado deja el chat sin vínculo, entradas inválidas/401/403, búsqueda con comodines literales) y e2e tests/msg03-contact-link.e2e.cjs en el contenedor aislado a 1280 y 390 px y zoom 200 %, aprobado.",
         "Decisiones (plan 2026-11-08 tarea 2 y cierre 2026-11-09; resto, opción más simple y reversible): la versión es un contador propio del vínculo porque MSG-02 aún no tiene revisión compartida del chat; un chat tiene como máximo un contacto; el evento va en el contacto (vinculado y, al mover, el anterior) con solo chat_id, sin texto; vincular no extiende los 30 días del chat ni los 12 meses del contacto; al borrar el contacto el chat queda sin vínculo (ON DELETE SET NULL).",
-        "16-nov-2026: 0093 aplicada en producción tras el marcador Time Travel 0000046c-000008e8-00005125-19990df175633ce8331b26d32937c514; MSG03_CONTACT_LINK_READY=1 en wrangler.toml."
+        "16-nov-2026: 0093 aplicada en producción tras el marcador Time Travel 0000046c-000008e8-00005125-19990df175633ce8331b26d32937c514; MSG03_CONTACT_LINK_READY=1 en wrangler.toml.",
+        "17-nov-2026: tramo chat web comprobado en producción: Luis encendió el chat unos minutos, abrió un chat de prueba, lo contestó desde el panel, lo vinculó a un contacto y lo vio en la ficha; chat apagado de nuevo (app_settings.webchat on=0). D1 remoto (lectura): chats.id 1 con contact_id y contact_version 1."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -17202,14 +17203,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Que alguien del equipo vincule un chat real una vez; el tramo de correo espera a AUT-17 y Messenger/Instagram/WhatsApp a Meta",
+      "externalBlocker": "AUT-17 activo (correo de la app).",
       "resources": [
         "web-chat",
         "meta-channel",
         "email-pipeline"
       ],
-      "nextStep": "Reenvíos seleccionados de Gmail cuando AUT-17 opere. Sin Meta ni WhatsApp.",
-      "actualizado": "2026-11-16"
+      "nextStep": "Cuando AUT-17 opere: construir y comprobar los reenvíos seleccionados de Gmail.",
+      "actualizado": "2026-11-17"
     },
     {
       "id": "MSG-04",
