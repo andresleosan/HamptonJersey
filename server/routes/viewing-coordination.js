@@ -10,7 +10,8 @@ import { cycleOn } from "../viewing-cycle.js";
 import { calendarBusyCheck, afterViewingChange } from "../viewing-calendar.js";
 import { change } from "./inbox.js";
 import { coordinationOn, validRequired, validateResponse, coordinationState, clientFit, allAcceptedSql, searchesSql,
-  searchArgs, operationFits, unchanged, unchangedSql } from "../viewing-coordination.js";
+  searchArgs, operationFits, unchanged, unchangedSql, AGENCY_REQUIRED } from "../viewing-coordination.js";
+import { agencyHome } from "../listing-provenance.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const STALE = "Someone else changed this proposal. Reload to see it (your change was not saved).";
@@ -48,6 +49,8 @@ async function readState(env, v) {
       notice_confirmed: p.notice_confirmed === 1, created_at: p.created_at, created_by: p.created_by, closed_at: p.closed_at,
       closed_by: p.closed_by, client_fit: clientFit(windows, p) },
     searches: searches.map(s => ({ id: s.id, operation: s.operation, search_state: s.search_state, windows: windowsOf(s.viewing_availability) })),
+    // SAP-09: another agency advertises the home, so the advertiser always accepts too.
+    ...(await agencyHome(env, v.listing_id) ? { agency: true } : {}),
   };
 }
 
@@ -64,6 +67,8 @@ async function propose({ request, env, admin, params: [vid] }) {
   if (!ACTIVE.includes(cur.status)) notActive(cur);
   const clock = jerseyNow(), errors = {}, required = validRequired(body.required);
   if (!required) errors.required = "The client always accepts; choose who else must accept";
+  // SAP-09: another agency's home (BUS-07 on) is agreed with the agency too, or it could never be confirmed.
+  else if (!required.includes("advertiser") && await agencyHome(env, cur.listing_id)) errors.required = AGENCY_REQUIRED;
   const { errors: slotErrors = {} } = validateViewing({ negotiator_id: body.negotiator_id, date: body.date, time: body.time },
     { today: clock.date, panel: true });
   for (const k of ["negotiator_id", "date", "time"]) if (slotErrors[k]) errors[k] = slotErrors[k];
@@ -133,6 +138,10 @@ async function respond({ request, env, admin, params: [vid, pid], waitUntil }) {
   const v = r.value, ts = now(), ref = { entity_type: "viewing", entity_id: String(id) };
   let commit = null, cal = null;
   if (v.response === "accepted") {
+    // SAP-09: a proposal made without the advertiser (before this rule, or with BUS-07 off then) never confirms another
+    // agency's home.
+    if (!JSON.parse(p.required).includes("advertiser") && await agencyHome(env, cur.listing_id))
+      fail(409, `${AGENCY_REQUIRED}. Propose the time again with them.`);
     commit = await change(env, "reschedule", { negotiator_id: p.negotiator_id, date: p.date, time: p.time,
       notice_confirmed: p.notice_confirmed === 1 }, cur, jerseyNow(), admin, await cycleOn(env, cur), ts);
     if (commit.errors) fail(409, commit.errors.notice_confirmed ?? commit.errors.listing_id

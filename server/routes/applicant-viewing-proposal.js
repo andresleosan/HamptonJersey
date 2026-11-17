@@ -12,7 +12,7 @@ import { listingProvenance } from "../listing-provenance.js";
 import { noticeCheck } from "../house-rules.js";
 import { touchByViewing } from "../retention.js";
 import { calendarBusyCheck } from "../viewing-calendar.js";
-import { coordinationOn, validRequired, operationFits } from "../viewing-coordination.js";
+import { coordinationOn, validRequired, operationFits, searchArgs } from "../viewing-coordination.js";
 
 const fields = f => json({ error: "Please check the highlighted fields.", fields: f }, 400);
 const taken = () => json({ error: "That time was just booked. Please choose another." }, 409);
@@ -41,10 +41,12 @@ async function start({ request, env, admin, params: [aid] }) {
   // Only a home another agency advertises (BUS-07): Hampton's own are booked at once with New viewing.
   if ((await listingProvenance(env, v.listing_id)).kind !== "co_listed")
     fail(409, "Hampton advertises this property itself: book the viewing with New viewing.");
-  // One active viewing per person and home: a second would hold another time for the same answer.
+  // One active viewing per person and home: a second would hold another time for the same answer. Email and phone as
+  // VIS-17 compares them (searchArgs: lower case; a phone without spaces, dashes, brackets or dots).
   const active = await env.DB.prepare(`SELECT id FROM viewing_requests WHERE listing_id = ?3 AND status IN ('requested', 'confirmed')
-    AND ((?1 IS NOT NULL AND email = ?1) OR (?2 IS NOT NULL AND phone = ?2)) ORDER BY id LIMIT 1`)
-    .bind(v.email, v.phone, v.listing_id).first();
+    AND ((?1 IS NOT NULL AND lower(email) = ?1) OR (?2 IS NOT NULL
+      AND replace(replace(replace(replace(replace(phone, ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?2)) ORDER BY id LIMIT 1`)
+    .bind(...searchArgs(v), v.listing_id).first();
   if (active) return json({ error: "This client already has an active viewing of this property. Open it to propose another time.",
     viewing_id: active.id }, 409);
   if (!operationFits(listing.operation, search.operation))
