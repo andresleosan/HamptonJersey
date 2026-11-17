@@ -6903,12 +6903,13 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "El aviso de privacidad ya nombra a Cloudflare y a Optimyze como encargados que actúan solo por instrucciones de Hampton.",
-   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34).",
+   "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34). Traído de PRE-32 (17-nov): Hermes usa DeepSeek como proveedor de reserva por decisión de Luis; falta su acuerdo de tratamiento o la evaluación equivalente.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
     "site/apply.js:330-335"
-   ]
+   ],
+   "actualizado": "2026-11-17"
   },
   {
    "id": "PRE-14",
@@ -7278,18 +7279,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Respuesta a la pregunta 16: qué plan de ChatGPT usa Hermes y qué datos puede recibir",
    "origen": "plan",
    "fase": "—",
-   "estado": "parcial",
-   "responsable": "Luis",
-   "hecho": "El plan maestro selecciona ChatGPT Pro central mediante Hermes para propósitos, vía y condiciones verificados; C3 queda fuera de Pro, Hermes y Telegram. Elegir el plan no acredita una cuenta operativa, una integración ni el estado de sus ajustes.",
-   "falta": "Verificar con el responsable la vía técnica, condiciones para trabajo de cliente y uso desatendido, propósitos y clases de datos admitidos, acuerdos aplicables y estado real del control de mejora o entrenamiento. No activar una vía sin esas verificaciones; no presumir que Pro incluye API ni activar una alternativa pagada automática. El avisador sin modelo puede avanzar por separado.",
+   "estado": "hecho",
+   "responsable": "desarrollo",
+   "hecho": "El plan maestro selecciona ChatGPT Pro central mediante Hermes para propósitos, vía y condiciones verificados; C3 queda fuera de Pro, Hermes y Telegram. Elegir el plan no acredita una cuenta operativa, una integración ni el estado de sus ajustes. Respuesta verificada el 17-nov-2026: Hermes 1 y 2 usan la suscripción ChatGPT Pro (200 USD) por Codex (provider openai-codex, chatgpt.com/backend-api/codex, modelo gpt-6-sol-900k), no la API. Luis desactivó «Improve the model for everyone». Por decisión expresa de Luis, DeepSeek (deepseek-flash) queda como proveedor de reserva normal de Hermes, sustituyendo para este caso la regla del plan maestro «ninguna API pagada alternativa automática». C3 sigue fuera de Pro, Hermes y Telegram.",
+   "falta": "Nada propio. El acuerdo de tratamiento con DeepSeek (reserva de Hermes) pasa al falta de PRE-13.",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 16",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
     "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28-30",
     "docs/superpowers/plans/2026-11-08-pre-32-hermes-plan-decision.md",
-    "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md"
-   ]
+    "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md",
+    "17-nov-2026: config de Hermes leída en los contenedores hermes y hermes2 (solo lectura): provider openai-codex, model gpt-6-sol-900k, fallback_providers deepseek/deepseek-flash con clave en .env.",
+    "17-nov-2026: decisiones de Luis en la sesión: mantener DeepSeek como segunda opción normal; «Improve the model for everyone» en Off (comprobado por Luis en su cuenta)."
+   ],
+   "actualizado": "2026-11-17"
   },
   {
    "id": "PRE-33",

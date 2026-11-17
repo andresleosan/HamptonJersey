@@ -4,26 +4,29 @@
   "titulo": "Respuesta a la pregunta 16: qué plan de ChatGPT usa Hermes y qué datos puede recibir",
   "origen": "plan",
   "fase": "—",
-  "estado": "parcial",
-  "responsable": "Luis",
-  "hecho": "El plan maestro selecciona ChatGPT Pro central mediante Hermes para propósitos, vía y condiciones verificados; C3 queda fuera de Pro, Hermes y Telegram. Elegir el plan no acredita una cuenta operativa, una integración ni el estado de sus ajustes.",
-  "falta": "Verificar con el responsable la vía técnica, condiciones para trabajo de cliente y uso desatendido, propósitos y clases de datos admitidos, acuerdos aplicables y estado real del control de mejora o entrenamiento. No activar una vía sin esas verificaciones; no presumir que Pro incluye API ni activar una alternativa pagada automática. El avisador sin modelo puede avanzar por separado.",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "El plan maestro selecciona ChatGPT Pro central mediante Hermes para propósitos, vía y condiciones verificados; C3 queda fuera de Pro, Hermes y Telegram. Elegir el plan no acredita una cuenta operativa, una integración ni el estado de sus ajustes. Respuesta verificada el 17-nov-2026: Hermes 1 y 2 usan la suscripción ChatGPT Pro (200 USD) por Codex (provider openai-codex, chatgpt.com/backend-api/codex, modelo gpt-6-sol-900k), no la API. Luis desactivó «Improve the model for everyone». Por decisión expresa de Luis, DeepSeek (deepseek-flash) queda como proveedor de reserva normal de Hermes, sustituyendo para este caso la regla del plan maestro «ninguna API pagada alternativa automática». C3 sigue fuera de Pro, Hermes y Telegram.",
+  "falta": "Nada propio. El acuerdo de tratamiento con DeepSeek (reserva de Hermes) pasa al falta de PRE-13.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §12 pregunta 16",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
     "docs/roadmap/2026-11-10-plan-maestro-vigente.md:28-30",
     "docs/superpowers/plans/2026-11-08-pre-32-hermes-plan-decision.md",
-    "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md"
+    "docs/superpowers/plans/2026-11-09-pre-32-pro-route-verification-closure.md",
+    "17-nov-2026: config de Hermes leída en los contenedores hermes y hermes2 (solo lectura): provider openai-codex, model gpt-6-sol-900k, fallback_providers deepseek/deepseek-flash con clave en .env.",
+    "17-nov-2026: decisiones de Luis en la sesión: mantener DeepSeek como segunda opción normal; «Improve the model for everyone» en Off (comprobado por Luis en su cuenta)."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Responsable de la cuenta y del tratamiento: verificar condiciones, datos y ajustes mediante el canal correspondiente; no se ha comprobado el estado de la cuenta.",
+  "externalBlocker": null,
   "resources": [
     "hermes-data-policy"
   ],
-  "nextStep": "Recoger evidencia de vía, condiciones, datos, acuerdos y ajustes antes de conectar el modelo; la elección del plan por sí sola no satisface la evidencia operativa."
+  "nextStep": "Ninguno.",
+  "actualizado": "2026-11-17"
 }

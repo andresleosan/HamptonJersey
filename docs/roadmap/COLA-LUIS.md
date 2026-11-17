@@ -10,7 +10,6 @@ Desde el 16-nov-2026 las migraciones 0107 (REG-15), 0108 (ANA-04), 0109 (MSG-01)
 
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
-| PRE-32 | 60 | Decir qué plan de ChatGPT usa Hermes y qué datos puede tratar; sin eso ninguna automatización con modelo se conecta. |
 | AUT-17 | 48 | Verificar cuenta y DNS de Cloudflare Email Service y autorizar encender `EMAIL_SERVICE_READY` con una prueba real de envío. Esa misma prueba cierra AUT-11 (barandillas de envío), que ya no tiene código pendiente. Poner `EMAIL_SERVICE_READY` a true **a la vez** en `wrangler.toml` y `jobs/wrangler.toml`. |
 | ANA-10 | 0 | Antes de colgar un póster, probar con un móvil que el QR impreso (panel › ficha › «Window poster QR» › Download) abre la ficha. No bloquea nada: ANA-10 ya está cerrada y cuenta las aperturas agregadas. |
 | ADM-10 | 1 | La liquidación mensual al propietario ya está encendida (cierre del mes como revisión fija, «sent» y «paid» a mano, CSV e impresión). Faltan dos decisiones: (1) GST — ¿Hampton está registrada para GST en Jersey y a qué tipo? Hoy sale «GST not configured» a £0; (2) PDF — ¿basta con «Imprimir → PDF» del navegador, o quieres un PDF generado por el servidor (probablemente no cabe en los 10 ms de CPU del plan gratuito)? El envío por correo llega con AUT-17. |
