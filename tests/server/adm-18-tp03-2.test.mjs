@@ -116,3 +116,9 @@ test("revoking the staff capability blocks a later read or decision", async () =
   assert.equal((await review(env, id, { revision: 2, decision: "under_review", policy_version: "fixture-v1" })).status, 403);
   assert.equal(env.DB.raw.prepare("SELECT status FROM rental_applications WHERE id = ?").get(id).status, "submitted");
 });
+
+test("0117: deleting an applicant takes their applications with them (retention and Delete never blocked)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const sql = readFileSync(new URL("../../migrations/0117_rental_applications.sql", import.meta.url), "utf8");
+  assert.match(sql, /applicant_id INTEGER NOT NULL REFERENCES applicants\(id\) ON DELETE CASCADE/);
+});

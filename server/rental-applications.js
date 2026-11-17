@@ -44,7 +44,7 @@ export function affordabilityPolicy(env) {
 export function evaluateAffordability({ income, rent, policy }) {
   const list = Array.isArray(income) ? income : [];
   const incomes = list.map(i => ({ amount: i?.amount ?? null, period: i?.period, basis: i?.basis, currency: i?.currency,
-    factor: PERIODS[i?.period] ?? null, annual: Number.isSafeInteger(i?.amount) && PERIODS[i?.period] ? i.amount * PERIODS[i.period] : null }));
+    factor: Object.hasOwn(PERIODS, i?.period ?? "") ? PERIODS[i.period] : null, annual: Number.isSafeInteger(i?.amount) && Object.hasOwn(PERIODS, i?.period ?? "") ? i.amount * PERIODS[i.period] : null }));
   const inputs = { rent_monthly: rent, annual_rent: rent * 12, incomes, annual_income: null, rent_share: null };
   const result = (status, reason = null) => ({ status, reason, inputs, policy_version: policy?.version ?? null });
   const review = reason => result("needs_human_review", reason);
@@ -70,7 +70,7 @@ export function validateAnswers(a) {
     employer: opt("employer", e.employer, 120), role: opt("role", e.role, 120) };
   const incomes = Array.isArray(a.incomes) && a.incomes.length >= 1 && a.incomes.length <= 4 ? a.incomes.map((i, n) => {
     const amount = count(`income_${n}`, i?.amount, 10_000_000, "Enter whole pounds, or leave the amount empty.");
-    if (!PERIODS[i?.period] || !BASES.includes(i?.basis) || !CURRENCIES.includes(i?.currency))
+    if (!Object.hasOwn(PERIODS, i?.period ?? "") || !BASES.includes(i?.basis) || !CURRENCIES.includes(i?.currency))
       bad(`income_${n}`, "Choose how often it is paid, before or after tax, and the currency.");
     return { amount, period: i?.period, basis: i?.basis, currency: i?.currency };
   }) : bad("incomes", "Add from 1 to 4 incomes.");

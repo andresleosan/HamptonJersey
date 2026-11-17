@@ -24,7 +24,7 @@ async function review({ request, env, admin, params: [id] }) {
 async function newLink({ request, env, admin, params: [id] }) {
   const g = await createApplicationLink(env, Number(id), (await body(request, 512)).expires_on, admin);
   return json({ grant_id: g.id, link: `${new URL(request.url).origin}/rental-application#${g.token}`,
-    ...(await readRentalApplication(env, Number(id), admin)) }, 201);
+    ...(await readRentalApplication(env, Number(id), admin).catch(() => ({}))) }, 201); // the link is shown once: never lose it to a read 403
 }
 // Only a link of this application: another one's id is not found here.
 async function mark({ env, admin, params: [id, grant, action] }) {

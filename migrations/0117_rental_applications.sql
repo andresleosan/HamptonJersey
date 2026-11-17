@@ -7,7 +7,7 @@
 CREATE TABLE rental_applications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   rental_id INTEGER NOT NULL REFERENCES rentals(id),
-  applicant_id INTEGER NOT NULL REFERENCES applicants(id),
+  applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
   rent INTEGER NOT NULL CHECK (rent > 0 AND rent <= 1000000),
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted','under_review','accepted','declined','withdrawn')),
   revision INTEGER NOT NULL DEFAULT 1 CHECK (revision > 0),
