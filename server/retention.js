@@ -77,7 +77,7 @@ export const NO_NOTICE = "outbound.template <> 'retention_notice'";
 export const noticeClaimSql = async env => (retentionNoticesReady(env) && await noticeTable(env) ? `(${NO_NOTICE}
   OR EXISTS (SELECT 1 FROM retention_notices n JOIN contacts c ON c.id = n.contact_id WHERE n.outbound_ref = outbound.ref
     AND n.state = 'queued' AND n.activity_at = c.last_activity_at AND c.email = outbound.recipient AND ${EXEMPT}${
-  privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}))` : NO_NOTICE);
+  privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}${await tenancyNoticeHold(env, jerseyToday())}))` : NO_NOTICE);
 
 // PRE-12 (D4, migration 0113): with PRE12_TENANCY_LINK_READY, a contact a team member linked as the tenant of a tenancy
 // still running (no move-out, or one still to come) is kept by the pass and by the applicant's Delete. The latest
@@ -89,6 +89,12 @@ export const linkTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WHER
 export const RUNNING_TENANCY = `EXISTS (SELECT 1 FROM tenancy_contact_links l JOIN tenancies t ON t.id = l.tenancy_id
   WHERE l.contact_id = c.id AND l.linked = 1 AND (t.ended_on IS NULL OR t.ended_on > ?2)
     AND l.id = (SELECT MAX(m.id) FROM tenancy_contact_links m WHERE m.tenancy_id = l.tenancy_id AND m.contact_id = c.id))`;
+// The same hold for the notice before deletion (server/retention-notices.js, noticeClaimSql): a contact the pass keeps for a
+// running tenancy gets no notice, and one it already has is withdrawn, so the tenancy's end never deletes on an old date.
+// The Jersey date goes in as a literal (it comes from jerseyToday) because those queries bind their own parameters. "" when
+// the switch is off or 0113 is missing: those statements are then as before.
+export const tenancyNoticeHold = async (env, day) =>
+  tenancyLinkReady(env) && /^\d{4}-\d\d-\d\d$/.test(day) && await linkTable(env) ? ` AND NOT ${RUNNING_TENANCY.replaceAll("?2", `'${day}'`)}` : "";
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts

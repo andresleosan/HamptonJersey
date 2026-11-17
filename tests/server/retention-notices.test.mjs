@@ -327,3 +327,52 @@ test("the task's text holds whether the notice later goes or not", async () => {
   await retentionNoticePass(env, "2026-11-26T00:20:00.000Z");
   assert.equal((await runRetention(env, "2026-12-27T09:00:00.000Z")).contacts, 1);
 });
+
+// PRE-12 (D4): a contact linked to a tenancy still running is kept by the pass, so the notice must not tell them they
+// will be deleted; when the tenancy ends they get a fresh notice, never the old one.
+const tenancyLink = (env, id, ended = null) => {
+  const r = insert(env, "landlords", { name: "Synthetic Landlord", created_at: T0, updated_at: T0 });
+  const rental = insert(env, "rentals", { landlord_id: r, address: "1 Fictitious Row", parish: "St Helier", service: "full",
+    fee_percent: 10, created_at: T0, updated_at: T0 });
+  const t = insert(env, "tenancies", { rental_id: rental, payment_ref: `REF${rental}`, tenant_name: "Synthetic Tenant", occupants: "A",
+    kind: "fixed", regime: "2025", start_on: "2026-01-01", end_on: "2027-01-01", rent: 1500, due_day: 1, deposit: 2000, ended_on: ended,
+    notes: "n", created_at: T0, updated_at: T0 });
+  insert(env, "tenancy_contact_links", { tenancy_id: t, contact_id: id, linked: 1, tenant_revision: "a".repeat(64), actor: "x", at: T0 });
+  return t;
+};
+
+test("a contact linked to a running tenancy gets no notice, and a waiting or sent one is withdrawn", async () => {
+  const env = world({ ...ON, PRE12_TENANCY_LINK_READY: "1" });
+  const held = contact(env, "tenant@example.je"), free = contact(env, "free@example.je");
+  tenancyLink(env, held);
+  await retentionNoticePass(env, NOTICE);
+  assert.deepEqual(notices(env).map(n => n.entity_id), [String(free)]);
+  assert.equal(state(env, held), undefined);
+  // Linked after its notice was already sent: the old notice goes, so the tenancy's end does not delete on it.
+  const later = contact(env, "later@example.je");
+  await retentionNoticePass(env, "2026-10-26T09:10:00.000Z");
+  await send(env, "2026-10-26T09:12:00.000Z");
+  await retentionNoticePass(env, "2026-10-26T09:20:00.000Z"); // records the outcome
+  assert.equal(state(env, later), "accepted");
+  tenancyLink(env, later);
+  await retentionNoticePass(env, "2026-10-27T09:00:00.000Z");
+  assert.equal(state(env, later), undefined);
+  assert.equal((await runRetention(env, AFTER)).contacts, 1); // only the free one: both tenants stay
+  assert.deepEqual([exists(env, held), exists(env, later)], [true, true]);
+});
+
+test("an ended tenancy holds nothing: the notice goes as for any contact", async () => {
+  const env = world({ ...ON, PRE12_TENANCY_LINK_READY: "1" });
+  const c = contact(env, "gone@example.je");
+  tenancyLink(env, c, "2026-09-01");
+  await retentionNoticePass(env, NOTICE);
+  assert.deepEqual(notices(env).map(n => n.entity_id), [String(c)]);
+});
+
+test("with the tenancy link switch off the notice is as before", async () => {
+  const env = world();
+  const c = contact(env, "tenant@example.je");
+  tenancyLink(env, c);
+  await retentionNoticePass(env, NOTICE);
+  assert.deepEqual(notices(env).map(n => n.entity_id), [String(c)]);
+});

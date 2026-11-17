@@ -1,6 +1,6 @@
 import { sha256 } from "./http.js";
 import { jerseyToday } from "./viewings.js";
-import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, noticeOutcomeStatements, expiringSql, noticeTable, privacyHolds, retentionNoticesReady }
+import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, noticeOutcomeStatements, expiringSql, noticeTable, privacyHolds, retentionNoticesReady, tenancyNoticeHold }
   from "./retention.js";
 import { SITE, readEmailSettings, serviceReady } from "./email.js";
 
@@ -43,11 +43,12 @@ const TASK_KEY = "'retention_notice:' || c.id || ':' || c.last_activity_at";
 export async function retentionNoticePass(env, ts) {
   if (!retentionNoticesReady(env) || !await noticeTable(env)) return; // off, or switched on before 0112: nothing to do
   const day = jerseyToday(new Date(ts)), held = privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : "";
+  const tenant = await tenancyNoticeHold(env, day); // a contact kept for a running tenancy: no notice, and its old one goes
   // A notice of an episode that ended (new activity, which an address change is too) goes; so does one still waiting for
   // a contact the pass would no longer delete (a search or offer opened, a privacy request), its email unsent. The
   // contact's next episode gets its own.
   const OBSOLETE = `SELECT n.id FROM retention_notices n WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.id = n.contact_id
-    AND c.last_activity_at = n.activity_at AND (n.state <> 'queued' OR (${EXEMPT}${held})))`;
+    AND c.last_activity_at = n.activity_at${tenant} AND (n.state <> 'queued' OR (${EXEMPT}${held})))`;
   await env.DB.batch([
     ...noticeOutcomeStatements(env, ts), // also run by every retention pass, before email content is cleared
     env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ?1 WHERE status = 'queued' AND template = '${TEMPLATE}'
@@ -56,16 +57,16 @@ export async function retentionNoticePass(env, ts) {
   ]);
   // Queued only while the email service can send: otherwise none is prepared, and the pass keeps the contact.
   const ready = serviceReady(env) && typeof env.EMAIL?.send === "function" && (await readEmailSettings(env)).enabled;
-  if (ready) await prepare(env, ts, day, held);
-  await openReviews(env, ts, day, ready);
+  if (ready) await prepare(env, ts, day, held, tenant);
+  await openReviews(env, ts, day, ready, tenant);
 }
 
 // The oldest contacts of Expiring with an email and no notice for their episode. Each insert checks the contact is still
 // as read; an address the team or the provider suppressed gets no email, and its notice counts as not sent.
-async function prepare(env, ts, day, held) {
+async function prepare(env, ts, day, held, tenant) {
   const { results } = await env.DB.prepare(`SELECT c.id, c.email, c.last_activity_at AS activity_at,
       max(date(c.last_activity_at, '+12 months', '+1 day'), date(?, '+1 months')) AS delete_after
-    FROM contacts c WHERE ${expiringSql(env)} AND c.email IS NOT NULL
+    FROM contacts c WHERE ${expiringSql(env)}${tenant} AND c.email IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id AND n.activity_at = c.last_activity_at)
     ORDER BY c.last_activity_at, c.id LIMIT ${NOTICES_PER_TICK}`).bind(day, day).all();
   const stmts = [];
@@ -74,7 +75,7 @@ async function prepare(env, ts, day, held) {
     stmts.push(
       env.DB.prepare(`INSERT INTO retention_notices (contact_id, activity_at, outbound_ref, delete_after, state, created_at, updated_at)
         SELECT c.id, c.last_activity_at, ?, ?, 'queued', ?, ? FROM contacts c WHERE c.id = ? AND c.last_activity_at = ?
-          AND c.email = ? AND ${EXEMPT}${held} ON CONFLICT DO NOTHING`)
+          AND c.email = ? AND ${EXEMPT}${held}${tenant} ON CONFLICT DO NOTHING`)
         .bind(ref, c.delete_after, ts, ts, c.id, c.activity_at, c.email),
       env.DB.prepare(`INSERT INTO outbound (ref, dedupe_key, template, entity_id, version, recipient, recipient_hash, subject, text,
           status, approved_by, approved_at, created_at, updated_at)
@@ -90,11 +91,11 @@ async function prepare(env, ts, day, held) {
 
 // One Inbox task per contact and episode the pass keeps for its notice: failed, uncertain (no result, or none by the
 // date it gave), not sent (suppressed, cancelled, or the email service off once the 12 months are over) or answered.
-async function openReviews(env, ts, day, ready) {
+async function openReviews(env, ts, day, ready, tenant) {
   const { results } = await env.DB.prepare(`SELECT c.id, c.last_activity_at AS activity_at,
       CASE WHEN n.id IS NULL THEN 'not_sent' WHEN n.state = 'queued' THEN 'unknown' ELSE n.state END AS reason
     FROM contacts c LEFT JOIN retention_notices n ON n.contact_id = c.id AND n.activity_at = c.last_activity_at
-    WHERE ${expiringSql(env)} AND c.email IS NOT NULL
+    WHERE ${expiringSql(env)}${tenant} AND c.email IS NOT NULL
       AND (n.state IN ('failed', 'unknown', 'not_sent', 'replied') OR (n.state = 'queued' AND n.delete_after <= ?)
         OR (n.id IS NULL AND ? = 0 AND c.last_activity_at < date(?, '-12 months')))
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ${TASK_KEY})
