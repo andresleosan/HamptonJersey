@@ -4,10 +4,10 @@
   "titulo": "Validación integral del recorrido de búsqueda",
   "origen": "plan",
   "fase": "—",
-  "estado": "hecho",
+  "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "Validación integral ejecutada sobre una sola D1 local con los módulos reales y sus interruptores encendidos solo en la prueba: directorio y barrido diario, alta de dos búsquedas de un contacto y de otros dos hogares, matching, revisión humana, consulta compartida, llamada, respuesta confirmada, captura, presentación privada, visita multiparte, dictado, cierre humano, indisponibilidad, barrido y rematch del día siguiente, revisión interna del día 21 y su repetición a los 7 días, y purga de fotos a los seis meses. Las 16 comprobaciones A01–A16 y los cinco casos transversales (X1 concurrencia de empleados y ticks; X2 cambio material tras aprobar; X3 envío aceptado con acuse perdido; X4 lectura, captura y purga parcial con reintento; X5 fechas de Jersey, cambios de hora y meses) pasan juntos: sin duplicados, con el historial conservado y las decisiones humanas respetadas. Correo solo por el proveedor simulado; sin cambios de código de producción, migraciones, interruptores ni envíos.",
-  "falta": "",
+  "falta": "Tarea 3 del plan: evidencia visual del recorrido (capturas a 1280 y 390, teclado, zoom 200 %, consola y red sin errores) con acceptance.md y evidence-index.json. Las comprobaciones A01–A16 y X1–X5 ya pasan juntas (tests/server/aut-20-search-journey.test.mjs).",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/work/AUT-20/resultados.md (tabla de resultado y evidencia por comprobación)",
@@ -181,6 +181,6 @@
   "resources": [
     "integrated-journey-tests"
   ],
-  "nextStep": "Conservar como completada. Las observaciones de resultados.md (comentario de cabecera de la purga EST-19, festivos de Jersey en la llamada AGE-08) son mejoras opcionales de sus tareas.",
+  "nextStep": "Recorrido de navegador aislado sobre las pantallas del viaje y acceptance.md; después cerrar.",
   "actualizado": "2026-11-17"
 }
