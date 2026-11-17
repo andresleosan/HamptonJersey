@@ -47,11 +47,13 @@ test('an email that failed, or a text never recorded as sent, shows that nothing
 });
 
 test('a sent check shows its date, the text that went out, what each case carried and no commercial right',async()=>{
- const sent={...base,shared:{text:'Hello,\n\nFixture text sent',property:'HE-R001',household_size:3,client_identity:false},
+ const sent={...base,shared:{text:'Hello,\n\nFixture text sent',revision:2,sent_at:SENT,via:'phone',by:'fixture-sender',evidence_ref:'Call log FIXTURE',
+   property:'HE-R001',household_size:3,client_identity:false},
+  approvals:[{type:'send',revision:1,by:'fixture-approver',at:SENT,of_sent_version:false}],events_truncated:true,
   general_checks:[{asked:['availability','viewing_times'],identifies_client:false,sent_at:SENT,via:'phone',by:'fixture-sender',matches_at_sending:1}],
   presentations:[{match_id:41,applicant_id:5,shared:['household_size'],household_size:3,identifies_client:false,sent_at:SENT,via:'phone'}],
   attempts:[...base.attempts,{type:'sent_manually',at:SENT,by:'fixture-sender',via:'phone',sent_at:SENT,evidence_ref:'Call log FIXTURE'}],
-  matches:[{...base.matches[0],before_sending:true}],
+  matches:[{...base.matches[0],before_sending:true,has_note:true}],
   responses:[{type:'response_recorded',at:SENT,by:'fixture-recorder',outcome:'available',via:'phone',scope:'property'}],
   latest_response:{outcome:'available',at:SENT,via:'phone',from:'Lettings desk',scope:'property',evidence_ref:'Call log FIXTURE 2',by:'fixture-recorder',recorded_at:SENT},
   calls:{events:[{type:'call_due',at:SENT}],task:{created_at:SENT,due_at:SENT,resolved_at:SENT,resolved_by:'fixture-recorder',task_action:'source_resolved'}},
@@ -70,6 +72,10 @@ test('a sent check shows its date, the text that went out, what each case carrie
   assert.match(t,/Available/);
   assert.match(t,/Lettings desk/);
   assert.match(t,/Call due/);
+  assert.match(t,/version 2/);
+  assert.match(t,/version 1 \(not the version sent\)/);
+  assert.match(t,/Partial list/);
+  assert.match(t,/said something about this search: see its match/);
   assert.match(t,/does not establish any commission/i);
   assert.doesNotMatch(t.replace(/does not establish any commission[^.]*\./i,''),/commission/i,'no commission right inferred');
   const link=v.dom.window.document.querySelector('a[href="#/applicants/5/matches"]');
@@ -79,6 +85,15 @@ test('a sent check shows its date, the text that went out, what each case carrie
   assert.equal(v.calls[1],'/api/admin/consultations/7/evidence?cursor=41');
   assert.ok(v.dom.window.document.querySelector('a[href="#/applicants/6/matches"]'));
   assert.match(v.text(),/joined after it was sent/i);
+ }finally{await v.close();}
+});
+
+test('an email whose outcome was not confirmed is not counted as shared',async()=>{
+ const v=await mount([{...base,consultation:{...base.consultation,status:'needs_review'},attempts:[...base.attempts,{type:'email_unknown',at:SENT,by:'system'}]}]);
+ try{
+  assert.match(v.text(),/did not confirm whether the email went out/);
+  assert.doesNotMatch(v.text(),/Nothing has been shared/);
+  assert.doesNotMatch(v.text(),/Partial list/);
  }finally{await v.close();}
 });
 
