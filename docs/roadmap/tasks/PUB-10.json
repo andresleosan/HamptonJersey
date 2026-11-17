@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada.",
-  "falta": "Para encender: aplicar 0118 en remoto; aviso de privacidad para propietarios publicado con el número JOIC real (PRE-09, PRE-03); plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\".",
+  "falta": "Para encender: aplicar 0118 en remoto; aviso de privacidad para propietarios publicado con el número JOIC real (PRE-09, PRE-03); plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Antes de encender (revisión 17-nov): incluir owner_requests en la búsqueda y el borrado de solicitudes de privacidad y en la pasada de retención (PRE-12).",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
     "site/index.html:543",
