@@ -13,7 +13,7 @@ const vis17Ready = env => env?.VIS17_MULTIPART_READY === "1", reviewReady = env 
 export const labelsReady = env => env?.EST10_LABELS_READY === "1";
 
 export const WORK_LABEL_TEXT = { new: "New properties found", review: "Waiting for review", shortlisted: "Shortlisted", in_process: "In process",
-  essential: "Must-have to confirm", viewing_pending: "Viewing pending", viewing_booked: "Viewing booked", search_review: "Search review due" };
+  essential: "Requirement to confirm", viewing_pending: "Viewing pending", viewing_booked: "Viewing booked", search_review: "Search review due" };
 
 // The labels EST-10 adds, for the sources read.
 export const sourceLabels = ({ viewings, review }) =>
@@ -26,28 +26,39 @@ export function workLabelsFor(row) {
     ...["essential", "viewing_pending", "viewing_booked", "search_review"].filter(k => !!row[k])].filter(Boolean);
 }
 
-// Per search a (applicants a): a match not rejected whose essential facts are still to confirm (matches_page index).
+// Only for a search in the work queue (as the queue column): the others show no label, so nothing else is read for them.
+const QUEUED = "a.search_state = 'active' AND a.archived_at IS NULL AND a.search_category = 'residential'";
+const queued = expr => `CASE WHEN ${QUEUED} THEN ${expr} ELSE 0 END`;
+// Per search a (applicants a): a match not rejected with requirements_rank 1 (matches_page index): a must-have, pets,
+// housing or area the property does not answer, a requirement whose importance is not stated, or an older match ranked
+// before priorities existed.
 const ESSENTIAL = `EXISTS (SELECT 1 FROM matches m WHERE m.applicant_id = a.id AND m.status IN ('found', 'shortlisted') AND m.requirements_rank = 1)`;
-// The viewings a person linked to this search (viewing_proposals_applicant index). Pending: a time being agreed (an open
-// proposal) or a request held for today or later; booked: the viewing itself confirmed, for today or later. Bind: today.
-const LINKED = "FROM viewing_proposals p JOIN viewing_requests v ON v.id = p.viewing_id WHERE p.applicant_id = a.id";
-const PENDING = `EXISTS (SELECT 1 ${LINKED} AND (p.state = 'open' OR (v.status = 'requested' AND v.date >= ?)))`;
-const BOOKED = `EXISTS (SELECT 1 ${LINKED} AND v.status = 'confirmed' AND v.date >= ?)`;
+// The viewings linked to this search by a person (viewing_proposals_applicant index): through the viewing's latest proposal
+// only, so a viewing re-linked to another search stops labelling the first. Still to come: its end (or start) later than
+// now, Jersey time; bind "YYYY-MM-DD HH:MM". Pending: an open proposal whose time is still to come on a viewing requested
+// or confirmed, or a request still to come; booked: the viewing itself confirmed and still to come.
+const LINKED = `FROM viewing_proposals p JOIN viewing_requests v ON v.id = p.viewing_id WHERE p.applicant_id = a.id
+  AND NOT EXISTS (SELECT 1 FROM viewing_proposals q WHERE q.viewing_id = p.viewing_id AND q.revision > p.revision)`;
+const AHEAD = t => `${t}.date || ' ' || COALESCE(${t}.end_time, ${t}.time) > ?`;
+const PENDING = `EXISTS (SELECT 1 ${LINKED} AND v.status IN ('requested', 'confirmed')
+  AND ((p.state = 'open' AND ${AHEAD("p")}) OR (v.status = 'requested' AND ${AHEAD("v")})))`;
+const BOOKED = `EXISTS (SELECT 1 ${LINKED} AND v.status = 'confirmed' AND ${AHEAD("v")})`;
 // BUS-17's open review (search_reviews_one_open), until the team's Done on its Inbox task.
 const REVIEW = `EXISTS (SELECT 1 FROM search_reviews r WHERE r.applicant_id = a.id AND r.closed_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM notifications n WHERE n.task_key = 'bus17:review:' || r.id AND n.resolved_at IS NOT NULL))`;
 
 // What the list adds while switched on: its columns (each ", <expr> AS <label>"), their binds and the labels it can show.
-// null when off: the list is read exactly as before.
-export async function labelColumns(env, today) {
+// clock: Jersey's { date, time } now. null when off: the list is read exactly as before.
+export async function labelColumns(env, clock) {
   if (!labelsReady(env)) return null;
   const wanted = [vis17Ready(env) && "viewing_proposals", reviewReady(env) && "search_reviews"].filter(Boolean);
   const have = new Set(wanted.length ? (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (SELECT value FROM json_each(?))")
     .bind(JSON.stringify(wanted)).all()).results.map(r => r.name) : []);
-  const viewings = have.has("viewing_proposals"), review = have.has("search_reviews");
+  const viewings = have.has("viewing_proposals"), review = have.has("search_reviews"), now = `${clock.date} ${clock.time}`;
   return {
-    sql: `, ${ESSENTIAL} AS essential${viewings ? `, ${PENDING} AS viewing_pending, ${BOOKED} AS viewing_booked` : ""}${review ? `, ${REVIEW} AS search_review` : ""}`,
-    args: viewings ? [today, today] : [],
+    sql: `, ${queued(ESSENTIAL)} AS essential${viewings ? `, ${queued(PENDING)} AS viewing_pending, ${queued(BOOKED)} AS viewing_booked` : ""}${review
+      ? `, ${queued(REVIEW)} AS search_review` : ""}`,
+    args: viewings ? [now, now, now] : [],
     labels: sourceLabels({ viewings, review }),
   };
 }

@@ -61,7 +61,7 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    const row=name=>page.getByRole('row').filter({has:page.getByRole('link',{name,exact:true})});
    const labels=name=>row(name).locator('td[data-label="Work labels"] .badge');
    await row(names[0]).waitFor();
-   assert.deepEqual(await labels(names[0]).allInnerTexts(),['Waiting for review','Must-have to confirm','Viewing booked','Search review due']);
+   assert.deepEqual(await labels(names[0]).allInnerTexts(),['Waiting for review','Requirement to confirm','Viewing booked','Search review due']);
    assert.deepEqual(await labels(names[1]).allInnerTexts(),['Viewing pending']);
    assert.deepEqual(await labels(names[2]).allInnerTexts(),[],'a viewing from the same email is not linked');
    await page.getByText(/Search review due: the internal review after 21 days/).waitFor();
