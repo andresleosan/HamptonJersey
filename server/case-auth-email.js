@@ -21,7 +21,8 @@ const SENDABLE = `EXISTS (SELECT 1 FROM app_settings WHERE key = 'email' AND jso
   AND NOT EXISTS (SELECT 1 FROM email_suppressions WHERE address_hash = ?)`;
 const transport = env => serviceReady(env) && typeof env.EMAIL?.send === "function";
 const SUBJECT = "Your Hampton Estates code";
-const body = code => [`Your code is ${code}.`, "", "Enter it on the Hampton Estates page where you asked for it, to report a repair. "
+const FOR = { repair_report: "to report a repair", rental_application: "to fill in your rental application" }; // ADM-18
+const body = (code, purpose) => [`Your code is ${code}.`, "", `Enter it on the Hampton Estates page where you asked for it, ${FOR[purpose]}. `
   + "It works for 10 minutes. If you did not ask for it, you can ignore this email.", "", "Hampton Estates",
   "42 Bath Street, St Helier, Jersey JE2 4ST"].join("\n");
 
@@ -78,7 +79,7 @@ export async function sendCaseChallengeCode(env, g, clock = now) {
   }
   let status = "accepted", messageId = null, error = null;
   try {
-    const r = await sendNow(env, g.email, SUBJECT, body(code));
+    const r = await sendNow(env, g.email, SUBJECT, body(code, g.purpose));
     if (typeof r?.messageId !== "string" || !r.messageId || r.messageId.length > 512) throw new Error("Missing acceptance id");
     messageId = r.messageId;
   } catch (e) {

@@ -113,8 +113,7 @@ test('authority rows cannot be deleted and reinserted to revive an earlier snaps
 
 test('missing lifecycle protections and a hypothetical rental application fail closed',async()=>{
   const db=makeDb();await seed(db);
-  await run(db,'CREATE TABLE rental_applications(id INTEGER PRIMARY KEY)');
-  await run(db,'INSERT INTO rental_applications(id) VALUES(1)');
+  // Migration 0117 creates rental_applications; staff authority stays on the property (case kind rental), never the application.
   await run(db,`INSERT INTO case_purpose_policies(purpose,revision,status,retention_ref,privacy_ref,approval_ref,approved_by,valid_from)
     VALUES('rental_application',1,'approved','fixture-retention','fixture-privacy','fixture-policy','fixture',?)`,at);
   await run(db,`INSERT INTO case_capability_memberships(case_kind,case_id,staff_email,status,version,approval_ref,approved_by,approved_at,lifecycle_generation)
