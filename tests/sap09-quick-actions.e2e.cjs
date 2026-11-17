@@ -145,6 +145,11 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    assert.deepEqual(d1(`SELECT state, required, applicant_id FROM viewing_proposals WHERE viewing_id=${v.id}`),
     [{state:'open',required:'["client","advertiser"]',applicant_id:ana}],'two_searches_exact_target');
    await coord.locator('ul.coord-people > li').filter({hasText:'Advertiser or agency'}).getByText('Waiting for their answer').waitFor();
+   // Another time is always proposed to the agency too (R1): its box is ticked and locked.
+   await coord.getByRole('button',{name:'Propose another time'}).click();
+   const agencyBox=coord.locator('form.coord-form').getByLabel(/Advertiser or agency/);
+   assert.deepEqual([await agencyBox.isChecked(),await agencyBox.isDisabled()],[true,true]);
+   await coord.locator('form.coord-form').getByRole('button',{name:'Close'}).click();
    await fits('coordination');
    if(shots)await detail.screenshot({path:join(shots,`sap09-proposed-${width}.png`)});
    assert.equal(d1(`SELECT search_state FROM applicants WHERE id=${ana}`)[0].search_state,'active','search_stays_active');

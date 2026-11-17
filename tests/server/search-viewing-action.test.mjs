@@ -158,8 +158,16 @@ test("a contact detail that cannot be used is named", async t => {
   assert.equal(count(env, "viewing_requests"), 0);
 });
 
-test("G1: a held agency viewing is never confirmed by a plain Confirm, after a move or a superseded proposal", async t => {
+const PENDING = "Another agency advertises this property, so it is confirmed only with the agency's acceptance: use Propose a time and record their answer.";
+const REQUIRED = "Another agency advertises this property: the advertiser or agency must accept too";
+const propose = (env, cookie, id, o = {}) => call(env, "POST", `/admin/viewings/${id}/proposals`, { cookie, body: { expected_revision: 0,
+  negotiator_id: 2, date: WED, time: "16:30", required: ["client", "advertiser"], ...o } });
+const answer = (env, cookie, id, p, participant, o = {}) => call(env, "POST", `/admin/viewings/${id}/proposals/${p.id}/responses`, { cookie,
+  body: { revision: p.revision, participant, response: "accepted", channel: "phone", answered_at: "2026-10-20T12:05:00.000Z", ...o } });
+
+test("G1/R2: a held agency viewing is never confirmed by a plain Confirm, after a move or a superseded proposal", async t => {
   const { env, cookie } = await world(t);
+  env.BUS07_PROVENANCE_READY = "1";
   const applicant = search(env, contact(env));
   const id = (await start(env, cookie, applicant)).data.id;
   assert.equal((await act(env, cookie, id, "confirm")).status, 409, "open proposal");
@@ -167,38 +175,67 @@ test("G1: a held agency viewing is never confirmed by a plain Confirm, after a m
   assert.equal(one(env, "SELECT state FROM viewing_proposals").state, "superseded");
   const c = await act(env, cookie, id, "confirm");
   assert.equal(c.status, 409);
-  assert.equal(c.data.error, "This viewing needs the agency's acceptance: propose a time and record their answer.");
+  assert.equal(c.data.error, PENDING);
   assert.equal(row(env, id).status, "requested");
-  // Agreed by everyone through VIS-17: confirmed.
-  const p = (await call(env, "POST", `/admin/viewings/${id}/proposals`, { cookie, body: { expected_revision: 1, negotiator_id: 2, date: WED,
-    time: "15:00", required: ["client", "advertiser"], applicant_id: applicant } })).data.proposal;
-  for (const participant of ["client", "advertiser"]) assert.equal((await call(env, "POST", `/admin/viewings/${id}/proposals/${p.id}/responses`,
-    { cookie, body: { revision: p.revision, participant, response: "accepted", channel: "phone", answered_at: "2026-10-20T12:05:00.000Z" } })).status, 200);
+  // Agreed by everyone through VIS-17, the agency included: confirmed.
+  const p = (await propose(env, cookie, id, { expected_revision: 1, time: "15:00", applicant_id: applicant })).data.proposal;
+  for (const participant of ["client", "advertiser"]) assert.equal((await answer(env, cookie, id, p, participant)).status, 200);
   assert.deepEqual([row(env, id).status, row(env, id).time], ["confirmed", "15:00"]);
 });
 
-test("G1: viewings without an advertiser's proposal confirm as before", async t => {
+test("R1/R2: with BUS-07 and VIS-17 on, another agency's home is confirmed only through a proposal the advertiser accepted", async t => {
   const { env, cookie } = await world(t);
-  const plain = held(env, OWN, "10:00", "cy@example.je");
-  assert.equal((await act(env, cookie, plain, "confirm")).status, 200);
-  const clientOnly = held(env, OWN, "12:00", "di@example.je");
-  assert.equal((await call(env, "POST", `/admin/viewings/${clientOnly}/proposals`, { cookie, body: { expected_revision: 0, negotiator_id: 2,
-    date: WED, time: "14:00", required: ["client"] } })).status, 201);
-  assert.equal((await act(env, cookie, clientOnly, "reschedule", { negotiator_id: 1, date: "2026-10-22", time: "13:00" })).status, 200);
-  assert.equal((await act(env, cookie, clientOnly, "confirm")).status, 200, "a client-only proposal never needed the agency");
-  // A website request: on Hampton's own home VIS-17's rule stands (declined, nothing open: Confirm works again); on the
-  // agency's home the declined agency was never agreed with, so Confirm is refused.
-  for (const [listing, time, expected] of [[OWN, "15:00", 200], [ID, "16:00", 409]]) {
-    const v = held(env, listing, time, `web-${time.slice(0, 2)}@example.je`);
-    const p = (await call(env, "POST", `/admin/viewings/${v}/proposals`, { cookie, body: { expected_revision: 0, negotiator_id: 2,
-      date: WED, time: "16:30", required: ["client", "advertiser"] } })).data.proposal;
-    assert.equal((await call(env, "POST", `/admin/viewings/${v}/proposals/${p.id}/responses`, { cookie, body: { revision: p.revision,
-      participant: "advertiser", response: "declined", channel: "email", answered_at: "2026-10-20T12:05:00.000Z" } })).status, 200);
-    assert.equal((await act(env, cookie, v, "confirm")).status, expected, listing);
-  }
   env.BUS07_PROVENANCE_READY = "1";
+  // A website request, no proposal: the plain Confirm is refused and points to Propose a time.
+  const web = held(env, ID, "10:00", "web@example.je");
+  const c = await act(env, cookie, web, "confirm");
+  assert.deepEqual([c.status, c.data.error], [409, PENDING]);
+  assert.equal((await call(env, "GET", `/admin/viewings/${web}/coordination`, { cookie })).data.agency, true, "the panel locks the advertiser");
+  // A proposal without the advertiser is refused.
+  const clientOnly = await propose(env, cookie, web, { required: ["client"] });
+  assert.deepEqual([clientOnly.status, clientOnly.data.fields.required], [400, REQUIRED]);
+  // One made before this rule (or with BUS-07 off then) never confirms it.
+  env.DB.raw.prepare(`INSERT INTO viewing_proposals (viewing_id, revision, negotiator_id, date, time, end_time, required, from_status,
+    from_negotiator_id, from_date, from_time, created_at, created_by) VALUES (?, 1, 2, ?, '16:30', '17:00', '["client"]', 'requested', 1,
+    '2026-10-22', '10:00', ?, 'admin@example.test')`).run(web, WED, "2026-10-20T12:00:00.000Z");
+  const old = one(env, "SELECT * FROM viewing_proposals WHERE viewing_id = ?", web);
+  const refused = await answer(env, cookie, web, old, "client");
+  assert.equal(refused.status, 409);
+  assert.match(refused.data.error, /must accept too\. Propose the time again with them\./);
+  assert.equal(count(env, "viewing_acceptances"), 0);
+  assert.equal(row(env, web).status, "requested");
+  // A declined agency is never agreed: Confirm stays refused once nothing is open.
+  const declined = held(env, ID, "12:00", "web2@example.je");
+  const dp = (await propose(env, cookie, declined, { time: "15:00" })).data.proposal;
+  assert.equal((await answer(env, cookie, declined, dp, "advertiser", { response: "declined" })).status, 200);
+  assert.equal((await act(env, cookie, declined, "confirm")).status, 409);
+});
+
+test("R2: Hampton's own homes, BUS-07 off, VIS-17 off or 0114 missing: as before", async t => {
+  const { env, cookie } = await world(t);
+  env.BUS07_PROVENANCE_READY = "1";
+  // Hampton's own home: plain Confirm, a client-only proposal, and VIS-17's rule after a decline (Confirm works again).
+  assert.equal((await act(env, cookie, held(env, OWN, "10:00", "cy@example.je"), "confirm")).status, 200);
+  const own = held(env, OWN, "12:00", "di@example.je");
+  assert.equal((await propose(env, cookie, own, { required: ["client"] })).status, 201);
+  assert.equal((await call(env, "GET", `/admin/viewings/${own}/coordination`, { cookie })).data.agency, undefined);
+  const op = one(env, "SELECT * FROM viewing_proposals WHERE viewing_id = ? AND state = 'open'", own);
+  assert.equal((await answer(env, cookie, own, op, "client", { response: "declined" })).status, 200);
+  assert.equal((await act(env, cookie, own, "confirm")).status, 200);
   const prov = await call(env, "GET", `/admin/listings/${ID}/provenance`, { cookie });
   assert.deepEqual([prov.data.provenance.kind, prov.data.operation], ["co_listed", "sale"], "M5: New viewing reads the operation with it");
+  // BUS-07 off: the agency's home confirms as before, with no provenance read.
+  env.BUS07_PROVENANCE_READY = "0";
+  assert.equal((await act(env, cookie, held(env, ID, "14:00", "e1@example.je"), "confirm")).status, 200);
+  // VIS-17 off: as before.
+  env.BUS07_PROVENANCE_READY = "1"; env.VIS17_MULTIPART_READY = "0";
+  assert.equal((await act(env, cookie, held(env, ID, "15:00", "e2@example.je"), "confirm")).status, 200);
+});
+
+test("R2: switched on before 0114, the agency's home confirms as before", async t => {
+  const { env, cookie } = await world(t, { skip: [114] });
+  env.BUS07_PROVENANCE_READY = "1";
+  assert.equal((await act(env, cookie, held(env, ID, "10:00", "f@example.je"), "confirm")).status, 200);
 });
 
 test("G2: with BUS-07 and VIS-17 on, New viewing does not confirm another agency's home; either off, as before", async t => {
@@ -206,11 +243,22 @@ test("G2: with BUS-07 and VIS-17 on, New viewing does not confirm another agency
   env.BUS07_PROVENANCE_READY = "1";
   const r = await book(env, cookie, ID);
   assert.equal(r.status, 409);
-  assert.equal(r.data.code, "agency_listing");
+  assert.equal(r.data.reason, "agency_listing");
+  assert.equal(r.data.code, undefined, "never read as a Google Calendar refusal");
   assert.equal(count(env, "viewing_requests"), 0);
   assert.equal((await book(env, cookie, OWN)).status, 201, "Hampton's own home books at once");
   env.BUS07_PROVENANCE_READY = "0";
   assert.equal((await book(env, cookie, ID, { time: "14:00" })).status, 201, "provenance off: as before");
   env.BUS07_PROVENANCE_READY = "1"; env.VIS17_MULTIPART_READY = "0";
   assert.equal((await book(env, cookie, ID, { time: "15:00" })).status, 201, "coordination off: as before");
+});
+
+test("M1: a website request by phone written another way is the same person", async t => {
+  const { env, cookie } = await world(t);
+  const applicant = search(env, contact(env, { email: null, phone: "+447700900123" }));
+  const web = Number(env.DB.raw.prepare(`INSERT INTO viewing_requests (listing_id, listing_ref, agent, kind, date, time, end_time, name, phone,
+    status, created_at, negotiator_id) VALUES (?, ?, 'Gilberto Franco', 'In person', '2026-10-22', '10:00', '10:30', 'Ana', '+44 (7700) 900-123',
+    'requested', ?, 1)`).run(ID, ID, T0).lastInsertRowid);
+  const r = await start(env, cookie, applicant);
+  assert.deepEqual([r.status, r.data.viewing_id], [409, web]);
 });

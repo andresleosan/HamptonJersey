@@ -34,7 +34,9 @@ export default function ViewingCoordination({ v, house, saved, onOpen }) {
   const load = () => api(`/admin/viewings/${v.id}/coordination`).then(d => { setState(d); setLoadErr(null); }, e => setLoadErr(e.message));
   useEffect(() => { load(); }, [v.id, v.updated_at]);
   const open = state?.proposal?.state === "open";
-  useEffect(() => { onOpen(open); }, [open]);
+  // SAP-09: another agency's home is confirmed only by everyone's answers here, so the old Confirm stays hidden too.
+  const noConfirm = open || !!state?.agency;
+  useEffect(() => { onOpen(noConfirm); }, [noConfirm]);
   const toggle = (k, e) => { opener.current = e.currentTarget; setForm(f => (f === k ? null : k)); };
   const close = () => { setForm(null); opener.current?.focus(); };
   const done = async text => { setForm(null); await load(); return saved(text); };
@@ -74,7 +76,8 @@ export default function ViewingCoordination({ v, house, saved, onOpen }) {
 
 function ProposeForm({ v, house, state, onDone, onClose }) {
   const [slot, setSlot] = useState({ negotiator_id: v.negotiator_id, date: v.date >= jerseyToday() ? v.date : null, time: null });
-  const [others, setOthers] = useState({ advertiser: !!v.listing_id, staff: false }), [search, setSearch] = useState(state.proposal?.applicant_id ?? "");
+  // SAP-09: another agency's home (state.agency): the advertiser always accepts, as the server requires.
+  const [others, setOthers] = useState({ advertiser: !!v.listing_id || !!state.agency, staff: false }), [search, setSearch] = useState(state.proposal?.applicant_id ?? "");
   const [agreed, setAgreed] = useState(false), [err, setErr] = useState(null), [busy, setBusy] = useState(false), [refresh, setRefresh] = useState(0);
   const [reviewed, setReviewed] = useState(false), [calendar, setCalendar] = useState(null); // VIS-12, after a refusal
   const head = useRef(null);
@@ -88,7 +91,7 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
     setBusy(true); setErr(null);
     try {
       await api(`/admin/viewings/${v.id}/proposals`, { method: "POST", body: { expected_revision: state.revision, ...slot,
-        required: ["client", ...Object.keys(others).filter(k => others[k])], applicant_id: search ? Number(search) : null,
+        required: ["client", ...Object.keys(others).filter(k => others[k] || (k === "advertiser" && state.agency))], applicant_id: search ? Number(search) : null,
         ...(short ? { notice_confirmed: true } : {}), ...checkedSlot(calendar, reviewed, slot) } });
       await onDone(`Time proposed for ${fmtDay(slot.date, true)} at ${slot.time}. Record each answer as it comes in.`);
     } catch (e) {
@@ -105,8 +108,9 @@ function ProposeForm({ v, house, state, onDone, onClose }) {
     <fieldset className="choices-set"><legend>Who must accept</legend>
       <div className="choices">
         <label className="check"><input type="checkbox" checked disabled /> {WHO.client} (always)</label>
-        {["advertiser", "staff"].map(k => <label key={k} className="check"><input type="checkbox" checked={others[k]}
-          onChange={e => setOthers(o => ({ ...o, [k]: e.target.checked }))} /> {WHO[k]}</label>)}
+        {["advertiser", "staff"].map(k => { const fixed = k === "advertiser" && !!state.agency;
+          return <label key={k} className="check"><input type="checkbox" checked={fixed || others[k]} disabled={fixed}
+            onChange={e => setOthers(o => ({ ...o, [k]: e.target.checked }))} /> {WHO[k]}{fixed && " (always: another agency advertises it)"}</label>; })}
       </div></fieldset>
     {state.searches.length > 0 && <label>Their search<select value={search} onChange={e => { setSearch(e.target.value); setErr(null); }}
       aria-invalid={err?.fields.applicant_id ? true : undefined}>

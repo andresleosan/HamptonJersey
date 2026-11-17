@@ -61,6 +61,8 @@ export async function listingProvenance(env, id) {
   const [advertisers, photos] = (await env.DB.batch(originStatements(env, [id]))).map(r => r.results);
   return provenanceOf(id, advertisers, photos);
 }
+// SAP-09: a home another agency advertises, with provenance tracking on. Off (or no home): never, and nothing is read.
+export const agencyHome = async (env, id) => !!id && provenanceReady(env) && (await listingProvenance(env, id)).kind === 'co_listed';
 
 // SPR-07: a change of price or availability, from the before and after the history keeps. A period change that keeps
 // the monthly equivalent (£24,000 a year to £2,000 a month) is not one; a save that changed neither is not one.

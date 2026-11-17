@@ -73,6 +73,12 @@ export const unchanged = (v, p) => v.status === p.from_status && v.negotiator_id
 export const allAcceptedSql = p => `NOT EXISTS (SELECT 1 FROM json_each(${p}.required) r WHERE NOT EXISTS (
   SELECT 1 FROM viewing_acceptances a WHERE a.proposal_id = ${p}.id AND a.participant = r.value AND a.response = 'accepted'))`;
 
+// SAP-09: viewing `v` (an alias, or ? bound to its id) was agreed through a proposal that asked the advertiser too, so the
+// agency's acceptance is recorded: the only way a home another agency advertises is confirmed.
+export const agreedWithAdvertiserSql = v => `EXISTS (SELECT 1 FROM viewing_proposals cp, json_each(cp.required) cr
+  WHERE cp.viewing_id = ${v} AND cp.state = 'confirmed' AND cr.value = 'advertiser')`;
+export const AGENCY_REQUIRED = "Another agency advertises this property: the advertiser or agency must accept too";
+
 // The open searches of the person who asked for viewing `v`, by the Viewings tab's cross (SAP-08): the contact's email,
 // or a phone ending in the contact's last 9 digits. A person picks one; it is never chosen for them. one: also bind ?3.
 export const searchesSql = one => `SELECT a.id, a.operation, a.search_state, a.viewing_availability FROM applicants a
