@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtDate } from "./format.js";
 import { adminMediaUrl } from "./admin-media-url.js";
+import { shortlistStart } from "./quick-actions.js";
 
 // AGE-12: a private link to some of this client's homes (approved now, still offered and confirmed available), on which
 // they answer for each one without filling in their search again. The link is shown once, to copy and send yourself;
@@ -120,16 +121,34 @@ function Receipt({ grantId, o, conversations, onSaved }) {
   </div>;
 }
 
-export default function PresentationLinks({ applicantId }) {
+// SAP-09: start (a count, raised by the record's Send shortlist) opens what to send once the card is visible: the link
+// not sent yet, to review, else the homes it can present now, ticked. Nothing is created or sent until a person does
+// it here. onEnabled(bool): whether the card shows, once read.
+export default function PresentationLinks({ applicantId, start = 0, visible = true, onEnabled }) {
   const [data, setData] = useState(null), [picked, setPicked] = useState(() => new Set()), [link, setLink] = useState(null);
   const [msg, setMsg] = useState(null), [busy, setBusy] = useState(false), [open, setOpen] = useState(null);
+  const [note, setNote] = useState(null), handled = useRef(start), heading = useRef(null), createRef = useRef(null);
   useEffect(() => {
     let live = true;
     setData(null); setLink(null); setPicked(new Set());
     // A failed read hides the card, as when it is switched off.
-    api(`/admin/applicants/${applicantId}/presentations`).then(d => { if (live) setData(d); }, () => {});
+    api(`/admin/applicants/${applicantId}/presentations`).then(d => { if (live) { setData(d); onEnabled?.(!!d.enabled); } }, () => {});
     return () => { live = false; };
   }, [applicantId]);
+  useEffect(() => {
+    if (!visible || !data || start === handled.current) return;
+    handled.current = start;
+    const s = shortlistStart(data);
+    if (!s) return;
+    if (s.review) {
+      setOpen(s.review); setNote("A link is waiting to be sent: review it, approve it and send it yourself, then record that you sent it.");
+      heading.current?.focus();
+    } else if (s.picked.length) {
+      setPicked(new Set(s.picked)); setLink(null);
+      setNote(`${s.picked.length} approved, available ${s.picked.length === 1 ? "home" : "homes"} ticked. Create the link, review it, then send it yourself.`);
+      createRef.current?.focus();
+    } else { setNote(null); heading.current?.focus(); }
+  }, [start, visible, data]);
   if (!data?.enabled) return null;
   const act = async (path, body, done) => {
     if (busy) return;
@@ -141,12 +160,12 @@ export default function PresentationLinks({ applicantId }) {
   const create = e => {
     e.preventDefault();
     if (!picked.size) return setMsg({ text: "Choose at least one home." });
-    act(`/admin/applicants/${applicantId}/presentations`, { match_ids: [...picked] }, d => { setLink(d.link); setPicked(new Set()); });
+    act(`/admin/applicants/${applicantId}/presentations`, { match_ids: [...picked] }, d => { setLink(d.link); setPicked(new Set()); setNote(null); });
   };
   const reload = () => api(`/admin/applicants/${applicantId}/presentations`).then(setData, () => {});
   const toggle = id => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   return <section id="s-presentations" className="card fields-group" aria-labelledby="h-presentations">
-    <h2 id="h-presentations">Private presentation</h2>
+    <h2 id="h-presentations" ref={heading} tabIndex={-1}>Private presentation</h2>
     <p className="muted">A private link to some of these homes, where the client says for each one whether they are interested, would like to
       view it, or it is not for them, without filling in their search again. Their answers change no match or requirement and book nothing:
       each one becomes a task for you.</p>
@@ -155,8 +174,9 @@ export default function PresentationLinks({ applicantId }) {
         {data.presentable.map(h => <label key={h.match_id} className="inline"><input type="checkbox" checked={picked.has(h.match_id)}
           disabled={!picked.has(h.match_id) && picked.size >= data.max_homes} onChange={() => toggle(h.match_id)} /> {h.listing_id} · {h.title}</label>)}
       </fieldset>
-      <div className="inline"><button className="btn ghost sm" disabled={busy}>{busy ? "Creating…" : "Create private link"}</button></div>
+      <div className="inline"><button ref={createRef} className="btn ghost sm" disabled={busy}>{busy ? "Creating…" : "Create private link"}</button></div>
     </form> : <p>No home can be presented yet: one must be shortlisted, still offered and confirmed available.</p>}
+    <p role="status" className="muted">{note}</p>
     {link && <NewLink link={link} />}
     {msg && <p role="alert" className="err">{msg.text}</p>}
     {data.grants.length > 0 && <ul className="confirmations">{data.grants.map(g => { const [kind, badge, text] = state(g);

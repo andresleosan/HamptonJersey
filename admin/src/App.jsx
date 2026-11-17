@@ -136,7 +136,8 @@ export default function App() {
     : section === "listings" && arg && sub === "report"
       ? <OwnerReport key={arg} id={decodeURIComponent(arg)} days={new URLSearchParams(query).get("days")} />
     : section === "listings" ? <Listings onChange={loadCounts} /> : section === "queue" ? <Queue onChange={loadCounts} /> : section === "viewings"
-      ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} requestedId={new URLSearchParams(query).get("viewing")} />
+      ? <Viewings key={query ?? ""} listing={new URLSearchParams(query).get("listing")} requestedId={new URLSearchParams(query).get("viewing")}
+        applicant={new URLSearchParams(query).get("applicant")} />
     : section === "sales" && /^\d+$/.test(arg) ? <SaleDetail key={arg} id={arg} requestedMilestone={new URLSearchParams(query).get('milestone')} onChange={loadCounts} />
     : section === "sales" ? <Sales key={query ?? ""} buyer={new URLSearchParams(query).get("applicant")} requestedOffer={new URLSearchParams(query).get('offer')} onChange={loadCounts} />
     : section === "rentals" && arg === "new"
