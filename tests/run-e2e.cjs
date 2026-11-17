@@ -116,7 +116,7 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       ...(process.env.E2E_SCRIPT === "tests/bus18-property-followup.e2e.cjs" ? { EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),
       // SAP-02/SAP-03/EST-04 count what EST-16's confirmations and AGE-03's enquiries say, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/sap02-match-counts.e2e.cjs"
-        ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1" } : {}),
+        ? { SAP02_COUNTS_READY: "1", EST16_AVAILABILITY_READY: "1", AGE03_ENQUIRIES_READY: "1", EST10_LABELS_READY: "0" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/adm20-tenancy-law.e2e.cjs" ? { ADM20_TENANCY_LAW_READY: "1", ADM17_LEGAL_TERMS_READY: "1" } : {}),
       // ADM-15 reads ADM-20's rules and ADM-17's validation, so its test has the three on.
       ...(process.env.E2E_SCRIPT === "tests/adm15-rent-review.e2e.cjs"

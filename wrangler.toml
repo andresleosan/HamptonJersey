@@ -141,12 +141,12 @@ VIS17_MULTIPART_READY = "1"
 # VIS-17's linked viewings with VIS-04's answer, offers, sales and ADM-06's tenancies, and the client's word recorded by
 # the team with a reason (migration 0116). Changes no criteria, match decision, availability or search; sends nothing.
 # Apply 0116 before switching on.
-EST14_JOURNEY_READY = "0"
+EST14_JOURNEY_READY = "1"
 # EST-10: the applicants list adds, as work labels beside the match ones, a must-have to confirm on a match, a viewing
 # pending or booked that a person linked to the search (VIS-17, needs VIS17_MULTIPART_READY) and BUS-17's 21-day review
 # while open (needs BUS17_REVIEW_READY). No migration; reads only, in the list's own query. Closes no search, changes no
 # criteria, sends nothing. Off: the list is read exactly as before. The clock does not read it.
-EST10_LABELS_READY = "0"
+EST10_LABELS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"

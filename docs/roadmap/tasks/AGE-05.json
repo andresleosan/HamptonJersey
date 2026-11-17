@@ -4,7 +4,7 @@
   "titulo": "Enviar la consulta por un canal utilizable, con trazabilidad y sin duplicados",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "Luis",
   "hecho": "Construido en local el 15-nov-2026 tras AGE05_SEND_READY (apagado) y la migración 0080 (sin aplicar); sin publicar. Al preparar o editar la consulta se elige un contacto del anunciante con email o teléfono; se guarda su referencia, nunca la dirección. «Approve sending» registra quién y cuándo aprueba una versión exacta (destinatario, contacto y texto); Save changes la invalida. «Send by email» encola un solo correo por versión en la tubería de AUT-17; dos empleados o un reintento encuentran el mismo. La tubería de correo solo reclama un correo de consulta si su comprobación en SQL se cumple en ese mismo momento; si no, lo deja sin reclamar y la pasada siguiente lo devuelve a una persona. La pausa general lo retiene. Aceptado por el proveedor pasa a sent con su hora; rechazado vuelve a manual sin iniciar el plazo; incierto queda en needs_review hasta que una persona dice si salió, sin reenvío automático. Con el servicio de correo apagado no se encola nada y la consulta sigue «To send manually»; el canal manual de AGE-03 no cambia. Apagar AGE05_SEND_READY (también el del reloj, en jobs/wrangler.toml) devuelve a manual lo que estaba en cola sin enviarlo. Mientras un correo espera, el panel dice por qué no sale (pausa, ajuste, servicio o remitente parado), la tarea de Inbox sigue abierta hasta que sale y una persona puede devolverlo a envío manual; a las 24 h en cola vuelve solo a una persona.",
   "falta": "Solo falta lo externo: la activación del correo (AUT-17) y la decisión de encender AGE05_SEND_READY, ambas de Luis, y una prueba real del criterio de aceptación (dos pulsaciones simultáneas dan un solo correo; un fallo no inicia el plazo de dos días). Construido, migrado (0080) y apagado: contacto concreto del anunciante, aprobación humana de cada versión, envío por la tubería de correo con revalidación en la propia reclamación, freno real del interruptor en el reloj, «Return to manual sending» y caducidad de la aprobación a las 24 h.",
@@ -30,7 +30,8 @@
     "Decisión: no se encola si el remitente del reloj no ha corrido en la última media hora (email_worker), para no encolar lo que no puede salir · fuente: opción más simple para el caso web encendida y reloj apagado.",
     "Decisión: el ciclo de imports se rompe en server/email.js, que carga routes/notifications.js solo al preparar el resumen; ningún módulo de server/ falla ya al importarse primero (antes fallaban consultations, consultation-email y routes/matches) · fuente: coordinador.",
     "No comprobado: envío real, DNS y cuenta de correo; la aplicación de 0080 en producción; el reloj real de Cloudflare (probado con server/jobs.js sobre SQLite); el plan de consultas de D1 con datos reales; el import diferido en el Worker real (los dos paquetes se construyen en local).",
-    "15-nov-2026: publicada apagada; 0080 (cinco ADD COLUMN, aditiva) aplicada en producción; npm test 2663/2663; tests/age05-send.e2e.cjs pasa a 1280 y 390; dos revisiones independientes: la primera halló dos graves (el interruptor no frenaba lo encolado; consultas atascadas en cola), la segunda los dio por cerrados y halló que apagar solo en la web no frenaba: el interruptor queda nombrado en los dos wrangler.toml con una prueba que exige que coincidan, y el panel ya no afirma que no saldrá. Tubería de las demás plantillas idéntica en 36 combinaciones. Pasa a la cola de Luis (skill §2)."
+    "15-nov-2026: publicada apagada; 0080 (cinco ADD COLUMN, aditiva) aplicada en producción; npm test 2663/2663; tests/age05-send.e2e.cjs pasa a 1280 y 390; dos revisiones independientes: la primera halló dos graves (el interruptor no frenaba lo encolado; consultas atascadas en cola), la segunda los dio por cerrados y halló que apagar solo en la web no frenaba: el interruptor queda nombrado en los dos wrangler.toml con una prueba que exige que coincidan, y el panel ya no afirma que no saldrá. Tubería de las demás plantillas idéntica en 36 combinaciones. Pasa a la cola de Luis (skill §2).",
+    "17-nov-2026: estado corregido a parcial: el código está en main y 0080 aplicada; solo falta lo externo (AUT-17 y encender AGE05_SEND_READY, de Luis). «Pendiente» bloqueaba en la ruta a AGE-09, que solo necesita el envío manual ya activo."
   ],
   "modulo": "M06",
   "deps": [
@@ -73,5 +74,5 @@
     "outbound-policy"
   ],
   "nextStep": "Cuando Luis active AUT-17 y encienda AGE05_SEND_READY en los dos wrangler.toml, hacer la prueba real y cerrar.",
-  "actualizado": "2026-11-15"
+  "actualizado": "2026-11-17"
 }

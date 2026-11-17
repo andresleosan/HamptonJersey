@@ -178,7 +178,7 @@ test("off, or on before 0116: no route, the same cards and the same SQL", async 
   assert.deepEqual(outputs[1].sql, outputs[0].sql, "switched off: not one query more");
   assert.deepEqual(outputs[2].list, outputs[0].list, "on before the migration: as off");
   assert.deepEqual(outputs[2].matched, outputs[0].matched);
-  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^EST14_JOURNEY_READY = "0"$/m);
+  assert.match(readFileSync(new URL("../../wrangler.toml", import.meta.url), "utf8"), /^EST14_JOURNEY_READY = "1"$/m);
 });
 
 test("decline_reason: a client's no needs a reason, other needs a note, and the note never goes to the event", async () => {
