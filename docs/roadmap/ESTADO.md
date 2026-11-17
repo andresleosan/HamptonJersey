@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+17-nov-2026 · **AUT-10, modos Draft/Approve/Auto (hecha):** Luis cambió un modo real en Settings → Automations → Modes y lo devolvió a Draft; comprobado en D1 (revisión 3). Cualquier admin puede cambiar modos. Progreso 146 → 147 de 214.
+
 17-nov-2026 · **AUT-20, validación integral del recorrido de búsqueda (hecha):** una prueba única recorre todo el viaje con datos de prueba (directorio, alta de búsqueda, consulta a la agencia, llamada, captura, presentación, visita con varias partes, revisión de 21 días, dictado, indisponibilidad, purga a los seis meses y cierre humano) y comprueba los 16 puntos del plan más 5 casos difíciles (dos personas a la vez, cambio tras aprobar, acuse perdido, reintentos, fechas de Jersey); además un recorrido de pantallas a 1280 y 390. No encontró fallos. Progreso 145 → 146.
 
 17-nov-2026 · **AGE-09, prueba de lo enviado a cada agencia (hecha):** en Enquiries, «Evidence of what was shared» muestra por cada consulta el texto que de verdad salió, quién lo aprobó o envió, qué búsquedas iban en ese envío y sus respuestas y llamadas, sin nombres ni contactos de clientes ni comisión. Solo lectura. Progreso 144 → 145.
