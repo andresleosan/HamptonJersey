@@ -49,7 +49,7 @@ export default function RetentionNoticeReview({ notice, contactId, nameOf, onSav
         retention pass keeps them. If they were told another way, record when and what shows it.</p>}
     {reviewable && <form ref={form} noValidate onSubmit={e => { e.preventDefault(); send(MANUAL); }}>
       <div className="grid2">
-        <label>Day they were told<input type="date" min={notice.activity_at.slice(0, 10)} max={jerseyToday()} value={f.notice_given_on}
+        <label>Day they were told<input type="date" min={notice.notice_from} max={jerseyToday()} value={f.notice_given_on}
           onChange={set("notice_given_on")} disabled={busy} {...fe.invalid("notice_given_on")} />{fe.error("notice_given_on")}</label>
         <div className="field"><label>Evidence<textarea value={f.evidence} onChange={set("evidence")} maxLength={1000} disabled={busy}
           {...fe.invalid("evidence")} aria-describedby={hint} />{fe.error("evidence")}</label>

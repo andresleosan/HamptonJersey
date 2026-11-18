@@ -53,8 +53,9 @@ export const NOTICE_ANSWERED = `EXISTS (SELECT 1 FROM email_inbound i WHERE i.re
     AND (instr(i.in_reply_to, o.message_id) > 0 OR instr(i.references_header, o.message_id) > 0))))`;
 // What became of each notice email, and whether it was answered: recorded on the notice itself, so an answer still counts
 // after its email's content is cleared (30 days, cleanEmail). Run by every retention pass before that clearing, whatever
-// the switch (a reply while it is off must not be forgotten), and by the notice pass.
-export const noticeOutcomeStatements = (env, ts) => [
+// the switch (a reply while it is off must not be forgotten), and by the notice pass. reviews: with 0119, an answer to a
+// manual notice is recorded on its review the same way (REVIEW_ANSWERED below).
+export const noticeOutcomeStatements = (env, ts, reviews = false) => [
   env.DB.prepare(`UPDATE retention_notices SET state = COALESCE((SELECT CASE o.status WHEN 'accepted' THEN 'accepted'
       WHEN 'failed' THEN 'failed' WHEN 'unknown' THEN 'unknown' WHEN 'cancelled' THEN 'not_sent' END
       FROM outbound o WHERE o.ref = retention_notices.outbound_ref), 'not_sent'),
@@ -65,6 +66,9 @@ export const noticeOutcomeStatements = (env, ts) => [
   env.DB.prepare(`UPDATE retention_notices SET state = 'replied', updated_at = ?1 WHERE id IN (SELECT n.id FROM retention_notices n
     JOIN contacts c ON c.id = n.contact_id AND c.last_activity_at = n.activity_at WHERE n.state = 'accepted' AND ${NOTICE_ANSWERED})`)
     .bind(ts),
+  ...(reviews ? [env.DB.prepare(`UPDATE retention_notice_reviews SET answered_at = ?1 WHERE answered_at IS NULL AND id IN (SELECT v.id
+    FROM retention_notice_reviews v JOIN contacts c ON c.id = v.contact_id AND c.last_activity_at = v.activity_at
+    WHERE v.resolution_code = 'manual_notice_documented' AND (${REVIEW_ANSWERED}))`).bind(ts)] : []),
 ];
 const NOTICE_OF = "SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id AND n.activity_at = c.last_activity_at";
 const NOTICE_KEPT = `EXISTS (${NOTICE_OF} AND (n.state <> 'accepted' OR n.delete_after > ?2
@@ -74,12 +78,17 @@ const NOTICE_GIVEN = `(c.email IS NULL OR EXISTS (${NOTICE_OF}))`;
 // the email service did not deliver (failed, unknown, not sent, or none at all) stops keeping the contact once someone
 // recorded that the person was told by other means a month before, the date it gave has come and nothing has answered
 // either: the accepted notice's rule, with the manual notice's day. keep_for_review, a waiting notice or an answered one
-// keep it; so does a review of an earlier episode. Read only switched on with 0119; otherwise no statement names it.
+// keep it; so does a review of an earlier episode. An answer seen once is kept on the review (answered_at, recorded by
+// noticeOutcomeStatements before the email clean-up blanks its sender), so it holds after the 30 days. Decides deletions
+// only switched on with 0119; switched off, the passes only record answers.
 export const reviewTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'retention_notice_reviews'").first();
+// For review v of contact c: an email from the person since the manual notice, or an answer to the episode's notice.
+const REVIEW_ANSWERED = `EXISTS (SELECT 1 FROM email_inbound i WHERE i.received_at >= v.notice_given_on
+  AND (i.sender = c.email OR i.header_from = c.email)) OR EXISTS (${NOTICE_OF} AND ${NOTICE_ANSWERED})`;
 const MANUAL_NOTICE = `EXISTS (SELECT 1 FROM retention_notice_reviews v WHERE v.contact_id = c.id
   AND v.activity_at = c.last_activity_at AND v.resolution_code = 'manual_notice_documented' AND v.notice_given_on <= date(?2, '-1 months')
-  AND NOT EXISTS (${NOTICE_OF} AND (n.state NOT IN ('failed', 'unknown', 'not_sent') OR n.delete_after > ?2 OR ${NOTICE_ANSWERED}))
-  AND NOT EXISTS (SELECT 1 FROM email_inbound i WHERE i.received_at >= v.notice_given_on AND (i.sender = c.email OR i.header_from = c.email)))`;
+  AND v.answered_at IS NULL AND NOT (${REVIEW_ANSWERED})
+  AND NOT EXISTS (${NOTICE_OF} AND (n.state NOT IN ('failed', 'unknown', 'not_sent') OR n.delete_after > ?2)))`;
 // The email pipeline's claim and its check right before the call (server/email.js): a notice goes only while it is the
 // waiting notice of its contact's current episode, to that contact's address, and the pass would still delete them.
 // Switched off or without 0112, none goes (and the SQL is as before).
@@ -103,8 +112,9 @@ export const RUNNING_TENANCY = `EXISTS (SELECT 1 FROM tenancy_contact_links l JO
 // running tenancy gets no notice, and one it already has is withdrawn, so the tenancy's end never deletes on an old date.
 // The Jersey date goes in as a literal (it comes from jerseyToday) because those queries bind their own parameters. "" when
 // the switch is off or 0113 is missing: those statements are then as before.
+export const runningTenancyOn = day => RUNNING_TENANCY.replaceAll("?2", `'${day}'`); // day: checked as tenancyNoticeHold does
 export const tenancyNoticeHold = async (env, day) =>
-  tenancyLinkReady(env) && /^\d{4}-\d\d-\d\d$/.test(day) && await linkTable(env) ? ` AND NOT ${RUNNING_TENANCY.replaceAll("?2", `'${day}'`)}` : "";
+  tenancyLinkReady(env) && /^\d{4}-\d\d-\d\d$/.test(day) && await linkTable(env) ? ` AND NOT ${runningTenancyOn(day)}` : "";
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts
@@ -156,11 +166,11 @@ export async function runRetention(env, ts) {
   // A failed counter prune (e.g. switched on before 0108) must never stop the deletion of personal data below.
   if (searchStatsReady(env)) await pruneSearchMetrics(env, new Date(ts)).catch(() => console.error('Search metrics prune failed'));
   // PRE-12 (Q05): one look for migration 0112 per pass; with it, answers and outcomes are recorded before cleanEmail.
-  const hasNotices = !!(await noticeTable(env));
-  if (hasNotices) await env.DB.batch(noticeOutcomeStatements(env, ts));
+  const hasNotices = !!(await noticeTable(env)), hasReviews = hasNotices && !!(await reviewTable(env)); // 0119 needs 0112
+  if (hasNotices) await env.DB.batch(noticeOutcomeStatements(env, ts, hasReviews));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
-  const notices = hasNotices ? (retentionNoticesReady(env) ? (await reviewTable(env) ? "reviewed" : "given") : "kept") : null;
+  const notices = hasNotices ? (retentionNoticesReady(env) ? (hasReviews ? "reviewed" : "given") : "kept") : null;
   const tenants = tenancyLinkReady(env) && !!(await linkTable(env)); // PRE-12 (D4): one look for 0113, only switched on
   const CONTACTS = contactsDue(privacyHolds(env), notices, tenants), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;

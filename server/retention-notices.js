@@ -2,7 +2,7 @@ import { sha256, json, fail, readJson, now } from "./http.js";
 import { jerseyToday } from "./viewings.js";
 import { logEvent } from "./events.js";
 import { EXEMPT, NOTICE_ANSWERED, OPEN_PRIVACY_REQUEST, noticeOutcomeStatements, expiringSql, noticeTable, privacyHolds, retentionNoticesReady,
-  reviewTable, tenancyNoticeHold } from "./retention.js";
+  reviewTable, runningTenancyOn, tenancyNoticeHold } from "./retention.js";
 import { SITE, readEmailSettings, serviceReady } from "./email.js";
 
 // PRE-12 (Q05): the notice before the retention pass deletes a contact for 12 months without activity. In the contact's
@@ -46,21 +46,25 @@ export async function retentionNoticePass(env, ts) {
   if (!retentionNoticesReady(env) || !await noticeTable(env)) return; // off, or switched on before 0112: nothing to do
   const day = jerseyToday(new Date(ts)), held = privacyHolds(env) ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : "";
   const tenant = await tenancyNoticeHold(env, day); // a contact kept for a running tenancy: no notice, and its old one goes
+  const reviewed = !!(await reviewTable(env)); // 0119
   // A notice of an episode that ended (new activity, which an address change is too) goes; so does one still waiting for
   // a contact the pass would no longer delete (a search or offer opened, a privacy request), its email unsent. The
   // contact's next episode gets its own.
   const OBSOLETE = `SELECT n.id FROM retention_notices n WHERE NOT EXISTS (SELECT 1 FROM contacts c WHERE c.id = n.contact_id
     AND c.last_activity_at = n.activity_at${tenant} AND (n.state <> 'queued' OR (${EXEMPT}${held})))`;
   await env.DB.batch([
-    ...noticeOutcomeStatements(env, ts), // also run by every retention pass, before email content is cleared
+    ...noticeOutcomeStatements(env, ts, reviewed), // also run by every retention pass, before email content is cleared
     env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ?1 WHERE status = 'queued' AND template = '${TEMPLATE}'
       AND ref IN (SELECT outbound_ref FROM retention_notices WHERE id IN (${OBSOLETE}))`).bind(ts),
     env.DB.prepare(`DELETE FROM retention_notices WHERE id IN (${OBSOLETE})`),
+    // A manual notice goes the same way for a contact kept for a running tenancy: its end never deletes on an old date.
+    ...(reviewed && tenant ? [env.DB.prepare(`DELETE FROM retention_notice_reviews WHERE contact_id IN (SELECT c.id FROM contacts c
+      WHERE ${runningTenancyOn(day)})`)] : []),
   ]);
   // Queued only while the email service can send: otherwise none is prepared, and the pass keeps the contact.
   const ready = serviceReady(env) && typeof env.EMAIL?.send === "function" && (await readEmailSettings(env)).enabled;
   if (ready) await prepare(env, ts, day, held, tenant);
-  await openReviews(env, ts, day, ready, tenant, !!(await reviewTable(env)));
+  await openReviews(env, ts, day, ready, tenant, reviewed);
 }
 
 // The oldest contacts of Expiring with an email and no notice for their episode. Each insert checks the contact is still
@@ -93,7 +97,8 @@ async function prepare(env, ts, day, held, tenant) {
 
 // One Inbox task per contact and episode the pass keeps for its notice: failed, uncertain (no result, or none by the
 // date it gave), not sent (suppressed, cancelled, or the email service off once the 12 months are over) or answered. None
-// for an episode a person already reviewed (0119).
+// for an episode a person already reviewed (0119), except one more, as answered, once the person wrote after a manual
+// notice (its review's answered_at): someone must read it.
 async function openReviews(env, ts, day, ready, tenant, reviewed) {
   const { results } = await env.DB.prepare(`SELECT c.id, c.last_activity_at AS activity_at,
       CASE WHEN n.id IS NULL THEN 'not_sent' WHEN n.state = 'queued' THEN 'unknown' ELSE n.state END AS reason
@@ -104,8 +109,13 @@ async function openReviews(env, ts, day, ready, tenant, reviewed) {
       AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ${TASK_KEY})${reviewed ? `
       AND NOT EXISTS (SELECT 1 FROM retention_notice_reviews v WHERE v.contact_id = c.id AND v.activity_at = c.last_activity_at)` : ""}
     ORDER BY c.last_activity_at, c.id LIMIT ${NOTICES_PER_TICK}`).bind(day, day, ready ? 1 : 0, day).all();
-  const stmts = results.flatMap(c => {
-    const key = `retention_notice:${c.id}:${c.activity_at}`, [title, reason] = REVIEW[c.reason];
+  const answered = reviewed ? (await env.DB.prepare(`SELECT c.id, c.last_activity_at AS activity_at, 'replied' AS reason, 1 AS answered
+    FROM contacts c JOIN retention_notice_reviews v ON v.contact_id = c.id AND v.activity_at = c.last_activity_at
+    WHERE v.answered_at IS NOT NULL AND ${expiringSql(env)}${tenant}
+      AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = ${TASK_KEY} || ':answered')
+    ORDER BY c.last_activity_at, c.id LIMIT ${NOTICES_PER_TICK}`).bind(day).all()).results : [];
+  const stmts = [...results, ...answered].flatMap(c => {
+    const key = `retention_notice:${c.id}:${c.activity_at}${c.answered ? ":answered" : ""}`, [title, reason] = REVIEW[c.reason];
     return [
       env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
         SELECT ?, 'system', 'contact', ?, 'contact.retention_notice_review', json_object('reason', ?)
@@ -126,6 +136,14 @@ async function openReviews(env, ts, day, ready, tenant, reviewed) {
 const reviewable = async (env, day) => `c.email IS NOT NULL AND ${expiringSql(env).replaceAll("?", `'${day}'`)}${
   await tenancyNoticeHold(env, day)} AND NOT EXISTS (SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id
     AND n.activity_at = c.last_activity_at AND n.state IN ('queued', 'accepted', 'replied'))`;
+// The first day a manual notice counts: the episode's 12th month, date(activity_at, '+11 months') as SQLite and Expiring
+// count it. An earlier, backdated day would give no real month of warning.
+const noticeFrom = at => {
+  const d = new Date(`${String(at).slice(0, 10)}T00:00:00Z`);
+  if (isNaN(d)) return "￿"; // above any date: nothing passes
+  d.setUTCMonth(d.getUTCMonth() + 11);
+  return d.toISOString().slice(0, 10);
+};
 const reviewsOn = async env => retentionNoticesReady(env) && !!(await noticeTable(env)) && !!(await reviewTable(env));
 
 // For the applicant's page: undefined when switched off or before 0112/0119.
@@ -138,7 +156,7 @@ export async function noticeReviewFor(env, contactId) {
     .bind(contactId).first();
   if (!r) return undefined;
   const { activity_at, state, ok, resolution_code, notice_given_on, evidence, actor, created_at } = r;
-  return { activity_at, state: state ?? null, reviewable: !!ok && resolution_code !== "manual_notice_documented",
+  return { activity_at, notice_from: noticeFrom(activity_at), state: state ?? null, reviewable:!!ok && resolution_code !== "manual_notice_documented",
     review: resolution_code ? { resolution_code, notice_given_on, evidence, actor, created_at } : null };
 }
 
@@ -153,8 +171,8 @@ async function recordReview({ request, env, admin, params: [id] }) {
   if (!RESULTS.includes(code)) errors.resolution_code = "Choose manual notice or keep for review";
   if (typeof activity !== "string" || !activity) errors.activity_at = "Reload the page and try again";
   if (!evidence || evidence.length > 1000) errors.evidence = "Say what shows it, in up to 1,000 characters";
-  if (manual && !(isDay(given) && given <= day && typeof activity === "string" && given >= activity.slice(0, 10)))
-    errors.notice_given_on = "Give the day the person was told, between their last activity and today";
+  if (manual && !(isDay(given) && given <= day && given >= noticeFrom(activity)))
+    errors.notice_given_on = "Give the day the person was told, from the start of their 12th month without activity to today";
   if (Object.keys(errors).length) return json({ error: "Please check the highlighted fields", fields: errors }, 400);
   const [{ meta }] = await env.DB.batch([
     env.DB.prepare(`INSERT INTO retention_notice_reviews (contact_id, activity_at, resolution_code, evidence, notice_given_on, actor, created_at)

@@ -85,6 +85,46 @@ test("an email from the contact since the manual notice keeps them, as an answer
   assert.equal(exists(env, c), true);
 });
 
+// Review fix (GRAVE 1): the email clean-up blanks an inbound email's sender after 30 days; the answer must outlive it.
+test("an email after a manual notice keeps the contact after its content is cleared, and opens a task to read it", async () => {
+  const { env, c } = await failedNotice();
+  assert.equal((await review(env, c, manual)).status, 200);
+  insert(env, "email_inbound", { dedupe_key: "k", sender: "jane@example.test", header_from: "jane@example.test",
+    recipient: "replies@example.test", subject: "My details", text: "Please keep them", html_only: 0, truncated: 0,
+    received_at: "2026-11-02T09:00:00.000Z" });
+  assert.equal((await runRetention(env, MONTH_DONE)).contacts, 0);
+  await retentionNoticePass(env, "2026-11-27T09:40:00.000Z");
+  const open = tasks(env).filter(t => !t.resolved_at);
+  assert.deepEqual(open.map(t => t.task_key), [`retention_notice:${c}:${LAST}:answered`]);
+  assert.equal(one(env, "SELECT json_extract(e.data, '$.reason') AS r FROM notifications n JOIN events e ON e.id = n.event_id WHERE n.task_key = ?",
+    open[0].task_key).r, "replied");
+  assert.equal((await runRetention(env, "2026-12-03T09:00:00.000Z")).contacts, 0);
+  assert.equal(one(env, "SELECT sender FROM email_inbound").sender, null); // its content is gone by now
+  for (const d of ["2027-01-10", "2027-03-01"]) assert.equal((await runRetention(env, `${d}T09:00:00.000Z`)).contacts, 0, d); // the row too
+  assert.equal(exists(env, c), true);
+  await retentionNoticePass(env, "2027-03-01T09:40:00.000Z");
+  assert.equal(tasks(env).length, 2); // one task each, never repeated
+});
+
+// Review fix (GRAVE 2): a running tenancy withdraws the notice; it must withdraw the manual notice too, so the tenancy's
+// end never deletes on an old date without a fresh notice.
+test("a manual notice is withdrawn when the contact is linked to a running tenancy", async () => {
+  const { env, c } = await failedNotice({ PRE12_TENANCY_LINK_READY: "1" });
+  assert.equal((await review(env, c, manual)).status, 200);
+  const l = insert(env, "landlords", { name: "Synthetic Landlord", created_at: T0, updated_at: T0 });
+  const rental = insert(env, "rentals", { landlord_id: l, address: "1 Fictitious Row", parish: "St Helier", service: "full",
+    fee_percent: 10, created_at: T0, updated_at: T0 });
+  const t = insert(env, "tenancies", { rental_id: rental, payment_ref: "REF1", tenant_name: "Synthetic Tenant", occupants: "A",
+    kind: "fixed", regime: "2025", start_on: "2026-01-01", end_on: "2027-01-01", rent: 1500, due_day: 1, deposit: 2000, ended_on: null,
+    notes: "n", created_at: T0, updated_at: T0 });
+  insert(env, "tenancy_contact_links", { tenancy_id: t, contact_id: c, linked: 1, tenant_revision: "a".repeat(64), actor: "x",
+    at: "2026-11-01T09:00:00.000Z" });
+  await retentionNoticePass(env, "2026-11-01T09:10:00.000Z");
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = '2027-03-01' WHERE id = ?").run(t);
+  assert.equal((await runRetention(env, "2027-03-02T00:05:00.000Z")).contacts, 0); // the pass runs before the notice pass
+  assert.equal(exists(env, c), true);
+});
+
 test("an open privacy request still keeps a contact with a manual notice", async () => {
   const { env, c } = await failedNotice({ PRE12_REQUESTS_READY: "1" });
   assert.equal((await review(env, c, manual)).status, 200);
@@ -99,7 +139,7 @@ test("evidence, a valid result and a past notice date are required", async () =>
   const { env, c } = await failedNotice();
   for (const body of [{ ...manual, evidence: "  " }, { ...manual, evidence: undefined }, { ...manual, evidence: "x".repeat(1001) },
     { ...manual, notice_given_on: undefined }, { ...manual, notice_given_on: "2999-01-01" }, { ...manual, notice_given_on: "2026-02-30" },
-    { ...manual, notice_given_on: "2025-11-24" }, { ...manual, resolution_code: "verified_contact" }, { ...manual, activity_at: undefined }]) {
+    { ...manual, notice_given_on: "2025-11-24" }, { ...manual, notice_given_on: "2026-10-24" }, { ...manual, resolution_code: "verified_contact" }, { ...manual, activity_at: undefined }]) {
     const r = await review(env, c, body);
     assert.equal(r.status, 400, JSON.stringify(body));
   }
@@ -181,7 +221,8 @@ test("the applicant view shows the review only when it is on", async () => {
     resolved_by: "admin@example.test", resolution_reason: "Found a home", created_at: T0, updated_at: T0 });
   const cookie = await adminCookie();
   let d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data;
-  assert.deepEqual(d.retention_notice, { activity_at: LAST, state: "failed", reviewable: true, review: null });
+  assert.deepEqual(d.retention_notice, { activity_at: LAST, notice_from: "2026-10-25", state: "failed", reviewable: true,
+    review: null });
   await review(env, c, manual);
   d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie })).data;
   assert.equal(d.retention_notice.reviewable, false);
@@ -192,14 +233,16 @@ test("the applicant view shows the review only when it is on", async () => {
   assert.equal(d.retention_notice, undefined);
 });
 
-test("switched off, or without 0119: no route, no table named, and a failed notice keeps the contact as before", async () => {
+test("switched off, or without 0119: no route, no review decides a deletion, and a failed notice keeps the contact as before", async () => {
   const { env, c } = await failedNotice();
   env.PRE12_RETENTION_NOTICE_READY = "0";
   assert.equal((await review(env, c, manual)).status, 404);
   const seen = [], prepare = env.DB.prepare.bind(env.DB);
   env.DB.prepare = sql => { seen.push(sql); return prepare(sql); };
   assert.equal((await runRetention(env, MONTH_DONE)).contacts, 0);
-  assert.equal(seen.filter(sql => /retention_notice_reviews/.test(sql)).length, 0);
+  // Switched off, the table is read only to record answers before the email clean-up (as noticeOutcomeStatements does).
+  assert.deepEqual(seen.filter(sql => /retention_notice_reviews/.test(sql)
+    && !/sqlite_master|^UPDATE retention_notice_reviews SET answered_at/.test(sql.trim())), []);
   env.DB.prepare = prepare;
 
   const legacy = Object.assign(emailEnv(), ON);
