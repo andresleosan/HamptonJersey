@@ -42,6 +42,8 @@ const run = (args, env = process.env) => runProcess(process.execPath, args, { en
       // VIS-17: a viewing agreed with several people, switched on for its own test only (off in production).
       ...(process.env.E2E_SCRIPT === "tests/vis17-coordination.e2e.cjs" ? { VIS17_MULTIPART_READY: "1" } : {}),
       ...(process.env.E2E_SCRIPT === "tests/pub16-timed-closure.e2e.cjs" ? { PUB16_TIMED_CLOSURE_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/pre12-manual-notice.e2e.cjs" ? { PRE12_RETENTION_NOTICE_READY: "1" } : {}),
+      ...(process.env.E2E_SCRIPT === "tests/pre14-backup-run.e2e.cjs" ? { BACKUP_READY: "1" } : {}),
       // VIS-12: Google Calendar against the fake Google its test starts on localhost:8797; secrets of this run only.
       ...(process.env.E2E_SCRIPT === "tests/vis12-calendar.e2e.cjs" ? { VIS12_CALENDAR_READY: "1", GOOGLE_OAUTH_URL: "http://localhost:8797",
         GOOGLE_CALENDAR_API: "http://localhost:8797/calendar/v3", GOOGLE_CALENDAR_CLIENT_ID: "e2e.apps.googleusercontent.com",
