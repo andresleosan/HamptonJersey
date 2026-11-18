@@ -464,7 +464,7 @@ async function download({ request, env, params: [id] }) {
 // PRE-12 (spec 2026-11-08, POST /delivery): with migration 0120, a team member records that the reviewed copy was handed
 // over outside the app (by hand, by post or from the team's own email): what shows it and the result. Only
 // manual_handoff: sending from the app (approved_email) waits for AUT-17. It sends nothing and never closes the request
-// (unknown is not received). The copy must still be the one reviewed, checked again in the write itself. The evidence
+// (unknown is not received). The copy must still be the one reviewed: rebuilt and compared just before the write, which itself requires the same review (copy_hash). The evidence
 // stays in its own row: the audit, events and logs never carry it. Before 0120, nothing is mounted (404) or listed.
 const DELIVERY_RESULTS = ["accepted", "unknown", "failed"];
 const deliveryTable = env => hasTable(env, "privacy_request_deliveries");
@@ -502,7 +502,7 @@ async function close({ request, env, admin, params: [id] }) {
   if (note !== null && note !== "" && !text(note, 500)) return bad({ note: "Use up to 500 characters" });
   const sent = COPY_KINDS.includes(cur.kind) && ["fulfilled", "partially_fulfilled"].includes(b.result);
   if (sent && !cur.copy_hash) return bad({ result: "Review the copy before recording it as sent" });
-  // The reviewed copy is checked again in the write itself: a review cleared meanwhile refuses it (409).
+  // The write requires the same review (copy_hash): a review cleared meanwhile refuses it (409).
   return change(env, id, b, admin, "closed", ts => ["state = 'closed', result = ?, result_note = ?, closed_by = ?, closed_at = ?",
     [b.result, note ? note.trim() : null, admin, ts]], sent ? " AND copy_hash IS NOT NULL" : "");
 }
