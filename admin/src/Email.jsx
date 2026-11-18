@@ -3,7 +3,7 @@ import { api } from "./api.js";
 import { fmtDate } from "./format.js";
 
 const STATUS={draft:"Draft",queued:"Queued",sending:"Sending",accepted:"Accepted by Cloudflare",failed:"Failed",unknown:"Unknown result",cancelled:"Cancelled"};
-export default function Email({query}) {
+export default function Email({query,privacy}) {
   const params=new URLSearchParams(query), pendingOnly=params.get("review")==="pending";
   const [box,setBox]=useState(pendingOnly||params.get("box")==="outbound"?"outbound":"inbound"),[before,setBefore]=useState(null),[revision,setRevision]=useState(0);
   const [data,setData]=useState(null),[error,setError]=useState(null),[selected,setSelected]=useState(null),[result,setResult]=useState(null);
@@ -45,13 +45,13 @@ export default function Email({query}) {
           <button type="button" className="btn ghost sm" onClick={()=>setRevision(n=>n+1)}>Refresh email list</button>
         </div>
       </div>
-      {selected && <EmailDetail key={`${box}:${selected}`} box={box} id={selected} onChanged={changed} onReviewed={()=>setRevision(n=>n+1)} onOutgoing={id=>{setBox("outbound");setBefore(null);setSelected(id);}}/>}
+      {selected && <EmailDetail key={`${box}:${selected}`} box={box} id={selected} privacy={privacy} onChanged={changed} onReviewed={()=>setRevision(n=>n+1)} onOutgoing={id=>{setBox("outbound");setBefore(null);setSelected(id);}}/>}
       {!selected && !!data?.items.length && <p className="muted">Choose an email to read it and review its result.</p>}
     </div>
   </section>;
 }
 
-function EmailDetail({box,id,onChanged,onReviewed,onOutgoing}) {
+function EmailDetail({box,id,privacy,onChanged,onReviewed,onOutgoing}) {
   const [message,setMessage]=useState(null),[error,setError]=useState(null),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
   const title=useRef(null),said=useRef(null),focused=useRef(false),retrying=useRef(false);
   const retry=()=>{retrying.current=true;setRevision(n=>n+1);};
@@ -84,6 +84,7 @@ function EmailDetail({box,id,onChanged,onReviewed,onOutgoing}) {
         onClick={()=>{if(confirm("Acknowledge that you checked this unknown result? This will not resend the email."))act(async()=>{await api(`/admin/email/outbound/${id}/review`,{method:"POST",body:{acknowledged:true}});onReviewed();},"Unknown result reviewed. No email was resent.");}}>Acknowledge unknown result</button>}
       {message.reviewed_at&&<p className="muted">Reviewed {fmtDate(message.reviewed_at)}.</p>}
     </>:<><p className="muted">Check the sender before acting on this message. A suggested thread does not verify who sent it.</p>
+      <dl className="kv"><div><dt>Reference</dt><dd>HE-IN-{message.id}</dd></div></dl>
       {message.outbound_id&&<button type="button" className="btn ghost sm" onClick={()=>onOutgoing(message.outbound_id)}>View suggested outgoing thread</button>}
       {message.html_only===1&&<p className="muted">HTML-only message shown as source text. Formatting and remote content are not loaded.</p>}
       {message.attachments>0&&<p className="muted">{message.attachments} attachments were not saved.</p>}
@@ -95,6 +96,7 @@ function EmailDetail({box,id,onChanged,onReviewed,onOutgoing}) {
       {address&&<button type="button" className="btn ghost sm" disabled={busy} onClick={()=>{
         if(confirm("Stop sending to this address and cancel its pending emails?"))act(()=>api("/admin/email/suppressions",{method:"POST",body:{address}}),"Address suppressed. Pending sending to it is cancelled.");
       }}>Stop sending to this address</button>}
+      {box==="inbound"&&privacy&&<a className="btn ghost sm" href={`#/privacy?email=${message.id}`}>Record a privacy request</a>}
       {box==="inbound"&&<button type="button" className="btn ghost sm danger" disabled={busy} onClick={remove}>Delete email</button>}
     </div>
     {result&&<p ref={said} tabIndex={-1} role={result.error?"alert":"status"} className={result.error?"err":"ok"}>{result.text}</p>}

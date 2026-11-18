@@ -62,6 +62,15 @@ async function list({ env }) {
 async function create({ request, env, admin }) {
   const b = await readJson(request);
   if (!b || typeof b !== "object" || Array.isArray(b)) fail(400, "Invalid format");
+  // From a received email in the panel: how and when it arrived, and a reference naming the email, come from the email
+  // row itself (its Jersey day), never from the browser; nothing of its sender, subject or text is copied.
+  if (b.email_id !== undefined && b.email_id !== null) {
+    if (!Number.isSafeInteger(b.email_id) || b.email_id < 1) return bad({ email_id: "Reload the email and try again" });
+    const email = await env.DB.prepare("SELECT id, received_at FROM email_inbound WHERE id = ?").bind(b.email_id).first();
+    if (!email) fail(404, "Email no longer exists. Refresh the list.");
+    const day = jerseyToday(new Date(email.received_at));
+    Object.assign(b, { received_via: "email", received_on: day, reference: `Email HE-IN-${email.id}, received ${day}` });
+  }
   const errors = {};
   if (typeof b.id !== "string" || !new RegExp(`^${UUID}$`).test(b.id)) errors.id = "Reload the page and try again";
   if (!KINDS.includes(b.kind)) errors.kind = "Choose the type of request";

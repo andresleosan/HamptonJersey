@@ -27,12 +27,13 @@ const Status = ({ r }) => r.state === "closed" ? <span className="badge closed">
 const Failure = ({ msg, reload, focus }) => msg && <p ref={focus} tabIndex={-1} role="alert" className="err">{msg.text}
   {msg.stale && <> <button type="button" className="btn ghost sm" onClick={reload}>Reload</button></>}</p>;
 
-export default function PrivacyRequests({ id }) {
-  return id ? <Detail key={id} id={id} /> : <List />;
+// email: the id of a received email the request is recorded from (#/privacy?email=N, from the Email view).
+export default function PrivacyRequests({ id, email }) {
+  return id ? <Detail key={id} id={id} /> : <List email={email} />;
 }
 
-function List() {
-  const [d, setD] = useState(null), [err, setErr] = useState(null), [adding, setAdding] = useState(false);
+function List({ email }) {
+  const [d, setD] = useState(null), [err, setErr] = useState(null), [adding, setAdding] = useState(!!email);
   const load = () => api("/admin/privacy-requests").then(x => { setD(x); setErr(null); }, e => setErr(e.message));
   useEffect(() => { load(); }, []);
   return <section className="automations privacy" aria-labelledby="t-privacy">
@@ -41,7 +42,7 @@ function List() {
       {d && !adding && <button type="button" className="btn" onClick={() => setAdding(true)}>Record a request</button>}</div>
     {err && <p role="alert" className="err">{err} <button type="button" className="btn ghost sm" onClick={load}>Try again</button></p>}
     {!d ? !err && <p role="status">Loading privacy requests…</p> : <>
-      {adding && <NewRequest team={d.team} onCancel={() => setAdding(false)} />}
+      {adding && <NewRequest team={d.team} email={email} onCancel={() => { if (email) location.hash = "#/email"; else setAdding(false); }} />}
       {d.requests.length === 0 ? <p className="empty">No privacy requests recorded.</p>
         : <div className="table-scroll"><table className="list"><caption>Requests, open first by deadline</caption>
           <thead><tr><th scope="col">Received</th><th scope="col">Type</th><th scope="col">Where it came from</th><th scope="col">Contact</th>
@@ -53,7 +54,7 @@ function List() {
   </section>;
 }
 
-function NewRequest({ team, onCancel }) {
+function NewRequest({ team, email, onCancel }) {
   const empty = { kind: "", received_on: jerseyToday(), received_via: "email", reference: "", due_on: "", assigned_to: "" };
   const [f, setF] = useState(empty), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
   const opId = useRef(crypto.randomUUID()), form = useRef(null), first = useRef(null), fe = useFieldErrors("pr");
@@ -67,8 +68,8 @@ function NewRequest({ team, onCancel }) {
     setBusy(true); setMsg(null); fe.setErrors({});
     try {
       const { request } = await api("/admin/privacy-requests", { method: "POST", body: { id: opId.current, kind: f.kind,
-        received_on: f.received_on, received_via: f.received_via, reference: f.reference, due_on: f.due_on || null,
-        assigned_to: f.assigned_to || null } });
+        ...(email ? { email_id: Number(email) } : { received_on: f.received_on, received_via: f.received_via, reference: f.reference }),
+        due_on: f.due_on || null, assigned_to: f.assigned_to || null } });
       setUnsaved(false); location.hash = `#/privacy/${request.id}`;
     } catch (x) {
       const fields = x.data?.fields || {};
@@ -77,22 +78,24 @@ function NewRequest({ team, onCancel }) {
     }
   };
   return <form ref={form} className="card" onSubmit={submit} noValidate aria-labelledby="h-new-privacy">
-    <h2 id="h-new-privacy">Record a request</h2>
+    <h2 id="h-new-privacy">{email ? `Record a request from email HE-IN-${email}` : "Record a request"}</h2>
+    {email && <p className="muted">How and when it arrived, and where it came from, are taken from the email. Its sender is not
+      treated as checked: link the contact and check the identity on the request.</p>}
     <div className="grid2">
       <label>Type of request<select ref={first} value={f.kind} onChange={set("kind")} {...fe.invalid("kind")}>
         <option value="">Choose…</option>{Object.entries(KINDS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>{fe.error("kind")}</label>
-      <label>How it arrived<select value={f.received_via} onChange={set("received_via")} {...fe.invalid("received_via")}>
+      {!email && <><label>How it arrived<select value={f.received_via} onChange={set("received_via")} {...fe.invalid("received_via")}>
         {Object.entries(VIAS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>{fe.error("received_via")}</label>
       <label>Received on<input type="date" max={jerseyToday()} value={f.received_on} onChange={set("received_on")}
-        {...fe.invalid("received_on")} />{fe.error("received_on")}</label>
-      <div className="field"><label>Legal deadline (optional)<input type="date" min={f.received_on} value={f.due_on} onChange={set("due_on")}
+        {...fe.invalid("received_on")} />{fe.error("received_on")}</label></>}
+      <div className="field"><label>Legal deadline (optional)<input type="date" min={email ? undefined : f.received_on} value={f.due_on} onChange={set("due_on")}
         {...fe.invalid("due_on")} aria-describedby={["d-pr-due", fe.invalid("due_on")["aria-describedby"]].filter(Boolean).join(" ")} />
         {fe.error("due_on")}</label>
         <small id="d-pr-due" className="muted">Enter the deadline that applies. The app does not work one out.</small></div>
-      <div className="field"><label>Where it came from<input value={f.reference} onChange={set("reference")} maxLength={200} autoComplete="off"
+      {!email && <div className="field"><label>Where it came from<input value={f.reference} onChange={set("reference")} maxLength={200} autoComplete="off"
         {...fe.invalid("reference")} aria-describedby={["d-pr-ref", fe.invalid("reference")["aria-describedby"]].filter(Boolean).join(" ")} />
         {fe.error("reference")}</label>
-        <small id="d-pr-ref" className="muted">For example the email's subject and date. Keep the request itself out.</small></div>
+        <small id="d-pr-ref" className="muted">For example the email's subject and date. Keep the request itself out.</small></div>}
       <label>Assigned to<select value={f.assigned_to} onChange={set("assigned_to")} {...fe.invalid("assigned_to")}>
         <option value="">Not assigned</option>{team.map(t => <option key={t.email} value={t.email}>{t.name || t.email}</option>)}</select>
         {fe.error("assigned_to")}</label>

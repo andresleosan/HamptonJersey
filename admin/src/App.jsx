@@ -157,9 +157,10 @@ export default function App() {
     : section === "advertisers" ? <Advertisers session={advertiserSession} />
     : section === "messages" ? <Messages key={query ?? ""} chat={new URLSearchParams(query).get("chat")}
       channel={new URLSearchParams(query).get("channel")} facebook={counts.facebook} paused={blocked} onChange={loadCounts} />
-    : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} /></Suspense>
+    : section === "email" ? <Suspense fallback={<p>Loading email…</p>}><Email key={query??""} query={query} privacy={"privacy" in counts} /></Suspense>
     : section === "legal" ? <LegalTerms onChange={loadCounts} />
-    : section === "privacy" && "privacy" in counts ? <PrivacyRequests key={arg ?? ""} id={/^[0-9a-f-]{36}$/.test(arg ?? "") ? arg : null} />
+    : section === "privacy" && "privacy" in counts ? <PrivacyRequests key={`${arg ?? ""}?${query ?? ""}`} id={/^[0-9a-f-]{36}$/.test(arg ?? "") ? arg : null}
+      email={/^[1-9]\d{0,14}$/.test(new URLSearchParams(query).get("email") ?? "") ? new URLSearchParams(query).get("email") : null} />
     : section === "tours" ? <Tours /> : section === "automations" ? <Automations stalled={counts.stalled} outbound={counts.outbound} onChange={loadCounts} />
     : <Inbox paused={blocked} onCounts={setCounts} me={me} onPending={setTaskPending} />;
   const leave = e => {
