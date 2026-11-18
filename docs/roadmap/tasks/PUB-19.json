@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "—",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "Construido con controles desactivados: cálculo de contactos distintos por celda, borrador y revisión paginada, autorización y ledger con control de versión, revocación y página que solo consume el snapshot aprobado. D1 local y navegador aislado con datos sintéticos; no se ha publicado demanda real.",
   "falta": "Acreditar identidad y deduplicación de contactos, revisión competente de inferencias y autorización de divulgación vinculada al contenido y ledger; revisar esquema, retención y costes D1 antes de una migración o activación autorizada. El límite de cinco no acredita por sí solo privacidad. El enlace a valoración requiere PUB-10 operativo. No se garantiza purga puntual si el reloj falla.",
   "bloqueo": "",
@@ -17,7 +17,8 @@
     "admin/src/DemandCampaigns.jsx",
     "site/demand.js",
     "tests/server/pub19-demand-d1.test.mjs",
-    "tests/pub19-demand.e2e.cjs"
+    "tests/pub19-demand.e2e.cjs",
+    "18-nov-2026: construida y apagada; lo siguiente es autorización y revisión de privacidad de Luis: responsable pasa a Luis (sección 2 de la skill)."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -39,10 +40,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "",
+  "externalBlocker": "Luis/abogado: autorización de divulgación tras revisión de privacidad (PRE-33) y PUB-10 operativo (fila PUB-19 de COLA-LUIS). Con eso vuelve a desarrollo: revisar esquema, retención y coste D1, migrar y encender.",
   "resources": [
     "analytics-contract",
     "public-site"
   ],
-  "nextStep": "Acreditar identidad, revisión de privacidad y autorización de divulgación; verificar costes y retención antes de migrar o activar. Mantener controles apagados."
+  "nextStep": "Acreditar identidad, revisión de privacidad y autorización de divulgación; verificar costes y retención antes de migrar o activar. Mantener controles apagados.",
+  "actualizado": "2026-11-18"
 }

@@ -5,9 +5,9 @@
   "origen": "texto",
   "fase": "F6",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "La fase 1 de Hampton Bot sin IA (spec 2026-11-06 y decisiones de Luis «1 1 1 1» y «1 1») está en main desde 0639e4e2f41f92d13c25228470688d393faa5a76; la migración 0022 consta en el repositorio, pero su estado remoto no se pudo verificar en esta sesión. El código ofrece en la portada y en cada ficha el botón «Message us» abre el chat: nombre, email o móvil, el mensaje y la casilla del aviso de privacidad, con Turnstile. En el panel, la pantalla Messages (Waiting, Answered, Handled) con «Messages N» en la barra, la ficha por la que pregunta, si el visitante sigue en la web, Send reply (firmada «Nombre · Hampton Estates», nunca el email), Mark handled y Delete. El visitante vuelve a su conversación en ese navegador durante 7 días; «End chat» la olvida allí y «Delete chat» la borra. La retención prevista es de 30 días desde el último mensaje; no se ha comprobado su ejecución remota. Interruptor «Web chat» en Automations, apagado por defecto si falta el ajuste; su estado real no se ha comprobado; nunca en *.pages.dev. Hermes recibe solo el número de chats en espera (chats_waiting en news). Aviso de privacidad con la sección «Web chat». Preparada una mitigación para evitar futuros problemas de expiración de llaves, con revalidación de lectura y acuse de mensaje guardado; las conversaciones históricas requieren análisis aparte. Se ensayó una propuesta desconectada de revisiones semánticas y recibos mínimos para evitar duplicados, sin guardar el contenido de los mensajes.",
-  "falta": "Verificar por los canales autorizados la regla WAF para /api/chat* y /api/stats (ANA-09 y PRE-34), el bot y el estado real del interruptor antes de acreditar el servicio. Completar el avisador del VPS y el recorrido real de extremo a extremo sin datos personales en el aviso. Revisar llaves históricas, compatibilidad de integraciones y despliegue mixto; la mitigación futura no acredita reparación retroactiva. Faltan la revisión de concurrencia e idempotencia compartida, Create applicant (MSG-05) y el canal de correo AUT-17 para responder a quien cerró la página. La revisión jurídica del aviso y los requisitos previos a IA siguen pendientes. El nombre visible Hampton Bot y los límites adicionales por huella/ruta de contacto tampoco están implementados. La propuesta de recibos no está activa: faltan vincular actor y permisos reales, decidir su retención y purga, controlar la reemisión de intenciones inciertas, incorporar chats existentes y acotar el coste de borrado.",
+  "falta": "Verificar por los canales autorizados la regla WAF para /api/chat* y /api/stats (ANA-09 y PRE-34), el bot y el estado real del interruptor antes de acreditar el servicio. Completar el avisador del VPS y el recorrido real de extremo a extremo sin datos personales en el aviso. Revisar llaves históricas, compatibilidad de integraciones y despliegue mixto; la mitigación futura no acredita reparación retroactiva. Faltan la revisión de concurrencia e idempotencia compartida, Create applicant (MSG-05) y el canal de correo AUT-17 para responder a quien cerró la página. La revisión jurídica del aviso y los requisitos previos a IA siguen pendientes. La propuesta de recibos no está activa: faltan vincular actor y permisos reales, decidir su retención y purga, controlar la reemisión de intenciones inciertas, incorporar chats existentes y acotar el coste de borrado.",
   "bloqueo": "",
   "evidencia": [
     "migrations/0022_chats.sql",
@@ -18,7 +18,8 @@
     "docs/superpowers/specs/2026-11-06-hampton-app-web-chat-design.md",
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §4, §5 y §9",
     "docs/roadmap/work/MSG-02/key-expiry-future-mitigation.md",
-    "docs/roadmap/work/MSG-02/semantic-cas-evidence.md"
+    "docs/roadmap/work/MSG-02/semantic-cas-evidence.md",
+    "18-nov-2026: el nombre visible «Hampton Bot» no es de la fase 1 (spec 2026-11-06-hampton-app-web-chat-design.md, C6: firma «<nombre> · Hampton Estates»); límites por huella y endurecimientos de recibos/concurrencia van a MEJORAS (sección 3 de la skill). Lo que queda es de Luis o terceros: responsable pasa a Luis."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -40,10 +41,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Verificación operativa autorizada de WAF, bot, migración y activación; revisión del aviso por el abogado y requisitos de IA separados.",
+  "externalBlocker": "Luis/terceros: regla WAF de /api/chat* y /api/stats (ANA-09, PRE-34), avisador del VPS (Hermes), revisión jurídica del aviso y AUT-17 para responder por correo (fila MSG-02 de COLA-LUIS). Create applicant es MSG-05.",
   "resources": [
     "web-chat",
     "telegram-notifier"
   ],
-  "nextStep": "Resolver actor, retención y borrado acotado antes de integrar los recibos y el CAS; continuar el análisis histórico y verificar las compuertas operativas por canales autorizados."
+  "nextStep": "Resolver actor, retención y borrado acotado antes de integrar los recibos y el CAS; continuar el análisis histórico y verificar las compuertas operativas por canales autorizados.",
+  "actualizado": "2026-11-18"
 }
