@@ -129,34 +129,39 @@ async function openReviews(env, ts, day, ready, tenant, reviewed) {
 // PRE-12 (Q05, migration 0119): the domain review of a notice the pass keeps a contact for, by an admin, for the
 // contact's current episode. manual_notice_documented: the day the person was told another way and what shows it; the
 // pass may then delete the contact a month after that day, once the episode's date has come and nothing else keeps it
-// (MANUAL_NOTICE in retention.js). keep_for_review keeps it and leaves its Inbox task open; a manual notice may follow.
+// (manualNotice in retention.js). keep_for_review keeps it and leaves its Inbox task open; a manual notice may follow.
 // It deletes nothing and never moves last_activity_at; new activity starts an episode this review does not cover. The
 // event holds no evidence. Reviewable: a contact of Expiring with an email whose notice failed, is uncertain or was not
 // sent (or none was), never one still waiting, sent or answered.
 const reviewable = async (env, day) => `c.email IS NOT NULL AND ${expiringSql(env).replaceAll("?", `'${day}'`)}${
   await tenancyNoticeHold(env, day)} AND NOT EXISTS (SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id
     AND n.activity_at = c.last_activity_at AND n.state IN ('queued', 'accepted', 'replied'))`;
-// The first day a manual notice counts: the episode's 12th month, date(activity_at, '+11 months') as SQLite and Expiring
-// count it. An earlier, backdated day would give no real month of warning.
-const noticeFrom = at => {
-  const d = new Date(`${String(at).slice(0, 10)}T00:00:00Z`);
-  if (isNaN(d)) return "￿"; // above any date: nothing passes
+// The first day a manual notice may be given on: within the episode's 12th month, date(activity_at, '+11 months') as
+// SQLite and Expiring count it (earlier would give no real month of warning), and within the last 30 days of the Jersey
+// day it is recorded, so an answer since is still on file (the email clean-up blanks senders after 30 days) for the
+// passes to keep on the review (answered_at).
+const noticeFrom = (at, day) => {
+  const d = new Date(`${String(at).slice(0, 10)}T00:00:00Z`), recent = new Date(`${day}T00:00:00Z`);
+  if (isNaN(d) || isNaN(recent)) return "￿"; // above any date: nothing passes
   d.setUTCMonth(d.getUTCMonth() + 11);
-  return d.toISOString().slice(0, 10);
+  recent.setUTCDate(recent.getUTCDate() - 30);
+  const [a, b] = [d, recent].map(x => x.toISOString().slice(0, 10));
+  return a > b ? a : b;
 };
 const reviewsOn = async env => retentionNoticesReady(env) && !!(await noticeTable(env)) && !!(await reviewTable(env));
 
 // For the applicant's page: undefined when switched off or before 0112/0119.
 export async function noticeReviewFor(env, contactId) {
   if (!await reviewsOn(env)) return undefined;
-  const r = await env.DB.prepare(`SELECT c.last_activity_at AS activity_at, n.state, (${await reviewable(env, jerseyToday())}) AS ok,
+  const day = jerseyToday();
+  const r = await env.DB.prepare(`SELECT c.last_activity_at AS activity_at, n.state, (${await reviewable(env, day)}) AS ok,
       v.resolution_code, v.notice_given_on, v.evidence, v.actor, v.created_at
     FROM contacts c LEFT JOIN retention_notices n ON n.contact_id = c.id AND n.activity_at = c.last_activity_at
       LEFT JOIN retention_notice_reviews v ON v.contact_id = c.id AND v.activity_at = c.last_activity_at WHERE c.id = ?`)
     .bind(contactId).first();
   if (!r) return undefined;
   const { activity_at, state, ok, resolution_code, notice_given_on, evidence, actor, created_at } = r;
-  return { activity_at, notice_from: noticeFrom(activity_at), state: state ?? null, reviewable:!!ok && resolution_code !== "manual_notice_documented",
+  return { activity_at, notice_from: noticeFrom(activity_at, day), state: state ?? null, reviewable: !!ok && resolution_code !== "manual_notice_documented",
     review: resolution_code ? { resolution_code, notice_given_on, evidence, actor, created_at } : null };
 }
 
@@ -171,8 +176,8 @@ async function recordReview({ request, env, admin, params: [id] }) {
   if (!RESULTS.includes(code)) errors.resolution_code = "Choose manual notice or keep for review";
   if (typeof activity !== "string" || !activity) errors.activity_at = "Reload the page and try again";
   if (!evidence || evidence.length > 1000) errors.evidence = "Say what shows it, in up to 1,000 characters";
-  if (manual && !(isDay(given) && given <= day && given >= noticeFrom(activity)))
-    errors.notice_given_on = "Give the day the person was told, from the start of their 12th month without activity to today";
+  if (manual && !(isDay(given) && given <= day && given >= noticeFrom(activity, day)))
+    errors.notice_given_on = "Give the day the person was told: within the last 30 days, and no earlier than their 12th month without activity";
   if (Object.keys(errors).length) return json({ error: "Please check the highlighted fields", fields: errors }, 400);
   const [{ meta }] = await env.DB.batch([
     env.DB.prepare(`INSERT INTO retention_notice_reviews (contact_id, activity_at, resolution_code, evidence, notice_given_on, actor, created_at)

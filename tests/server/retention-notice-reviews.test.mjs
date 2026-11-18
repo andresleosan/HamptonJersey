@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import { makeEnv, T0, call, adminCookie } from "./helpers.mjs";
 import { emailEnv } from "./email-helpers.mjs";
@@ -14,6 +14,9 @@ const LAST = "2025-11-25T10:00:00.000Z", NOTICE = "2026-10-26T09:00:00.000Z";
 const GIVEN = "2026-10-27"; // the manual notice: the pass may delete from 27 November
 const MONTH_SHORT = "2026-11-26T09:30:00.000Z", MONTH_DONE = "2026-11-27T09:30:00.000Z";
 const ON = { PRE12_RETENTION_NOTICE_READY: "1", PRE10_PURPOSE_READY: "1" };
+// The review is recorded on 10 November 2026 (the route's own clock); the passes take their time as an argument.
+const TODAY = Date.parse("2026-11-10T12:00:00.000Z");
+mock.timers.enable({ apis: ["Date"], now: TODAY });
 
 const insert = (env, table, row) => {
   const cols = Object.keys(row);
@@ -108,9 +111,8 @@ test("an email after a manual notice keeps the contact after its content is clea
 
 // Review fix (GRAVE 2): a running tenancy withdraws the notice; it must withdraw the manual notice too, so the tenancy's
 // end never deletes on an old date without a fresh notice.
-test("a manual notice is withdrawn when the contact is linked to a running tenancy", async () => {
-  const { env, c } = await failedNotice({ PRE12_TENANCY_LINK_READY: "1" });
-  assert.equal((await review(env, c, manual)).status, 200);
+// A running tenancy linked to contact c on 1 November 2026; returns the tenancy's id.
+const linkTenancy = (env, c) => {
   const l = insert(env, "landlords", { name: "Synthetic Landlord", created_at: T0, updated_at: T0 });
   const rental = insert(env, "rentals", { landlord_id: l, address: "1 Fictitious Row", parish: "St Helier", service: "full",
     fee_percent: 10, created_at: T0, updated_at: T0 });
@@ -119,10 +121,47 @@ test("a manual notice is withdrawn when the contact is linked to a running tenan
     notes: "n", created_at: T0, updated_at: T0 });
   insert(env, "tenancy_contact_links", { tenancy_id: t, contact_id: c, linked: 1, tenant_revision: "a".repeat(64), actor: "x",
     at: "2026-11-01T09:00:00.000Z" });
+  return t;
+};
+
+test("a manual notice is withdrawn when the contact is linked to a running tenancy", async () => {
+  const { env, c } = await failedNotice({ PRE12_TENANCY_LINK_READY: "1" });
+  assert.equal((await review(env, c, manual)).status, 200);
+  const t = linkTenancy(env, c);
   await retentionNoticePass(env, "2026-11-01T09:10:00.000Z");
   env.DB.raw.prepare("UPDATE tenancies SET ended_on = '2027-03-01' WHERE id = ?").run(t);
   assert.equal((await runRetention(env, "2027-03-02T00:05:00.000Z")).contacts, 0); // the pass runs before the notice pass
   assert.equal(exists(env, c), true);
+});
+
+// Review fix: the notice pass that withdraws it does not run while the notice switch is off; the link itself must count.
+test("a link made while the notice switch was off still voids an earlier manual notice", async () => {
+  const { env, c } = await failedNotice({ PRE12_TENANCY_LINK_READY: "1" });
+  assert.equal((await review(env, c, manual)).status, 200);
+  env.PRE12_RETENTION_NOTICE_READY = "0";
+  const t = linkTenancy(env, c);
+  await retentionNoticePass(env, "2026-11-01T09:10:00.000Z"); // off: does nothing
+  assert.equal(one(env, "SELECT COUNT(*) AS n FROM retention_notice_reviews").n, 1);
+  env.DB.raw.prepare("UPDATE tenancies SET ended_on = '2027-03-01' WHERE id = ?").run(t);
+  env.PRE12_RETENTION_NOTICE_READY = "1";
+  assert.equal((await runRetention(env, "2027-03-02T00:05:00.000Z")).contacts, 0); // first tick after switching on
+  assert.equal(exists(env, c), true);
+});
+
+// Review fix: a manual notice recorded late could miss an answer whose sender the 30-day clean-up already blanked.
+test("a manual notice must be from the last 30 days, and the view says from when", async () => {
+  const { env, c } = await failedNotice();
+  mock.timers.setTime(Date.parse("2026-12-20T12:00:00.000Z"));
+  try {
+    const late = await review(env, c, manual); // 27 October: before 20 November
+    assert.equal(late.status, 400);
+    assert.ok(late.data.fields.notice_given_on);
+    const a = insert(env, "applicants", { contact_id: c, operation: "rent", source: "web", search_state: "resolved", resolved_at: T0,
+      resolved_by: "admin@example.test", resolution_reason: "Found a home", created_at: T0, updated_at: T0 });
+    const d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie: await adminCookie() })).data;
+    assert.equal(d.retention_notice.notice_from, "2026-11-20");
+    assert.equal((await review(env, c, { ...manual, notice_given_on: "2026-11-20" })).status, 200);
+  } finally { mock.timers.setTime(TODAY); }
 });
 
 test("an open privacy request still keeps a contact with a manual notice", async () => {

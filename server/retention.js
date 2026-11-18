@@ -85,10 +85,13 @@ export const reviewTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WH
 // For review v of contact c: an email from the person since the manual notice, or an answer to the episode's notice.
 const REVIEW_ANSWERED = `EXISTS (SELECT 1 FROM email_inbound i WHERE i.received_at >= v.notice_given_on
   AND (i.sender = c.email OR i.header_from = c.email)) OR EXISTS (${NOTICE_OF} AND ${NOTICE_ANSWERED})`;
-const MANUAL_NOTICE = `EXISTS (SELECT 1 FROM retention_notice_reviews v WHERE v.contact_id = c.id
+// tenants (as contactsDue's, 0113 with its switch): a link to a tenancy since the manual notice voids it, even if the
+// notice pass that withdraws it (server/retention-notices.js) has not run, e.g. while the notice switch was off.
+const manualNotice = tenants => `EXISTS (SELECT 1 FROM retention_notice_reviews v WHERE v.contact_id = c.id
   AND v.activity_at = c.last_activity_at AND v.resolution_code = 'manual_notice_documented' AND v.notice_given_on <= date(?2, '-1 months')
   AND v.answered_at IS NULL AND NOT (${REVIEW_ANSWERED})
-  AND NOT EXISTS (${NOTICE_OF} AND (n.state NOT IN ('failed', 'unknown', 'not_sent') OR n.delete_after > ?2)))`;
+  AND NOT EXISTS (${NOTICE_OF} AND (n.state NOT IN ('failed', 'unknown', 'not_sent') OR n.delete_after > ?2))${tenants ? `
+  AND NOT EXISTS (SELECT 1 FROM tenancy_contact_links l WHERE l.contact_id = c.id AND l.linked = 1 AND l.at >= v.notice_given_on)` : ""})`;
 // The email pipeline's claim and its check right before the call (server/email.js): a notice goes only while it is the
 // waiting notice of its contact's current episode, to that contact's address, and the pass would still delete them.
 // Switched off or without 0112, none goes (and the SQL is as before).
@@ -123,12 +126,12 @@ export const tenancyNoticeHold = async (env, day) =>
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
 // PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too. notices (Q05,
 // above): null without 0112; "kept" with 0112, a contact kept by its notice stays; "given", switched on too, a contact
-// with an email needs its notice as well; "reviewed", with 0119 too, or a manual notice (MANUAL_NOTICE above). tenants
+// with an email needs its notice as well; "reviewed", with 0119 too, or a manual notice (manualNotice above). tenants
 // (RUNNING_TENANCY above): a contact linked to a running tenancy stays.
 const contactsDue = (held, notices, tenants) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
   AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}${
   tenants ? ` AND NOT ${RUNNING_TENANCY}` : ""}${
-  notices === "reviewed" ? ` AND ((NOT ${NOTICE_KEPT} AND ${NOTICE_GIVEN}) OR ${MANUAL_NOTICE})`
+  notices === "reviewed" ? ` AND ((NOT ${NOTICE_KEPT} AND ${NOTICE_GIVEN}) OR ${manualNotice(tenants)})`
     : notices ? ` AND NOT ${NOTICE_KEPT}${notices === "given" ? ` AND ${NOTICE_GIVEN}` : ""}` : ""}
   ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
