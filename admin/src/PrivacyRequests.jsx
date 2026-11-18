@@ -19,8 +19,10 @@ const HOLDS = { sale: "Has a sale, in any state: kept.", open_offer: "Has an ope
 const REMOVE = { contact: "Contact record", searches: "Searches", offers: "Offers", matches: "Matches",
   marketing_preferences: "Marketing preferences", rental_applications: "Rental applications" };
 const ACTIONS = { created: "Recorded", updated: "Details changed", contact_linked: "Contact linked", identity_verified: "Identity checked",
-  copy_viewed: "Copy opened", copy_reviewed: "Copy reviewed", closed: "Closed" };
+  copy_viewed: "Copy opened", copy_reviewed: "Copy reviewed", closed: "Closed", handover_recorded: "Handover recorded" };
 const COPY_KINDS = ["access", "portability"];
+// A handover made outside the app (migration 0120). Sent but not confirmed is never shown as received.
+const HANDOVER = { accepted: "Handed over: the person has it", unknown: "Sent, receipt not confirmed", failed: "Not handed over" };
 const nameOf = (team, email) => team.find(t => t.email === email)?.name || email;
 const Status = ({ r }) => r.state === "closed" ? <span className="badge closed">Closed · {RESULTS[r.result]}</span>
   : <span className="badge attention">Open</span>;
@@ -142,10 +144,15 @@ function Detail({ id }) {
     {COPY_KINDS.includes(r.kind) && <Copy key={`p${r.revision}-${d.viewings?.filter(v => v.confirmed).map(v => v.id).join(".")}-${
       d.tenancies?.filter(t => t.link?.current).map(t => t.id).join(".")}`}
       r={r} team={team} onSaved={done("Copy marked as reviewed.")} reload={load} />}
+    {d.deliveries && <Handover key={`h${r.revision}`} r={r} deliveries={d.deliveries} team={team}
+      onSaved={done("Handover recorded. The request stays open until you close it.")} reload={load} />}
     {open ? <Close key={`x${r.revision}`} r={r} onSaved={done("Request closed.")} reload={load} />
       : <div className="card"><h2>Result</h2><p>{RESULTS[r.result]}, recorded by {nameOf(team, r.closed_by)} on {fmtDate(r.closed_at)}.</p>
         {r.result_note && <p>{r.result_note}</p>}</div>}
-    <div className="card"><h2>History</h2><ul>{d.audit.map(a => <li key={a.id}>{fmtDate(a.at)} · {ACTIONS[a.action]} by {nameOf(team, a.actor)}</li>)}</ul></div>
+    <div className="card"><h2>History</h2><ul>{[...d.audit.map(a => ({ ...a, key: a.id })),
+      ...(d.deliveries ?? []).map(x => ({ key: `d${x.id}`, at: x.at, action: "handover_recorded", actor: x.actor }))]
+      .sort((a, b) => a.at.localeCompare(b.at))
+      .map(a => <li key={a.key}>{fmtDate(a.at)} · {ACTIONS[a.action]} by {nameOf(team, a.actor)}</li>)}</ul></div>
   </section>;
 }
 
@@ -340,6 +347,36 @@ function Copy({ r, team, onSaved, reload }) {
           onClick={() => a.send({ revision: r.revision, sha256: preview.sha256 })}>{a.busy ? "Saving…" : "Mark copy as reviewed"}</button></div>}
         <Failure msg={a.msg} reload={reload} focus={a.said} /></>}
     </>}
+  </div>;
+}
+
+// Recorded by a person after handing the reviewed copy over by hand, by post or from the team's own email. Nothing is
+// sent from here and the request stays open.
+function Handover({ r, deliveries, team, onSaved, reload }) {
+  const [result, setResult] = useState(""), [evidence, setEvidence] = useState("");
+  const a = useChange("ph", `/admin/privacy-requests/${r.id}/delivery`, "POST", onSaved);
+  return <div className="card"><h2 id="h-ph">Handover of the copy</h2>
+    {deliveries.length > 0 && <ul aria-label="Handovers recorded">{deliveries.map(x => <li key={x.id}>
+      <span className={x.result === "accepted" ? "badge positive" : "badge attention"}>{HANDOVER[x.result]}</span> Recorded by{" "}
+      {nameOf(team, x.actor)} on {fmtDate(x.at)}: {x.evidence_ref}{x.copy_hash !== r.copy_review?.sha256 && " (an earlier version of the copy)"}</li>)}</ul>}
+    {r.state !== "open" ? deliveries.length === 0 && <p className="muted">No handover recorded.</p>
+      : !r.copy_review ? <p className="muted">Review the copy first. A handover can be recorded only for the reviewed copy.</p>
+      : <form noValidate aria-labelledby="h-ph" onSubmit={e => { e.preventDefault();
+        a.send({ revision: r.revision, method: "manual_handoff", result, evidence_ref: evidence }); }}>
+        <p className="muted">Record a handover you made outside the app: by hand, by post or from the team's own email. Nothing is sent from
+          here, and recording it does not close the request.</p>
+        <fieldset className="choices-set"><legend>Result</legend>
+          <div className="choices">{Object.entries(HANDOVER).map(([k, t]) => <label key={k} className="check">
+            <input type="radio" name="ph-result" value={k} checked={result === k} onChange={() => setResult(k)}
+              aria-describedby={a.errors.result ? "e-ph-result" : undefined} />{t}</label>)}</div>{a.error("result")}</fieldset>
+        <div className="field"><label>What shows it<input value={evidence} onChange={e => setEvidence(e.target.value)} maxLength={200} autoComplete="off"
+          {...a.invalid("evidence_ref")} aria-describedby={["d-ph-ev", a.invalid("evidence_ref")["aria-describedby"]].filter(Boolean).join(" ")} />
+          {a.error("evidence_ref")}</label>
+          <small id="d-ph-ev" className="muted">For example «posted recorded delivery, receipt number» or «given in person at the office».
+            Never paste the copy or the person's details.</small></div>
+        {a.error("method")}
+        <div className="inline"><button className="btn" disabled={a.busy}>{a.busy ? "Saving…" : "Record handover"}</button></div>
+        <Failure msg={a.msg} reload={reload} focus={a.said} /></form>}
   </div>;
 }
 

@@ -271,7 +271,8 @@ async function detail({ env, params: [id] }) {
   return json({ request: output(r), holds: kept, audit,
     erasure: r.kind === "erasure" && r.contact_id != null ? await erasurePlan(env, r.contact_id, kept) : null,
     ...(viewingReviewReady(env) && COPY_KINDS.includes(r.kind) && r.contact_id != null ? { viewings: await viewingsToReview(env, r) } : {}),
-    ...(tenancyLinkReady(env) && r.contact_id != null ? { tenancies: await tenanciesFor(env, r.contact_id) } : {}) });
+    ...(tenancyLinkReady(env) && r.contact_id != null ? { tenancies: await tenanciesFor(env, r.contact_id) } : {}),
+    ...(COPY_KINDS.includes(r.kind) && await deliveryTable(env) ? { deliveries: await deliveries(env, r.id) } : {}) });
 }
 
 // The copy for an access or portability request: explicit fields of the records linked to the contact by id, read in one
@@ -460,6 +461,39 @@ async function download({ request, env, params: [id] }) {
     "content-disposition": `attachment; filename="hampton-data-copy-${r.id}.${format}"`, "cache-control": "no-store" } });
 }
 
+// PRE-12 (spec 2026-11-08, POST /delivery): with migration 0120, a team member records that the reviewed copy was handed
+// over outside the app (by hand, by post or from the team's own email): what shows it and the result. Only
+// manual_handoff: sending from the app (approved_email) waits for AUT-17. It sends nothing and never closes the request
+// (unknown is not received). The copy must still be the one reviewed, checked again in the write itself. The evidence
+// stays in its own row: the audit, events and logs never carry it. Before 0120, nothing is mounted (404) or listed.
+const DELIVERY_RESULTS = ["accepted", "unknown", "failed"];
+const deliveryTable = env => hasTable(env, "privacy_request_deliveries");
+async function deliver({ request, env, admin, params: [id] }) {
+  if (!(await deliveryTable(env))) fail(404, "Not found");
+  const b = await readJson(request), r = await current(env, id), errors = {};
+  if (b?.method !== "manual_handoff") errors.method = "Only a handover made outside the app can be recorded";
+  if (!DELIVERY_RESULTS.includes(b?.result)) errors.result = "Choose the result of the handover";
+  if (!text(b?.evidence_ref, 200)) errors.evidence_ref = "Say what shows the handover, in up to 200 characters";
+  if (Object.keys(errors).length) return bad(errors);
+  if (!Number.isSafeInteger(b.revision)) fail(400, "Reload the request first");
+  if (!COPY_KINDS.includes(r.kind)) fail(400, "Only access and portability requests have a copy");
+  if (r.state !== "open") fail(409, CLOSED);
+  if (!r.copy_hash) fail(409, "Review the copy before recording its handover.");
+  if ((await buildCopy(env, r)).sha256 !== r.copy_hash) fail(409, "The data changed after the review. Review the copy again.");
+  const ts = now();
+  const [u] = await env.DB.batch([
+    env.DB.prepare(`UPDATE privacy_requests SET revision = revision + 1, updated_by = ?, updated_at = ?
+      WHERE id = ? AND revision = ? AND state = 'open' AND copy_hash = ?`).bind(admin, ts, id, b.revision, r.copy_hash),
+    env.DB.prepare(`INSERT INTO privacy_request_deliveries (request_id, revision, method, copy_hash, evidence_ref, result, actor, at)
+      SELECT id, revision, 'manual_handoff', copy_hash, ?, ?, ?, ? FROM privacy_requests WHERE id = ? AND changes() = 1`)
+      .bind(b.evidence_ref.trim(), b.result, admin, ts, id),
+  ]);
+  if (!u.meta.changes) fail(409, (await current(env, id)).state === "closed" ? CLOSED : STALE);
+  return json({ request: output(await load(env, id)) });
+}
+const deliveries = async (env, id) => (await env.DB.prepare(`SELECT id, revision, method, copy_hash, evidence_ref, result, actor, at
+  FROM privacy_request_deliveries WHERE request_id = ? ORDER BY id`).bind(id).all()).results;
+
 // The result is the team's record. Closing an erasure request deletes nothing; an access or portability request is
 // fulfilled only with a reviewed copy.
 async function close({ request, env, admin, params: [id] }) {
@@ -490,6 +524,7 @@ export default [
   ["POST", new RegExp(`${ONE}/copy-review$`), reviewCopy, true],
   ["GET", new RegExp(`${ONE}/copy/download$`), download, true],
   ["POST", new RegExp(`${ONE}/close$`), close, true],
+  ["POST", new RegExp(`${ONE}/delivery$`), deliver, true],
   ["POST", new RegExp(`${ONE}/viewings/([1-9]\\d{0,14})$`), decideViewing, true],
   ["POST", new RegExp(`${ONE}/tenancies/([1-9]\\d{0,14})$`), decideTenancy, true],
 ];

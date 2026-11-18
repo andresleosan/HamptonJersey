@@ -93,6 +93,18 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     const file=JSON.parse(readFileSync(await download.path(),'utf8'));
     assert.equal(file.contact.email,email);
     assert.deepEqual(file.viewing_requests.map(v=>v.name),[`Viewer ${stamp}`]);
+    // Handover made outside the app (0120): evidence required, nothing sent, the request stays open.
+    const handover=card('Handover of the copy');
+    await handover.getByLabel('Sent, receipt not confirmed',{exact:true}).check();
+    await handover.getByRole('button',{name:'Record handover',exact:true}).click();
+    await handover.getByText('Say what shows the handover, in up to 200 characters').waitFor();
+    assert.equal(await handover.getByLabel('What shows it').getAttribute('aria-invalid'),'true');
+    await handover.getByLabel('What shows it').fill(`Posted recorded delivery ${stamp}`);
+    await handover.getByRole('button',{name:'Record handover',exact:true}).click();
+    await page.getByRole('status').filter({hasText:'Handover recorded. The request stays open until you close it.'}).waitFor();
+    await card('Handover of the copy').getByRole('list',{name:'Handovers recorded'}).getByText(`Posted recorded delivery ${stamp}`,{exact:false}).waitFor();
+    await card('History').getByText('Handover recorded by',{exact:false}).waitFor();
+    await page.locator('.head .badge').filter({hasText:'Open'}).waitFor();
     // Changed after the review: the download says so on the page instead.
     const contact=(await request('GET',`/admin/applicants/${made.id}`)).contact;
     await request('PUT',`/admin/contacts/${contactId}`,{updated_at:contact.updated_at,best_time:'Mornings'});
@@ -131,5 +143,5 @@ const BASE=process.env.BASE, vars=parseEnv(readFileSync(process.env.E2E_VARS,'ut
     assert.deepEqual(errors,[]);
     await ctx.close();
   }}finally{await browser.close();}
-  console.log('PRE-12 isolated UI OK: record, field error, contact search, identity, viewing confirmed one by one, reviewed copy and download, 409, close, erasure plan, 1280/390.');
+  console.log('PRE-12 isolated UI OK: record, field error, contact search, identity, viewing confirmed one by one, reviewed copy and download, handover recorded, 409, close, erasure plan, 1280/390.');
 })().catch(e=>{console.error(e.message);process.exitCode=1;});
