@@ -54,9 +54,20 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    assert.equal(d1(`SELECT resolution_code FROM retention_notice_reviews WHERE contact_id=${contact}`)[0].resolution_code,'manual_notice_documented');
    assert.equal(d1(`SELECT count(*) AS n FROM contacts WHERE id=${contact}`)[0].n,1);
    await fits('recorded');await shot('recorded');
+   // A running tenancy linked to the contact (PRE12_TENANCY_LINK_READY, on in wrangler.toml) keeps it: the retention line says so.
+   const rental=await ctx.request.post(base+'api/admin/rentals',{headers:{origin},data:{landlord_id:(await (await ctx.request.post(base+'api/admin/landlords',
+    {headers:{origin},data:{name:`PRE12 owner ${width}`}})).json()).landlord.id,address:`${width} Synthetic Hold Lane`,parish:'St Helier',service:'let_only'}});
+   assert.ok(rental.ok(),await rental.text());const rid=(await rental.json()).rental.id;
+   d1(`INSERT INTO tenancies (rental_id,tenant_name,tenant_email,kind,regime,start_on,rent,due_day,created_at,updated_at)
+     VALUES (${rid},'${name}','pre12-manual-${width}@example.test','periodic','2025','2025-01-01',1000,1,'${now}','${now}');
+    INSERT INTO tenancy_contact_links (tenancy_id,contact_id,linked,tenant_revision,actor,at)
+     SELECT MAX(id),${contact},1,'${'b'.repeat(64)}','${ADMIN}','${now}' FROM tenancies;`);
+   await page.reload();
+   await page.getByText('Kept while a tenancy is running',{exact:true}).waitFor();
+   await fits('tenancy');await shot('tenancy');
    assert.deepEqual(errors,[]);
    await page.close();
   }
  } finally { await browser.close(); }
- console.log('PRE-12 manual notice: card, validation and recorded review at 1280/390 PASS');
+ console.log('PRE-12 manual notice: card, validation, recorded review and tenancy hold at 1280/390 PASS');
 })().catch(error=>{console.error(error);process.exitCode=1;});
