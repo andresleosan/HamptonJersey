@@ -13523,7 +13523,7 @@
       "origen": "plan",
       "fase": "F1-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
+      "responsable": "Luis",
       "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales.",
       "falta": "Integrar la normalización con el inventario BUS-06 y con lectores específicos de fuentes cuyo permiso y evidencia se hayan verificado; conservar URL, fecha y contradicciones para revisión. El contrato vacío y las pruebas sintéticas no activan fuentes ni acreditan ingesta real. Antes de conectar, resolver sesión e identidad durable del actor. Traído de AUT-09: casos reales y adversarios, umbral y evidencia de ejecución del propósito market_ambiguity_v1 en docs/automations/acceptance.json antes de activarlo. Traído de BUS-06 (14-nov): ampliar el contrato de observación manual con tipo de inmueble, superficie, ocupación, descripción y referencia del anunciante. POST /admin/market/manual-pages ya conecta el puente manual con la sesión del admin; siguen pendientes el lector Hampton interno (own_pilot) y cada lector externo con su contrato. El lector Hampton interno no desbloquea BUS-08 (comprobado el 16-nov): una pasada diaria solo lee canales externos y una fuente interna solo entra en tandas own_pilot (0043, market-inventory-store.js, market-identity.js; diseño TP-04). Para que el piloto propio funcione haría falta, además del lector (plan TP-04 BUS-09 tarea 2: server/market-readers/hampton-internal.js, market_own_snapshot), una fila de fuente interna (nada la crea: el directorio solo admite canales externos; iría en una migración aditiva o una ruta, siempre pendiente) y algo que lea las tandas own_pilot (ningún reloj las recorre). Una fuente interna sí pasa por BUS-19, pero sin permiso externo: reviewSourceAccess solo la abre con tipo internal y método Internal, y la base exige evidencia, retención y fecha de revisión (sin hosts ni rutas); el panel ya ofrece el método Internal, pero hoy no hay fila que revisar. La ampliación del contrato manual (tipo de inmueble, superficie, ocupación, descripción, referencia del anunciante) no es pequeña: pide decidir unidades de superficie, valores de ocupación y tipo, si cuentan como cambio material para BUS-04, y añadirlos al formulario del panel. Todo lector automático revalida la decisión BUS-19, lee con baja frecuencia, respeta robots.txt y se identifica. Traído de BUS-10 (15-nov): los lectores automáticos deben mantener estable la referencia y la operación de cada anuncio; la casa se ancla a la primera lectura decidida. Traído de BUS-01 (15-nov): normalizar el anunciante dentro de un portal; hoy BUS-03 muestra la fuente como anunciante.",
       "bloqueo": "",
@@ -13541,7 +13541,8 @@
         "tests/server/bus-09-ingestion-d1.test.mjs",
         "docs/roadmap/work/BUS-09/ingesta-manual-2026-11-13.md",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): dependencias por componente (TP-05).",
-        "16-nov-2026: revisado el encaje del lector interno con la pasada diaria de BUS-08; no encaja sin reabrir el diseño TP-04 (ver falta). Sin código nuevo en BUS-09."
+        "16-nov-2026: revisado el encaje del lector interno con la pasada diaria de BUS-08; no encaja sin reabrir el diseño TP-04 (ver falta). Sin código nuevo en BUS-09.",
+        "18-nov-2026: sin fuente aceptada no hay lector que construir (nextStep); BUS-21/22/23 hechas, BUS-19 y BUS-08 esperan la revisión de canales de Luis. El piloto interno (own_pilot) es otro alcance y no se abre sin decisión nueva (sección 2 de la skill). Responsable pasa a Luis."
       ],
       "modulo": "M02",
       "deps": [
@@ -13575,13 +13576,13 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "",
+      "externalBlocker": "Luis/Hampton: aceptar al menos un canal externo en Automations › Market inventory (BUS-19, BUS-08; filas en COLA-LUIS). Con una fuente aceptada vuelve a desarrollo: su lector y la integración con el inventario BUS-06.",
       "resources": [
         "source-connectors",
         "market-inventory"
       ],
       "nextStep": "Primer lector que desbloquea BUS-08: uno externo con contrato listo en source-contract-intake.json cuando BUS-21/22/23 entreguen una fuente aceptada. El piloto interno (own_pilot) es otro alcance: decidir si se construye con su fila de fuente y su lector de tandas.",
-      "actualizado": "2026-11-16"
+      "actualizado": "2026-11-18"
     },
     {
       "id": "BUS-10",
