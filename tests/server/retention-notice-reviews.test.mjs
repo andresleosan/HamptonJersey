@@ -149,18 +149,19 @@ test("a link made while the notice switch was off still voids an earlier manual 
 });
 
 // Review fix: a manual notice recorded late could miss an answer whose sender the 30-day clean-up already blanked.
-test("a manual notice must be from the last 30 days, and the view says from when", async () => {
+test("a manual notice must be from the last 29 days, and the view says from when", async () => {
   const { env, c } = await failedNotice();
   mock.timers.setTime(Date.parse("2026-12-20T12:00:00.000Z"));
   try {
-    const late = await review(env, c, manual); // 27 October: before 20 November
+    const late = await review(env, c, manual); // 27 October: before 21 November
     assert.equal(late.status, 400);
     assert.ok(late.data.fields.notice_given_on);
     const a = insert(env, "applicants", { contact_id: c, operation: "rent", source: "web", search_state: "resolved", resolved_at: T0,
       resolved_by: "admin@example.test", resolution_reason: "Found a home", created_at: T0, updated_at: T0 });
     const d = (await call(env, "GET", `/admin/applicants/${a}`, { cookie: await adminCookie() })).data;
-    assert.equal(d.retention_notice.notice_from, "2026-11-20");
-    assert.equal((await review(env, c, { ...manual, notice_given_on: "2026-11-20" })).status, 200);
+    assert.equal(d.retention_notice.notice_from, "2026-11-21");
+    assert.equal((await review(env, c, { ...manual, notice_given_on: "2026-11-20" })).status, 400);
+    assert.equal((await review(env, c, { ...manual, notice_given_on: "2026-11-21" })).status, 200);
   } finally { mock.timers.setTime(TODAY); }
 });
 
