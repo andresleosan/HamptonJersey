@@ -304,3 +304,54 @@ test('a tenancy decision from a request closed or relinked meanwhile is refused 
     assert.deepEqual(links(env), []);
   }
 });
+
+test('Expiring and the kept-until date leave out a contact held by a running tenancy; switched off, as before', async () => {
+  const cookie = await adminCookie(), near = '2025-12-01T09:00:00.000Z'; // inside the month before the pass deletes
+  const env = on();
+  const held = contact(env, { email: 'a@example.test', phone: null, at: near, search: 'resolved' });
+  const ended = contact(env, { email: 'b@example.test', phone: null, at: near, search: 'resolved' });
+  await setLink(env, cookie, tenancy(env, { email: 'a@example.test', phone: null }), held.id, true);
+  await setLink(env, cookie, tenancy(env, { email: 'b@example.test', phone: null, ended: '2026-11-01' }), ended.id, true);
+  const views = async e => ({ count: (await call(e, 'GET', '/admin/notifications/counts', { cookie })).data.expiring,
+    list: (await call(e, 'GET', '/admin/applicants?expiring=1', { cookie })).data.applicants.map(x => [x.id, !!x.expires_on]),
+    held: (await call(e, 'GET', `/admin/applicants/${held.applicant}`, { cookie })).data.retention,
+    ended: (await call(e, 'GET', `/admin/applicants/${ended.applicant}`, { cookie })).data.retention });
+  const v = await views(env);
+  assert.equal(v.count, 1);
+  assert.deepEqual(v.list, [[ended.applicant, true]]);
+  assert.equal(v.held.kept_until, null);
+  assert.equal(v.held.tenancy, true);
+  assert.equal(v.ended.tenancy, false);
+  assert.ok(v.ended.kept_until);
+  const off = await views({ ...env, PRE12_TENANCY_LINK_READY: '0' });
+  assert.equal(off.count, 2);
+  assert.equal(off.list.length, 2);
+  assert.ok(off.held.kept_until);
+  assert.equal('tenancy' in off.held, false);
+  // Log conversation answers with no kept-until date while the tenancy runs.
+  const logged = await call(env, 'POST', `/admin/contacts/${held.id}/conversation`, { cookie });
+  assert.equal(logged.data.kept_until, null);
+});
+
+test('switched off, or without 0113: Expiring, its count and the retention line read the same SQL', async () => {
+  const cookie = await adminCookie();
+  const seenBy = async env => {
+    const c = contact(env, { search: 'resolved' }), seen = [], prepare = env.DB.prepare.bind(env.DB);
+    env.DB.prepare = sql => { seen.push(sql); return prepare(sql); };
+    await call(env, 'GET', '/admin/notifications/counts', { cookie });
+    await call(env, 'GET', '/admin/applicants?expiring=1', { cookie });
+    await call(env, 'GET', `/admin/applicants/${c.applicant}`, { cookie });
+    await call(env, 'POST', `/admin/contacts/${c.id}/conversation`, { cookie });
+    env.DB.prepare = prepare;
+    return seen;
+  };
+  const [a, b, c] = [await seenBy(env0()), await seenBy(env0({ skip: [113] })), await seenBy(on({ skip: [113] }))];
+  assert.deepEqual(a, b);
+  // Switched on without 0113, only the check for the table is added.
+  assert.deepEqual(c.filter(s => !/sqlite_master[\s\S]*tenancy_contact_links/.test(s)), b);
+  assert.equal(a.some(s => /tenancy_contact_links/.test(s)), false);
+  // Switched on with 0113, Expiring's count, its list and the retention line name it.
+  const named = (await seenBy(on())).filter(s => /FROM tenancy_contact_links l JOIN tenancies/.test(s));
+  for (const view of [/^SELECT COUNT\(\*\) AS n FROM contacts c WHERE/, /^WITH listed AS/, /^SELECT strftime/])
+    assert.equal(named.some(s => view.test(s)), true, String(view));
+});

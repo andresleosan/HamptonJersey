@@ -11,8 +11,8 @@ import { openSearchReview } from "../search-review.js";
 import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clearMark } from "../applicant-ready.js";
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
-import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
-  OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY } from "../retention.js";
+import { NO_SALE, EXEMPT, expiringHeldSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
+  OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY, runningTenancySql } from "../retention.js";
 import { jerseyToday, jerseyNow } from "../viewings.js";
 import { noticeReviewFor } from "../retention-notices.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
@@ -132,7 +132,8 @@ async function list({ request, env }) {
   const cutoff = quietCutoff();
   // E8: Expiring lists the searches of the contacts deleted within a month, archived ones too (they go with them).
   const expiring = p.get("expiring") === "1", retentionReview = p.get("retention_review") === "1";
-  const where = [retentionReview ? RETENTION_REVIEW : expiring ? expiringSql(env) : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
+  const EXPIRING_NOW = await expiringHeldSql(env, today); // PRE-12: no contact kept for a running tenancy
+  const where = [retentionReview ? RETENTION_REVIEW : expiring ? EXPIRING_NOW : p.get("archived") === "1" ? "a.archived_at IS NOT NULL" : "a.archived_at IS NULL"];
   const args = expiring || retentionReview ? [today] : [];
   if (searchState) { where.push("a.search_state = ?"); args.push(searchState); }
   if (operation) { where.push("COALESCE(a.search_operation, a.operation) = ?"); args.push(operation); }
@@ -171,7 +172,7 @@ async function list({ request, env }) {
     // Materialized: each listed applicant's counts are read once, not once per use in QUEUE.
     `WITH listed AS MATERIALIZED (SELECT a.id, COALESCE(a.search_operation, a.operation) AS operation, a.search_category, a.stage, a.search_state, a.lost_reason, a.created_at, a.archived_at, a.assigned_to,
        ad.name AS assigned_name, c.name, c.phone, c.email, ${MATCH_COUNTS},${waiting ? ` a.id IN (${waiting}) AS in_process,` : ""}
-       CASE WHEN ${expiringSql(env)} THEN ${KEPT_UNTIL} END AS expires_on,
+       CASE WHEN ${EXPIRING_NOW} THEN ${KEPT_UNTIL} END AS expires_on,
        CASE WHEN ${RETENTION_REVIEW} THEN 1 ELSE 0 END AS retention_review,
        COALESCE(c.last_contact_at, c.created_at) AS last_contact_at, CASE WHEN ${QUIET} THEN 1 ELSE 0 END AS gone_quiet${extra?.sql ?? ""}
        FROM applicants a JOIN contacts c ON c.id = a.contact_id LEFT JOIN admins ad ON ad.email = a.assigned_to
@@ -211,17 +212,20 @@ async function list({ request, env }) {
 }
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
-// stays open (its date may then be past). PRE-12 (with its switch): or an open privacy request does (privacy).
-const retentionSql = env => `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
+// stays open (its date may then be past). PRE-12 (with its switch): or an open privacy request does (privacy); with its
+// switch and 0113, a link to a running tenancy (tenancy: runningTenancySql's, null as before).
+const retentionSql = (env, tenancy) => `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
   ${HAS_OPEN_SEARCH} AS search, ${HAS_OPEN_OFFER} AS offer, ${RETENTION_REVIEW} AS review${privacyHolds(env)
-    ? `, ${OPEN_PRIVACY_REQUEST} AS privacy` : ""} FROM contacts c WHERE c.id = ?`;
-const keptFor = r => ({ kept_until: r.held || r.privacy ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.offer,
-  search: !!r.search, review: !!r.review, ...(r.privacy !== undefined ? { privacy: !!r.privacy } : {}) });
+    ? `, ${OPEN_PRIVACY_REQUEST} AS privacy` : ""}${tenancy ? `, ${tenancy} AS tenancy` : ""} FROM contacts c WHERE c.id = ?`;
+const keptFor = r => ({ kept_until: r.held || r.privacy || r.tenancy ? null : r.kept_until, exempt: !!r.exempt, offer: !!r.offer,
+  search: !!r.search, review: !!r.review, ...(r.privacy !== undefined ? { privacy: !!r.privacy } : {}),
+  ...(r.tenancy !== undefined ? { tenancy: !!r.tenancy } : {}) });
 
 async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
   const contact = await loadContact(env, applicant.contact_id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
+  const day = jerseyToday(), tenancy = await runningTenancySql(env, day);
   const [events, viewings, duplicates, totals, [retention], pairs] = (await env.DB.batch([
     q(`SELECT e.*, (SELECT title FROM listings WHERE id=json_extract(e.data,'$.listing_id')) AS listing_title FROM events e WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
@@ -237,7 +241,7 @@ async function detail({ env, params: [id] }) {
        WHERE n.resolved_at IS NULL AND e.entity_type = 'contact' AND e.entity_id = ? AND e.type = 'applicant.duplicate_submitted'
        ORDER BY n.created_at DESC, n.id DESC`, contact.id, String(contact.id)),
     q(MATCH_COUNTS_SQL,applicant.id),
-    q(retentionSql(env), jerseyToday(), contact.id),
+    q(retentionSql(env, tenancy), day, contact.id),
     q(`SELECT listing_id,status,requirements_rank FROM matches WHERE applicant_id=?`,applicant.id),
   ])).map(r => r.results);
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
@@ -665,11 +669,11 @@ async function updateContact({ request, env, admin, params: [id] }) {
 // E9: Log conversation restarts the contact's 12 months. The event is written only when the contact is there (ifInserted
 // reads the touch's changes()), so an unknown contact changes nothing.
 async function logConversation({ env, admin, params: [id] }) {
-  const ts = now();
+  const ts = now(), day = jerseyToday(), tenancy = await runningTenancySql(env, day);
   const r = await env.DB.batch([contacted(env, Number(id), ts),
     ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
       { ifInserted: true }),
-    env.DB.prepare(retentionSql(env)).bind(jerseyToday(), Number(id))]);
+    env.DB.prepare(retentionSql(env, tenancy)).bind(day, Number(id))]);
   if (!r[0].meta.changes) fail(404, "Contact not found");
   return json({ ok: true, kept_until: keptFor(r[2].results[0]).kept_until });
 }

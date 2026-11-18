@@ -6,7 +6,7 @@ import { getTask, mutateTask } from "../notification-tasks.js";
 import { salesCount } from "./sales.js";
 import { refreshRentalsCount } from "./rent.js";
 import { jerseyToday } from "../viewings.js";
-import { retentionPass, expiringSql, RETENTION_REVIEW } from "../retention.js";
+import { retentionPass, expiringHeldSql, RETENTION_REVIEW } from "../retention.js";
 import { TO_CONFIRM } from "../listing.js";
 import { stoppedFlags } from "./automations.js";
 import { readLegal } from "../legal-terms.js";
@@ -38,7 +38,7 @@ export async function openCounts(env, legal, snooze = inboxActionsReady(env)) {
   catch (e) { if (!snooze || !missingSnooze(e)) throw e; return counted(env, legal, false); }
 }
 async function counted(env, legal, snooze) {
-  const on = inboxActionsReady(env);
+  const on = inboxActionsReady(env), today = jerseyToday(), expiringNow = await expiringHeldSql(env, today);
   const [{ results }, { results: [sales] }, , , { results: [rentals] }, { results: [expiring] }, { results: [toConfirm] },
     { results: [outbound] }, { results: seen }, { results: [chats] }, { results: [retentionReview] }] = await env.DB.batch([env.DB.prepare(
     `SELECT ${categorySql(on)} AS category, COUNT(*) AS n FROM notifications n WHERE ${OPEN(snooze)} GROUP BY 1`),
@@ -46,7 +46,7 @@ async function counted(env, legal, snooze) {
   env.DB.prepare("SELECT json_extract(value, '$.n') AS n FROM app_settings WHERE key = 'rentals_count'"),
   // ponytail: rows read per poll ≈ 1 + 3 × the contacts in the band (each one's search, sale and open-offer lookups);
   // past ~100 contacts in it, cache the count like rentals_count.
-  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${expiringSql(env)}`).bind(jerseyToday()),
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM contacts c WHERE ${expiringNow}`).bind(today),
   // Reads the listings_live index only (migration 0017).
   env.DB.prepare(`SELECT COUNT(*) AS n FROM listings l WHERE ${TO_CONFIRM}`).bind(now()),
   env.DB.prepare(`SELECT json_extract(value, '$.at') AS at, json_extract(value, '$.by') AS by FROM app_settings

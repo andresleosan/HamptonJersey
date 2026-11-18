@@ -116,8 +116,15 @@ export const RUNNING_TENANCY = `EXISTS (SELECT 1 FROM tenancy_contact_links l JO
 // The Jersey date goes in as a literal (it comes from jerseyToday) because those queries bind their own parameters. "" when
 // the switch is off or 0113 is missing: those statements are then as before.
 export const runningTenancyOn = day => RUNNING_TENANCY.replaceAll("?2", `'${day}'`); // day: checked as tenancyNoticeHold does
-export const tenancyNoticeHold = async (env, day) =>
-  tenancyLinkReady(env) && /^\d{4}-\d\d-\d\d$/.test(day) && await linkTable(env) ? ` AND NOT ${runningTenancyOn(day)}` : "";
+export const runningTenancySql = async (env, day) =>
+  tenancyLinkReady(env) && /^\d{4}-\d\d-\d\d$/.test(day) && await linkTable(env) ? runningTenancyOn(day) : null;
+export const tenancyNoticeHold = async (env, day) => {
+  const running = await runningTenancySql(env, day);
+  return running ? ` AND NOT ${running}` : "";
+};
+// The team's views say it too: Expiring, its count and the kept-until dates leave out a contact the pass keeps for a
+// running tenancy, as they do one held by a privacy request. As expiringSql otherwise.
+export const expiringHeldSql = async (env, day) => `${expiringSql(env)}${await tenancyNoticeHold(env, day)}`;
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts

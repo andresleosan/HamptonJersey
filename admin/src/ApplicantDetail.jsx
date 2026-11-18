@@ -482,6 +482,7 @@ export default function ApplicantDetail({ id, tab, onChange }) {
       <div><h1 id="t-applicant">{c.name}</h1>
         <p className="meta"><span>{OPERATION_LABEL[a.search_operation ?? a.operation]}</span><span>{SOURCE_LABEL[a.source]}</span><span>Applied {fmtDate(a.created_at)}</span></p>
         <p className="muted">{data.retention.privacy ? "Kept while a privacy request is open"
+          : data.retention.tenancy ? "Kept while a tenancy is running"
           : data.retention.search ? "Kept while a search is active or awaiting review"
           : data.retention.exempt ? "Kept for 5 years: it has a sale"
           : data.retention.offer ? "Kept while an offer is open" : `Kept until ${fmtDayMonth(data.retention.kept_until)}`}</p></div>
