@@ -236,3 +236,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-18] El cupo de 30 códigos diarios de case-access lo comparten reparaciones (ADM-12) y solicitudes (ADM-18) · separar si molesta · 17-nov-2026
 - [PRE-12] La nota OWNER_NOT_INCLUDED de la copia de acceso aparece si cualquier solicitud de propietario comparte email o teléfono (p. ej. teléfono de casa compartido), y una nueva de un tercero invalida una copia ya aprobada (409) · mostrarla siempre que exista la tabla o pasarla solo al plan interno · 17-nov-2026
 - [PRE-12] ownerRequestCount compara el teléfono por igualdad exacta; viewings usa los 9 últimos dígitos con normalizePhone · usar el mismo criterio · 17-nov-2026
+- [PRE-12] Un «Keep for review» registrado antes de que se abra la tarea de Inbox no abre ninguna: el contacto queda retenido sin nada visible salvo en su ficha · abrir o mantener una tarea para ese episodio · 18-nov-2026
+- [PRE-12] La evidencia del aviso manual (retention_notice_reviews.evidence) no sale en la copia de acceso ni en su lista not_included · decidir si se incluye · 18-nov-2026
+- [PRE-12] Un aviso aún en cola pasada su fecha sale como «unknown» en Inbox pero no admite aviso manual (409) hasta que se resuelve · falla del lado seguro · 18-nov-2026
