@@ -84,7 +84,7 @@ function EmailDetail({box,id,privacy,onChanged,onReviewed,onOutgoing}) {
         onClick={()=>{if(confirm("Acknowledge that you checked this unknown result? This will not resend the email."))act(async()=>{await api(`/admin/email/outbound/${id}/review`,{method:"POST",body:{acknowledged:true}});onReviewed();},"Unknown result reviewed. No email was resent.");}}>Acknowledge unknown result</button>}
       {message.reviewed_at&&<p className="muted">Reviewed {fmtDate(message.reviewed_at)}.</p>}
     </>:<><p className="muted">Check the sender before acting on this message. A suggested thread does not verify who sent it.</p>
-      <dl className="kv"><div><dt>Reference</dt><dd>HE-IN-{message.id}</dd></div></dl>
+      {privacy&&<dl className="kv"><div><dt>Reference</dt><dd>HE-IN-{message.id}</dd></div></dl>}
       {message.outbound_id&&<button type="button" className="btn ghost sm" onClick={()=>onOutgoing(message.outbound_id)}>View suggested outgoing thread</button>}
       {message.html_only===1&&<p className="muted">HTML-only message shown as source text. Formatting and remote content are not loaded.</p>}
       {message.attachments>0&&<p className="muted">{message.attachments} attachments were not saved.</p>}
