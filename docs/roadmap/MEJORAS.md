@@ -245,3 +245,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [PRE-12] Alta desde correo: si la respuesta del primer POST se pierde y el correo se borra antes del reintento, el reintento da 404 «Email no longer exists» aunque la solicitud se guardó · devolver la existente si ya hay una con ese id · 18-nov-2026
 - [PRE-12] La entrega manual sube la revisión de la solicitud sin fila en privacy_request_audit (su CHECK de 0101 no admite la acción; el historial la muestra desde la tabla de entregas) · ampliar el registro de auditoría cuando se toque esa tabla · 18-nov-2026
 - [PRE-12] La evidencia de una entrega manual sobrevive al borrado del contacto (la fila es de la solicitud); la interfaz pide no poner datos personales · recordarlo en las instrucciones del equipo · 18-nov-2026
+- [PRE-12] Vincular un correo a una solicitud de privacidad ya abierta (hoy solo se crea una nueva desde el correo) · necesita un campo de origen en la solicitud · 18-nov-2026
