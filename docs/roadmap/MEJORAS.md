@@ -239,3 +239,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [PRE-12] Un «Keep for review» registrado antes de que se abra la tarea de Inbox no abre ninguna: el contacto queda retenido sin nada visible salvo en su ficha · abrir o mantener una tarea para ese episodio · 18-nov-2026
 - [PRE-12] La evidencia del aviso manual (retention_notice_reviews.evidence) no sale en la copia de acceso ni en su lista not_included · decidir si se incluye · 18-nov-2026
 - [PRE-12] Un aviso aún en cola pasada su fecha sale como «unknown» en Inbox pero no admite aviso manual (409) hasta que se resuelve · falla del lado seguro · 18-nov-2026
+- [PRE-14] Si falla el INSERT del permiso «late» (D1 ocupado durante la exportación) solo se registra en el log y la copia puede sellarse con esa escritura · reintentar una vez y, si falla, bloquear el sello por una vía fuera de D1 (diario de control en R2 del spec) · 18-nov-2026
+- [PRE-14] PUBLIC_READS se decide por ruta, no por manejador: una ruta GET futura antepuesta a publicRoutes en esas rutas saltaría la compuerta · comprobar en la prueba que el primer manejador de cada ruta es el esperado · 18-nov-2026
+- [PRE-12] Contador de Expiring y lista de aplicantes hacen una consulta extra a sqlite_master por petición con el vínculo de alquileres encendido · cachear por isolate si pesa · 18-nov-2026

@@ -6,7 +6,7 @@ Estados: `pendiente` (sin envolver), `cubierta` (envuelta y con prueba propia), 
 
 | Entrada | Qué escribe | Estado |
 | --- | --- | --- |
-| `functions/api/[[path]].js` → `server/api.js` | Todas las rutas `/api`, incluida la rama Hermes, escrituras desde GET (aperturas QR, lecturas que registran) y `waitUntil` (Drive, avisos). Envuelta entera en `handleApi` (un permiso `api:<familia>` por petición, sin lista de lecturas: también los GET); el permiso dura hasta acabar los `waitUntil`; con la compuerta cerrada, 503 `backup_maintenance` y Retry-After 60 sin leer el cuerpo. | cubierta |
+| `functions/api/[[path]].js` → `server/api.js` | Todas las rutas `/api`, incluida la rama Hermes, escrituras desde GET (aperturas QR, lecturas que registran) y `waitUntil` (Drive, avisos). Envuelta en `handleApi` (un permiso `api:<familia>` por petición, también los GET), salvo `PUBLIC_READS`: GET `/listings`, `/config`, `/availability` y `/applicants/options`, lecturas demostradas con un D1 que solo admite SELECT en `tests/server/backup-writers.test.mjs` (toda ruta nueva de la lista entra antes en esa prueba; durante la exportación pueden fallar un momento, spec línea 44). El permiso dura hasta acabar los `waitUntil`; uno registrado tarde recibe su propio permiso `late`, admitido aunque la compuerta esté cerrada, que invalida la copia en curso; con la compuerta cerrada, 503 `backup_maintenance` y Retry-After 60 sin leer el cuerpo. | cubierta |
 | `functions/media/[id].js` → `server/media.js` | Solo lee D1 y R2 (probado). | excluida |
 | `functions/p/[id].js` → `server/seo.js` | Solo lee (probado, también con `?src=qr`: la apertura QR se cuenta por `/api`). | excluida |
 | `functions/properties.js` → `server/seo.js` | Sin D1 (probado). | excluida |
