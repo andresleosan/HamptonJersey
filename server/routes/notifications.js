@@ -1,4 +1,5 @@
 import { ownerStorageAvailable } from '../owner-requests.js';
+import { backupReady } from "../backup-write-gate.js";
 import { json, fail, readJson, now } from "../http.js";
 import { notificationSelect, noticeDto, TASK_CATEGORIES, inboxActionsReady, categorySql, snoozedSql, missingSnooze } from "../notification-query.js";
 import { getTask, mutateTask } from "../notification-tasks.js";
@@ -76,7 +77,7 @@ async function list({ request, env, waitUntil, admin }) {
   if (category && !CATEGORIES.includes(category)) fail(400, "Invalid category");
   waitUntil(retentionPass(env, now()));
   const on = inboxActionsReady(env), owner = await ownerStorageAvailable(env);
-  const read = snooze => env.DB.prepare(`${notificationSelect(owner, on, snooze)} WHERE ${category ? `${categorySql(on)} = ? AND ` : ""}${box === "feed" ? `
+  const read = snooze => env.DB.prepare(`${notificationSelect(owner, on, snooze, backupReady(env))} WHERE ${category ? `${categorySql(on)} = ? AND ` : ""}${box === "feed" ? `
     (n.resolved_at IS NOT NULL OR ${snooze ? `${snoozedSql()} OR ` : ""}${categorySql(on)} IN (SELECT value FROM json_each(COALESCE(
       (SELECT feed_categories FROM notification_preferences WHERE admin=?),'${JSON.stringify(CATEGORIES)}')))) AND ` : ""}${BOXES[box](snooze)}`)
     .bind(admin,...(category ? [category] : []),...(box === "feed" ? [admin] : [])).all();

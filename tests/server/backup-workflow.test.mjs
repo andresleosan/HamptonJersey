@@ -343,6 +343,29 @@ test('aviso: uno por semana, el cierre humano se respeta, aparece en el Inbox co
   assert.equal(all.find(x => x.title === 'Fake').target_exists, false);
 });
 
+test('aviso: encendido, la tarea enlaza al resumen del run mientras su fila existe; apagado, sin enlace', async t => {
+  quiet(t);
+  const env = makeEnv(), cookie = await adminCookie(), id = crypto.randomUUID();
+  env.DB.raw.prepare(`INSERT INTO backup_runs (id, week_start, policy_hash, status, attempt, reason_code, created_at, updated_at)
+    VALUES (?, ?, ?, 'failed', 2, 'drain_timeout', ?, ?)`).run(id, WEEK, 'a'.repeat(64), T0, T0);
+  await backupFailureNotice(env, id);
+  const [n] = notices(env);
+  const listed = async () => (await call(env, 'GET', '/admin/notifications?box=action', {cookie})).data.notifications.find(x => x.id === n.id);
+  const task = async () => (await call(env, 'GET', `/admin/notification-tasks/${n.id}`, {cookie})).data.task;
+  // Apagado (la ruta /admin/backups/:id no está montada): sin enlace, el objetivo sigue existiendo por su evento.
+  assert.deepEqual([(await listed()).target_exists, (await listed()).link], [true, null]);
+  env.BACKUP_READY = '1';
+  for (const x of [await listed(), await task()]) assert.deepEqual([x.target_exists, x.link], [true, `#/backups/${id}`]);
+  const summary = await call(env, 'GET', `/admin/backups/${id}`, {cookie});
+  assert.equal(summary.status, 200);
+  assert.deepEqual([summary.data.run.id, summary.data.run.status, summary.data.run.attempt, summary.data.run.reason_code],
+    [id, 'failed', 2, 'drain_timeout']);
+  // Sin la fila del run, el objetivo ya no existe: sin enlace.
+  env.DB.raw.prepare('DELETE FROM backup_runs WHERE id = ?').run(id);
+  for (const x of [await listed(), await task()]) assert.deepEqual([x.target_exists, x.link], [false, null]);
+  assert.equal((await call(env, 'GET', `/admin/backups/${id}`, {cookie})).status, 404);
+});
+
 test('configuración del worker de respaldo: sin URL, nodejs_compat, misma D1, BACKUP_READY apagado y sin secretos', () => {
   const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
   const b = read('backups/wrangler.toml'), pages = read('wrangler.toml');

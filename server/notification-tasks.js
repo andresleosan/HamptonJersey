@@ -1,4 +1,5 @@
 import {ownerStorageAvailable} from './owner-requests.js';
+import {backupReady} from './backup-write-gate.js';
 import {fail,now,sha256} from './http.js';
 import {notificationSelect,noticeDto,TASK_CATEGORIES,targetExists,taskTarget,sourceAllowsTarget,noticeTargetExists,inboxActionsReady,missingSnooze} from './notification-query.js';
 import {MANUAL_CATEGORIES} from '../shared/notification-categories.js';
@@ -89,7 +90,7 @@ export async function syncTask(env,descriptor) {
 }
 export async function getTask(env,id,admin) {
   const owner=await ownerStorageAvailable(env),on=inboxActionsReady(env);
-  const read=snooze=>env.DB.prepare(`${notificationSelect(owner,on,snooze)} WHERE n.id=?`).bind(admin,id).first();
+  const read=snooze=>env.DB.prepare(`${notificationSelect(owner,on,snooze,backupReady(env))} WHERE n.id=?`).bind(admin,id).first();
   // Switched on before migration 0088: as if Snooze were off.
   const row=await read(on).catch(e=>{if(on&&missingSnooze(e))return read(false);throw e;});
   if(!row)fail(404,'Task not found');return noticeDto(row);
@@ -137,7 +138,7 @@ export async function mutateTask(env,id,actor,body) {
     ...(['deadline','edit'].includes(action)?{due_at:action==='edit'?args[1]:args[0]}:{}),...(action==='snooze'?{snoozed_until:args[0]}:{})}));
   const prior=await replay(env,actor,body.operation_id,hash,id);if(prior)return prior;
   const extra=action==='claim'?[actor]:['assign','edit'].includes(action)?[body.assigned_to,body.assigned_to]:[];
-  const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${noticeTargetExists('notifications','e',await ownerStorageAvailable(env))})`;
+  const target=`EXISTS(SELECT 1 FROM events e WHERE e.id=notifications.event_id AND ${noticeTargetExists('notifications','e',await ownerStorageAvailable(env),backupReady(env))})`;
   // The task's revision is task_revision: a property's events keep their own revision sequence (events_listing_revision).
   const [updated]=await env.DB.batch([
     env.DB.prepare(`UPDATE notifications SET ${set},task_actor=?,task_action=? WHERE id=? AND revision=?

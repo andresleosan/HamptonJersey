@@ -29,10 +29,11 @@ export function taskTarget(value,manual=false) {
   return {kind,id,...(context&&Object.keys(context).length?{context}:{})};
 }
 
-// PRE-14: backups:<run> exists through its system backup.failed event, not backup_runs: migration 0094 may be unapplied.
+// PRE-14: backups:<run> exists through its system backup.failed event; with backups=true (BACKUP_READY, which needs
+// migration 0094) also only while its backup_runs row does. Off, backup_runs is never named.
 // ADM-12: case-codes:<day> exists through its system case_codes.cap_reached event (server/case-auth-email.js).
 // PUB-10: owner-request:<id> exists while its row does; owner=false (migration 0118 not applied) never names the table.
-export function targetExists(kind,id,context='NULL',owner=false) {
+export function targetExists(kind,id,context='NULL',owner=false,backups=false) {
   const tenancy=`json_extract(${context},'$.tenancy_id')`,repair=`json_extract(${context},'$.repair_id')`;
   return `(CASE ${kind}
     WHEN 'applicant' THEN EXISTS(SELECT 1 FROM applicants WHERE id=${id})
@@ -52,7 +53,7 @@ export function targetExists(kind,id,context='NULL',owner=false) {
     WHEN 'collection' THEN (${id}='unmatched-payments' OR ${id} GLOB 'landlord-statements:[0-9][0-9][0-9][0-9]-[01][0-9]' OR EXISTS(SELECT 1 FROM weekly_insights wi WHERE ${id}='weekly-insights:'||wi.week_start)
       OR EXISTS(SELECT 1 FROM market_runs mr WHERE ${id}='market-sweep:'||mr.id AND mr.kind='daily')
       OR (${id} GLOB 'backups:*' AND EXISTS(SELECT 1 FROM events be WHERE be.entity_type='collection' AND be.entity_id=${id}
-        AND be.type='backup.failed' AND be.actor='system'))
+        AND be.type='backup.failed' AND be.actor='system')${backups ? ` AND EXISTS(SELECT 1 FROM backup_runs br WHERE br.id=substr(${id},9))` : ''})
       OR (${id} GLOB 'case-codes:*' AND EXISTS(SELECT 1 FROM events ce WHERE ce.entity_type='collection' AND ce.entity_id=${id}
         AND ce.type='case_codes.cap_reached' AND ce.actor='system'))
       ${owner ? `OR (${id} GLOB 'owner-request:*' AND EXISTS(SELECT 1 FROM owner_requests WHERE id=substr(${id},15)))` : ''}) ELSE 0 END)`;
@@ -63,8 +64,8 @@ export const sourceAllowsTarget=(kind,id,event='e')=>`((${event}.entity_type=${k
     AND EXISTS(SELECT 1 FROM offers WHERE id=${id} AND applicant_id=${event}.entity_id))
   OR (${kind}='sale' AND ${event}.entity_type='applicant' AND CAST(json_extract(${event}.data,'$.sale_id') AS TEXT)=${id}
     AND EXISTS(SELECT 1 FROM sales WHERE id=${id} AND applicant_id=${event}.entity_id)))`;
-export const noticeTargetExists=(notice='n',event='e',owner=false)=>`${notice}.target_deleted=0 AND ${targetExists(
-  `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`,owner)}`;
+export const noticeTargetExists=(notice='n',event='e',owner=false,backups=false)=>`${notice}.target_deleted=0 AND ${targetExists(
+  `COALESCE(${notice}.target_kind,${event}.entity_type)`,`COALESCE(${notice}.target_id,${event}.entity_id)`,`${notice}.target_context`,owner,backups)}`;
 
 // NOT-08/NOT-09 (NOT0809_INBOX_READY, migration 0088). Off, the Inbox is as before: no SQL below runs; on before 0088, as if Snooze were off.
 // On: the agency's call and reply tasks (AGE-08, AGE-06) read as Agency replies and a client's answer to a presentation
@@ -79,14 +80,14 @@ export const snoozedSql=(n='n')=>`(${n}.snoozed_until IS NOT NULL AND ${n}.snooz
 export const missingSnooze=e=>/no such column: (\w+\.)?snoozed_/.test(String(e?.message));
 const QUICK=[[/^consultation:[^:]+:call$/,'call'],[/^consultation:[^:]+:reply$/,'reply'],[/^work:dictation:applicant:\d+:criteria-proposal$/,'approve']];
 
-export const notificationSelect=(owner=false,on=false,snooze=on)=>`SELECT e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,${categorySql(on)} AS category,n.title,${
+export const notificationSelect=(owner=false,on=false,snooze=on,backups=false)=>`SELECT ${backups?'1 AS backups_ready,':''}e.type AS source_type,e.entity_type AS source_entity_type,e.entity_id AS source_entity_id,n.id,n.event_id,${categorySql(on)} AS category,n.title,${
   on?`n.task_key,${snooze?`CASE WHEN ${snoozedSql()} THEN n.snoozed_until END`:'NULL'} AS snoozed_until,${snooze?1:0} AS snooze_ready,`:''}n.created_at,n.action_required,n.resolved_at,n.resolved_by,
   n.source_version,n.revision,n.assigned_to,n.due_at,n.task_reason,n.urgency,n.closed_by_source,
   owner.name AS assigned_name,owner.email IS NOT NULL AS assigned_available,
   CASE WHEN COALESCE(seen.read_revision,0)>=n.revision THEN 1 ELSE 0 END AS is_read,
   COALESCE(n.target_kind,e.entity_type) AS entity_type,COALESCE(n.target_id,e.entity_id) AS entity_id,
   n.target_context,n.target_deleted,COALESCE(c.phone,ac.phone,v.phone) AS raw_phone,
-  ${noticeTargetExists('n','e',owner)} AS target_exists,
+  ${noticeTargetExists('n','e',owner,backups)} AS target_exists,
   CASE WHEN n.target_kind IS NOT NULL THEN COALESCE(ol.title,sl.title,r.address,payment_rental.address,v.name,ac.name,c.name,l.title) END AS context_label,
   CASE WHEN e.entity_type='contact' THEN (SELECT s.id FROM applicants s WHERE s.contact_id=c.id
     ORDER BY (${activeSql('s')}
@@ -109,7 +110,7 @@ export const notificationSelect=(owner=false,on=false,snooze=on)=>`SELECT e.type
   LEFT JOIN tenancies pt ON pt.id=p.tenancy_id
   LEFT JOIN rentals payment_rental ON payment_rental.id=pt.rental_id`;
 
-export function noticeDto({source_type,source_entity_type,source_entity_id,raw_phone,search_id,target_context,target_deleted,context_label,task_key,snooze_ready,...n}) {
+export function noticeDto({source_type,source_entity_type,source_entity_id,raw_phone,search_id,target_context,target_deleted,context_label,task_key,snooze_ready,backups_ready,...n}) {
   const numeric=/^[1-9]\d*$/.test(n.entity_id)&&Number.isSafeInteger(Number(n.entity_id));
   const week=n.entity_type==='collection'&&/^weekly-insights:\d{4}-\d{2}-\d{2}$/.test(n.entity_id)?n.entity_id.slice(16):null;
   const weekly=week&&realDate(week)&&weekday(week)==='mon'&&source_type==='analytics.weekly_created'
@@ -131,6 +132,8 @@ export function noticeDto({source_type,source_entity_type,source_entity_id,raw_p
   else if(n.entity_type==='collection'&&n.entity_id==='unmatched-payments')link='#/rentals?payments=unmatched';
   else if(n.entity_type==='collection'&&/^market-sweep:[0-9a-f-]{36}$/.test(n.entity_id))link='#/automations'; // BUS-08
   else if(n.entity_type==='collection'&&/^landlord-statements:\d{4}-\d{2}$/.test(n.entity_id))link=`#/rentals/statements?month=${n.entity_id.slice(20)}`;
+  else if(backups_ready&&n.entity_type==='collection'&&/^backups:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(n.entity_id))
+    link=`#/backups/${n.entity_id.slice(8)}`; // PRE-14: the run's summary, only while BACKUP_READY mounts its route
   const context=target_context?JSON.parse(target_context):null;
   if(link&&context){const params=new URLSearchParams();
     for(const [key,param] of [['tenancy_id','tenancy'],['repair_id','repair'],['compliance_kind','check'],['deadline','deadline'],['milestone','milestone']])
