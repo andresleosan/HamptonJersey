@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {makeEnv, seedListing, seedMedia, adminCookie, ORIGIN} from './helpers.mjs';
 import {emailEnv, TS} from './email-helpers.mjs';
-import {handleApi} from '../../server/api.js';
-import {closeWriteGate, openWriteGate} from '../../server/backup-write-gate.js';
+import {handleApi, gated} from '../../server/api.js';
+import {closeWriteGate, openWriteGate, drainState} from '../../server/backup-write-gate.js';
 import jobs from '../../server/jobs.js';
 import {EMAIL_REPLY_TO} from '../../server/email.js';
 import {onRequestGet as mediaFn} from '../../functions/media/[id].js';
@@ -72,7 +72,7 @@ test('apagada: mismas respuestas con BACKUP_READY ausente, "0" o "1" con la comp
     answers[ready] = [];
     for (const [method, path, opts] of await SAMPLE()) answers[ready].push(await settle(await request(env, method, path, opts)));
     if (ready !== '1') assert.ok(!seen.some(s => /backup_/.test(s)), `BACKUP_READY=${ready}: ninguna consulta a backup_*`);
-    else assert.deepEqual(permits(env).map(p => p.open), Array(6).fill(false), 'encendida: un permiso por petición, cerrados');
+    else assert.deepEqual(permits(env).map(p => p.open), Array(5).fill(false), 'encendida: un permiso por petición salvo GET /listings, cerrados');
   }
   assert.deepEqual(answers['0'], answers[undefined]);
   assert.deepEqual(answers['1'], answers[undefined]);
@@ -98,7 +98,7 @@ test('compuerta cerrada: /api, la rama Hermes y los GET que escriben responden 5
   const env = apiEnv('1');
   await closeWriteGate(env, {run_id: RUN});
   const before = env.DB.raw.prepare('SELECT count(*) AS n FROM app_settings').get().n;
-  for (const [method, path, opts] of await SAMPLE()) {
+  for (const [method, path, opts] of (await SAMPLE()).filter(([, path]) => path !== '/listings')) { // lectura pública: abajo
     const r = await request(env, method, path, opts), out = await settle(r);
     assert.equal(out.status, 503, `${method} ${path}`);
     assert.equal(out.retry, '60');
@@ -109,6 +109,66 @@ test('compuerta cerrada: /api, la rama Hermes y los GET que escriben responden 5
   assert.equal(setting(env, 'hermes'), null, 'Hermes no dejó su hora');
   assert.equal(env.DB.raw.prepare('SELECT count(*) AS n FROM app_settings').get().n, before);
   assert.deepEqual(permits(env), []);
+});
+
+// (d) Spec TP-01 «Frontera de escritura»: todo /api dentro de la compuerta salvo una lista de lecturas demostradas. Las
+// lecturas públicas de la web se prueban aquí con un D1 que solo admite SELECT, con los interruptores apagados, los de
+// producción (wrangler.toml) y los suyos encendidos: no piden permiso, así que siguen respondiendo durante la copia y
+// cuando falla la escritura del permiso.
+const PRODUCTION_VARS = Object.fromEntries([...readFileSync(new URL('../../wrangler.toml', import.meta.url), 'utf8')
+  .matchAll(/^([A-Z0-9_]+) = "([^"]*)"$/gm)].map(m => [m[1], m[2]]));
+const PUBLIC_READS = ['/listings', '/config', '/availability', '/availability?listing_id=HE-R001', '/applicants/options'];
+test('las lecturas públicas de la web solo leen: fuera de la compuerta, responden con la copia en marcha', async t => {
+  t.mock.method(console, 'log', () => {});
+  const allOn = {...PRODUCTION_VARS, ANA10_QR_NO_STORE: '1', REG15_ALERTS_READY: '1', PRE10_PURPOSE_READY: '1',
+    ANA04_SEARCH_STATS_READY: '1', PUB16_TIMED_CLOSURE_READY: '1', PUB08_CONTENT_READY: '1', VIS10_HOUSE_RULES_READY: '1'};
+  for (const flags of [{}, PRODUCTION_VARS, allOn]) {
+    const env = {...apiEnv('1'), ...flags, BACKUP_READY: '1'};
+    await closeWriteGate(env, {run_id: RUN});
+    const seen = sqlLog(env);
+    for (const path of PUBLIC_READS) assert.equal((await settle(await request(env, 'GET', path))).status, 200, path);
+    assert.ok(seen.length > 0 && seen.every(s => /^\s*(SELECT|WITH)\b/i.test(s) && !/backup_/.test(s)), seen.join('\n---\n'));
+    assert.deepEqual(permits(env), []);
+  }
+});
+
+test('una escritura del permiso que falla no tumba las lecturas públicas; el resto sigue dentro', async t => {
+  t.mock.method(console, 'error', () => {});
+  const env = apiEnv('1'), original = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => /INSERT INTO backup_writers/.test(sql) ? {bind: () => ({run: async () => { throw new Error('D1 busy'); }})}
+    : original(sql);
+  for (const path of PUBLIC_READS) assert.equal((await settle(await request(env, 'GET', path))).status, 200, path);
+  assert.equal((await settle(await request(env, 'GET', '/admin/notifications/counts', {cookie: await adminCookie()}))).status, 500);
+  assert.equal((await settle(await request(env, 'HEAD', '/listings'))).status, 500, 'solo GET');
+});
+
+// (f) Un waitUntil registrado cuando el permiso de la petición ya se cerró lleva su propio permiso hasta acabar; si la
+// compuerta está cerrada entra igual (ya corre) e invalida esa captura.
+test('waitUntil tardío: su propio permiso hasta acabar, también con la compuerta cerrada', async () => {
+  const env = apiEnv('1'), pages = [];
+  let routeWaitUntil;
+  const res = await gated(env, ['admin'], async wu => { routeWaitUntil = wu; return new Response('ok'); }, p => pages.push(p));
+  assert.equal(res.status, 200);
+  await Promise.all(pages);
+  assert.deepEqual(permits(env), [{operation: 'api:admin', open: false}]);
+
+  const late = deferred();
+  routeWaitUntil(late.promise);
+  assert.equal(pages.length, 2, 'Pages espera el permiso tardío');
+  await new Promise(r => setImmediate(r));
+  assert.deepEqual(permits(env).map(p => p.open), [false, true]);
+  late.resolve();
+  await Promise.all(pages);
+  assert.deepEqual(permits(env).map(p => p.open), [false, false]);
+
+  const {epoch} = await closeWriteGate(env, {run_id: RUN});
+  const closed = deferred();
+  routeWaitUntil(closed.promise);
+  await new Promise(r => setImmediate(r));
+  assert.equal(await drainState(env, {run_id: RUN, epoch}), 'invalidated', 'esa copia no sella');
+  closed.resolve();
+  await Promise.all(pages);
+  assert.ok(permits(env).every(p => !p.open));
 });
 
 test('el permiso sigue abierto hasta que acaba el waitUntil, aunque la respuesta ya salió', async () => {

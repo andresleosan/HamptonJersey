@@ -24,14 +24,16 @@ const closePermit = (env, id, reason, now) => env.DB.prepare(`UPDATE backup_writ
 // finally, después de fn, que debe esperar dentro todos sus efectos y waitUntil. Si la respuesta de la admisión
 // se pierde, se cierra el mismo id antes de relanzar; el cierre final se reintenta una vez. Lo que aun así quede
 // abierto bloquea el sello hasta reconcileWritePermit (listOpenWritePermits lo muestra): nunca por antigüedad.
-export async function withApplicationWrite(env, {operation_id}, fn, now = () => null) {
+// late: fn's work already runs (a waitUntil registered after its request's permit closed) and cannot be refused, so it
+// is admitted whatever the gate; admitted inside a closed epoch it voids that capture (drainState 'invalidated').
+export async function withApplicationWrite(env, {operation_id, late = false}, fn, now = () => null) {
   if (!backupReady(env)) return fn();
   if (!OPERATION.test(operation_id ?? '')) throw new Error('backup_invalid_operation');
   const id = crypto.randomUUID();
   let admitted;
   try {
     admitted = await env.DB.prepare(`INSERT INTO backup_writers (id, epoch, operation, started_at)
-      SELECT ?1, epoch, ?2, ${at(3)} FROM backup_write_gate WHERE id = 1 AND (state = 'open' OR deadline <= ${at(3)})`)
+      SELECT ?1, epoch, ?2, ${at(3)} FROM backup_write_gate WHERE id = 1${late ? '' : ` AND (state = 'open' OR deadline <= ${at(3)})`}`)
       .bind(id, operation_id, now()).run();
   } catch (e) {
     await closePermit(env, id, 'admission_failed', now()).catch(() => console.error('backup_permit_close_failed'));

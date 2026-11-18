@@ -90,12 +90,19 @@ const SERVICE_ACCESS_MESSAGES = {
 // [method, path regex, handler, requiresAdmin]
 const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...staffMediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
 
+// PRE-14: the website's public reads, proven to only read (tests/server/backup-writers.test.mjs), run outside the gate:
+// a failed permit write cannot fail them and they keep answering during the copy (spec TP-01, allowlist of proven reads).
+const PUBLIC_READS = /^\/(listings|config|availability|applicants\/options)$/;
+
 // waitUntil(promise): keeps work running after the response is sent (Pages' context.waitUntil). Without one, the
 // promise still runs, unawaited; pass only promises that never reject.
 export async function handleApi(request, env, segments, waitUntil = () => {}) {
   // PRE-14: closing an orphan permit has to work while the gate is closed, so it runs outside it.
-  const outside = backupReady(env) && segments[0] === "admin" && BACKUP_ADMIN.test("/" + segments.join("/"));
-  const res = backupReady(env) && !outside ? await gated(request, env, segments, waitUntil) : await route(request, env, segments, waitUntil);
+  const path = "/" + segments.join("/");
+  const outside = backupReady(env) && ((segments[0] === "admin" && BACKUP_ADMIN.test(path))
+    || (request.method === "GET" && PUBLIC_READS.test(path)));
+  const res = backupReady(env) && !outside ? await gated(env, segments, wu => route(request, env, segments, wu), waitUntil)
+    : await route(request, env, segments, waitUntil);
   // Admin, session and chat answers carry personal data: never cache them anywhere.
   // PRE-06: except a panel image from the Staff media route, kept in that browser's cache only (server/media.js).
   const staffImage = segments[0] === "admin" && segments[1] === "media" && res.headers.get("cache-control") === STAFF_IMAGE_CACHE;
@@ -108,17 +115,24 @@ export async function handleApi(request, env, segments, waitUntil = () => {}) {
   return res;
 }
 
-// PRE-14: every /api request, Hermes's door and GETs included, runs inside one write permit that stays open until the
-// request's waitUntil work has finished; the answer goes out as soon as the route returns. While the weekly backup has
-// the gate closed nothing runs (the body is not read) and the answer is 503 backup_maintenance with Retry-After 60.
-function gated(request, env, segments, waitUntil) {
+// PRE-14: every other /api request, Hermes's door and GETs included, runs inside one write permit that stays open until
+// the request's waitUntil work has finished; the answer goes out as soon as the route returns. While the weekly backup
+// has the gate closed nothing runs (the body is not read) and the answer is 503 backup_maintenance with Retry-After 60.
+// run(waitUntil) is the route. A waitUntil it registers after that drain ended already runs: it gets its own late
+// permit until it settles, which voids a copy in progress.
+export function gated(env, segments, run, waitUntil) {
   const pending = [];
-  let respond;
+  let respond, drained = false;
   const answer = new Promise(r => { respond = r; });
   const family = /^[a-z0-9-]{1,40}$/.test(segments[0] ?? "") ? segments[0] : "other";
-  const permit = withApplicationWrite(env, { operation_id: `api:${family}` }, async () => {
-    respond(await route(request, env, segments, p => { pending.push(p); }));
-    for (let i = 0; i < pending.length; i++) await Promise.resolve(pending[i]).catch(() => {});
+  const operation_id = `api:${family}`;
+  const late = p => waitUntil(withApplicationWrite(env, { operation_id, late: true }, () => p)
+    .catch(() => console.error("backup_late_permit_failed")));
+  const permit = withApplicationWrite(env, { operation_id }, async () => {
+    try {
+      respond(await run(p => { if (drained) late(p); else pending.push(p); }));
+      for (let i = 0; i < pending.length; i++) await Promise.resolve(pending[i]).catch(() => {});
+    } finally { drained = true; }
   });
   waitUntil(permit.catch(() => {}));
   return Promise.race([answer, permit.then(() => answer, e => {

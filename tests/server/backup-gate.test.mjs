@@ -86,6 +86,21 @@ test('inflight waitUntil: el permiso sigue abierto hasta el final aunque venza e
   assert.equal(openPermits(e), 0);
 });
 
+// (f) Trabajo que ya corre (un waitUntil tardío) no se puede rechazar: entra aunque la compuerta esté cerrada, con su
+// permiso abierto hasta acabar, y esa captura no sella.
+test('late: entra con la compuerta cerrada, sigue abierto hasta acabar e invalida esa captura', async () => {
+  const e = env(), work = deferred();
+  await closeWriteGate(e, {run_id: RUN, now: T});
+  const write = withApplicationWrite(e, {operation_id: 'api:late', late: true}, () => work.promise, () => plus(T, 1));
+  await new Promise(r => setImmediate(r));
+  assert.equal(openPermits(e), 1);
+  assert.equal(await drainState(e, {run_id: RUN, epoch: 1, now: plus(T, 2)}), 'invalidated');
+  work.resolve('done');
+  assert.equal(await write, 'done');
+  assert.equal(openPermits(e), 0);
+  assert.equal(await sealable(e, {run_id: RUN, epoch: 1, now: plus(T, 3)}), false);
+});
+
 test('un fallo de la operación también cierra su permiso', async () => {
   const e = env();
   await assert.rejects(withApplicationWrite(e, {operation_id: 'jobs:retention'}, async () => { throw new Error('boom'); }), /boom/);
