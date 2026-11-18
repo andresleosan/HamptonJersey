@@ -124,7 +124,12 @@ export const tenancyNoticeHold = async (env, day) => {
 };
 // The team's views say it too: Expiring, its count and the kept-until dates leave out a contact the pass keeps for a
 // running tenancy, as they do one held by a privacy request. As expiringSql otherwise.
-export const expiringHeldSql = async (env, day) => `${expiringSql(env)}${await tenancyNoticeHold(env, day)}`;
+// A tenancy that ends within the month no longer hides its contact: the team sees it in Expiring, with its date, a month
+// before the pass may delete it (the pass itself still keeps it until the day after the tenancy ends).
+const monthAhead = day => { const d = new Date(`${day}T00:00:00Z`); if (isNaN(d)) return day; d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString().slice(0, 10); };
+export const tenancyViewSql = (env, day) => runningTenancySql(env, monthAhead(day));
+export const expiringHeldSql = async (env, day) => `${expiringSql(env)}${await tenancyNoticeHold(env, monthAhead(day))}`;
 
 // E1: ?1 = the pass's ISO time, ?2 its Jersey date. A contact goes once its whole kept-until day is over: the cutoff is a
 // date, below every time on that day. Every statement reads the set again: until the last one deletes the contacts

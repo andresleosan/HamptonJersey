@@ -12,7 +12,7 @@ import { readyRow, storedMark, hasShortlisted, readyView, readyStatements, clear
 import { evaluate } from "../matching.js";
 import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCounts, waitingSearches } from "../match-pages.js";
 import { NO_SALE, EXEMPT, expiringHeldSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
-  OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY, runningTenancySql } from "../retention.js";
+  OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY, tenancyViewSql } from "../retention.js";
 import { jerseyToday, jerseyNow } from "../viewings.js";
 import { noticeReviewFor } from "../retention-notices.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
@@ -213,7 +213,7 @@ async function list({ request, env }) {
 
 // E9: the day the contact's 12 months end, or none when a sale keeps it (E3) or an open offer does, for as long as it
 // stays open (its date may then be past). PRE-12 (with its switch): or an open privacy request does (privacy); with its
-// switch and 0113, a link to a running tenancy (tenancy: runningTenancySql's, null as before).
+// switch and 0113, a link to a running tenancy (tenancy: tenancyViewSql's, a month ahead, null as before).
 const retentionSql = (env, tenancy) => `SELECT ${KEPT_UNTIL} AS kept_until, NOT ${NO_SALE} AS exempt, NOT ${EXEMPT} AS held,
   ${HAS_OPEN_SEARCH} AS search, ${HAS_OPEN_OFFER} AS offer, ${RETENTION_REVIEW} AS review${privacyHolds(env)
     ? `, ${OPEN_PRIVACY_REQUEST} AS privacy` : ""}${tenancy ? `, ${tenancy} AS tenancy` : ""} FROM contacts c WHERE c.id = ?`;
@@ -225,7 +225,7 @@ async function detail({ env, params: [id] }) {
   const applicant = await loadApplicant(env, id);
   const contact = await loadContact(env, applicant.contact_id);
   const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
-  const day = jerseyToday(), tenancy = await runningTenancySql(env, day);
+  const day = jerseyToday(), tenancy = await tenancyViewSql(env, day);
   const [events, viewings, duplicates, totals, [retention], pairs] = (await env.DB.batch([
     q(`SELECT e.*, (SELECT title FROM listings WHERE id=json_extract(e.data,'$.listing_id')) AS listing_title FROM events e WHERE (entity_type = 'applicant' AND entity_id = ?) OR (entity_type = 'contact' AND entity_id = ?)
        ORDER BY at DESC, id DESC`, String(applicant.id), String(contact.id)),
@@ -669,7 +669,7 @@ async function updateContact({ request, env, admin, params: [id] }) {
 // E9: Log conversation restarts the contact's 12 months. The event is written only when the contact is there (ifInserted
 // reads the touch's changes()), so an unknown contact changes nothing.
 async function logConversation({ env, admin, params: [id] }) {
-  const ts = now(), day = jerseyToday(), tenancy = await runningTenancySql(env, day);
+  const ts = now(), day = jerseyToday(), tenancy = await tenancyViewSql(env, day);
   const r = await env.DB.batch([contacted(env, Number(id), ts),
     ...logEvent(env, { actor: admin, entity_type: "contact", entity_id: String(Number(id)), type: "contact.conversation" }, null,
       { ifInserted: true }),

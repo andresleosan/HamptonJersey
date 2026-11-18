@@ -323,9 +323,18 @@ test('Expiring and the kept-until date leave out a contact held by a running ten
   assert.equal(v.held.tenancy, true);
   assert.equal(v.ended.tenancy, false);
   assert.ok(v.ended.kept_until);
+  // A tenancy ending within the month shows its contact again, with its date, so the team has a month's warning.
+  const soon = contact(env, { email: 'c@example.test', phone: null, at: near, search: 'resolved' });
+  const end = new Date(Date.now() + 10 * 864e5).toISOString().slice(0, 10);
+  await setLink(env, cookie, tenancy(env, { email: 'c@example.test', phone: null, ended: end }), soon.id, true);
+  const w = await views(env), soonRet = (await call(env, 'GET', `/admin/applicants/${soon.applicant}`, { cookie })).data.retention;
+  assert.equal(w.count, 2);
+  assert.deepEqual(w.list.map(x => x[0]).sort(), [ended.applicant, soon.applicant].sort());
+  assert.equal(soonRet.tenancy, false);
+  assert.ok(soonRet.kept_until);
   const off = await views({ ...env, PRE12_TENANCY_LINK_READY: '0' });
-  assert.equal(off.count, 2);
-  assert.equal(off.list.length, 2);
+  assert.equal(off.count, 3);
+  assert.equal(off.list.length, 3);
   assert.ok(off.held.kept_until);
   assert.equal('tenancy' in off.held, false);
   // Log conversation answers with no kept-until date while the tenancy runs.
