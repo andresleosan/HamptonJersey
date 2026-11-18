@@ -14,6 +14,7 @@ import { pageMatches, MATCH_COUNTS_SQL, matchCounts, countsReady, candidateCount
 import { NO_SALE, EXEMPT, expiringSql, KEPT_UNTIL, HAS_OPEN_SEARCH, RETENTION_REVIEW, HAS_OPEN_OFFER, privacyHolds,
   OPEN_PRIVACY_REQUEST, tenancyLinkReady, linkTable, RUNNING_TENANCY } from "../retention.js";
 import { jerseyToday, jerseyNow } from "../viewings.js";
+import { noticeReviewFor } from "../retention-notices.js";
 import { CONTACT_NEXT_VERSION } from "../contact-version.js";
 import { purposeReady, readPreferences } from "../communication-preferences.js";
 import { PENDING_MARKETING } from "./public.js";
@@ -242,9 +243,11 @@ async function detail({ env, params: [id] }) {
   const search_run = await searchRunFor(env, applicant), criteria_proposal = await waitingProposal(env, applicant);
   const search_review = await openSearchReview(env, applicant.id); // BUS-17: undefined while switched off
   const ready = await readyRow(env, applicant.id); // AUT-18: undefined while switched off
+  const retention_notice = await noticeReviewFor(env, contact.id); // PRE-12 (0119): undefined while switched off
   return json({ applicant: parsed(applicant), contact, events: events.map(withData), viewings, duplicates: duplicates.map(withData),
     matchCounts:matchCounts(totals), retention: keptFor(retention), widen: await widenFor(env, applicant, pairs),
     ...(search_run && { search_run }), ...(criteria_proposal !== undefined && { criteria_proposal }),
+    ...(retention_notice !== undefined && { retention_notice }),
     ...(search_review !== undefined && { search_review }),
     ...(ready !== undefined && { team_ready: readyView(ready) }),
     ...(purposeReady(env) && { marketing_preferences: await readPreferences(env, contact.id),

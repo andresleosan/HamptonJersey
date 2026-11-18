@@ -18,6 +18,7 @@ import { marketingHistory } from "./marketing-history.js";
 import RegistrationEssentials from "./RegistrationEssentials.jsx";
 import { ApplicantMessages, ApplicantViewings } from "./ApplicantTabs.jsx";
 import MarketingPreferences from "./MarketingPreferences.jsx";
+import RetentionNoticeReview from "./RetentionNoticeReview.jsx";
 
 const CONTACT = ["name", "email", "phone", "preferred_channel", "best_time"];
 // Every form field that belongs to the search (the rest of the form is the contact).
@@ -61,6 +62,7 @@ const EVENT = { "applicant.created": "Search added", "applicant.updated": "Requi
   "match.interest_changed": "Client's interest in a home recorded",
   "contact.chat_linked": "Website chat linked", "contact.chat_unlinked": "Website chat unlinked",
   "contact.marketing_preference": "Marketing objection recorded", "contact.retention_notice_review": "Retention notice needs review",
+  "contact.retention_notice_reviewed": "Retention notice reviewed",
   "applicant.team_ready": "Marked ready for the team", "applicant.team_ready_done": "Ready for the team: done",
   "applicant.team_ready_cleared": "Ready for the team removed" };
 // AUT-18: why a Ready for the team mark came off (applicant.team_ready_cleared's reason).
@@ -498,6 +500,9 @@ export default function ApplicantDetail({ id, tab, onChange }) {
     {data.retention.review && <p className="warn" role="note">Review retention: this contact has had no recorded activity for at least 11 months.
       Check whether they still need their searches. Their record is protected from automatic deletion while a search is active or awaiting review.
       Log a conversation only after speaking with them.</p>}
+    {data.retention_notice && <RetentionNoticeReview notice={data.retention_notice} contactId={c.id} nameOf={nameOf}
+      onSaved={rn => { setData(x => ({ ...x, retention_notice: rn })); fetchDetail().catch(() => {}); }}
+      onReload={() => fetchDetail().catch(() => {})} />}
     <SearchLifecycle applicant={a} dirty={dirty} busy={busy || reviewing} nameOf={nameOf} onReload={reloadSearch} onEditing={setDecisionDirty}
       onChanged={async applicant => { setData(d => ({ ...d, applicant })); onChange?.(); await fetchDetail(); }} />
     {data.team_ready !== undefined && <TeamReady applicant={a} ready={data.team_ready} shortlisted={data.matchCounts.shortlisted} dirty={dirty} busy={busy || reviewing} nameOf={nameOf}

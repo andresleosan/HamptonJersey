@@ -70,6 +70,16 @@ const NOTICE_OF = "SELECT 1 FROM retention_notices n WHERE n.contact_id = c.id A
 const NOTICE_KEPT = `EXISTS (${NOTICE_OF} AND (n.state <> 'accepted' OR n.delete_after > ?2
   OR n.sent_at >= strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-1 months') OR ${NOTICE_ANSWERED}))`;
 const NOTICE_GIVEN = `(c.email IS NULL OR EXISTS (${NOTICE_OF}))`;
+// PRE-12 (Q05, migration 0119): a team member's review of the episode's notice (server/retention-notices.js). A notice
+// the email service did not deliver (failed, unknown, not sent, or none at all) stops keeping the contact once someone
+// recorded that the person was told by other means a month before, the date it gave has come and nothing has answered
+// either: the accepted notice's rule, with the manual notice's day. keep_for_review, a waiting notice or an answered one
+// keep it; so does a review of an earlier episode. Read only switched on with 0119; otherwise no statement names it.
+export const reviewTable = env => env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'retention_notice_reviews'").first();
+const MANUAL_NOTICE = `EXISTS (SELECT 1 FROM retention_notice_reviews v WHERE v.contact_id = c.id
+  AND v.activity_at = c.last_activity_at AND v.resolution_code = 'manual_notice_documented' AND v.notice_given_on <= date(?2, '-1 months')
+  AND NOT EXISTS (${NOTICE_OF} AND (n.state NOT IN ('failed', 'unknown', 'not_sent') OR n.delete_after > ?2 OR ${NOTICE_ANSWERED}))
+  AND NOT EXISTS (SELECT 1 FROM email_inbound i WHERE i.received_at >= v.notice_given_on AND (i.sender = c.email OR i.header_from = c.email)))`;
 // The email pipeline's claim and its check right before the call (server/email.js): a notice goes only while it is the
 // waiting notice of its contact's current episode, to that contact's address, and the pass would still delete them.
 // Switched off or without 0112, none goes (and the SQL is as before).
@@ -103,11 +113,13 @@ export const tenancyNoticeHold = async (env, day) =>
 // The second bound keeps a full 12 months when the last activity fell in Jersey's first hour of a BST day.
 // PRE-12 (privacyHolds above): with its switch on, a contact held by an open privacy request is kept too. notices (Q05,
 // above): null without 0112; "kept" with 0112, a contact kept by its notice stays; "given", switched on too, a contact
-// with an email needs its notice as well. tenants (RUNNING_TENANCY above): a contact linked to a running tenancy stays.
+// with an email needs its notice as well; "reviewed", with 0119 too, or a manual notice (MANUAL_NOTICE above). tenants
+// (RUNNING_TENANCY above): a contact linked to a running tenancy stays.
 const contactsDue = (held, notices, tenants) => `SELECT c.id FROM contacts c WHERE c.last_activity_at < date(?2, '-12 months')
   AND c.last_activity_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months') AND ${EXEMPT}${held ? ` AND NOT ${OPEN_PRIVACY_REQUEST}` : ""}${
   tenants ? ` AND NOT ${RUNNING_TENANCY}` : ""}${
-  notices ? ` AND NOT ${NOTICE_KEPT}${notices === "given" ? ` AND ${NOTICE_GIVEN}` : ""}` : ""}
+  notices === "reviewed" ? ` AND ((NOT ${NOTICE_KEPT} AND ${NOTICE_GIVEN}) OR ${MANUAL_NOTICE})`
+    : notices ? ` AND NOT ${NOTICE_KEPT}${notices === "given" ? ` AND ${NOTICE_GIVEN}` : ""}` : ""}
   ORDER BY c.last_activity_at, c.id LIMIT ${RETENTION_CAP}`;
 // entity_id is TEXT: text ids keep each lookup on the events_entity index.
 const eventsOf = (type, set) =>
@@ -148,7 +160,7 @@ export async function runRetention(env, ts) {
   if (hasNotices) await env.DB.batch(noticeOutcomeStatements(env, ts));
   await cleanEmail(env, ts);
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
-  const notices = hasNotices ? (retentionNoticesReady(env) ? "given" : "kept") : null;
+  const notices = hasNotices ? (retentionNoticesReady(env) ? (await reviewTable(env) ? "reviewed" : "given") : "kept") : null;
   const tenants = tenancyLinkReady(env) && !!(await linkTable(env)); // PRE-12 (D4): one look for 0113, only switched on
   const CONTACTS = contactsDue(privacyHolds(env), notices, tenants), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;

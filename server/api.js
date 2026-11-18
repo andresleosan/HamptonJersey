@@ -57,7 +57,8 @@ import chatApplicantRoutes, { chatApplicantReady } from "./chat-applicant.js";
 import marketingPreferenceRoutes, { purposeReady } from "./communication-preferences.js";
 import privacyRequestRoutes, { privacyRequestsReady } from "./privacy-requests.js";
 import tenancyLinkRoutes from "./tenancy-contact-links.js";
-import { tenancyLinkReady } from "./retention.js";
+import { tenancyLinkReady, retentionNoticesReady } from "./retention.js";
+import { noticeReviewRoutes } from "./retention-notices.js";
 import viewingGroupRoutes from "./routes/viewing-groups.js";
 import { vis14Ready } from "./viewing-groups.js";
 import coordinationRoutes from "./routes/viewing-coordination.js";
@@ -172,6 +173,7 @@ async function route(request, env, segments, waitUntil) {
     else if (purposeReady(env)) routes = [...routes, ...unsubscribeRoutes]; // REG-15 off later: its alerts' links still stop them
     if (privacyRequestsReady(env)) routes = [...routes, ...privacyRequestRoutes]; // PRE-12: needs migration 0101
     if (tenancyLinkReady(env)) routes = [...routes, ...tenancyLinkRoutes]; // PRE-12: needs migration 0113
+    if (retentionNoticesReady(env)) routes = [...routes, ...noticeReviewRoutes]; // PRE-12: needs migrations 0112 and 0119
     if (vis14Ready(env)) routes = [...routes, ...viewingGroupRoutes]; // VIS-14: needs migration 0104
     // VIS-17: answers 404 until migration 0114. SAP-09: Book viewing of an agency's home starts its proposal from the applicant.
     if (vis17Ready(env)) routes = [...routes, ...coordinationRoutes, ...applicantViewingProposalRoutes];
