@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AVAILABILITY, OPERATION, USE, KIND, TENURE, HOUSING, RESTRICTION, priceText } from "./format.js";
+import { AVAILABILITY, OPERATION, KIND, TENURE, HOUSING, RESTRICTION, priceText } from "./format.js";
 import { createDraft } from "./createDraft.js";
 import PhotoQualitySuggestions from "./PhotoQualitySuggestions.jsx";
 import { setUnsaved } from "./unsaved.js";
 import { decodeText, readPropertyText, draftBody, legalFields, planFolder, readDrop } from "../../server/listing-import.js";
 import {isRentalMarketing} from '../../server/listing-editorial.js';
+import { CATEGORY, OPERATIONS, AVAILABILITIES, categoryOf, chooseCategory, chooseOperation } from '../../server/listing-category.js';
 
 // PUB-01 (spec 2026-11-03): a draft typed by hand, as before, or read from a folder: its property.txt and its own photos.
 const START = { title: "", use: "residential", operation: "sale", availability: "for_sale", country: "Jersey" };
@@ -147,10 +148,10 @@ export default function NewProperty({ rows, onClose }) {
         aria-describedby={same ? "d-same" : undefined} /></label>
       {same && <p id="d-same" className="warn">A listing with this title already exists: {same.id}.</p>}
       <div className="filters">
-        <label>Use<select value={f.use} onChange={set("use")}>{Object.entries(USE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Operation<select value={f.operation} onChange={set("operation")}>{Object.entries(OPERATION).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Availability<select value={f.availability} onChange={set("availability")}>{Object.entries(AVAILABILITY).filter(([k])=>!isRentalMarketing(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-        <label>Country<input value={f.country} onChange={set("country")} maxLength={100} /></label>
+        <label>Category<select value={categoryOf(f)} onChange={e => setF(chooseCategory(f, e.target.value))}>{Object.entries(CATEGORY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label>Operation<select value={f.operation} disabled={OPERATIONS[categoryOf(f)].length === 1} onChange={e => setF(chooseOperation(f, e.target.value))}>{OPERATIONS[categoryOf(f)].map(k => <option key={k} value={k}>{OPERATION[k]}</option>)}</select></label>
+        <label>Availability<select value={f.availability} onChange={set("availability")}>{AVAILABILITIES[f.operation].filter(k => !isRentalMarketing(k)).map(k => <option key={k} value={k}>{AVAILABILITY[k]}</option>)}</select></label>
+        <label>Country<input value={f.country} onChange={set("country")} maxLength={100} required={categoryOf(f) === "international"} /></label>
       </div>
       </fieldset>
       {err && <p role="alert" className="err">{err}</p>}

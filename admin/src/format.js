@@ -18,14 +18,7 @@ export const stateOf = editorialState;
 
 const SYM = { GBP: "£", EUR: "€" };
 export function priceText(l) {
-  if (l.operation === "business" && l.premium != null) {
-    const premium = `${SYM[l.currency] ?? ""}${Math.round(l.premium).toLocaleString("en-GB")}`;
-    return l.rent != null && ["month", "year"].includes(l.rent_period)
-      ? `${premium} premium + ${SYM[l.currency] ?? ""}${Math.round(l.rent).toLocaleString("en-GB")}${l.rent_period === "year" ? " p.a." : " pcm"}` : premium;
-  }
   const a = listingAmount(l);
-  if (l.operation === "business" && l.rent != null && ["month", "year"].includes(l.rent_period))
-    return `${SYM[l.currency] ?? ""}${Math.round(l.rent).toLocaleString("en-GB")}${l.rent_period === "year" ? " p.a." : " pcm"} (premium not published)`;
   if (a == null) return l.price_text || "—";
   const per = priceOperation(l) === "rent" ? ({ month: " pcm", year: " p.a." }[l.rent_period] ?? "") : "";
   return `${SYM[l.currency] ?? ""}${Math.round(a).toLocaleString("en-GB")}${per}`;

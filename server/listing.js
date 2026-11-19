@@ -156,7 +156,6 @@ export function toPublic(l, media) {
     viewingsEnabled: l.viewings_enabled === 1,
     place: l.location || l.country || "", type: l.property_type, use: l.use, operation: l.operation,
     currency: l.currency, salePrice: priceOperation(l) === "sale" ? l.sale_price : null, rent: (priceOperation(l) === "rent" || l.operation === "business") ? l.rent : null, rentPeriod: (priceOperation(l) === "rent" || l.operation === "business") ? l.rent_period : null,
-    ...(l.operation === "business" && l.premium != null ? { premium: l.premium } : {}),
     priceText: l.price_text, beds: l.bedrooms, baths: l.bathrooms, tenure: l.tenure,
     tenureType: l.tenure_type ?? null, housingCategory: l.housing_category ?? null, restriction: l.restriction ?? null,
     summary: lines(l.summary), description: lines(l.description),

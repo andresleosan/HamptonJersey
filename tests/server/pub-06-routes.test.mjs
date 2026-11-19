@@ -171,6 +171,7 @@ test('create obeys the capability and audits the new amounts once; repeating unc
 
 test('changing currency requires all structured terms, explicit review and the current listing version', async () => {
   const { env, cookie } = await setup({ install: true, enabled: true });
+  env.DB.raw.prepare("UPDATE listings SET country = 'Portugal' WHERE id = 'HE-R001'").run(); // only an international property is priced in EUR
   const first = await call(env, 'PUT', '/admin/listings/HE-R001', { cookie, body: {
     updated_at: T0, rental_deposit_amount: 0, parish_rates_amount: 0.29, parish_rates_period: 'year' } });
   assert.equal(first.status, 200);

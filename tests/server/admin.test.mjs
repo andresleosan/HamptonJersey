@@ -185,7 +185,7 @@ test("users: add, refuse self-removal, remove others", async () => {
 
 test("a price needs its currency, and rent needs its period", async () => {
   const { env, cookie } = await world();
-  const base = { title: "Shop", use: "commercial", operation: "business", tenure_type: "freehold", availability: "for_sale", country: "Jersey" };
+  const base = { title: "Shop", use: "commercial", operation: "sale", tenure_type: "freehold", availability: "for_sale", country: "Jersey" };
   const created = await call(env, "POST", "/admin/listings", { cookie, body: { ...base, sale_price: 50000 } });
   assert.equal(created.status, 400);
   assert.ok(created.data.fields.currency);
@@ -197,11 +197,11 @@ test("a price needs its currency, and rent needs its period", async () => {
   assert.ok(bad.data.fields.currency);
   const rent = await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { operation: "rent", rent: 1500, updated_at: T0 } });
   assert.ok(rent.data.fields.rent_period);
-  assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { operation: "rent", rent: 1500, rent_period: "month", updated_at: T0 } })).status, 200);
+  assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", { cookie, body: { operation: "rent", availability: "to_let", rent: 1500, rent_period: "month", updated_at: T0 } })).status, 200);
 });
 
 test("unchanged legacy rent without period permits unrelated edits but changes require coherence", async () => {
-  for (const operation of ["sale", "business", "rent"]) {
+  for (const operation of ["rent"]) {
     for (const patch of [{title:"Updated"}, {title:"Updated", rent:1500, rent_period:null, operation}]) {
       const {env, cookie} = await world();
       env.DB.raw.prepare("UPDATE listings SET operation=?, tenure_type='freehold', rent=1500, rent_period=NULL, currency='GBP' WHERE id='HE-R001'").run(operation);
@@ -218,7 +218,7 @@ test("unchanged legacy rent without period permits unrelated edits but changes r
     }
     const {env, cookie} = await world();
     env.DB.raw.prepare("UPDATE listings SET operation=?, rent=1500, rent_period=NULL, currency='GBP' WHERE id='HE-R001'").run(operation);
-    assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{rent:1600,rent_period:"year",updated_at:T0}})).status, 200);
+    assert.equal((await call(env, "PUT", "/admin/listings/HE-R001", {cookie, body:{rent:1600,rent_period:"month",updated_at:T0}})).status, 200);
   }
   const {env, cookie} = await world();
   env.DB.raw.prepare("UPDATE listings SET rent=1500, rent_period='month', currency='GBP' WHERE id='HE-R001'").run();

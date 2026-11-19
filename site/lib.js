@@ -57,15 +57,11 @@ const money = (n, cur) => (SYM[cur] ?? (cur ? `${cur} ` : "")) + Math.round(n).t
 // Keep in step with server/listing-pricing.js; this file is also a classic browser script.
 const priceOperation = p => p.operation !== "business" ? p.operation
   : String(p.tenureType || p.tenure_type || p.tenure || "").trim().toLowerCase() === "freehold" ? "sale" : "rent";
-const amount = p => p.operation === "business" ? p.premium ?? null : ({sale: p.salePrice, rent: p.rent})[priceOperation(p)] ?? null;
+const amount = p => ({sale: p.salePrice, rent: p.rent})[priceOperation(p)] ?? null;
+// The category buttons: Commercial is every commercial property (always for sale); Buy and Rent are the rest. "business"
+// stays the catalogue's key for it (SEARCH_DIMENSIONS), so links and measurements keep their meaning.
+const catalogOp = p => p.use === "commercial" ? "business" : p.operation;
 const priceLabel = p => {
-  if (p.operation === "business" && p.premium != null) {
-    const premium = money(p.premium, p.currency);
-    return p.rent != null && ["month", "year"].includes(p.rentPeriod)
-      ? `${premium} premium + ${money(p.rent, p.currency)}${p.rentPeriod === "year" ? " p.a." : " pcm"}` : premium;
-  }
-  if (p.operation === "business" && p.rent != null && ["month", "year"].includes(p.rentPeriod))
-    return `${money(p.rent, p.currency)}${p.rentPeriod === "year" ? " p.a." : " pcm"} (premium not published)`;
   const a = amount(p);
   if (a == null) return "Price not published";
   return money(a, p.currency) + (priceOperation(p) === "rent" ? ({month: " pcm", year: " p.a."}[p.rentPeriod] ?? "") : "");
@@ -80,7 +76,7 @@ const shownOnSite = p => safeMedia(p.image) != null;
 // filter = {region, op, beds, max}; max is in GBP and only applies once an operation is chosen.
 function matches(p, f) {
   if (f.region !== "all" && p.region !== f.region) return false;
-  if (f.op !== "all" && p.operation !== f.op) return false;
+  if (f.op !== "all" && catalogOp(p) !== f.op) return false;
   if (f.beds && !(p.beds >= f.beds)) return false;
   if (f.max && f.op !== "all") {
     const a = amount(p);
@@ -145,6 +141,6 @@ function searchAction(f, visible, loaded) {
     max: f.max === 0 ? null : searchDimensionDefs.searchPriceCode(f.op, f.max), zero_results: visible.length === 0};
 }
 // The category photo: newest matching operation, or international region, with the page fallback if absent.
-const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : p.operation === op)?.image ?? null;
+const buttonPhoto = (pub, op) => [...pub].sort(newestFirst).find(p => op === "international" ? p.region === op : catalogOp(p) === op)?.image ?? null;
 
-if (typeof module === "object") module.exports = {searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeTeamPhoto, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, priceOperation, amount, priceLabel, isSold, canBook, matches, comparables, pmt};
+if (typeof module === "object") module.exports = {catalogOp, searchAction, newestFirst, homePicks, readCatalogQuery, catalogQuery, catalogFilter, buttonPhoto, shownOnSite, jerseyToday, liveSummary, freeTimes, pickSlot, parseAvailability, esc, safeUrl, safeTeamPhoto, safeMedia, safeHttps, embedUrl, EMBED_HOSTS, IMG_HOST, money, priceOperation, amount, priceLabel, isSold, canBook, matches, comparables, pmt};

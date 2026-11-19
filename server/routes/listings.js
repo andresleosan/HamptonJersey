@@ -3,6 +3,7 @@ import { ECONOMICS_GUARD_SQL, ECONOMICS_GUARD_ARGS, hasEconomicInput, structured
 import { isValidInteriorArea } from '../listing-price-area.js';
 import { PRICE_SQL } from "../listing-pricing.js";
 import { json, fail, readJson, now, sha256 } from "../http.js";
+import { checkCategory } from "../listing-category.js";
 import { validateListing, checkPrice, checkCompliance, idPrefix, nextId, ENUMS, TO_CONFIRM, COMPLIANCE, COMPLIANCE_FIELDS } from "../listing.js";
 import { extractFeatures } from "../listing-features.js";
 import { afterSave, recomputeForListing } from "../match-store.js";
@@ -172,7 +173,7 @@ export async function createListing(env, admin, input, context = {}) {
   if (r.errors) return fieldErrors(r.errors);
   if (context.source === 'queue' && r.value.feature_overrides && r.value.feature_overrides !== '{}')
     return fieldErrors({ feature_overrides: 'Review manual facts in the listing editor' });
-  const priceErrors = checkPrice(r.value);
+  const priceErrors = { ...checkPrice(r.value), ...checkCategory(r.value) };
   Object.assign(priceErrors, checkPhysical(r.value));
   Object.assign(priceErrors,checkMarketingEdit(null,r.value));
   if (Object.keys(priceErrors).length) return fieldErrors(priceErrors);
@@ -278,7 +279,7 @@ async function update({ request, env, admin, params: [id] }) {
   if (currencyReviewError) return fieldErrors({ currency: currencyReviewError });
   const guardEconomics = economicInput || changingCurrencyWithCosts;
   const merged = { ...stored, specs: JSON.stringify(stored.specs), ...r.value };
-  const priceErrors = checkPrice(merged);
+  const priceErrors = { ...checkPrice(merged), ...checkCategory(merged, stored) };
   // The editor submits every field. Permit an unchanged legacy rent without a period on unrelated edits,
   // but require a consistent pair when the rent, period, or operation actually changes.
   const rentChanged = ['rent', 'rent_period', 'operation'].some(k =>

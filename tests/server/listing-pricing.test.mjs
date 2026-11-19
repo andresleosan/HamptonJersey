@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createRequire} from "node:module";
 import {priceOperation, listingAmount} from "../../server/listing-pricing.js";
 import {checkPrice, toPublic, validateListing} from "../../server/listing.js";
+import {checkCategory} from "../../server/listing-category.js";
 import {priceText} from "../../admin/src/format.js";
 import {listingCriteria} from "../../admin/src/listing-completeness.js";
 import {monthlyPrice} from "../../admin/src/listing-filters.js";
@@ -11,29 +12,25 @@ const publicPrices = createRequire(import.meta.url)("../../site/lib.js");
 const business = {operation:"business", use:"commercial", property_type:"Lodging House",
   tenure_type:"freehold", sale_price:1250000, rent:2000, rent_period:null, premium:90000,
   currency:"GBP", specs:"[]"};
-test("business prices keep premium and rent distinct across tenures", () => {
-  for (const tenure_type of ["freehold", "leasehold"]) {
-    const row = {...business, tenure_type, rent_period: "year"};
-    assert.equal(listingAmount(row), 90000);
-    assert.equal(monthlyPrice(row), 90000);
-    assert.deepEqual(checkPrice(row), {});
-    const pub = toPublic(row, []);
-    assert.equal(publicPrices.priceLabel(pub), "£90,000 premium + £2,000 p.a.");
-    assert.equal(pub.rent, 2000);
-    assert.equal(pub.premium, 90000);
-    assert.equal(listingCriteria(row, "", [], null).find(c => c.id === "price").target, "f-premium");
-  }
+test("a commercial property has an asking price only: no rent and no premium", () => {
+  const row = {...business, country:"Jersey", operation:"sale", rent:null, premium:null, tenure_type:"leasehold", availability:"for_sale", currency:"GBP"};
+  assert.equal(listingAmount(row), 1250000);
+  assert.deepEqual(checkPrice(row), {});
+  assert.deepEqual(checkCategory(row), {});
+  const pub = toPublic(row, []);
+  assert.equal(publicPrices.priceLabel(pub), "£1,250,000");
+  assert.equal(pub.premium, undefined);
+  assert.equal(listingCriteria(row, "", [], null).find(c => c.id === "price").target, "f-sale_price");
+  assert.equal(listingCriteria(row, "", [], null).some(c => c.id === "bedrooms"), false);
+  assert.equal(listingCriteria(row, "", [], null).some(c => c.id === "tenure"), true);
+  assert.ok(checkCategory({...row, rent:2000}).rent);
+  assert.ok(checkCategory({...row, premium:90000}).premium);
 });
-test("partial business prices never fabricate a premium or combine amounts", () => {
-  const rental = {...business, premium:null, rent_period:"month"};
-  assert.equal(listingAmount(rental), null);
-  assert.equal(monthlyPrice(rental), null);
-  assert.equal(publicPrices.priceLabel(toPublic(rental, [])), "£2,000 pcm (premium not published)");
-  assert.equal(publicPrices.priceLabel(toPublic({...rental,rent:null}, [])), "Price not published");
-  assert.equal(publicPrices.priceLabel(toPublic({...rental,premium:90000,rent:null}, [])), "£90,000");
-  assert.equal(validateListing({premium:100}, {partial:true}).value.premium, 100);
-  assert.ok(checkPrice({...rental,rent_period:null}).rent_period);
-  assert.ok(checkPrice({...rental,currency:null}).currency);
+test("the public price never shows a premium, even for an old business listing", () => {
+  const old = {...business, premium:90000, rent_period:"year"};
+  assert.doesNotMatch(publicPrices.priceLabel(toPublic(old, [])), /premium/);
+  assert.equal(toPublic(old, []).premium, undefined);
+  assert.doesNotMatch(priceText(old), /premium/);
 });
 test("legacy Freehold text works; explicit leasehold takes precedence", () => {
   assert.equal(priceOperation({...business,tenure_type:null,tenure:" Freehold "}), "sale");

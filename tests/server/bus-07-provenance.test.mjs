@@ -144,8 +144,8 @@ test('changed in the last 7 days means a real change of price or availability', 
   };
   await save({ title: 'Own home, renamed' });
   assert.equal((await list(env)).byId['HE-R001'].material_change_at, null, 'a cosmetic save');
-  await save({ rent: 18000, rent_period: 'year' });
-  assert.equal((await list(env)).byId['HE-R001'].material_change_at, null, 'the same rent per month, by the year');
+  await save({ rent: 1500, rent_period: 'month' });
+  assert.equal((await list(env)).byId['HE-R001'].material_change_at, null, 'the same rent');
   await save({ rent: 1400, rent_period: 'month' });
   const at = (await list(env)).byId['HE-R001'].material_change_at;
   assert.ok(at, 'a lower rent');
@@ -153,7 +153,7 @@ test('changed in the last 7 days means a real change of price or availability', 
   // Older than 7 days: no longer recent.
   run(env, "UPDATE events SET at = '2026-01-01T00:00:00.000Z' WHERE entity_id = 'HE-R001'");
   assert.equal((await list(env)).byId['HE-R001'].material_change_at, null);
-  await save({ availability: 'under_offer' });
+  await save({ availability: 'withdrawn' });
   assert.ok((await list(env)).byId['HE-R001'].material_change_at, 'availability');
   // Pure rule: currency and operation count; an event without its values counts when it named the field.
   const rent = { operation: 'rent', rent: 1000, rent_period: 'month', currency: 'GBP' };
@@ -252,18 +252,18 @@ test('a link needs the advert to offer the listing\'s operation', async () => {
   assert.equal(count(env, 'listing_market_links'), 0);
 });
 
-test('a business counts a change of its rent and of its premium, each on its own', async () => {
+test('a commercial sale counts a change of its asking price; an old business listing still counts each price on its own', async () => {
   const env = world(), cookie = await adminCookie();
-  seedListing(env, { id: 'HE-C002', title: 'Shop', use: 'commercial', operation: 'business', availability: 'for_sale', sale_price: null,
-    premium: 50000, rent: 30000, rent_period: 'year', tenure_type: 'leasehold', published: 0 });
+  seedListing(env, { id: 'HE-C002', title: 'Shop', use: 'commercial', operation: 'sale', availability: 'for_sale', sale_price: 400000,
+    currency: 'GBP', rent: null, rent_period: null, premium: null, tenure_type: 'leasehold', published: 0 });
   const save = async patch => {
     const { updated_at } = env.DB.raw.prepare("SELECT updated_at FROM listings WHERE id='HE-C002'").get();
     ok(await call(env, 'PUT', '/admin/listings/HE-C002', { cookie, body: { updated_at, ...patch } }));
   };
-  await save({ rent: 2500, rent_period: 'month' });
-  assert.equal((await list(env)).byId['HE-C002'].material_change_at, null, 'the same rent per month');
-  await save({ rent: 3000 });
-  assert.ok((await list(env)).byId['HE-C002'].material_change_at, 'a higher rent');
+  await save({ sale_price: 400000 });
+  assert.equal((await list(env)).byId['HE-C002'].material_change_at, null, 'the same price');
+  await save({ sale_price: 450000 });
+  assert.ok((await list(env)).byId['HE-C002'].material_change_at, 'a higher asking price');
   const shop = { operation: 'business', premium: 50000, rent: 36000, rent_period: 'year' };
   assert.equal(materialChange({ before: { rent: 30000 }, after: { rent: 36000 } }, shop), true);
   assert.equal(materialChange({ before: { premium: 40000 }, after: { premium: 50000 } }, shop), true);

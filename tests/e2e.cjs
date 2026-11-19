@@ -1381,18 +1381,15 @@ async function jersey(browser, page) {
 
   await page.goto(BASE + "admin/#/p/HE-R001");
   await page.waitForSelector("#f-title");
-  const was = page.getByText("Was: Freehold / share transfer", {exact: true});
-  await was.waitFor();
-  assert.equal(await page.inputValue("#f-tenure_type"), "");
-  for (const t of ["Choose the tenure", "Choose the housing category"]) await todo.getByRole("button", {name: t}).waitFor();
+  // A home has no tenure (only a commercial property does), but still needs its housing category.
+  assert.equal(await page.locator("#f-tenure_type").count(), 0);
+  await todo.getByRole("button", {name: "Choose the housing category"}).waitFor();
+  assert.equal(await todo.getByRole("button", {name: "Choose the tenure"}).count(), 0);
   await todo.getByRole("button", {name: "Choose the housing category"}).click();
   await page.waitForFunction(() => document.activeElement?.id === "f-housing_category");
   await shot(page, "admin-jersey-editor", {fullPage: false});
   await page.evaluate(() => scrollTo(0, 0));
   await shot(page, "admin-jersey-editor-top", {fullPage: false});
-  await page.selectOption("#f-tenure_type", "freehold");
-  await was.waitFor({state: "detached"});
-  await todo.getByRole("button", {name: "Choose the tenure"}).waitFor({state: "detached"});
   await page.selectOption("#f-housing_category", "registered");
   await page.selectOption("#f-restriction", "first_time_buyer");
   await page.getByRole("button", {name: "Save", exact: true}).click();

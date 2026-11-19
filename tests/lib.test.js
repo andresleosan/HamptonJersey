@@ -7,7 +7,7 @@ const P = o => ({ id: "HE-R001", title: "Home", status: "For Sale", region: "jer
   currency: "GBP", salePrice: null, rent: null, rentPeriod: null, premium: null, beds: 3, ...o });
 const sale = P({ salePrice: 500000 });
 const rent = P({ id: "HE-R002", operation: "rent", rent: 1900, rentPeriod: "month" });
-const biz = P({ id: "HE-C001", use: "commercial", operation: "business", tenureType: "freehold", salePrice: 90000, premium: 123 });
+const biz = P({ id: "HE-C001", use: "commercial", operation: "sale", tenureType: "freehold", salePrice: 90000 });
 const eur = P({ id: "HE-I001", region: "international", currency: "EUR", salePrice: 110000 });
 const uk = P({ id: "HE-R018", region: "uk", salePrice: 520000 });
 const near = P({ id: "HE-R003", salePrice: 600000 });
@@ -20,9 +20,9 @@ test("unknown prices are labelled, never shown as zero", () => {
   assert.equal(L.amount(noPrice), null);
 });
 
-test("freehold business sales use sale prices and rentals use rent", () => {
+test("a commercial property shows its asking price and a rental its rent", () => {
   assert.equal(L.priceLabel(rent), "£1,900 pcm");
-  assert.equal(L.priceLabel(biz), "£123");
+  assert.equal(L.priceLabel(biz), "£90,000");
   assert.equal(L.priceLabel(eur), "€110,000");
   assert.equal(L.money(500000, null), "500,000", "unknown currency: no 'null ' prefix");
 });
@@ -189,4 +189,12 @@ test('team photos accept only the two exact local paths', () => {
   for (const path of paths) assert.equal(L.safeTeamPhoto(path), path);
   for (const value of ['https://example.com/x.jpg', 'javascript:alert(1)', 'assets/team/gilberto-franco.jpg', '/assets/team/../team/gilberto-franco.jpg', '/assets/team/gilberto-franco.jpg?x=1', '/assets/team/gilberto-franco.jpg#x', '', null, 42])
     assert.equal(L.safeTeamPhoto(value), null);
+});
+
+test("the Commercial button shows commercial properties, which never appear under Buy", () => {
+  const shop = P({ id: "HE-C009", use: "commercial", operation: "sale", salePrice: 300000 });
+  assert.equal(L.catalogOp(shop), "business");
+  assert.ok(L.matches(shop, { region: "all", op: "business", beds: 0, max: 0 }));
+  assert.ok(!L.matches(shop, { region: "all", op: "sale", beds: 0, max: 0 }));
+  assert.ok(L.matches(sale, { region: "all", op: "sale", beds: 0, max: 0 }));
 });

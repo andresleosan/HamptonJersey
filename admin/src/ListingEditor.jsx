@@ -1,10 +1,10 @@
 import { ECONOMIC_FIELDS, economicValue } from '../../server/listing-economics.js';
-import { priceOperation } from "../../server/listing-pricing.js";
-import { derivePricePerArea, formatPricePerArea, formatPremiumPerArea } from "../../server/listing-price-area.js";
+import { CATEGORY, OPERATIONS, AVAILABILITIES, categoryOf, chooseCategory, chooseOperation, fieldsFor } from "../../server/listing-category.js";
+import { derivePricePerArea, formatPricePerArea } from "../../server/listing-price-area.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { adminMediaUrl } from "./admin-media-url.js";
-import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
+import { AVAILABILITY, OPERATION, STATUS_LABEL, stateOf, fmtDate, fmtDayMonth, safeHref, show, TENURE, HOUSING, RESTRICTION } from "./format.js";
 import MediaManager from "./MediaManager.jsx";
 import ListingDocuments from "./ListingDocuments.jsx";
 import PosterQr from "./PosterQr.jsx";
@@ -47,6 +47,7 @@ const NUMERIC = ["bedrooms", "bathrooms", "sale_price", "rent", "premium", "inte
 // and toForm resets it on load, a successful save and Discard.
 const toForm = (l, structured = false, compliance = false) => ({ ...Object.fromEntries([...FIELDS, ...(structured ? ECONOMIC_FIELDS : []),
   ...(compliance ? COMPLIANCE_FIELDS : [])].map(k => [k, k === "specs" ? l.specs
+  : k === "currency" ? l.currency ?? (categoryOf(l) === "international" ? "" : "GBP") // Jersey and UK are priced in GBP
   : k === "viewings_enabled" ? l[k] ?? 1 : k === "viewing_hours" ? l[k] ?? null : k === 'feature_overrides' ? structuredClone(l[k] ?? {})
   : l[k] ?? (k in COMPLIANCE ? "unknown" : "")])),
   viewing_hours_draft: l.viewing_hours ?? [] });
@@ -59,6 +60,18 @@ const toBody = f => Object.fromEntries([...FIELDS, ...[...ECONOMIC_FIELDS, ...CO
   NUMERIC.includes(k) ? (f[k] === "" ? null : Number(f[k]))
     : k === "specs" ? f.specs.filter(s => s.label.trim() || s.value.trim())
     : f[k] === "" ? null : f[k]]));
+// Choosing a category or an operation keeps only what still applies to it: the availability, the price and the legal
+// fields follow it, so a commercial property never keeps a rent and a rental never keeps a sale price.
+const priceReset = (f, next) => next.operation === f.operation ? next : { ...next,
+  ...(next.operation === "rent" ? { sale_price: "", premium: "", rent_period: "month" } : { rent: "", rent_period: "", premium: "" }) };
+const withOperation = (f, operation) => priceReset(f, chooseOperation(f, operation));
+const withCategory = (f, category) => {
+  const next = priceReset(f, chooseCategory(f, category)), x = fieldsFor(next);
+  if (!x.housing) Object.assign(next, { housing_category: "", restriction: "" });
+  if (!x.firstTimeBuyer && next.restriction === "first_time_buyer") next.restriction = "";
+  if (category !== "international" && next.currency !== "GBP") next.currency = "GBP";
+  return next;
+};
 // Sent only when changed in this edit: the server fills an unknown parish from the listing text only when a save leaves
 // parish out (B3), so sending the unchanged null on every save would stop that for good.
 const IF_CHANGED = ["parish", "matchable"];
@@ -333,7 +346,7 @@ export default function ListingEditor({ id, onChange, guide = false }) {
     el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   };
   // The housing fields and the first-time buyers option also show while they hold a value, so it can be cleared.
-  const home = jerseyHome(form), was = !form.tenure_type && form.tenure;
+  const fx = fieldsFor(form), home = jerseyHome(form), was = !form.tenure_type && form.tenure;
   const ftb = form.operation === "sale" || form.restriction === "first_time_buyer";
   const salesOnly = form.restriction === "first_time_buyer" && form.operation !== "sale";
   const cover = data.media.find(m => m.id === l.cover_media_id) || data.media.find(m => m.kind === "photo" && m.r2_key);
@@ -409,11 +422,15 @@ export default function ListingEditor({ id, onChange, guide = false }) {
       </section>}
       <section id="s-details" className="card" aria-labelledby="h-details"><h2 id="h-details" tabIndex={-1}>Details</h2><div className="grid2">
         {field("title", "Title", <input {...ctl("title")} maxLength={200} required />)}
-        {field("use", "Use", <select {...ctl("use")}>{options(USE)}</select>)}
-        {field("operation", "Operation", <select {...ctl("operation")} disabled={isRentalMarketing(l.availability)}>{options(OPERATION)}</select>)}
+        {field("use", "Category", <select {...ctl("use", { value: fx.category, onChange: e => setForm(f => withCategory(f, e.target.value)) })}
+          disabled={isRentalMarketing(l.availability)}>{options(CATEGORY)}</select>)}
+        {field("operation", "Operation", <select {...ctl("operation", { onChange: e => setForm(f => withOperation(f, e.target.value)) })}
+          disabled={isRentalMarketing(l.availability) || (OPERATIONS[fx.category].length === 1 && OPERATIONS[fx.category][0] === form.operation)}>
+          {options(Object.fromEntries([...new Set([...OPERATIONS[fx.category], form.operation])].map(k => [k, OPERATION[k]])))}</select>)}
         {field("availability", "Availability", <select {...ctl("availability")} disabled={isRentalMarketing(l.availability)}>
-          {options(Object.fromEntries(Object.entries(AVAILABILITY).filter(([k])=>!isRentalMarketing(k)||k===l.availability)))}</select>)}
-        {field("tenure_type", "Tenure", <><select {...ctl("tenure_type", was ? { "aria-describedby": `d-tenure${errors.tenure_type ? " e-tenure_type" : ""}` } : {})}>
+          {options(Object.fromEntries([...new Set([...(AVAILABILITIES[form.operation] ?? []), form.availability])]
+            .filter(k => !isRentalMarketing(k) || k === l.availability).map(k => [k, AVAILABILITY[k]])))}</select>)}
+        {(fx.tenure || form.tenure_type) && field("tenure_type", "Tenure", <><select {...ctl("tenure_type", was ? { "aria-describedby": `d-tenure${errors.tenure_type ? " e-tenure_type" : ""}` } : {})}>
           <option value="">Not set</option>{options(TENURE)}</select>
           {was && <small id="d-tenure" className="muted">Was: {form.tenure}</small>}</>)}
         {(home || form.housing_category) && field("housing_category", "Housing category", <><select {...ctl("housing_category", { "aria-describedby": `d-housing${errors.housing_category ? " e-housing_category" : ""}` })}>
@@ -423,11 +440,11 @@ export default function ListingEditor({ id, onChange, guide = false }) {
           {ftb && <option value="first_time_buyer">{RESTRICTION.first_time_buyer}</option>}
           <option value="over_55">{RESTRICTION.over_55}</option></select>
           {salesOnly && <small id="d-restriction" className="muted">Applies to sales only.</small>}</>)}
-        {field("country", "Country", <input {...ctl("country")} maxLength={100} />)}
+        {field("country", "Country", <input {...ctl("country")} maxLength={100} required={fx.category === "international"} />)}
         {field("location", "Public location", <><input {...ctl("location")} maxLength={200} />
           <small className="muted">Shown on the website. Enter only the location you want to publish.</small></>)}
         {field("road_name", "Road (internal)", <input {...ctl("road_name")} maxLength={200} />)}
-        {field("parish", "Parish", <select id="f-parish" value={matchForm.parish} aria-invalid={errors.parish ? true : undefined}
+        {fx.parish && field("parish", "Parish", <select id="f-parish" value={matchForm.parish} aria-invalid={errors.parish ? true : undefined}
           aria-describedby={errors.parish ? "e-parish" : undefined} onChange={e => setMatchForm(x => ({ ...x, parish: e.target.value }))}>
           <option value="">Unknown</option>{OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
       </div></section>
@@ -516,8 +533,8 @@ export default function ListingEditor({ id, onChange, guide = false }) {
         <p className="muted">Leave a field unknown when it has not been confirmed.</p>
         <h3>Size and rooms</h3><div className="grid2">
           {field("property_type", "Type (house, flat, restaurant…)", <input {...ctl("property_type")} maxLength={100} />)}
-          {field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
-          {field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
+          {fx.rooms && field("bedrooms", "Bedrooms", <input {...ctl("bedrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
+          {fx.rooms && field("bathrooms", "Bathrooms", <input {...ctl("bathrooms")} type="number" min="0" max="100" step="1" inputMode="numeric" />)}
           {field('interior_area_sqft', 'Interior area (sq ft)', <input {...ctl('interior_area_sqft')} type="number" min="0.01" step="0.01" inputMode="decimal" />)}
           <div className="field"><span>Interior area (m²)</span><output>{squareMetres(Number(form.interior_area_sqft))?.toFixed(2) ?? 'Not known'}</output></div>
           {field('separate_wcs', 'Separate toilets', <input {...ctl('separate_wcs')} type="number" min="0" max="100" step="1" />)}
@@ -568,32 +585,32 @@ export default function ListingEditor({ id, onChange, guide = false }) {
         })}
       </section>
       <section id="s-price" className="card" aria-labelledby="h-price"><h2 id="h-price" tabIndex={-1}>Price</h2>
-        <p className="muted">These details appear on the public listing. Leave unknown values blank; include the currency and period for charges. Sale price, rent and business premium are kept separate.</p><div className="grid2">
-        {priceOperation(form) === "sale" && field("sale_price", "Sale price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
-        {(priceOperation(form) === "rent" || form.operation === "business") && field("rent", "Rent", <input {...ctl("rent")} type="number" min="1" step="any" />)}
-        {(priceOperation(form) === "rent" || form.operation === "business") && field("rent_period", "Period", <select {...ctl("rent_period")}><option value="">—</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
-        {form.operation === "business" && field("premium", "Business premium", <input {...ctl("premium")} type="number" min="1" step="any" />)}
-        {field("currency", "Currency", <select {...ctl("currency")}><option value="">—</option><option value="GBP">GBP £</option><option value="EUR">EUR €</option></select>)}
+        <p className="muted">These details appear on the public listing. Leave unknown values blank.
+          {fx.category === "commercial" ? " A commercial property has an asking price only." : fx.category === "international" ? " An international property is for sale only." : form.operation === "rent" ? " A rental is priced per month." : ""}</p><div className="grid2">
+        {form.operation === "rent"
+          // An old rent stored per year keeps its period (and says so); a new rent is per month.
+          ? field("rent", form.rent_period === "year" ? "Rent per year (£)" : "Rent per month (£)", <input {...ctl("rent", { onChange: e => setForm(f => ({ ...f, rent: e.target.value, rent_period: f.rent_period || "month" })) })} type="number" min="1" step="any" />)
+          : field("sale_price", "Asking price", <input {...ctl("sale_price")} type="number" min="1" step="any" />)}
+        {field("currency", "Currency", <select {...ctl("currency")}>{[...new Set([...fx.currencies, form.currency].filter(Boolean))]
+          .map(c => <option key={c} value={c}>{c === "EUR" ? "EUR €" : "GBP £"}</option>)}</select>)}
         {field("price_text", "Displayed text (when there is no amount)", <input {...ctl("price_text")} maxLength={200} placeholder="e.g. Negotiable" />)}
-        {field("price_per_sqft", "Price per sq ft", <input {...ctl("price_per_sqft")} maxLength={200} placeholder="e.g. £25 per sq ft per year" />)}
-        {form.operation === "business" && priceOperation(form) === "sale" && <div className="field"><span id="rent-price-area-label">Calculated rent per sq ft</span><output aria-labelledby="rent-price-area-label">{formatPricePerArea(derivePricePerArea({ ...form, operation: "rent" })) ?? "Not available with the current details"}</output></div>}
-        {form.operation === "business" && <div className="field"><span id="premium-price-area-label">Calculated premium per sq ft</span><output aria-labelledby="premium-price-area-label">{formatPremiumPerArea(form) ?? "Not available with the current details"}</output></div>}
-        <div className="field"><span id="calculated-price-area-label">Calculated price per sq ft</span><output aria-labelledby="calculated-price-area-label">{formatPricePerArea(derivePricePerArea(form.operation === "business" && priceOperation(form) === "rent" ? { ...form, operation: "rent" } : form)) ?? "Not available with the current details"}</output>
-          <small className="muted">Calculated from the entered price and interior area. This does not change the text field.</small></div>
-        {field("rental_deposit", "Rental deposit", <input {...ctl("rental_deposit")} maxLength={200} placeholder="e.g. £2,000" />)}
-        {field("parish_rates", "Parish rates", <input {...ctl("parish_rates")} maxLength={200} placeholder="e.g. £500 per year" />)}
+        {fx.pricePerSqft && field("price_per_sqft", "Price per sq ft", <input {...ctl("price_per_sqft")} maxLength={200} placeholder="e.g. £25 per sq ft" />)}
+        {fx.pricePerSqft && <div className="field"><span id="calculated-price-area-label">Calculated price per sq ft</span><output aria-labelledby="calculated-price-area-label">{formatPricePerArea(derivePricePerArea(form)) ?? "Not available with the current details"}</output>
+          <small className="muted">Calculated from the entered price and interior area. This does not change the text field.</small></div>}
+        {fx.rentalTerms && field("rental_deposit", "Rental deposit", <input {...ctl("rental_deposit")} maxLength={200} placeholder="e.g. £2,000" />)}
+        {fx.parishRates && field("parish_rates", "Parish rates", <input {...ctl("parish_rates")} maxLength={200} placeholder="e.g. £500 per year" />)}
         {field("service_charge", "Service charge", <input {...ctl("service_charge")} maxLength={200} placeholder="e.g. £100 per month" />)}
-        {field("utilities_included", "Utilities included", <input {...ctl("utilities_included")} maxLength={300} placeholder="e.g. Water and heating" />)}
-        {field("available_on", "Available from", <><input {...ctl("available_on", { "aria-describedby": `hint-available-on${errors.available_on ? " e-available_on" : ""}` })} type="date" />
+        {fx.rentalTerms && field("utilities_included", "Utilities included", <input {...ctl("utilities_included")} maxLength={300} placeholder="e.g. Water and heating" />)}
+        {fx.rentalTerms && field("available_on", "Available from", <><input {...ctl("available_on", { "aria-describedby": `hint-available-on${errors.available_on ? " e-available_on" : ""}` })} type="date" />
           <small id="hint-available-on" className="muted">Leave blank if unknown. This does not confirm availability.</small></>)}
       </div>
         {data.structured_economics && <div><h3>Staff-only costs</h3>
           <p className="muted">These amounts are for staff. The public listing uses the text fields above and does not update from these amounts. Leave unknown amounts blank; 0 means none.</p>
           <div className="grid2">
-            {(['rent', 'business'].includes(form.operation) || form.rental_deposit_amount !== '') && field('rental_deposit_amount', 'Rental deposit amount',
+            {(fx.rentalTerms || form.rental_deposit_amount !== '') && field('rental_deposit_amount', 'Rental deposit amount',
               <input {...ctl('rental_deposit_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
-            {field('parish_rates_amount', 'Parish rates amount', <input {...ctl('parish_rates_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
-            {field('parish_rates_period', 'Parish rates period', <select {...ctl('parish_rates_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
+            {(fx.parishRates || form.parish_rates_amount !== '') && field('parish_rates_amount', 'Parish rates amount', <input {...ctl('parish_rates_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
+            {(fx.parishRates || form.parish_rates_amount !== '') && field('parish_rates_period', 'Parish rates period', <select {...ctl('parish_rates_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
             {field('service_charge_amount', 'Service charge amount', <input {...ctl('service_charge_amount')} type="number" min="0" max="9999999999.99" step="0.01" inputMode="decimal" />)}
             {field('service_charge_period', 'Service charge period', <select {...ctl('service_charge_period')}><option value="">Unknown</option><option value="month">Per month</option><option value="year">Per year</option></select>)}
           </div>

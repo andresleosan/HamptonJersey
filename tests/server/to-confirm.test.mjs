@@ -108,7 +108,7 @@ test("publishing, a new availability or a new price confirms; other edits do not
   assert.equal((await save(env, "HE-R001", { sale_price: 750000 })).to_confirm, 0);
   assert.equal(confirmedAt(), "2026-10-30T12:02:00.000Z");
   clock("2026-10-30T12:03:00.000Z");
-  await save(env, "HE-R001", { availability: "not_stated" });
+  await save(env, "HE-R001", { availability: "under_offer" });
   assert.equal(confirmedAt(), "2026-10-30T12:03:00.000Z");
   // The star is not an edit.
   run(env, "UPDATE listings SET confirmed_at = ? WHERE id = 'HE-R001'", OLD);

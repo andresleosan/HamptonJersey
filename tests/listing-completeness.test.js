@@ -7,11 +7,11 @@ const photo = id => ({id, kind:'photo', public:1, origin:'upload', r2_key:`p${id
 test('recommendations use one list, including zero bedrooms and private price', async () => {
   const {listingCriteria, listingCompleteness} = await load();
   const items = listingCriteria(form, 'st_helier', [1,2,3,4,5].map(photo), 1);
-  assert.equal(items.length, 8);
+  assert.equal(items.length, 7);
   assert.ok(items.every(c => c.met));
-  assert.deepEqual(listingCompleteness(items), {met:8,total:8,percentage:100});
+  assert.deepEqual(listingCompleteness(items), {met:7,total:7,percentage:100});
   const missing = listingCriteria({...form, summary:''}, 'st_helier', [1,2,3,4,5].map(photo), 1);
-  assert.deepEqual(listingCompleteness(missing), {met:7,total:8,percentage:88});
+  assert.deepEqual(listingCompleteness(missing), {met:6,total:7,percentage:86});
   assert.deepEqual(missing.filter(c => !c.met).map(c => c.target), ['f-summary']);
 });
 
@@ -28,9 +28,10 @@ test('counts only eligible saved photos and an eligible cover', async () => {
 test('operation and country change applicable criteria without changing the form', async () => {
   const {listingCriteria} = await load();
   const rent = {...form,operation:'rent',rent:1000,country:'UK'};
-  const business = {...rent,operation:'business',use:'commercial',tenure_type:'leasehold',rent:100};
+  const commercial = {...form,use:'commercial',country:'Jersey',tenure_type:'leasehold'};
   assert.equal(listingCriteria(rent, '', [], null).length, 5);
-  assert.equal(listingCriteria(business, '', [], null).length, 4);
+  assert.deepEqual(listingCriteria(commercial, '', [], null).map(c => c.id), ['price','parish','tenure','photos','cover','summary']);
+  assert.deepEqual(listingCriteria({...form,country:'Spain'}, '', [], null).map(c => c.id), ['price','bedrooms','photos','cover','summary']);
   assert.equal(rent.bedrooms, 0);
   assert.equal(listingCriteria({...form,price_text:'',sale_price:''}, 'st_helier', [], null).find(c=>c.id==='price').met,false);
 });
@@ -39,4 +40,11 @@ test('unknown media and empty criteria never imply a percentage', async () => {
   const {listingCriteria, listingCompleteness} = await load();
   assert.equal(listingCompleteness([]), null);
   assert.equal(listingCompleteness(listingCriteria(form, 'st_helier', null, null)), null);
+});
+
+test('an international listing without its country asks for it', async () => {
+  const {listingCriteria} = await load();
+  const abroad = {...form, country:''};
+  assert.equal(listingCriteria(abroad, '', [], null).find(c => c.id === 'country').met, false);
+  assert.equal(listingCriteria({...form, country:'Spain'}, '', [], null).some(c => c.id === 'country'), false);
 });
