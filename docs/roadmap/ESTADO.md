@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+20-nov-2026 · **BUS-04 y BUS-06 (hechas): el matching con casas reales del mercado funciona.** La pasada diaria leyó Gaudin & Co (12 casas a las 23:30) y el cruce creó 2 propuestas y 2 avisos «New market homes for …» en el Inbox. Progreso 152 → 154 de 215.
+
 20-nov-2026 · **BUS-08 encendida y BUS-09 con su primer lector (Gaudin & Co):** el reloj lee cada día los anuncios de alquiler y venta de Gaudin (solo precio, parroquia, dormitorios, baños y enlace), los mete en el inventario de mercado y el cruce con las búsquedas (BUS-04) avisa en el Inbox de casas nuevas que encajan. Migración 0095 aplicada. Progreso 152 de 215 (sin cambio hasta comprobar la primera pasada real).
 
 20-nov-2026 · **BUS-24, canales aplazados (nueva, al final de la ruta):** por decisión de Luis, el directorio arranca solo con los canales que se pueden leer; las webs con lectura prohibida, con copia limitada o ilegibles quedan en una lista de dominios para revisarlas al final. Progreso 152 de 215.

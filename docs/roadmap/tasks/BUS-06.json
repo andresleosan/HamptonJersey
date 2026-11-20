@@ -4,10 +4,10 @@
   "titulo": "Inventario inicial común desde el directorio de fuentes, por tandas",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "parcial",
-  "responsable": "Luis",
-  "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
-  "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias. Traído de SPR-03 (15-nov): cuando un anuncio confirmado tenga URLs de fotos de una fuente permitida, entregarlas como filas «link-only» de la captura SPR-03 para que se descarguen (hoy quedan blocked y la captura partial).",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local. 20-nov-2026: primera captura real por la pasada diaria con el directorio aceptado: 12 anuncios de Gaudin en el inventario; cobertura visible (canales sin lector como blocked/pending, nunca 0).",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/ESTADO.md:9",
@@ -32,7 +32,8 @@
     "Decisión: el recorrido automático (TP-04 tarea 2) no se construye sin lectores automáticos ni reloj diario; pasa a BUS-08 y BUS-09. Fuente: skill avanzar, secciones 3 y 5 (dependencias por componente, mínimo código).",
     "Decisión: cerrar tanda y mover canales con una revisión posterior del manifiesto, para no dejar el inventario bloqueado por una sola tanda abierta. Fuente: skill avanzar, sección 4.5 (opción más simple y reversible).",
     "Decisión: el intervalo mínimo por canal (60 s) también vale para la carga manual; no se toca 0043. Fuente: encargo del lote y diseño TP-04 («mínimo 60 s entre adquisiciones de un canal»).",
-    "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
+    "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión.",
+    "Producción 20-nov 23:30 UTC: market_sweep_attempts src-gaudin-co page 10 + complete 2; market_observations 12 (10 rent, 2 sale); market_source_runs del día: 6 blocked (no_reader), 193 pending."
   ],
   "modulo": "M02",
   "deps": [
@@ -82,12 +83,11 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis: cargar el directorio privado de fuentes en Automations › Market inventory › Source directory, abrir una tanda y subir el primer lote real de anuncios de un canal revisado.",
   "resources": [
     "market-inventory",
     "sources-directory",
     "advertisers-contract"
   ],
-  "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
-  "actualizado": "2026-11-15"
+  "nextStep": "",
+  "actualizado": "2026-11-20"
 }

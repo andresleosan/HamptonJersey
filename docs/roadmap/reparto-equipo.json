@@ -33,11 +33,11 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 62,
-      "openCount": 29,
+      "openCount": 27,
       "states": {
         "replanteado": 8,
-        "hecho": 25,
-        "parcial": 17,
+        "hecho": 27,
+        "parcial": 15,
         "pendiente": 8,
         "bloqueado": 4
       }
@@ -4316,10 +4316,10 @@
       "titulo": "Nueva búsqueda pasadas 24 horas sin repetir propiedades ya encontradas",
       "origen": "texto",
       "fase": "F1-A",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "No se repite ninguna casa propia: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». Crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo. Construido el 16-nov tras BUS04_REMATCH_READY=\"0\" (wrangler.toml y jobs/wrangler.toml) con la migración aditiva 0097, sin aplicar: el reloj consume market_change_outbox (lo escribe BUS-06, también desde la pasada diaria de BUS-08) en páginas de 50, la más antigua primero; un cambio que solo toca título, texto o fechas se marca consumido sin cruzar nada; uno material (anuncio nuevo, retirado, o cambio de operación, parroquia, dormitorios, baños, mascotas, parking o precio) encola una sola vez cada búsqueda activa residencial de esa operación (la de antes y la de después), y la marca de consumido va en la misma transacción que la cola, así que un tick que cae antes la relee y uno que cae después deja las búsquedas en cola. Cada tick cruza 2 búsquedas de la cola, por orden de llegada (otro cambio no le cambia el sitio ni le borra los fallos), con el mismo recálculo de la web (search-state.js, EST-01 incluido) y solo si el reloj tiene las reglas de disponibilidad de la web (como BUS-08); si la parte de mercado no se pudo calcular cuenta como fallo; una búsqueda cruzada o fallida pasa al final, y una que falla se descarta a la tercera. Con BUS-04 encendida, la pasada diaria ya no recalcula todas las búsquedas: deja el cruce a BUS-04 y da el día por recalculado cuando no queda cambio ni búsqueda pendiente. No repetición y bajada de precio desde market_matches: market_match_proposals guarda qué casa se propuso ya a cada búsqueda y a qué precio; lo que la búsqueda tenía la primera vez que BUS-04 la cruza es su línea base, una sola vez (sin aviso y sin precio inventado: se anota el que tenga en el siguiente cruce); después, toda casa de market_matches no propuesta es nueva, venga de un cambio, de guardar la búsqueda o de «Recalculate all»; una casa ya propuesta no vuelve a proponerse ni avisarse aunque salga y vuelva, ni cuando una persona une o separa sus anuncios (BUS-10) y cambia su clave, salvo con un precio menor comparable (misma moneda y periodo, o alquiler mensual frente a anual por año); precios que se contradicen entre webs, otra moneda o periodos sin conversión no cuentan como bajada. Un aviso abierto por búsqueda en el Inbox («New market homes for …», abre Automations → Market inventory) cubre todas las propuestas hasta que el equipo lo cierra; no se envía, preselecciona ni aprueba nada. Una visita, una consulta o una negociación no paran el cruce: solo el estado de la búsqueda (EST-09). Apagado, el reloj y la web hacen exactamente lo mismo que antes (probado). Encendida el 16-nov-2026: 0097 aplicada en remoto (marcador Time Travel previo en el relevo privado), BUS04_REMATCH_READY=\"1\" en los dos wrangler.toml y el reloj con los mismos valores que la web en BUS01_MARKET_MATCHING_READY, BUS10_IDENTITY_READY, EST01_SEARCH_STATE_READY, EST15_UNAVAILABILITY_READY y EST16_AVAILABILITY_READY (así AGE-08 filtra en el reloj igual que en la web).",
-      "falta": "Comprobar el recorrido con el primer cambio real del inventario de mercado: hoy está vacío y la carga del directorio y el primer lote son de Luis (BUS-06, en COLA-LUIS). Fuera de esta tarea: reabrir un match rechazado de una ficha propia por bajada de precio sigue en BUS-17; una pantalla por búsqueda con sus casas de mercado iría a SPR-07/BUS-03.",
+      "estado": "hecho",
+      "responsable": "desarrollo",
+      "hecho": "No se repite ninguna casa propia: cada pareja aplicante–ficha es única, lo rechazado no se vuelve a proponer y lo nuevo tras la primera revisión sale como «New properties found». Crear, editar o publicar una ficha la cruza al momento con todos los aplicantes activos, y «Recalculate all» en Review repite el cruce completo. Construido el 16-nov tras BUS04_REMATCH_READY=\"0\" (wrangler.toml y jobs/wrangler.toml) con la migración aditiva 0097, sin aplicar: el reloj consume market_change_outbox (lo escribe BUS-06, también desde la pasada diaria de BUS-08) en páginas de 50, la más antigua primero; un cambio que solo toca título, texto o fechas se marca consumido sin cruzar nada; uno material (anuncio nuevo, retirado, o cambio de operación, parroquia, dormitorios, baños, mascotas, parking o precio) encola una sola vez cada búsqueda activa residencial de esa operación (la de antes y la de después), y la marca de consumido va en la misma transacción que la cola, así que un tick que cae antes la relee y uno que cae después deja las búsquedas en cola. Cada tick cruza 2 búsquedas de la cola, por orden de llegada (otro cambio no le cambia el sitio ni le borra los fallos), con el mismo recálculo de la web (search-state.js, EST-01 incluido) y solo si el reloj tiene las reglas de disponibilidad de la web (como BUS-08); si la parte de mercado no se pudo calcular cuenta como fallo; una búsqueda cruzada o fallida pasa al final, y una que falla se descarta a la tercera. Con BUS-04 encendida, la pasada diaria ya no recalcula todas las búsquedas: deja el cruce a BUS-04 y da el día por recalculado cuando no queda cambio ni búsqueda pendiente. No repetición y bajada de precio desde market_matches: market_match_proposals guarda qué casa se propuso ya a cada búsqueda y a qué precio; lo que la búsqueda tenía la primera vez que BUS-04 la cruza es su línea base, una sola vez (sin aviso y sin precio inventado: se anota el que tenga en el siguiente cruce); después, toda casa de market_matches no propuesta es nueva, venga de un cambio, de guardar la búsqueda o de «Recalculate all»; una casa ya propuesta no vuelve a proponerse ni avisarse aunque salga y vuelva, ni cuando una persona une o separa sus anuncios (BUS-10) y cambia su clave, salvo con un precio menor comparable (misma moneda y periodo, o alquiler mensual frente a anual por año); precios que se contradicen entre webs, otra moneda o periodos sin conversión no cuentan como bajada. Un aviso abierto por búsqueda en el Inbox («New market homes for …», abre Automations → Market inventory) cubre todas las propuestas hasta que el equipo lo cierra; no se envía, preselecciona ni aprueba nada. Una visita, una consulta o una negociación no paran el cruce: solo el estado de la búsqueda (EST-09). Apagado, el reloj y la web hacen exactamente lo mismo que antes (probado). Encendida el 16-nov-2026: 0097 aplicada en remoto (marcador Time Travel previo en el relevo privado), BUS04_REMATCH_READY=\"1\" en los dos wrangler.toml y el reloj con los mismos valores que la web en BUS01_MARKET_MATCHING_READY, BUS10_IDENTITY_READY, EST01_SEARCH_STATE_READY, EST15_UNAVAILABILITY_READY y EST16_AVAILABILITY_READY (así AGE-08 filtra en el reloj igual que en la web). 20-nov-2026: comprobado con el primer cambio real del inventario (lector de Gaudin, BUS-09).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "migrations/0097_market_rematch.sql",
@@ -4335,7 +4335,8 @@
         "docs/superpowers/plans/2026-11-08-bus-04-material-changes-rematching.md",
         "server/match-store.js:54-62",
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-        "16-nov-2026: 0097 aplicada (migrations list sin ella); tests/server/bus-04-market-rematch.test.mjs 19/19 con el interruptor a \"1\" y el reloj espejo de la web. Decisión: encender con inventario vacío es inocuo (no hay cambios que consumir); fuente: falta de la ficha y sección 6 de la skill."
+        "16-nov-2026: 0097 aplicada (migrations list sin ella); tests/server/bus-04-market-rematch.test.mjs 19/19 con el interruptor a \"1\" y el reloj espejo de la web. Decisión: encender con inventario vacío es inocuo (no hay cambios que consumir); fuente: falta de la ficha y sección 6 de la skill.",
+        "Producción 20-nov 23:30 UTC: tras la primera lectura de src-gaudin-co (12 observaciones), market_match_proposals = 2 y dos tareas «New market homes for …» en el Inbox (23:30:37)."
       ],
       "modulo": "M05",
       "deps": [
@@ -4371,14 +4372,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Primer lote real del inventario de mercado (BUS-06)",
       "resources": [
         "matching-contract",
         "search-lifecycle",
         "notifications-schema"
       ],
-      "nextStep": "Cuando Luis suba el primer lote real (BUS-06), comprobar en Inbox el aviso «New market homes for …» y en Market inventory las propuestas; entonces cerrar.",
-      "actualizado": "2026-11-16"
+      "nextStep": "",
+      "actualizado": "2026-11-20"
     },
     {
       "id": "BUS-05",
@@ -4413,10 +4413,10 @@
       "titulo": "Inventario inicial común desde el directorio de fuentes, por tandas",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local.",
-      "falta": "Solo falta la evidencia de captura real, que hace Luis con su sesión: cargar el directorio privado en el panel, abrir una tanda y subir el primer lote real de un canal revisado. Activada el 14-nov-2026 (0043 aplicada, MARKET_INVENTORY_READY=1). El recorrido automático por lectores está en BUS-08 y BUS-09. Traído de BUS-12 (14-nov): cuando el inventario de mercado se cruce con búsquedas comerciales, usar su normalización de términos; hoy solo se evalúan fichas propias. Traído de SPR-03 (15-nov): cuando un anuncio confirmado tenga URLs de fotos de una fuente permitida, entregarlas como filas «link-only» de la captura SPR-03 para que se descarguen (hoy quedan blocked y la captura partial).",
+      "estado": "hecho",
+      "responsable": "desarrollo",
+      "hecho": "Núcleo de inventario construido y probado: fuentes y canales, recorridos, concesiones, observaciones y registro transaccional. Desde el panel (Automations, tras el interruptor): un admin acepta el manifiesto privado del directorio comprobando su huella, que el servidor verifica; todos los canales entran pendientes. Se abre una tanda, se suben a mano hasta 10 anuncios por envío para cada canal revisado como manual, y se pausa o se cierra la tanda para empezar la siguiente. La cobertura muestra por canal qué se ha leído: un canal no leído dice por qué y nunca cuenta como vacío. Una revisión posterior del manifiesto mueve sus canales y conserva las decisiones ya revisadas. El candidato privado real (237 canales, 141 fuentes) pasa la aceptación en una base local. 20-nov-2026: primera captura real por la pasada diaria con el directorio aceptado: 12 anuncios de Gaudin en el inventario; cobertura visible (canales sin lector como blocked/pending, nunca 0).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/ESTADO.md:9",
@@ -4441,7 +4441,8 @@
         "Decisión: el recorrido automático (TP-04 tarea 2) no se construye sin lectores automáticos ni reloj diario; pasa a BUS-08 y BUS-09. Fuente: skill avanzar, secciones 3 y 5 (dependencias por componente, mínimo código).",
         "Decisión: cerrar tanda y mover canales con una revisión posterior del manifiesto, para no dejar el inventario bloqueado por una sola tanda abierta. Fuente: skill avanzar, sección 4.5 (opción más simple y reversible).",
         "Decisión: el intervalo mínimo por canal (60 s) también vale para la carga manual; no se toca 0043. Fuente: encargo del lote y diseño TP-04 («mínimo 60 s entre adquisiciones de un canal»).",
-        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
+        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión.",
+        "Producción 20-nov 23:30 UTC: market_sweep_attempts src-gaudin-co page 10 + complete 2; market_observations 12 (10 rent, 2 sale); market_source_runs del día: 6 blocked (no_reader), 193 pending."
       ],
       "modulo": "M02",
       "deps": [
@@ -4491,14 +4492,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis: cargar el directorio privado de fuentes en Automations › Market inventory › Source directory, abrir una tanda y subir el primer lote real de anuncios de un canal revisado.",
       "resources": [
         "market-inventory",
         "sources-directory",
         "advertisers-contract"
       ],
-      "nextStep": "Tras la primera carga real de Luis, comprobar la cobertura (fuentes no leídas como pendientes, nunca 0) y cerrar.",
-      "actualizado": "2026-11-15"
+      "nextStep": "",
+      "actualizado": "2026-11-20"
     },
     {
       "id": "BUS-07",
@@ -4575,7 +4575,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "Construida apagada el 16-nov tras BUS08_SWEEP_READY=\"0\" (wrangler.toml y jobs/wrangler.toml) con la migración aditiva 0095, sin aplicar. El reloj abre desde la 01:00 de Jersey una pasada diaria por fecha local (también en los cambios de hora) sobre el último directorio aceptado, con el manifiesto fijado al abrirla; un día perdido no se recupera y la pasada anterior se compara y se cierra. Lee por tandas (3 canales por tick, uno tras otro) solo los canales revisados como permitidos para lectura automática, a través de un lector inyectable, con la concesión, la página, las observaciones y la salida de cambios de BUS-06 y la normalización de BUS-09. Guarda cada intento (página, pasada completa, límite de ritmo, acceso denegado, fuente caída, respuesta inválida, sin lector), la última lectura correcta y la última pasada completa de cada canal. Un fallo conserva el inventario: acceso denegado no se reintenta ese día, un 429 espera lo pedido, una caída se reintenta hasta 3 veces; una primera página vacía de un canal con anuncios es un fallo, no un mercado vacío. Retoma desde el cursor guardado sin repetir páginas. Releer un anuncio igual no emite cambio; una novedad o un cambio de precio emite una fila en market_change_outbox (lo que consume BUS-04). Al terminar, compara con la pasada completa anterior de cada canal: un anuncio no encontrado queda como revisión (market_sweep_missing), nunca como indisponibilidad, y un día con anuncios no encontrados o fuentes no leídas deja una tarea en el Inbox. Después de un día con cambios recalcula las búsquedas activas, 2 por tick, solo si el reloj tiene las mismas reglas de disponibilidad que la web (EST-15/EST-16); si no, espera. No descarga fotos. GET /admin/market/daily-sweep (solo con el interruptor) muestra los últimos días, el último intento, la última lectura correcta y la última pasada completa por canal y los anuncios no encontrados. Corregidos el 16-nov los dos hallazgos de la tercera revisión: un canal que debe esperar más allá del fin del día de Jersey (su intervalo o un límite de ritmo) ya no retrasa la comparación del día (cuenta como no leído entero), y un anuncio con un valor anidado que BUS-06 no puede guardar (NaN, undefined, Date) se deja fuera y se cuenta, sin tirar la página. 20-nov-2026: migración 0095 aplicada en remoto (marcador previo en el relevo) y BUS08_SWEEP_READY=1 en los dos wrangler, con el lector de Gaudin.",
-      "falta": "Comprobar en producción la primera pasada diaria real (market_sweep_attempts con outcome page/complete para src-gaudin-co y observaciones en el inventario) y el día siguiente su comparación.",
+      "falta": "Comprobar la comparación del día (market_daily_sweeps) cuando termine la primera pasada completa y la del día siguiente.",
       "bloqueo": "",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
@@ -4594,7 +4594,8 @@
         "16-nov: npm test 2833/2833 y 29 de Python («ℹ fail 0»). En una primera pasada con la VPS cargada fallaron por tiempo 5 archivos D1 ajenos (bus-06-tp04-1, bus-09-ingestion-d1, bus-10-candidates-d1, msg-02-key-expiry-d1) y bus-07-provenance por la carpeta temporal jobs/.wrangler que dejó wrangler dev; repetidos solos pasan 50/50 y la segunda pasada completa no tuvo fallos. Sin build, check:release, e2e ni producción.",
         "tests/server/bus-08-daily-sweep.test.mjs: 20/20 el 16-nov tras corregir los dos hallazgos de la tercera revisión (pruebas nuevas: un canal que espera más allá del fin del día no retrasa la comparación; un anuncio con un valor anidado no guardable se deja fuera; fin del día de Jersey en verano, invierno y ambos cambios de hora); tests/server/bus-04-market-rematch.test.mjs 19/19.",
         "Comprobado el 16-nov-2026: el lector de fichas propias no puede ser el primer lector de la pasada diaria sin reabrir el diseño TP-04: migrations/0043_market_inventory.sql (market_run_snapshot_sources), server/market-inventory-store.js (claimSourcePage, eligible) y server/market-identity.js atan las fuentes internas a own_pilot y las externas a initial/daily.",
-        "npm test 20-nov: 3467/3479 antes del cambio de conteos; fallos restantes = 3 de REG-15 (fecha, conocidos). Pruebas focales BUS-08/BUS-04/AUT-20/jobs 66/66 con el interruptor encendido."
+        "npm test 20-nov: 3467/3479 antes del cambio de conteos; fallos restantes = 3 de REG-15 (fecha, conocidos). Pruebas focales BUS-08/BUS-04/AUT-20/jobs 66/66 con el interruptor encendido.",
+        "Producción 20-nov 23:30 UTC: primera lectura real (page 10, complete 2) de Gaudin. Arreglo c8f8ed35: los canales con lector se leen primero."
       ],
       "modulo": "M05",
       "deps": [
