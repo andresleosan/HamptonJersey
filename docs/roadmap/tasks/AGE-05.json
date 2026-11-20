@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "Construido en local el 15-nov-2026 tras AGE05_SEND_READY (apagado) y la migración 0080 (sin aplicar); sin publicar. Al preparar o editar la consulta se elige un contacto del anunciante con email o teléfono; se guarda su referencia, nunca la dirección. «Approve sending» registra quién y cuándo aprueba una versión exacta (destinatario, contacto y texto); Save changes la invalida. «Send by email» encola un solo correo por versión en la tubería de AUT-17; dos empleados o un reintento encuentran el mismo. La tubería de correo solo reclama un correo de consulta si su comprobación en SQL se cumple en ese mismo momento; si no, lo deja sin reclamar y la pasada siguiente lo devuelve a una persona. La pausa general lo retiene. Aceptado por el proveedor pasa a sent con su hora; rechazado vuelve a manual sin iniciar el plazo; incierto queda en needs_review hasta que una persona dice si salió, sin reenvío automático. Con el servicio de correo apagado no se encola nada y la consulta sigue «To send manually»; el canal manual de AGE-03 no cambia. Apagar AGE05_SEND_READY (también el del reloj, en jobs/wrangler.toml) devuelve a manual lo que estaba en cola sin enviarlo. Mientras un correo espera, el panel dice por qué no sale (pausa, ajuste, servicio o remitente parado), la tarea de Inbox sigue abierta hasta que sale y una persona puede devolverlo a envío manual; a las 24 h en cola vuelve solo a una persona.",
-  "falta": "Solo falta lo externo: la activación del correo (AUT-17) y la decisión de encender AGE05_SEND_READY, ambas de Luis, y una prueba real del criterio de aceptación (dos pulsaciones simultáneas dan un solo correo; un fallo no inicia el plazo de dos días). Construido, migrado (0080) y apagado: contacto concreto del anunciante, aprobación humana de cada versión, envío por la tubería de correo con revalidación en la propia reclamación, freno real del interruptor en el reloj, «Return to manual sending» y caducidad de la aprobación a las 24 h.",
+  "falta": "Criterio de cierre reformulado el 21-nov (PRE-23): el Gmail de Hampton, vía Hermes, acepta el mensaje aprobado, la app registra el acuse (cuenta, messageId, threadId) y un segundo intento no duplica el envío. Depende del canal de correo de Hermes (AUT-17), ya no de Cloudflare. Se mantienen la acción manual y el tratamiento de resultados inciertos. Por verificar en el panel: el paso desde una vivienda externa sin ficha hasta la consulta con contacto verificado (BUS-07, AGE-03, AGE-04). Solo falta lo externo: la activación del correo (AUT-17) y la decisión de encender AGE05_SEND_READY, ambas de Luis, y una prueba real del criterio de aceptación (dos pulsaciones simultáneas dan un solo correo; un fallo no inicia el plazo de dos días). Construido, migrado (0080) y apagado: contacto concreto del anunciante, aprobación humana de cada versión, envío por la tubería de correo con revalidación en la propia reclamación, freno real del interruptor en el reloj, «Return to manual sending» y caducidad de la aprobación a las 24 h.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
@@ -67,12 +67,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: activar AUT-17 (EMAIL_SERVICE_READY a true en wrangler.toml y jobs/wrangler.toml a la vez) y decidir encender AGE05_SEND_READY (también en los dos archivos), que deja salir correos de consulta a anunciantes con aprobación individual.",
+  "externalBlocker": "Luis: conectar el Gmail de Hampton en Hermes (AUT-17) y decidir encender AGE05_SEND_READY en wrangler.toml y jobs/wrangler.toml a la vez, que deja salir consultas a agencias con aprobación individual.",
   "resources": [
     "consultations-contract",
     "email-pipeline",
     "outbound-policy"
   ],
-  "nextStep": "Cuando Luis active AUT-17 y encienda AGE05_SEND_READY en los dos wrangler.toml, hacer la prueba real y cerrar.",
-  "actualizado": "2026-11-17"
+  "nextStep": "Cuando el canal Hermes-Gmail de AUT-17 opere y Luis encienda AGE05_SEND_READY, enviar una consulta ficticia de prueba y cerrar.",
+  "actualizado": "2026-11-21"
 }

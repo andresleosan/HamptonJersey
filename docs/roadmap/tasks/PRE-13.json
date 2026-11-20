@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "Luis",
   "hecho": "El aviso de privacidad ya nombra a Cloudflare y a Optimyze como encargados que actúan solo por instrucciones de Hampton.",
-  "falta": "No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34). Traído de PRE-32 (17-nov): Hermes usa DeepSeek como proveedor de reserva por decisión de Luis; falta su acuerdo de tratamiento o la evaluación equivalente.",
+  "falta": "Actualización 21-nov (PRE-23): con el correo por Hermes, Google (Gmail) y el VPS de Hermes tratan direcciones y respuestas de agencias y clientes; incluirlos en los acuerdos. No consta ningún acuerdo firmado: el de Hampton con Optimyze y los de Cloudflare y Google (Firebase), más Meta y el proveedor de IA cuando se usen. Depende de a nombre de quién van las cuentas (PRE-28). Con Hermes (P-18), el proveedor de IA es OpenAI con el plan de ChatGPT de Luis: hace falta acuerdo si recibe datos personales (C1 o C2, pregunta 16), que cubra también lo que Hermes guarda en el VPS. Por Telegram solo viajarán contadores y referencias de fichas, nada de aplicantes (§6.6); si eso cambiara, Telegram también necesitaría acuerdo. El paquete para el abogado (PRE-33) lleva el esquema del contrato entre Hampton y Optimyze. Para el chat web (Hampton Bot, MSG-04) el proveedor de IA es Cloudflare Workers AI: entra como subencargado en ese contrato y el abogado confirma que su certificación cubre Workers AI (PRE-34). Traído de PRE-32 (17-nov): Hermes usa DeepSeek como proveedor de reserva por decisión de Luis; falta su acuerdo de tratamiento o la evaluación equivalente.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
@@ -31,5 +31,5 @@
     "data-processing-agreements"
   ],
   "nextStep": "Luis coordina titularidad y acuerdos de tratamiento aplicables con los participantes y el abogado.",
-  "actualizado": "2026-11-17"
+  "actualizado": "2026-11-21"
 }

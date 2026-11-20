@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
-  "falta": "Solo el tramo de correo del alcance vigente: reenvíos seleccionados de Gmail cuando AUT-17 opere (hoy bloqueado por el dominio, ver COLA-LUIS). El tramo chat web está comprobado. Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
+  "falta": "Actualización 21-nov (PRE-23): el tramo de correo llega por Hermes desde el Gmail de Hampton. Las respuestas a consultas que Hermes trae y los reenvíos seleccionados deben aparecer una sola vez aunque lleguen por los dos caminos; importar todo el buzón sigue siendo otra decisión. Solo el tramo de correo del alcance vigente: reenvíos seleccionados de Gmail cuando AUT-17 opere (hoy bloqueado por el dominio, ver COLA-LUIS). El tramo chat web está comprobado. Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
   "bloqueo": "",
   "evidencia": [
     "admin/src/App.jsx:122-136",
@@ -46,6 +46,6 @@
     "meta-channel",
     "email-pipeline"
   ],
-  "nextStep": "Cuando AUT-17 opere: construir y comprobar los reenvíos seleccionados de Gmail.",
-  "actualizado": "2026-11-17"
+  "nextStep": "Cuando el canal Hermes-Gmail de AUT-17 opere: traer las respuestas a envíos de Hampton y los reenvíos seleccionados sin duplicados.",
+  "actualizado": "2026-11-21"
 }

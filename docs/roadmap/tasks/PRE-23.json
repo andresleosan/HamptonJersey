@@ -1,19 +1,20 @@
 {
   "id": "PRE-23",
   "seccion": "Acciones previas y cumplimiento",
-  "titulo": "Respuesta a la pregunta 7: servicio de correo de Hampton y dominio en Cloudflare",
+  "titulo": "Respuesta a la pregunta 7: el correo de Hampton sale por Hermes con su Gmail",
   "origen": "plan",
   "fase": "—",
   "estado": "hecho",
   "responsable": "Luis",
-  "hecho": "Respondida el 6-nov-2026 (decisión de Luis, P-19): la app envía y recibe con Cloudflare Email Service (AUT-17); Hampton conserva su buzón de siempre (hoy una cuenta de Gmail) para el día a día y como contacto de privacidad. Sigue el plan del 2-nov-2026: lo que la app envía lo aprueba una persona en el panel y Hermes no tiene buzón propio. El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
+  "hecho": "Decisión de Luis del 21-nov-2026: todas las automatizaciones de la app se hacen mediante Hermes. El correo sale desde el Gmail que Hampton ya usa, conectado al Hermes de Hampton, y las respuestas vuelven a ese mismo buzón. Cloudflare Email Service, el traspaso del dominio en Wix y el cambio de DNS dejan de ser requisitos del correo (el dominio propio sigue para la web, PRE-16). La app sigue siendo quien aprueba: cada envío se aprueba en el panel, Hermes solo entrega la versión aprobada y devuelve el resultado, y no puede aprobar sus envíos, reanudar la salida ni consultar libremente la base. Sustituye en todo el correo de la app la decisión del 6-nov-2026 (P-19), que lo enviaba con Cloudflare Email Service y reservaba el Gmail para el día a día: Respondida el 6-nov-2026 (decisión de Luis, P-19): la app envía y recibe con Cloudflare Email Service (AUT-17); Hampton conserva su buzón de siempre (hoy una cuenta de Gmail) para el día a día y como contacto de privacidad. Sigue el plan del 2-nov-2026: lo que la app envía lo aprueba una persona en el panel y Hermes no tiene buzón propio. El dominio pasa a esta app (A3) y está en Cloudflare desde el 1-nov-2026, lo que permite las reglas WAF; hoy el contacto de privacidad es una cuenta de Gmail.",
   "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:826",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:29",
     "docs/roadmap/ESTADO.md:15",
-    "site/apply.js:361"
+    "site/apply.js:361",
+    "docs/roadmap/work/AUT-17/plan-correo-hermes.md"
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -24,5 +25,6 @@
   "resources": [
     "email-pipeline"
   ],
-  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada."
+  "nextStep": "Conservar como terminado e histórico; no volver a construir salvo regresión comprobada.",
+  "actualizado": "2026-11-21"
 }

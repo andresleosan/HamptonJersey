@@ -7,7 +7,7 @@
   "estado": "bloqueado",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07).",
+  "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
@@ -34,5 +34,6 @@
     "email-pipeline",
     "jobs-clock"
   ],
-  "nextStep": "Construir recordatorios y confirmaciones sobre el reloj existente y activar envíos solo con AUT-17 operativo."
+  "nextStep": "Construir recordatorios y confirmaciones sobre el reloj existente y activar envíos solo con AUT-17 operativo.",
+  "actualizado": "2026-11-21"
 }

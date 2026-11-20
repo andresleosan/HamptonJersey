@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+21-nov-2026 · **PRE-23 y AUT-17, el correo pasa a Hermes:** por decisión de Luis, todas las automatizaciones se hacen mediante Hermes y el correo sale y entra por el Gmail de siempre de Hampton conectado al Hermes de Hampton. Ya no hacen falta el traspaso en Wix, el DNS ni Cloudflare Email Sending. Reformuladas AUT-17, AGE-05, AUT-11 y MSG-03, anotadas AUT-13 y PRE-13 y otras 10 que esperaban el correo. BUS-06 sale de la cola de Luis. Plan: [correo mediante Hermes](work/AUT-17/plan-correo-hermes.md). Lo de Luis: conectar el Gmail en Hermes, que hoy no tiene ninguna cuenta.
+
 21-nov-2026 · **BUS-09, lector de Keys Properties:** la pasada diaria lee también los alquileres de Keys (12 hoy) y los cruza con las búsquedas. El canal de ventas de Gaudin ya lee su lista completa (/property-for-sale, unas 200 casas). Progreso 154 de 215.
 
 20-nov-2026 · **BUS-04 y BUS-06 (hechas): el matching con casas reales del mercado funciona.** La pasada diaria leyó Gaudin & Co (12 casas a las 23:30) y el cruce creó 2 propuestas y 2 avisos «New market homes for …» en el Inbox. Progreso 152 → 154 de 215.

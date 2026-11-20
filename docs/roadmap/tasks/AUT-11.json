@@ -7,8 +7,8 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-  "falta": "Solo falta probar las barandillas con un envío real, que exige AUT-17 activo. La pausa general, la idempotencia por snapshot, la cuota diaria compartida, las supresiones y la comprobación de pausa antes de cada llamada están en main (server/email.js). Las barandillas del flujo de consultas (revalidar aprobación, búsqueda activa, vigencia de la propiedad y permisos; una sola acción compartida entre empleados y reintentos) están en AGE-03 y AGE-05; los topes por agencia y de otros canales llegan con esos flujos.",
-  "bloqueo": "Activación de AUT-17",
+  "falta": "Actualización 21-nov (PRE-23): la prueba real se hace con el nuevo transporte Hermes-Gmail: doble envío, pausa general (también con trabajos ya en cola o reclamados por Hermes) y resultado incierto. Esa prueba cierra el componente de correo; WhatsApp y Meta siguen pendientes de sus propios flujos. Solo falta probar las barandillas con un envío real, que exige AUT-17 activo. La pausa general, la idempotencia por snapshot, la cuota diaria compartida, las supresiones y la comprobación de pausa antes de cada llamada están en main (server/email.js). Las barandillas del flujo de consultas (revalidar aprobación, búsqueda activa, vigencia de la propiedad y permisos; una sola acción compartida entre empleados y reintentos) están en AGE-03 y AGE-05; los topes por agencia y de otros canales llegan con esos flujos.",
+  "bloqueo": "Canal de correo de Hermes (AUT-17)",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:444",
@@ -54,12 +54,12 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: activar AUT-17 (cuenta y DNS de Cloudflare Email Service y autorizar EMAIL_SERVICE_READY) y hacer una prueba real de envío.",
+  "externalBlocker": "Luis: conectar el Gmail de Hampton en Hermes (AUT-17) y hacer una prueba real de envío.",
   "resources": [
     "outbound-policy",
     "email-pipeline",
     "consultations-contract"
   ],
-  "nextStep": "Cuando AUT-17 esté activo, comprobar con un envío real que dos acciones concurrentes no envían dos veces y cerrar.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Cuando el canal Hermes-Gmail opere, comprobar con un envío real que dos acciones concurrentes no envían dos veces, que la pausa frena lo encolado y cerrar.",
+  "actualizado": "2026-11-21"
 }
