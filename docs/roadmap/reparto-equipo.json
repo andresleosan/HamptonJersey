@@ -4673,8 +4673,8 @@
       "fase": "F1-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales. 20-nov-2026: primer lector externo, Gaudin & Co (server/market-readers/gaudin.js; deja fuera los anuncios Let Agreed, Under Offer o Sold), registrado en server/market-readers/index.js y usado por el barrido diario: lee solo la ruta revisada del canal (?page=N), una petición por página, y solo datos de la tarjeta (enlace, parroquia, precio, dormitorios, baños); sin fotos ni descripciones.",
-      "falta": "Lectores para el resto de canales leíbles (Keys pagina con formulario ASP.NET; luego Bull & Company, Maillard, Connections y demás del grupo C de BUS-24). La categoría de vivienda (Qualified, Entitled…) que traen algunas webs aún no se guarda en la observación.",
+      "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales. 20-nov-2026: primer lector externo, Gaudin & Co (server/market-readers/gaudin.js; deja fuera los anuncios Let Agreed, Under Offer o Sold), registrado en server/market-readers/index.js y usado por el barrido diario: lee solo la ruta revisada del canal (?page=N), una petición por página, y solo datos de la tarjeta (enlace, parroquia, precio, dormitorios, baños); sin fotos ni descripciones. 21-nov-2026: segundo lector, Keys Properties (server/market-readers/keys.js): el sitemap HTML da los anuncios vigentes y el RSS sus datos (dormitorios, tipo, parroquia, precio, enlace); 2 peticiones por pasada. El canal de Keys revisado en una subpágina (St Helier) se lee como subconjunto vacío del canal raíz. Petición común con guarda de host, ruta y redirecciones en server/market-readers/fetch.js.",
+      "falta": "Lectores para el resto de canales leíbles (Bull & Company, Maillard, Connections y demás del grupo C de BUS-24). La categoría de vivienda (Qualified, Entitled…) que traen algunas webs aún no se guarda en la observación.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -4693,7 +4693,8 @@
         "16-nov-2026: revisado el encaje del lector interno con la pasada diaria de BUS-08; no encaja sin reabrir el diseño TP-04 (ver falta). Sin código nuevo en BUS-09.",
         "18-nov-2026: sin fuente aceptada no hay lector que construir (nextStep); BUS-21/22/23 hechas, BUS-19 y BUS-08 esperan la revisión de canales de Luis. El piloto interno (own_pilot) es otro alcance y no se abre sin decisión nueva (sección 2 de la skill). Responsable pasa a Luis.",
         "node --test tests/server/bus-09-gaudin-reader.test.mjs: 4/4. Lectura real de solo lectura 20-nov: /residential-for-rent 10 anuncios válidos en la primera página; /property-for-sale/in/jersey 3.",
-        "Decisión de Luis 20-nov-2026: empezar con los canales que se pueden leer; términos de gaudin.je leídos completos sin cláusula de rastreo ni copia."
+        "Decisión de Luis 20-nov-2026: empezar con los canales que se pueden leer; términos de gaudin.je leídos completos sin cláusula de rastreo ni copia.",
+        "node --test bus-09-keys-reader 4/4, bus-09-gaudin-reader 6/6. Lectura real 21-nov: Keys 12 anuncios válidos (los 12 del sitemap; el RSS traía 13, uno ya retirado y excluido)."
       ],
       "modulo": "M02",
       "deps": [
@@ -4732,8 +4733,8 @@
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "Tras la primera pasada real de Gaudin, siguiente lector: Keys.",
-      "actualizado": "2026-11-20"
+      "nextStep": "Siguiente lector: Bull & Company, luego Maillard y Connections.",
+      "actualizado": "2026-11-21"
     },
     {
       "id": "BUS-10",
@@ -5317,7 +5318,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
-      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06. Traído de SPR-03 (15-nov): permiso de descarga de fotos por fuente; sin él, las fotos solo enlace de la captura SPR-03 siguen blocked. 20-nov-2026: el canal de ventas de Gaudin (bus19-review-bee6eff620bf6d44) tiene la ruta /property-for-sale/in/jersey, que solo lista 3 anuncios sin parroquia; el inventario de ventas está en /property-for-sale (17 páginas). Corregir la ruta en la revisión del canal.",
+      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06. Traído de SPR-03 (15-nov): permiso de descarga de fotos por fuente; sin él, las fotos solo enlace de la captura SPR-03 siguen blocked. 20-nov-2026: ruta del canal de ventas de Gaudin corregida a /property-for-sale (versión 3, con historial; encargo de Luis).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -5362,7 +5363,7 @@
         "source-access-policy"
       ],
       "nextStep": "Tras la revisión real de los primeros canales, comprobar que cada fuente indica método o tarea manual y cerrar.",
-      "actualizado": "2026-11-20"
+      "actualizado": "2026-11-21"
     },
     {
       "id": "BUS-20",

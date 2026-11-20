@@ -2,6 +2,7 @@
 // (?page=N), one request per page, from the cards alone: link, parish, price, bedrooms and bathrooms. No photos, no
 // descriptions, no detail pages. Commercial and unreadable cards are left out. Facts only; the advert's link goes in raw.
 import { SourceReadError } from '../market-daily-sweep.js';
+import { fetchAllowed } from './fetch.js';
 
 const PER_PAGE = 10, MAX_PAGES = 30, TAKEN = /let agreed|under offer|\bsold\b|\bsstc\b|^\s*let\s*$/i, HOST_RE = /^(?:www\.)?gaudin\.je$/;
 const NOT_HOME = /(retail|office|warehouse|industrial|shop|restaurant|commercial|land|garage|parking|unit)/;
@@ -42,19 +43,7 @@ export function gaudinReader({ fetchImpl = fetch } = {}) {
     const m = cursor == null ? ['', '1', '0'] : /^(\d{1,3}):(\d{1,3})$/.exec(cursor);
     if (!m) throw new SourceReadError('invalid_response');
     const pageNo = Number(m[1] || 1), offset = Number(m[2] || 0);
-    let url = `https://${host}${path}${pageNo > 1 ? `?page=${pageNo}` : ''}`, res;
-    for (let hop = 0; hop < 3; hop++) {
-      try { res = await fetchImpl(url, { redirect: 'manual', signal, headers: { accept: 'text/html', 'user-agent': 'HamptonEstatesBot/1.0 (+market review; reads allowed pages only)' } }); }
-      catch { throw new SourceReadError('unavailable'); }
-      if (![301, 302, 307, 308].includes(res.status)) break;
-      let next; try { next = new URL(res.headers.get('location') ?? '', url); } catch { throw new SourceReadError('invalid_response'); }
-      if (next.protocol !== 'https:' || !HOST_RE.test(next.hostname) || !next.pathname.startsWith(path)) throw new SourceReadError('access_denied');
-      url = next.href;
-    }
-    if (res.status === 429) throw new SourceReadError('rate_limited', Number(res.headers.get('retry-after')) || null);
-    if ([401, 403].includes(res.status) || [301, 302, 307, 308].includes(res.status)) throw new SourceReadError('access_denied');
-    if (!res.ok) throw new SourceReadError('unavailable');
-    const html = await res.text();
+    const html = await fetchAllowed(fetchImpl, `https://${host}${path}${pageNo > 1 ? `?page=${pageNo}` : ''}`, { host, path, signal });
     if (!html.includes('scroll-pagination--container')) throw new SourceReadError('invalid_response');
     const { items, hasNext } = parseGaudinIndex(html, pageNo);
     const slice = items.slice(offset, offset + PER_PAGE), more = offset + PER_PAGE < items.length;
