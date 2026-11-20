@@ -15,6 +15,7 @@ import { rentalClosureEnabled } from './rental-closure.js';
 import { processExpiredRentalClosures } from './rental-closure-job.js';
 import { followupReady, saleFollowupPass } from './sale-followup.js';
 import { marketSweepPass, sweepReady } from './market-daily-sweep.js';
+import { MARKET_READERS } from './market-readers/index.js';
 import { marketRematchPass, rematchReady } from './market-rematch.js';
 import { reviewReady, searchReviewPass } from './search-review.js';
 import { withApplicationWrite, BackupMaintenanceError, backupReady, purgeClosedWritePermits } from './backup-write-gate.js';
@@ -61,7 +62,7 @@ const clock = {
       catch { console.error('Rental withdrawal pass failed'); }
     }
     if (sweepReady(env)) { // BUS-08: the daily market sweep, off until its sources are authorised (BUS-19)
-      try { await marketSweepPass(env, now()); }
+      try { await marketSweepPass(env, now(), { readers: MARKET_READERS }); }
       catch { console.error('Market sweep pass failed'); }
     }
     if (rematchReady(env)) { // BUS-04: the market's changes cross again only the searches they affect

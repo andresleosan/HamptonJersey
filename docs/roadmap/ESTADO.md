@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+20-nov-2026 · **BUS-08 encendida y BUS-09 con su primer lector (Gaudin & Co):** el reloj lee cada día los anuncios de alquiler y venta de Gaudin (solo precio, parroquia, dormitorios, baños y enlace), los mete en el inventario de mercado y el cruce con las búsquedas (BUS-04) avisa en el Inbox de casas nuevas que encajan. Migración 0095 aplicada. Progreso 152 de 215 (sin cambio hasta comprobar la primera pasada real).
+
 20-nov-2026 · **BUS-24, canales aplazados (nueva, al final de la ruta):** por decisión de Luis, el directorio arranca solo con los canales que se pueden leer; las webs con lectura prohibida, con copia limitada o ilegibles quedan en una lista de dominios para revisarlas al final. Progreso 152 de 215.
 
 20-nov-2026 · **PRE-03, PRE-29 y PRE-09, registros de Hampton (hechas):** Luis confirma que Hampton tiene sus registros en la JFSC y la JOIC; por su decisión no se guardan números ni certificados en el repositorio ni en la app, y el aviso de privacidad se queda con nombre comercial y oficina. PUB-10, ADM-18, PRE-34 y OFE-07 dejan de esperar esos datos. Progreso 149 → 152 de 214.

@@ -24,7 +24,7 @@ ADM10_STATEMENTS_READY = "1"
 # ADM-13/ADM-03: the six-monthly inspection's Inbox task follows the panel (migration 0060, applied). Sends nothing. Must match the other wrangler.toml.
 ADM13_INSPECTIONS_READY = "1"
 # BUS-08: the daily market sweep (migration 0095). Off: no automatic source reader exists or is authorised yet (BUS-19). Before switching on, jobs/wrangler.toml must carry the website's values of the flags a recompute reads (a test checks it). Must match the other wrangler.toml.
-BUS08_SWEEP_READY = "0"
+BUS08_SWEEP_READY = "1"
 # BUS-04: the market's changes cross again only the active searches they affect, with one Inbox task per search for homes newly proposed or back at a lower price (migration 0097). Sends nothing. Needs the same recompute flags in both files as BUS-08 (a test checks it). Must match the other wrangler.toml.
 BUS04_REMATCH_READY = "1"
 BUS01_MARKET_MATCHING_READY = "1"

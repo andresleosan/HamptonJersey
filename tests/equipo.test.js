@@ -5,7 +5,7 @@ const api = require('../docs/roadmap/equipo.js');
 const snapshot = JSON.parse(fs.readFileSync('docs/roadmap/reparto-equipo.json', 'utf8'));
 function fixture() { return {protocolVersion:1, revision:1, serverTime:'2026-11-08T10:00:00Z', catalogSha:'a'.repeat(40), slots:snapshot.slots, tasks:snapshot.items, units:snapshot.items.map(t=>({id:t.id,parentTaskId:t.id,enabled:false,reviewRequired:true,dependencies:[],resources:[]})), claims:[], evidence:[], release:null, blockers:[]}; }
 test('current catalogue validates complete snapshot and rejects duplicates/unknown assignments', () => {
- const b=fixture(); assert.equal(api.validateBoard(b).tasks.length,250);
+ const b=fixture(); assert.equal(api.validateBoard(b).tasks.length,251);
  assert.throws(()=>api.validateBoard({...b,tasks:[...b.tasks,b.tasks[0]]}));
  assert.throws(()=>api.validateBoard({...b,tasks:[{...b.tasks[0],assignedSlot:'unknown'}]}));
  assert.throws(()=>api.validateBoard({...b,protocolVersion:2}));
@@ -65,7 +65,7 @@ test('historical evidence does not authorize a revised unit contract', () => {
 test('board accepts legacy single capacity and rejects invalid column capacity', () => {
  const b=fixture();
  for(const capacity of [0,3,1.5,'2',null])assert.throws(()=>api.validateBoard({...b,slots:b.slots.map(s=>s.id==='hermes'?{...s,capacity}:s)}));
- for(const capacity of [undefined,1,2])assert.equal(api.validateBoard({...b,slots:b.slots.map(s=>s.id==='hermes'?{...s,capacity}:s)}).tasks.length,250);
+ for(const capacity of [undefined,1,2])assert.equal(api.validateBoard({...b,slots:b.slots.map(s=>s.id==='hermes'?{...s,capacity}:s)}).tasks.length,251);
 });
 
 test('columns have tool-independent list names and the same capacity', () => {
