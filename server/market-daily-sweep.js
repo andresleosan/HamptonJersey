@@ -271,7 +271,8 @@ export async function marketSweepPass(env, ts, { readers = READERS } = {}) {
       FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
       WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}
         AND (sr.lease_until IS NULL OR sr.lease_until<=?) AND (sr.next_due IS NULL OR sr.next_due<=?)
-      ORDER BY sr.next_due IS NOT NULL,sr.next_due,sr.paging_key LIMIT ?`).bind(run.id, ts, ts, CHANNELS_PER_TICK).all();
+      ORDER BY sr.source_ref NOT IN (SELECT value FROM json_each(?)),sr.next_due IS NOT NULL,sr.next_due,sr.paging_key LIMIT ?`)
+      .bind(run.id, ts, ts, JSON.stringify(Object.keys(readers)), CHANNELS_PER_TICK).all(); // channels with a reader first
     for (const c of channels) out.read.push(await readChannel(env, run, c, readers, ts));
     // A channel told to wait past the end of the day (its interval, a rate limit) does not hold back the comparison.
     const left = await env.DB.prepare(`SELECT 1 FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
