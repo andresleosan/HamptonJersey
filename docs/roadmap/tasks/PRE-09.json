@@ -4,11 +4,11 @@
   "titulo": "Aviso de privacidad con base legal en el registro y en el portal",
   "origen": "plan",
   "fase": "F0",
-  "estado": "parcial",
-  "responsable": "Hampton",
-  "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo.",
-  "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street). 17-nov-2026: datos de registro en trámite (Luis); el aviso público no muestra ### a los visitantes, se completa cuando lleguen los números.",
-  "bloqueo": "Dato de Hampton",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo. El aviso publicado identifica al responsable con nombre comercial y oficina; por decisión de Luis no lleva número JOIC ni razón social.",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "site/apply.js:496-613",
     "site/apply.js:261-262",
@@ -24,7 +24,8 @@
     "Decisión 16-nov: datos de Rentals listados desde las tablas reales (migrations/0013_rentals.sql, 0056, 0059, 0060, 0089, 0090); sin datos bancarios del propietario, que F5-A excluye (docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:49).",
     "Decisión 16-nov: terceros nombrados solo si la web los carga: Google Fonts en site/index.html:30-32 (DESIGN.md:179); reproductores Matterport, Vimeo y YouTube (youtube-nocookie) en site/tour-privacy.js:6-7 y site/lib.js:19, montados solo al abrirlos. Turnstile ya está cubierto como Cloudflare; wa.me es un enlace, no se carga.",
     "Decisión 16-nov: el aviso en el portal pasa a ADM-18, la tarea que construye el portal del inquilino (su falta dice «No hay portal»); ADM-12 solo prevé un formulario limitado de reparaciones.",
-    "Verificación 16-nov: E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pre09-viewing-privacy.e2e.cjs npm run test:e2e:isolated (Chromium, 1280 y 390) PASS."
+    "Verificación 16-nov: E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pre09-viewing-privacy.e2e.cjs npm run test:e2e:isolated (Chromium, 1280 y 390) PASS.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
   ],
   "assignedSlot": "vps",
   "allocationStatus": "proposed",
@@ -39,12 +40,11 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Razón social y número de registro JOIC de Hampton",
   "resources": [
     "privacy-notice",
     "public-forms",
     "tenant-portal"
   ],
-  "nextStep": "Cuando Hampton dé su razón social y su número JOIC, añadirlos en «Who we are» de renderPrivacy (site/apply.js). El enlace al aviso en el portal se hace en ADM-18, que construye el portal.",
-  "actualizado": "2026-11-17"
+  "nextStep": "",
+  "actualizado": "2026-11-20"
 }

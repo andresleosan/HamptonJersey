@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+20-nov-2026 · **PRE-03, PRE-29 y PRE-09, registros de Hampton (hechas):** Luis confirma que Hampton tiene sus registros en la JFSC y la JOIC; por su decisión no se guardan números ni certificados en el repositorio ni en la app, y el aviso de privacidad se queda con nombre comercial y oficina. PUB-10, ADM-18, PRE-34 y OFE-07 dejan de esperar esos datos. Progreso 149 → 152 de 214.
+
 17-nov-2026 · **ANA-04, tendencias de búsqueda de la web (hecha):** la web cuenta, solo como totales del día, qué filtros se usan (operación, zona, dormitorios, precio máximo); el equipo lo ve en Insights › Search trends y se borra a los 90 días. Comprobado con dos búsquedas reales de Luis. Progreso 148 → 149 de 214.
 
 17-nov-2026 · **PRE-32, plan de ChatGPT de Hermes (hecha):** Hermes usa ChatGPT Pro por Codex (no la API), con el entrenamiento desactivado; DeepSeek queda como reserva normal por decisión de Luis (su acuerdo pasa a PRE-13). Progreso 147 → 148 de 214.

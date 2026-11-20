@@ -4,27 +4,27 @@
   "titulo": "Confirmar los registros de Hampton en la JFSC (Schedule 2) y en la JOIC",
   "origen": "plan",
   "fase": "—",
-  "estado": "bloqueado",
-  "responsable": "Hampton",
-  "hecho": "Los dos requisitos están anotados: ESTADO exige la JFSC antes de usar la gestión completa de alquileres (R21) y el aviso de privacidad espera el número de la JOIC.",
-  "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado. Decisión de Luis 17-nov-2026: los registros están en trámite; mientras, el resto se construye con marcadores ### y solo la activación espera los números reales.",
-  "bloqueo": "Dato de Hampton",
+  "estado": "hecho",
+  "responsable": "desarrollo",
+  "hecho": "Luis confirma (20-nov) que Hampton tiene sus registros en la JFSC y la JOIC. Por su decisión no se guardan números ni certificados.",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:592",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:488",
     "docs/roadmap/ESTADO.md:13",
     "docs/roadmap/ESTADO.md:8",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Hampton: Dato de Hampton",
   "resources": [
     "compliance-evidence"
   ],
-  "nextStep": "Hampton confirma registros y el alcance aplicable; registrar evidencia sin dar el requisito por cumplido.",
-  "actualizado": "2026-11-17"
+  "nextStep": "",
+  "actualizado": "2026-11-20"
 }

@@ -7990,7 +7990,7 @@
       "preferredSlot": "vscode",
       "priority": 319,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8139,7 +8139,7 @@
       "preferredSlot": "vps",
       "priority": 324,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8744,7 +8744,7 @@
       "preferredSlot": "vscode",
       "priority": 344,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

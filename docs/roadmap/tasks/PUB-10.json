@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada.",
-  "falta": "0118 ya aplicada (17-nov). Para encender: aviso de privacidad para propietarios publicado con el número JOIC real (PRE-09, PRE-03); plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Con ese plazo, la pasada de retención de owner_requests va en PRE-12 (la búsqueda y el borrado desde solicitudes de privacidad ya están, 17-nov).",
+  "falta": "0118 ya aplicada (17-nov). Para encender: plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Con ese plazo, la pasada de retención de owner_requests va en PRE-12 (la búsqueda y el borrado desde solicitudes de privacidad ya están, 17-nov).",
   "bloqueo": "Dato de Hampton",
   "evidencia": [
     "site/index.html:543",
@@ -27,7 +27,8 @@
     "docs/roadmap/work/PUB-10/avance-publicable.md",
     "Decisión: evento 'collection' con id owner-request:<id> y tarea sin target_kind, precedente backups:* (server/notification-query.js:32); evita reconstruir tablas con datos (CONTINUIDAD, migración aditiva).",
     "Decisión: supresión manual por Staff y conciliación por mismo correo o teléfono; el plan prohíbe inventar vencimiento (plan PUB-10, última casilla).",
-    "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves."
+    "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -49,11 +50,11 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis/Hampton: aviso para propietarios con los datos reales de registro (PRE-09/PRE-03, hoy ###), plazo de conservación de las solicitudes y decisión de abrir el formulario (fila app_settings.owner_enquiries + OWNER_REQUESTS_READY=1).",
+  "externalBlocker": "Luis/Hampton: plazo de conservación de las solicitudes y decisión de encender (fila owner_enquiries y OWNER_REQUESTS_READY).",
   "resources": [
     "public-site",
     "owner-contact"
   ],
   "nextStep": "Incluir owner_requests en solicitudes de privacidad y retención (PRE-12); después Luis: aviso para propietarios con datos reales de registro, plazo de conservación y encender OWNER_REQUESTS_READY con la fila app_settings.owner_enquiries.",
-  "actualizado": "2026-11-17"
+  "actualizado": "2026-11-20"
 }

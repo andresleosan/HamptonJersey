@@ -7,12 +7,13 @@
   "estado": "pendiente",
   "responsable": "Luis",
   "hecho": "Documento de ideas del 6-nov-2026 (docs/roadmap/2026-11-06-ideas-hampton-bot.md) con las decisiones de Luis de ese día: nombre visible «Hampton Bot», bot de Telegram nuevo (Hermes 2 y su bot no cambian) y correo con Cloudflare Email Service (AUT-17).",
-  "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; registro en la JOIC de Hampton y de Optimyze como encargado (PRE-03); la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
+  "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
-    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11"
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -54,5 +55,6 @@
     "waf-policy",
     "hermes-bot-configuration"
   ],
-  "nextStep": "Luis coordina los requisitos documentales y de configuración del chat; registrar qué parte habilita cada fase."
+  "nextStep": "Luis coordina los requisitos documentales y de configuración del chat; registrar qué parte habilita cada fase.",
+  "actualizado": "2026-11-20"
 }

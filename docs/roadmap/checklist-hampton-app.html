@@ -5085,7 +5085,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "Construido y apagado (ADM18_APPLICATION_READY=0, migración aditiva 0117 aplicada el 17-nov): en la vivienda, «Rental applications»: el equipo abre una solicitud para un aplicante de alquiler con la renta mensual pedida y crea su enlace privado (último día obligatorio, se muestra una vez, lo envía el equipo, revocable), con el mismo acceso de ADM-12 (código de 6 dígitos al correo del aplicante, sesión de 30 min, propósito rental_application). El aplicante ve solo la dirección, la renta y el estado y envía una vez su trabajo, ingresos (importe, periodo, antes o después de impuestos, moneda), dependientes, hasta 3 referencias y avalista opcional; sin archivos; con enlace al aviso de privacidad. El equipo lee las respuestas con el permiso case_data_read de ADM-18 sobre esa vivienda (comprobado en el mismo batch), ve la regla de asequibilidad explicada (cada conversión a año: semana ×52, mes ×12, año ×1; solo GBP; un importe que falta es desconocido, nunca 0; bruto y neto nunca se mezclan) y decide con motivo (Under review, Accept, Decline, Withdrawn) con case_data_write; aceptar no crea contrato, oferta ni cambia el anuncio o el aplicante. Los criterios de Hampton son parámetros (ADM18_AFFORDABILITY_POLICY) con marcadores ###: mientras lo estén, todo resultado es «needs human review». Ingresos y respuestas nunca van a eventos, avisos ni a la ficha del aplicante. Apagado, todo responde como antes: rutas 404 y /rental-application sirve la página del sitio.",
-   "falta": "Para encender: (1) 0117 ya aplicada el 17-nov; (2) criterios de asequibilidad aprobados por Hampton (versión, base bruta o neta, máximo de la renta sobre el ingreso anual y fuente) en ADM18_AFFORDABILITY_POLICY, hoy ### (decisión de Luis 17-nov: registros JFSC, JOIC y razón social en trámite); (3) migraciones 0046 y 0049 revisadas y aplicadas por Luis (no son aditivas) y, por el operador, la política rental_application aprobada y los permisos case_data_read y case_data_write del equipo en cada vivienda: sin ellos leer o decidir responde 403; (4) la clave CASE_CHALLENGE_HMAC_KEY (Luis) y AUT-17 (EMAIL_SERVICE_READY y el enlace de correo) para que salga el código; (5) decisión de Luis de encender ADM18_APPLICATION_READY (recoge empleo e ingresos). Pedir las referencias por correo es ADM-19. Traído de ADM-09 (15-nov), sigue fuera de este tramo: el permiso fino sensitive_finance por caso para write-offs y lectura de atrasos. Antes de encender: plazo de conservación de las respuestas (Hampton); hoy se borran con su aplicante (Delete o limpieza de 12 meses del contacto) y las solicitudes de privacidad ya las cubren (PRE-12, 17-nov).",
+   "falta": "Para encender: (1) 0117 ya aplicada el 17-nov; (2) criterios de asequibilidad aprobados por Hampton (versión, base bruta o neta, máximo de la renta sobre el ingreso anual y fuente) en ADM18_AFFORDABILITY_POLICY, hoy ###; (3) migraciones 0046 y 0049 revisadas y aplicadas por Luis (no son aditivas) y, por el operador, la política rental_application aprobada y los permisos case_data_read y case_data_write del equipo en cada vivienda: sin ellos leer o decidir responde 403; (4) la clave CASE_CHALLENGE_HMAC_KEY (Luis) y AUT-17 (EMAIL_SERVICE_READY y el enlace de correo) para que salga el código; (5) decisión de Luis de encender ADM18_APPLICATION_READY (recoge empleo e ingresos). Pedir las referencias por correo es ADM-19. Traído de ADM-09 (15-nov), sigue fuera de este tramo: el permiso fino sensitive_finance por caso para write-offs y lectura de atrasos. Antes de encender: plazo de conservación de las respuestas (Hampton); hoy se borran con su aplicante (Delete o limpieza de 12 meses del contacto) y las solicitudes de privacidad ya las cubren (PRE-12, 17-nov).",
    "bloqueo": "",
    "evidencia": [
     "server/routes/public.js:104-133",
@@ -5105,9 +5105,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "Coordinación: la función nueva se registra en docs/roadmap/work/PRE-14/writer-coverage.md (excluida: sin D1 ni R2) y su ruta /rental-application en la lista esperada de tests/server/pre06-coverage.test.mjs; ninguna otra ruta pasa por Functions.",
     "17-nov: npm test 3423/3423 + unittest 29 OK, npm run build y check:release sin marcas. Sin navegador aislado ni e2e de la página o del panel (no se ejecutó en este tramo).",
     "17-nov-2026: revisión independiente: grave corregido antes de aplicar (0117 applicant_id ON DELETE CASCADE, para no bloquear la retención ni el borrado de solicitantes); periodos con Object.hasOwn; el enlace nuevo no se pierde si la relectura da 403. Menores en MEJORAS.",
-    "17-nov-2026: 0117 aplicada en remoto (sola, desde directorio temporal; marcador en el relevo). Tras desplegar 037557d9 con ADM18_APPLICATION_READY=0: /rental-application sirve la página normal (200), /api/admin/rentals/1/applications 404, portada 200."
+    "17-nov-2026: 0117 aplicada en remoto (sola, desde directorio temporal; marcador en el relevo). Tras desplegar 037557d9 con ADM18_APPLICATION_READY=0: /rental-application sirve la página normal (200), /api/admin/rentals/1/applications 404, portada 200.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
    ],
-   "actualizado": "2026-11-17"
+   "actualizado": "2026-11-20"
   },
   {
    "id": "ADM-19",
@@ -5621,7 +5622,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada.",
-   "falta": "0118 ya aplicada (17-nov). Para encender: aviso de privacidad para propietarios publicado con el número JOIC real (PRE-09, PRE-03); plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Con ese plazo, la pasada de retención de owner_requests va en PRE-12 (la búsqueda y el borrado desde solicitudes de privacidad ya están, 17-nov).",
+   "falta": "0118 ya aplicada (17-nov). Para encender: plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Con ese plazo, la pasada de retención de owner_requests va en PRE-12 (la búsqueda y el borrado desde solicitudes de privacidad ya están, 17-nov).",
    "bloqueo": "Dato de Hampton",
    "evidencia": [
     "site/index.html:543",
@@ -5641,9 +5642,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/roadmap/work/PUB-10/avance-publicable.md",
     "Decisión: evento 'collection' con id owner-request:\u003cid> y tarea sin target_kind, precedente backups:* (server/notification-query.js:32); evita reconstruir tablas con datos (CONTINUIDAD, migración aditiva).",
     "Decisión: supresión manual por Staff y conciliación por mismo correo o teléfono; el plan prohíbe inventar vencimiento (plan PUB-10, última casilla).",
-    "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves."
+    "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
    ],
-   "actualizado": "2026-11-17"
+   "actualizado": "2026-11-20"
   },
   {
    "id": "PUB-11",
@@ -6566,15 +6568,16 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "El expediente tiene el hito «Housing status and due diligence checked» con fecha prevista, fecha hecha y nota.",
-   "falta": "No se registran las comprobaciones de diligencia debida (Handbook de la JFSC, sección 18). Plan maestro (10-nov-2026): sin repositorio de documentos; solo una referencia mínima revisada por un empleado y guardas de dato estructurado (clase C3, sin IA en la nube). Qué exigir depende del registro de Hampton en la JFSC (Schedule 2) y de un abogado de Jersey.",
+   "falta": "No se registran las comprobaciones de diligencia debida (Handbook de la JFSC, sección 18). Plan maestro (10-nov-2026): sin repositorio de documentos; solo una referencia mínima revisada por un empleado y guardas de dato estructurado (clase C3, sin IA en la nube). Qué exigir lo fija un abogado de Jersey (PRE-33); los registros están confirmados (PRE-03).",
    "bloqueo": "JFSC/abogado",
    "evidencia": [
     "server/sales.js:5",
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:532",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): sin repositorio de documentos."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): sin repositorio de documentos.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-20"
   },
   {
    "id": "OFE-08",
@@ -6644,19 +6647,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Confirmar los registros de Hampton en la JFSC (Schedule 2) y en la JOIC",
    "origen": "plan",
    "fase": "—",
-   "estado": "bloqueado",
-   "responsable": "Hampton",
-   "hecho": "Los dos requisitos están anotados: ESTADO exige la JFSC antes de usar la gestión completa de alquileres (R21) y el aviso de privacidad espera el número de la JOIC.",
-   "falta": "Hampton confirma su registro en la JFSC como agencia inmobiliaria (y por administrar fondos de clientes) y en la JOIC (art. 17: 70 £ + 50 £ si está en la JFSC; se renueva del 1-ene al final de febrero), y se revisa si Optimyze necesita el suyo como encargado. Decisión de Luis 17-nov-2026: los registros están en trámite; mientras, el resto se construye con marcadores ### y solo la activación espera los números reales.",
-   "bloqueo": "Dato de Hampton",
+   "estado": "hecho",
+   "responsable": "desarrollo",
+   "hecho": "Luis confirma (20-nov) que Hampton tiene sus registros en la JFSC y la JOIC. Por su decisión no se guardan números ni certificados.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:592",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:488",
     "docs/roadmap/ESTADO.md:13",
     "docs/roadmap/ESTADO.md:8",
-    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93"
+    "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
    ],
-   "actualizado": "2026-11-17"
+   "actualizado": "2026-11-20"
   },
   {
    "id": "PRE-04",
@@ -6759,11 +6763,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Aviso de privacidad con base legal en el registro y en el portal",
    "origen": "plan",
    "fase": "F0",
-   "estado": "parcial",
-   "responsable": "Hampton",
-   "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo.",
-   "falta": "Faltan la razón social y el número de registro JOIC de Hampton (hoy dice Hampton Estates, 42 Bath Street). 17-nov-2026: datos de registro en trámite (Luis); el aviso público no muestra ### a los visitantes, se completa cuando lleguen los números.",
-   "bloqueo": "Dato de Hampton",
+   "estado": "hecho",
+   "responsable": "desarrollo",
+   "hecho": "La web tiene #/privacy (responsable, usos, base legal, encargados, plazos, derechos y contacto), enlazado en el pie y obligatorio en el último paso de Register your search. El formulario de solicitud de visita enlaza al aviso junto al botón tanto en inicio como en la ficha; se abre en otra pestaña sin perder el formulario. Desde el 16-nov el aviso cubre a propietarios e inquilinos de las viviendas gestionadas (Rentals): qué datos, para qué (contrato, renovaciones y preavisos, cobro de rentas, depósito, reparaciones, plazos legales y liquidación mensual), base legal (contrato y obligación legal) y conservación mientras dure la relación y 6 años más (R19). Nombra a Google (Google Fonts recibe la IP al abrir una página) y a Matterport, YouTube y Vimeo, que reciben la IP solo cuando el visitante abre un tour o vídeo. El aviso publicado identifica al responsable con nombre comercial y oficina; por decisión de Luis no lleva número JOIC ni razón social.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "site/apply.js:496-613",
     "site/apply.js:261-262",
@@ -6779,9 +6783,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "Decisión 16-nov: datos de Rentals listados desde las tablas reales (migrations/0013_rentals.sql, 0056, 0059, 0060, 0089, 0090); sin datos bancarios del propietario, que F5-A excluye (docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:49).",
     "Decisión 16-nov: terceros nombrados solo si la web los carga: Google Fonts en site/index.html:30-32 (DESIGN.md:179); reproductores Matterport, Vimeo y YouTube (youtube-nocookie) en site/tour-privacy.js:6-7 y site/lib.js:19, montados solo al abrirlos. Turnstile ya está cubierto como Cloudflare; wa.me es un enlace, no se carga.",
     "Decisión 16-nov: el aviso en el portal pasa a ADM-18, la tarea que construye el portal del inquilino (su falta dice «No hay portal»); ADM-12 solo prevé un formulario limitado de reparaciones.",
-    "Verificación 16-nov: E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pre09-viewing-privacy.e2e.cjs npm run test:e2e:isolated (Chromium, 1280 y 390) PASS."
+    "Verificación 16-nov: E2E_PRODUCTION_READONLY=0 E2E_SCRIPT=tests/pre09-viewing-privacy.e2e.cjs npm run test:e2e:isolated (Chromium, 1280 y 390) PASS.",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
    ],
-   "actualizado": "2026-11-17"
+   "actualizado": "2026-11-20"
   },
   {
    "id": "PRE-10",
@@ -7270,18 +7275,20 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Respuesta a la pregunta 13: registros en JFSC y JOIC y cobro de rentas en cuenta propia",
    "origen": "plan",
    "fase": "F5-A",
-   "estado": "bloqueado",
-   "responsable": "Hampton",
-   "hecho": "Hampton cobra la renta y liquida con algunos propietarios (gestión completa) y con otros solo busca inquilino (Luis, 24-oct); Rentals ya lo distingue por vivienda.",
-   "falta": "Los registros en la JFSC y la JOIC (PRE-03) y si rentas y depósitos entran en una cuenta de clientes; hasta confirmarlo no se usa la gestión completa en producción (R21).",
-   "bloqueo": "Dato de Hampton",
+   "estado": "hecho",
+   "responsable": "desarrollo",
+   "hecho": "Hampton cobra la renta y liquida con algunos propietarios (gestión completa) y con otros solo busca inquilino (Luis, 24-oct); Rentals ya lo distingue por vivienda. Luis confirma (20-nov) los registros y autoriza usar la gestión completa sin guardar datos de registro ni de cuentas.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:17",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:64",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:93",
     "docs/roadmap/ESTADO.md:13",
-    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:704"
-   ]
+    "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:704",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
+   ],
+   "actualizado": "2026-11-20"
   },
   {
    "id": "PRE-30",
@@ -7365,13 +7372,15 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "pendiente",
    "responsable": "Luis",
    "hecho": "Documento de ideas del 6-nov-2026 (docs/roadmap/2026-11-06-ideas-hampton-bot.md) con las decisiones de Luis de ese día: nombre visible «Hampton Bot», bot de Telegram nuevo (Hermes 2 y su bot no cambian) y correo con Cloudflare Email Service (AUT-17).",
-   "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; registro en la JOIC de Hampton y de Optimyze como encargado (PRE-03); la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
+   "falta": "Sin código, todo de Luis y en paralelo: párrafo «Web chat» del aviso de privacidad (automático desde la fase 3, qué se guarda, Workers AI sin entrenar ni retener, 30 días, aplicante solo si lo pides, cómo borrar, reclamar ante la JOIC), revisado por el abogado con el paquete de PRE-33; DPIA corta (evaluación de impacto, art. 16) firmada por Hampton antes de encender el modelo; la única regla de límite de peticiones del plan Free, acotada a /api/chat* y /api/stats (la misma de ANA-09: más de 20 en 10 s por IP → bloqueo 10 s); política de acceso en las vistas previas *.pages.dev; contrato Hampton–Optimyze con Cloudflare como subencargado (PRE-13) y confirmación del abogado de que la certificación DPF de Cloudflare, Inc. cubre Workers AI (transferencia a EE. UU., art. 66(2)(a)); y en BotFather, /newbot con el nombre «Hampton Bot» (usuario terminado en «bot»), grupos desactivados, modo privacidad activado, descripción con el aviso, y su token guardado como secreto en la jaula de Hampton del VPS, nunca por chat ni en el repo. Hecho cuando: regla creada, bot creado y token guardado, aviso aprobado y DPIA firmada por Hampton. Aparte de la fase 0, Luis decide el proveedor del modelo para el chat (decisión 2 del documento: Workers AI recomendado; Claude por Bedrock en Europa si la batería falla). La fase 1 (MSG-02) no espera a nada de esto salvo, para publicar, la regla y el token; las fases 2 y 3 (MSG-04) sí. Si Luis pide ayuda con los textos: claude-fable-5-1 · esfuerzo high (derecho de datos de Jersey).",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §7",
     "docs/roadmap/2026-11-06-ideas-hampton-bot.md §9",
-    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11"
-   ]
+    "docs/roadmap/2026-11-06-ideas-hampton-bot.md §11",
+    "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
+   ],
+   "actualizado": "2026-11-20"
   }
  ],
  "reconciliacion": {
