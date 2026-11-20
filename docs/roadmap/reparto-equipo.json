@@ -7,7 +7,7 @@
     "sha": "36c4c2b746b3421b37fb5d59826772c6814c096f",
     "checkedAt": "2026-11-08",
     "path": "docs/roadmap/checklist-hampton-app.html",
-    "itemCount": 250
+    "itemCount": 251
   },
   "liveCoordination": false,
   "policy": "Reparto histórico del antiguo coordinador, no reserva ni exclusión vigente. El candado protege solo la copia de cada taller: acordar un turno único antes de editar recursos compartidos, integrar o publicar. Verificar dependencias técnicas y exigir revisión y sí para el SHA final.",
@@ -32,13 +32,13 @@
       "name": "Lista 2",
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
-      "count": 61,
-      "openCount": 28,
+      "count": 62,
+      "openCount": 29,
       "states": {
         "replanteado": 8,
         "hecho": 25,
         "parcial": 17,
-        "pendiente": 7,
+        "pendiente": 8,
         "bloqueado": 4
       }
     },
@@ -11815,6 +11815,41 @@
         "hermes-bot-configuration"
       ],
       "nextStep": "Luis coordina los requisitos documentales y de configuración del chat; registrar qué parte habilita cada fase.",
+      "actualizado": "2026-11-20"
+    },
+    {
+      "id": "BUS-24",
+      "seccion": "Búsqueda de propiedades",
+      "titulo": "Canales del directorio aplazados: webs con lectura prohibida, ilegibles o con restricciones",
+      "origen": "plan",
+      "fase": "—",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "20-nov-2026: lista de 59 dominios en docs/roadmap/work/BUS-24/canales-aplazados.md (prohibidos, con copia limitada, ilegibles y no agencias).",
+      "falta": "Al final: reclasificar los ilegibles, pedir permiso por escrito a los prohibidos y limitados que interesen y construir sus lectores o cargarlos a mano. Hasta entonces el matching usa solo los canales leíbles.",
+      "bloqueo": "",
+      "evidencia": [
+        "docs/roadmap/work/BUS-24/canales-aplazados.md",
+        "Decisión de Luis 20-nov-2026: empezar con los canales permitidos y dejar el resto para el final."
+      ],
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "needs_scope_and_evidence_review",
+      "dependencies": [
+        {
+          "id": "BUS-08",
+          "requires": "activated",
+          "reason": "Primero se enciende la pasada diaria con los canales permitidos.",
+          "basis": "explicit",
+          "scope": "whole"
+        }
+      ],
+      "resources": [
+        "sources-directory",
+        "data-processing-policy"
+      ],
+      "nextStep": "Revisar la lista cuando BUS-08 esté cerrada; decidir canal por canal.",
       "actualizado": "2026-11-20"
     }
   ]

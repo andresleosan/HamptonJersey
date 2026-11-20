@@ -8924,6 +8924,34 @@
       "acceptance": [
         "Luis coordina los requisitos documentales y de configuración del chat; registrar qué parte habilita cada fase."
       ]
+    },
+    {
+      "id": "BUS-24",
+      "parentTaskId": "BUS-24",
+      "title": "Canales del directorio aplazados: webs con lectura prohibida, ilegibles o con restricciones",
+      "preferredSlot": "hermes",
+      "priority": 350,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": false,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "sources-directory",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/BUS-24.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/BUS-24/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Revisar la lista cuando BUS-08 esté cerrada; decidir canal por canal."
+      ]
     }
   ]
 }
