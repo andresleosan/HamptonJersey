@@ -167,7 +167,8 @@ EST10_LABELS_READY = "1"
 EMAIL_SERVICE_READY = "false"
 # AUT-17: email Hermes writes and delivers from Hampton's Gmail (migration 0121): enquiries waiting by hand and VIS-17
 # viewing proposals, as Gmail drafts or, with each type's switch in Automations, sent on their own. Hermes's door only;
-# the clock does not read it. Sends messages: only Luis switches it on, once Gmail is connected in Hermes.
+# the clock does not read it. Opens only with the secret HERMES_MAIL_KEY (not HERMES_KEY). Sends messages: only Luis
+# switches it on, once Gmail is connected in Hermes.
 HERMES_MAIL_READY = "0"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"

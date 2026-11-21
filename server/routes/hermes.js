@@ -14,8 +14,10 @@ import { mailDoor, mailRoutes } from "../hermes-mail.js";
 
 const enc = new TextEncoder();
 // Constant time on the SHA-256 digests, so neither the key's length nor its content shows in the timing (H5).
-async function keyOk(request, env) {
-  const key = env.HERMES_KEY, m = /^Bearer (\S+)$/.exec(request.headers.get("authorization") ?? "");
+// AUT-17: the mail operations open with their own key (HERMES_MAIL_KEY), kept only by the Hermes that holds Hampton's
+// Gmail, since they carry addresses; the general key never opens them, nor that key the rest.
+async function keyOk(request, env, key = env.HERMES_KEY) {
+  const m = /^Bearer (\S+)$/.exec(request.headers.get("authorization") ?? "");
   if (env.QA_HISTORY_KEY && env.QA_HISTORY_KEY === key) return false;
   if (typeof key !== "string" || key.length < 32 || !m) return false;
   const [a, b] = (await Promise.all([m[1], key].map(s => crypto.subtle.digest("SHA-256", enc.encode(s))))).map(d => new Uint8Array(d));
@@ -183,12 +185,18 @@ const DOOR = [
   ["POST", /^\/imports\/next$/, nextImport],
   ["GET", /^\/imports\/(\d+)\/files\/([A-Za-z0-9_-]{10,100})$/, importFile],
   ["POST", /^\/imports\/(\d+)\/proposal$/, importProposal],
-  // AUT-17: email through Hampton's Gmail (server/hermes-mail.js).
-  ...mailDoor,
 ];
 
 // path: what follows /hermes. Errors are thrown as HttpError, for server/api.js to answer.
 export async function hermesDoor(request, env, path) {
+  if (path.startsWith("/mail/")) {
+    if (!env.HERMES_MAIL_KEY || env.HERMES_MAIL_KEY === env.HERMES_KEY || !(await keyOk(request, env, env.HERMES_MAIL_KEY))) fail(401, "Unauthorized");
+    for (const [m, re, handler] of mailDoor) {
+      const hit = m === request.method && re.exec(path);
+      if (hit) return await handler({ request, env, params: hit.slice(1) });
+    }
+    fail(404, "Not found");
+  }
   if (!(await keyOk(request, env))) fail(401, "Unauthorized");
   await setting(env, "hermes", { at: now() }, "hermes").run(); // H12: when Hermes last asked
   for (const [m, re, handler] of DOOR) {
