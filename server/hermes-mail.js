@@ -10,7 +10,8 @@
 // approval). Hermes gives back what happened with the claim's token; a claim with no answer after 30 minutes is unknown
 // and never retried. Nothing here calls Gmail.
 import { json, fail, readJson, now, sha256 } from "./http.js";
-import { emailAddress, emailDay, DAILY_LIMIT } from "./email.js";
+import { emailAddress, emailDay, DAILY_LIMIT, claimForHermes, settleForHermes } from "./email.js";
+import { enquiryEmailCheck } from "./consultation-email.js";
 import { enquiries, enquiriesReady } from "./consultations.js";
 import { ENQUIRY_GATES } from "./routes/matches.js";
 import { coordinationOn } from "./viewing-coordination.js";
@@ -219,7 +220,26 @@ async function mailCheck({ request, env, params: [id] }) {
   return json({ ok: false, reason });
 }
 
+// The app's approved queue (outbound), verbatim and with the same claim as the clock's dispatcher (server/email.js).
+async function outboundNext({ env }) {
+  if (!mailReady(env)) fail(404, "Not found");
+  return json({ email: await claimForHermes(env, await enquiryEmailCheck(env)) });
+}
+const SETTLED = { ok: 200, same: 200, missing: 404, token: 403, settled: 409 };
+async function outboundResult({ request, env, params: [ref] }) {
+  if (!mailReady(env)) fail(404, "Not found");
+  const b = await readJson(request, 2048) ?? {};
+  if (typeof b.token !== "string" || b.token.length > 64) fail(400, "Send the claim's token");
+  if (!["sent", "failed", "retry", "unknown"].includes(b.outcome)) fail(400, "outcome must be sent, failed, retry or unknown");
+  if (b.outcome === "sent" && !GMAIL_ID.test(b.message_id ?? "")) fail(400, "Send Gmail's message_id");
+  const r = await settleForHermes(env, ref, b.token, b.outcome, b.message_id ?? null);
+  return json(SETTLED[r] === 200 ? { ok: true } : { error: r === "settled" ? "This email already has a result" : r === "token"
+    ? "This is not the token of this claim" : "Not found" }, SETTLED[r]);
+}
+
 export const mailDoor = [
+  ["POST", /^\/mail\/outbound\/next$/, outboundNext],
+  ["POST", /^\/mail\/outbound\/([a-f0-9]{32})\/result$/, outboundResult],
   ["POST", /^\/mail\/(\d+)\/check$/, mailCheck],
   ["POST", /^\/mail\/next$/, nextMail],
   ["POST", /^\/mail\/(\d+)\/result$/, mailResult],

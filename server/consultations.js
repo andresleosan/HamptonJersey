@@ -19,7 +19,7 @@
 // Off (AGE03_ENQUIRIES_READY) or before the migration, nothing is read and every card says Not sent.
 import { json, fail, readJson, now, sha256 } from "./http.js";
 import { instant, unavailabilityReady, notConfirmedUnavailable } from "./property-facts.js";
-import { serviceReady, readEmailSettings, emailAddress } from "./email.js";
+import { outboundReady, hermesTransport, readEmailSettings, emailAddress } from "./email.js";
 import { confirmationReader, availabilityReady, confirmationStatements, propagate, REASONS } from "./availability-confirmations.js";
 import { taskStatements } from "./notification-tasks.js";
 import { CHECK_LABEL } from "./candidate-state.js";
@@ -127,13 +127,17 @@ const keyed = contacts => Promise.all(contacts.map(async c => (emailAddress(c.em
 // on each tick), which has its own switch: one that is off, or has not run for half an hour, sends nothing.
 async function emailStop(env, queued = false) {
   const then = queued ? "it waits, or return it to manual sending and send it yourself." : BY_HAND;
-  if (!serviceReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${then}`;
+  if (!outboundReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${then}`;
   if (!(await readEmailSettings(env)).enabled) return `Email sending is switched off in Email settings, so nothing is sent from here: ${then}`;
   if (await env.DB.prepare("SELECT 1 FROM app_settings WHERE key = 'outbound' AND json_extract(value, '$.paused') = 1").first())
     return queued ? `Sending is paused (Pause all outbound), so nothing leaves: it goes when sending resumes, or return it to manual sending and send it yourself.`
       : `Sending is paused (Pause all outbound), so nothing is queued: resume sending, or ${then}`;
-  const sender = JSON.parse((await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'email_worker'").first())?.value ?? "{}");
-  if (!sender.ready || !(Date.parse(sender.at) > Date.now() - 30 * 60e3))
+  // AUT-17: with Hermes as the transport, its mail carrier is the sender, seen when it last asked the door; the clock
+  // must have Hermes on too (its last tick says so), or it would not settle the enquiry.
+  const read = async key => JSON.parse((await env.DB.prepare("SELECT value FROM app_settings WHERE key = ?").bind(key).first())?.value ?? "{}");
+  const sender = await read(hermesTransport(env) ? "hermes_mail_seen" : "email_worker");
+  const ready = hermesTransport(env) ? (await read("email_worker")).hermes === true : sender.ready;
+  if (!ready || !(Date.parse(sender.at) > Date.now() - 30 * 60e3))
     return `The app's email sender is not running, so nothing is sent from here: ${then}`;
   return null;
 }

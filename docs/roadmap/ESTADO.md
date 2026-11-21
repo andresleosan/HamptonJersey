@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+21-nov-2026 · **AUT-17, toda la cola de correo por Hermes (apagado):** cuando se conecte el Gmail, el resumen diario del equipo, las consultas aprobadas y las alertas saldrán también desde el Gmail de Hampton, tal cual, sin pasar por la IA. Progreso 154 de 215 (sin cambio).
+
 21-nov-2026 · **BUS-09:** las casas de Finders Keepers traen ahora si tienen aparcamiento, así que encajan mejor con las búsquedas que lo piden. Progreso 154 de 215 (sin cambio).
 
 21-nov-2026 · **AUT-17 fase C, el cartero del correo (apagado):** está construido el servicio que entregará los correos desde el Gmail de Hampton, fuera del alcance de la IA de Hermes: Hermes solo redacta, y el cartero comprueba con la app justo antes, pone la dirección que eligió la app y crea el borrador o envía, nunca dos veces. Falta la verificación en dos pasos del Gmail (Luis, 22-nov) y la autorización de Google. Progreso 154 de 215 (sin cambio).

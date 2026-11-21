@@ -1,6 +1,6 @@
 import { json, fail, readJson, now, sha256 } from "../http.js";
 import { logEvent } from "../events.js";
-import { readEmailSettings, serviceReady, emailAddress, emailDay, summarySnapshot, EMAIL_FROM, EMAIL_REPLY_TO, DAILY_LIMIT } from "../email.js";
+import { readEmailSettings, outboundReady, hermesTransport, emailAddress, emailDay, summarySnapshot, EMAIL_FROM, EMAIL_REPLY_TO, DAILY_LIMIT } from "../email.js";
 
 const audit = (env,actor,type,id="email",data=null,opts={}) =>
   logEvent(env,{actor,entity_type:"admin",entity_id:id,type:`email.${type}`,data},null,opts);
@@ -14,12 +14,16 @@ async function settings({env}) {
       OR (template='team_summary' AND entity_id=?) GROUP BY status`).bind(day,day),
     env.DB.prepare("SELECT COUNT(*) n FROM email_attempts WHERE day=?").bind(day),
     env.DB.prepare("SELECT address_hash,created_at,reason FROM email_suppressions ORDER BY created_at DESC LIMIT 200"),
-    env.DB.prepare("SELECT value FROM app_settings WHERE key='email_worker'"),
+    env.DB.prepare("SELECT (SELECT value FROM app_settings WHERE key='email_worker') AS value, (SELECT value FROM app_settings WHERE key='hermes_mail_seen') AS seen"),
     env.DB.prepare(`SELECT COUNT(*) n FROM outbound WHERE ${pendingReview}`),
   ]);
   const n=status => counts.find(c=>c.status===status)?.n ?? 0;
-  return json({settings:s,ready:serviceReady(env),from:EMAIL_FROM,reply_to:EMAIL_REPLY_TO,
-    worker:worker ? JSON.parse(worker.value) : null,
+  // AUT-17: with Hermes, the sender is its mail carrier, from Hampton's Gmail (and replies go back there).
+  // Both switches must agree: the clock (its last tick says hermes) prepares the summary, the carrier sends it.
+  const hermes = hermesTransport(env), clock = worker?.value ? JSON.parse(worker.value) : null, seen = worker?.seen ? JSON.parse(worker.seen) : null;
+  const carrier = hermes && { at: seen?.at ?? null, ready: !!seen && Date.parse(seen.at) > Date.now() - 30 * 60e3 && clock?.hermes === true, via: "hermes" };
+  return json({settings:s,ready:outboundReady(env),from:hermes ? "Hampton's Gmail (Hermes)" : EMAIL_FROM,reply_to:hermes ? "Hampton's Gmail" : EMAIL_REPLY_TO,
+    worker:carrier || clock,
     overview:{day,attempts_today:used.n,limit:DAILY_LIMIT,accepted_today:n("accepted"),failed_today:n("failed"),unknown_today:n("unknown"),queued_today:n("queued"),pending_review:pending.n},
     suppressions});
 }
@@ -33,7 +37,7 @@ async function saveSettings({env,admin,request}) {
   const recipients=[...new Set(b.recipients.map(emailAddress))];
   if (b.enabled && b.summary && (!b.previewed || !recipients.length))
     fail(400,"Review the sample summary and choose its team recipients before enabling daily sending.");
-  if (b.enabled && !serviceReady(env)) fail(409,"Email service setup is not confirmed. Tell Optimyze before enabling sending.");
+  if (b.enabled && !outboundReady(env)) fail(409,"Email service setup is not confirmed. Tell Optimyze before enabling sending.");
   const ts=now(), value={enabled:b.enabled,summary:b.summary,recipients,revision:b.expectedRevision+1,approved_by:admin,approved_at:ts};
   const r=await env.DB.batch([
     env.DB.prepare(`INSERT INTO app_settings(key,value,updated_at,updated_by) SELECT 'email',?,?,?

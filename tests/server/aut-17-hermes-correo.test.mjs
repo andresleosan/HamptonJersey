@@ -8,12 +8,14 @@ import { siguiente, entregar, mime } from "../../hermes/correo.mjs";
 
 const TASK = { id: 7, token: "f".repeat(64), kind: "availability", mode: "draft", purpose: "p", rules: "r",
   to: { email: "desk@agency.example.test", name: "Agency Desk" }, facts: { property: { reference: "HE-R001" } } };
-function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200, body: { id: "d1", message: { id: "m1", threadId: "t1" } } }), resultFails = 0 } = {}) {
+function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200, body: { id: "d1", message: { id: "m1", threadId: "t1" } } }), resultFails = 0, outbound = [] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "correo-")), tokenFile = join(dir, "token.json"), calls = [];
   writeFileSync(tokenFile, JSON.stringify({ client_id: "c", client_secret: "s", refresh_token: "r" }));
   const answer = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   const fetchFn = async (url, o) => {
     calls.push({ url: String(url), body: o.body, auth: o.headers?.authorization });
+    if (url.endsWith("/outbound/next")) { const e = outbound.shift() ?? null; return answer(200, { email: e }); }
+    if (/\/outbound\/[a-f0-9]{32}\/result$/.test(url)) return answer(200, { ok: true });
     if (url.endsWith("/mail/next")) { const t = task; task = null; return answer(200, t ? { task: t } : { task: null, reason: "none" }); }
     if (url.endsWith("/check")) return answer(200, check);
     if (url.endsWith("/result")) return resultFails-- > 0 ? answer(502, {}) : answer(200, { task: { id: 7, status: JSON.parse(o.body).outcome } });
@@ -30,7 +32,7 @@ test("the model sees neither the address nor the token; the app is asked with th
   assert.equal(JSON.stringify(out).includes(TASK.token), false);
   assert.equal(JSON.stringify(out).includes("desk@"), false);
   assert.deepEqual(out.task.to, { name: "Agency Desk" });
-  assert.equal(calls[0].auth, `Bearer ${"k".repeat(40)}`);
+  assert.equal(calls.find(c => c.url.endsWith("/mail/next")).auth, `Bearer ${"k".repeat(40)}`);
 });
 
 test("a draft goes to the address the app chose, whatever the model wrote, with no added headers", async () => {
@@ -119,4 +121,33 @@ test("the carrier answers only Hermes's key, and listens only on a private addre
   assert.equal(callerOk(`Bearer ${callerKey}`, "short"), false, "no key configured: closed");
   for (const h of ["127.0.0.1", "10.0.0.5", "172.16.45.2", "192.168.1.9", "::1", "fd00::5"]) assert.equal(privateHost(h), true, h);
   for (const h of ["0.0.0.0", "::", "8.8.8.8", "172.32.0.1", "", undefined]) assert.equal(privateHost(h), false, String(h));
+});
+
+test("the app's approved queue goes first, verbatim and always sent, before any task Hermes writes", async () => {
+  const email = { ref: "a".repeat(32), token: "t".repeat(36), to: "team@example.test", subject: "Hampton summary [HE-OUT-x]", text: "Counts" };
+  const w = world({ outbound: [email], gmail: () => ({ status: 200, body: { id: "m5", threadId: "t5" } }) });
+  const out = await siguiente(w.cfg);
+  const send = w.calls.findIndex(c => c.url.endsWith("/messages/send")), next = w.calls.findIndex(c => c.url.endsWith("/mail/next"));
+  assert.ok(send >= 0 && send < next, "queue first");
+  const raw = Buffer.from(JSON.parse(w.calls[send].body).raw, "base64url").toString();
+  assert.ok(raw.includes("<team@example.test>"));
+  assert.ok(raw.includes(Buffer.from("Counts").toString("base64")));
+  const r = JSON.parse(w.calls.find(c => /outbound\/a{32}\/result$/.test(c.url)).body);
+  assert.deepEqual([r.outcome, r.message_id], ["sent", "m5"]);
+  assert.equal(out.task.id, 7);
+});
+
+test("the queue: Google down claims nothing; a rate limit is retry and stops the run; no Gmail id is unknown", async () => {
+  const email = n => ({ ref: String(n).repeat(32), token: "t".repeat(36), to: "team@example.test", subject: "S", text: "T" });
+  const down = world({ outbound: [email(1)] });
+  down.cfg.fetchFn = (orig => async (url, o) => String(url).includes("oauth2") ? new Response("{}", { status: 500 }) : orig(url, o))(down.cfg.fetchFn);
+  await siguiente(down.cfg);
+  assert.equal(down.calls.some(c => c.url.endsWith("/outbound/next")), false, "nothing claimed while Google's token fails");
+  const limited = world({ outbound: [email(2), email(3)], gmail: () => ({ status: 429, body: {} }) });
+  await siguiente(limited.cfg);
+  const posted = limited.calls.filter(c => /outbound\/\d{32}\/result$/.test(c.url)).map(c => JSON.parse(c.body).outcome);
+  assert.deepEqual(posted, ["retry"], "one tried, the run stops");
+  const noId = world({ outbound: [email(4)], gmail: () => ({ status: 200, body: {} }) });
+  await siguiente(noId.cfg);
+  assert.deepEqual(noId.calls.filter(c => /outbound\/4{32}\/result$/.test(c.url)).map(c => JSON.parse(c.body).outcome), ["unknown"]);
 });

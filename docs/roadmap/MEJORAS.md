@@ -248,3 +248,5 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [PRE-12] Vincular un correo a una solicitud de privacidad ya abierta (hoy solo se crea una nueva desde el correo) · necesita un campo de origen en la solicitud · 18-nov-2026
 - [MSG-02] Nombre visible «Hampton Bot» (fase con IA, no la 1), límites adicionales por huella o ruta de contacto, revisión de concurrencia e idempotencia compartida y propuesta de recibos (actor, retención, purga, reemisión) · trasladados del falta de MSG-02 · 18-nov-2026
 - [AUT-17] Los envíos de Hermes cuentan en el mismo límite de 100 que los códigos de acceso del inquilino (case-auth-email): valorar reservarles un cupo · revisión del 21-nov · 2026-11-21
+- [AUT-17] El cartero entrega la cola aprobada solo cuando Hermes ejecuta su tarea cada 10 min: si Hermes se para, el resumen del equipo también; valorar un temporizador propio del cartero · revisión del 21-nov · 2026-11-21
+- [AUT-17] Con el correo por Gmail, las respuestas de agencias no llegan a la app hasta la fase D: AGE-08 puede abrir tareas de llamada para consultas ya contestadas (el equipo las registra a mano) · revisión del 21-nov · 2026-11-21

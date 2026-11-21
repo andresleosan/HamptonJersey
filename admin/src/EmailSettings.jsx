@@ -60,10 +60,10 @@ export default function EmailSettings() {
       <div className="head"><h2 id="email-service-title">Email</h2><button type="button" className="btn ghost sm" disabled={busy} onClick={()=>load(true)}>Reload email preferences</button></div>
       {!data.ready && <p className="warn">Email service setup is not confirmed. Tell Optimyze before enabling sending.</p>}
       <p className="email-address">From {data.from}<br/>Replies to {data.reply_to}</p>
-      <p className="muted">{data.worker?`Worker last checked ${fmtDate(data.worker.at)}. ${data.worker.ready?"Email binding available.":"Email binding is not ready; nothing can be sent."}`:"Worker email status has not been reported yet."}</p>
+      <p className="muted">{data.worker?.via==="hermes"?(data.worker.at?`Hermes's mail carrier last asked ${fmtDate(data.worker.at)}. ${data.worker.ready?"It is sending from Hampton's Gmail.":"It is not ready: check that it runs and that Hermes email is on for the clock too."}`:"Hermes's mail carrier has not asked yet."):data.worker?`Worker last checked ${fmtDate(data.worker.at)}. ${data.worker.ready?"Email binding available.":"Email binding is not ready; nothing can be sent."}`:"Worker email status has not been reported yet."}</p>
       <label className="email-check"><input type="checkbox" checked={form.enabled} disabled={!data.ready||busy}
         onChange={e=>change("enabled",e.target.checked)}/>Enable email sending</label>
-      <p>{o.attempts_today} of {o.limit} send attempts today in Jersey. {o.accepted_today} accepted by Cloudflare today, {o.failed_today} failed, {o.unknown_today} with an unknown result.</p>
+      <p>{o.attempts_today} of {o.limit} send attempts today in Jersey. {o.accepted_today} accepted by {data.worker?.via==="hermes"?"Gmail":"Cloudflare"} today, {o.failed_today} failed, {o.unknown_today} with an unknown result.</p>
       <p><a href="#/email?review=pending">{o.pending_review} unknown {o.pending_review===1?"result":"results"} waiting for review</a> across all days.</p>
       <p className="muted">Acceptance does not confirm inbox delivery. Pause all outbound also stops the team summary. Unknown results require review in Email and are never retried automatically.</p>
       <a href="#/email">Review received and outgoing email</a>

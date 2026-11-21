@@ -62,6 +62,7 @@ export async function retentionNoticePass(env, ts) {
       WHERE ${runningTenancyOn(day)})`)] : []),
   ]);
   // Queued only while the email service can send: otherwise none is prepared, and the pass keeps the contact.
+  // Cloudflare's transport only: the notice asks for a reply, and only Cloudflare's inbound brings it back (AUT-17).
   const ready = serviceReady(env) && typeof env.EMAIL?.send === "function" && (await readEmailSettings(env)).enabled;
   if (ready) await prepare(env, ts, day, held, tenant);
   await openReviews(env, ts, day, ready, tenant, reviewed);

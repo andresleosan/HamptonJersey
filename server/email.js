@@ -31,6 +31,10 @@ export async function readEmailSettings(env) {
   } catch { return { ...DEFAULT }; }
 }
 export const serviceReady = env => env.EMAIL_SERVICE_READY === "true";
+// AUT-17 (PRE-23): Hermes's mail carrier delivers the queue from Hampton's Gmail (server/hermes-mail.js). Either
+// transport makes the app's outbound email available; the inbound routes and ADM-12's instant codes stay on Cloudflare's.
+export const hermesTransport = env => env?.HERMES_MAIL_READY === "1";
+export const outboundReady = env => serviceReady(env) || hermesTransport(env);
 
 export async function summarySnapshot(env, ts) {
   // NOT-09: snoozed tasks are not counted as waiting, with or without the switch (none before migration 0088).
@@ -50,7 +54,7 @@ export async function summarySnapshot(env, ts) {
 export async function prepareSummary(env, ts) {
   const s = await readEmailSettings(env);
   const hour = Number(time.formatToParts(new Date(ts)).find(p => p.type === "hour").value);
-  if (!serviceReady(env) || !env.EMAIL || !s.enabled || !s.summary || !s.approved_at || !s.approved_by || hour < 8 || !s.recipients.length) return;
+  if (!((serviceReady(env) && env.EMAIL) || hermesTransport(env)) || !s.enabled || !s.summary || !s.approved_at || !s.approved_by || hour < 8 || !s.recipients.length) return;
   const day = emailDay(ts), snapshot = await summarySnapshot(env, ts);
   // Preparing twice never replaces the approved snapshot. Settings are checked again when claiming and sending.
   const statements = (await Promise.all(s.recipients.map(async recipient => {
@@ -111,46 +115,79 @@ const REJECTED = new Set(["E_VALIDATION_ERROR", "E_FIELD_MISSING", "E_TOO_MANY_R
   "E_HEADER_USE_API_FIELD", "E_HEADER_VALUE_INVALID", "E_HEADER_VALUE_TOO_LONG", "E_HEADER_NAME_INVALID",
   "E_HEADERS_TOO_LARGE", "E_HEADERS_TOO_MANY"]);
 
-export async function dispatchEmail(env, clock = now, enquiry) {
-  const ts = clock();
-  const cutoff = new Date(Date.parse(ts) - 5 * 60e3).toISOString(), day = emailDay(ts);
-  await env.DB.prepare(`UPDATE outbound SET status='unknown', error_code='CLAIM_EXPIRED', claim_token=NULL, updated_at=?
-    WHERE status='sending' AND claimed_at < ?`).bind(ts, cutoff).run();
+// Stale claims become unknown and yesterday's queued team summaries go. Run before every dispatch, by either transport.
+async function expireOutbound(env, ts) {
+  // The token stays on an expired claim, so Hermes's carrier can still settle it with a late result (settleForHermes).
+  await env.DB.prepare(`UPDATE outbound SET status='unknown', error_code='CLAIM_EXPIRED', updated_at=?
+    WHERE status='sending' AND claimed_at < ?`).bind(ts, new Date(Date.parse(ts) - 5 * 60e3).toISOString()).run();
   await env.DB.prepare(`UPDATE outbound SET status='cancelled', updated_at=? WHERE status='queued'
-    AND template='team_summary' AND entity_id < ?`).bind(ts, day).run();
-  if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
+    AND template='team_summary' AND entity_id < ?`).bind(ts, emailDay(ts)).run();
+}
+
+// The emails that may be claimed now, oldest first, and the claim of one: it reserves the day's quota and checks the
+// settings again, all in the claim. null: not claimed (taken, a setting changed, or the day's limit).
+async function outboundGate(env, enquiry, day) {
   // PRE-12: a retention notice goes only while its check holds, and at most NOTICE_DAILY_LIMIT of them a Jersey day,
   // counted like the day's quota inside the claim. day is emailDay's output: digits and dashes only.
   const notice = await noticeClaimSql(env);
-  const capped = day => notice === NO_NOTICE ? notice : `${notice} AND (outbound.template <> 'retention_notice'
+  const capped = notice === NO_NOTICE ? notice : `${notice} AND (outbound.template <> 'retention_notice'
     OR (SELECT COUNT(*) FROM email_attempts na JOIN outbound nr ON nr.id = na.outbound_id
       WHERE na.day = '${day}' AND nr.template = 'retention_notice') < ${NOTICE_DAILY_LIMIT})`;
+  return { notice, claim: AUTHORIZED(enquiry, purposeReady(env), capped), after: AUTHORIZED(enquiry, purposeReady(env), notice) };
+}
+async function candidates(env, ts, enquiry, limit) {
+  const { claim } = await outboundGate(env, enquiry, emailDay(ts));
   // ponytail: 20 candidates per tick is the current team maximum; move to a larger bounded batch if volume needs it.
-  const { results } = await env.DB.prepare(`SELECT id FROM outbound WHERE status='queued' AND attempts < 3
-    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${AUTHORIZED(enquiry, purposeReady(env), capped(day))} ORDER BY id LIMIT 20`).bind(ts).all();
-  for (const { id } of results) {
+  return (await env.DB.prepare(`SELECT id FROM outbound WHERE status='queued' AND attempts < 3
+    AND (next_attempt_at IS NULL OR next_attempt_at <= ?) AND ${claim} ORDER BY id LIMIT ${limit}`).bind(ts).all()).results;
+}
+async function claimOutbound(env, id, ts, enquiry) {
+  const day = emailDay(ts), { claim, after } = await outboundGate(env, enquiry, day);
+  await env.DB.prepare(`UPDATE outbound SET status='cancelled',updated_at=? WHERE status='queued'
+    AND template='team_summary' AND entity_id < ?`).bind(ts,day).run();
+  const token = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE outbound SET status='sending', claim_token=?, claimed_at=?, attempts=attempts+1, updated_at=?
+      WHERE id=? AND status='queued' AND attempts < 3 AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+      AND (template<>'team_summary' OR entity_id=?)
+      AND ${claim} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
+      .bind(token, ts, ts, id, ts, day,day),
+    env.DB.prepare(`INSERT INTO email_attempts(token,outbound_id,day,at)
+      SELECT ?,id,?,? FROM outbound WHERE id=? AND claim_token=? AND status='sending'`).bind(token, day, ts, id, token),
+  ]);
+  const row = await env.DB.prepare(`SELECT * FROM outbound WHERE id=? AND claim_token=? AND status='sending'
+    AND ${after}`).bind(id, token).first();
+  if (!row) {
+    // A setting changed after the claim. The reservation stays used; a pause leaves the same snapshot queued.
+    await env.DB.prepare(`UPDATE outbound SET status=CASE WHEN attempts < 3 THEN 'queued' ELSE 'failed' END,
+      claim_token=NULL, updated_at=? WHERE id=? AND claim_token=? AND status='sending'`).bind(ts,id,token).run();
+    return null;
+  }
+  return { row, token, day };
+}
+// What the provider said: accepted with its id, or an error code (RETRY, REJECTED or anything else: unknown).
+async function settleOutbound(env, row, token, { messageId, code }, ts, finished) {
+  if (messageId) return env.DB.prepare(`UPDATE outbound SET status = 'accepted', message_id=?, error_code=NULL, claim_token=NULL,
+    updated_at=? WHERE id=? AND claim_token=? AND status='sending'`).bind(messageId,finished,row.id,token).run();
+  code = RETRY.has(code) || REJECTED.has(code) ? code : "UNKNOWN_RESULT";
+  const status = RETRY.has(code) && row.attempts < 3 ? "queued" : REJECTED.has(code) || RETRY.has(code) ? "failed" : "unknown";
+  const next = status === "queued" ? new Date(Date.parse(finished) + 10 * 60e3).toISOString() : null;
+  return env.DB.batch([
+    env.DB.prepare(`UPDATE outbound SET status=?,error_code=?,next_attempt_at=?,claim_token=NULL,updated_at=?
+      WHERE id=? AND claim_token=? AND status='sending'`).bind(status,code,next,finished,row.id,token),
+    ...(code === "E_RECIPIENT_SUPPRESSED" ? [env.DB.prepare(`INSERT INTO email_suppressions VALUES (?,?,'provider')
+      ON CONFLICT(address_hash) DO NOTHING`).bind(row.recipient_hash,ts)] : []),
+  ]);
+}
+
+export async function dispatchEmail(env, clock = now, enquiry) {
+  await expireOutbound(env, clock());
+  if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
+  for (const { id } of await candidates(env, clock(), enquiry, 20)) {
     // Network calls can cross midnight. Read the current day for every claim, not once for the entire batch.
-    const ts=clock(),day=emailDay(ts);
-    await env.DB.prepare(`UPDATE outbound SET status='cancelled',updated_at=? WHERE status='queued'
-      AND template='team_summary' AND entity_id < ?`).bind(ts,day).run();
-    const token = crypto.randomUUID();
-    await env.DB.batch([
-      env.DB.prepare(`UPDATE outbound SET status='sending', claim_token=?, claimed_at=?, attempts=attempts+1, updated_at=?
-        WHERE id=? AND status='queued' AND attempts < 3 AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
-        AND (template<>'team_summary' OR entity_id=?)
-        AND ${AUTHORIZED(enquiry, purposeReady(env), capped(day))} AND (SELECT COUNT(*) FROM email_attempts WHERE day=?) < ${DAILY_LIMIT}`)
-        .bind(token, ts, ts, id, ts, day,day),
-      env.DB.prepare(`INSERT INTO email_attempts(token,outbound_id,day,at)
-        SELECT ?,id,?,? FROM outbound WHERE id=? AND claim_token=? AND status='sending'`).bind(token, day, ts, id, token),
-    ]);
-    const row = await env.DB.prepare(`SELECT * FROM outbound WHERE id=? AND claim_token=? AND status='sending'
-      AND ${AUTHORIZED(enquiry, purposeReady(env), notice)}`).bind(id, token).first();
-    if (!row) {
-      // A setting changed after the claim. The reservation stays used; a pause leaves the same snapshot queued.
-      await env.DB.prepare(`UPDATE outbound SET status=CASE WHEN attempts < 3 THEN 'queued' ELSE 'failed' END,
-        claim_token=NULL, updated_at=? WHERE id=? AND claim_token=? AND status='sending'`).bind(ts,id,token).run();
-      continue;
-    }
+    const ts = clock(), claimed = await claimOutbound(env, id, ts, enquiry);
+    if (!claimed) continue;
+    const { row, token, day } = claimed;
     if(emailDay(clock())!==day){
       // The day changed while reserving quota. No call has started: do not charge a new-day send to yesterday.
       await env.DB.prepare(`UPDATE outbound SET status=CASE WHEN template='team_summary' THEN 'cancelled' ELSE 'queued' END,
@@ -158,27 +195,59 @@ export async function dispatchEmail(env, clock = now, enquiry) {
       continue;
     }
     if (!serviceReady(env) || typeof env.EMAIL?.send !== "function") return;
+    let result;
     try {
-      const result = await sendNow(env, row.recipient, `${row.subject} [HE-OUT-${row.ref}]`, row.text);
-      if (typeof result?.messageId !== "string" || !result.messageId.length || result.messageId.length > 512)
+      const sent = await sendNow(env, row.recipient, outboundSubject(row), row.text);
+      if (typeof sent?.messageId !== "string" || !sent.messageId.length || sent.messageId.length > 512)
         throw new Error("Missing acceptance id");
-      await env.DB.prepare(`UPDATE outbound SET status = 'accepted', message_id=?, error_code=NULL, claim_token=NULL,
-        updated_at=? WHERE id=? AND claim_token=? AND status='sending'`).bind(result.messageId,clock(),id,token).run();
-    } catch (error) {
-      const code = RETRY.has(error?.code) || REJECTED.has(error?.code) ? error.code : "UNKNOWN_RESULT";
-      const status = RETRY.has(code) && row.attempts < 3 ? "queued" : REJECTED.has(code) || RETRY.has(code) ? "failed" : "unknown";
-      const finished=clock(),next = status === "queued" ? new Date(Date.parse(finished) + 10 * 60e3).toISOString() : null;
-      // A failed acceptance write is ambiguous too. If this write also fails, the stale claim becomes unknown next tick.
-      try {
-        await env.DB.batch([
-          env.DB.prepare(`UPDATE outbound SET status=?,error_code=?,next_attempt_at=?,claim_token=NULL,updated_at=?
-            WHERE id=? AND claim_token=? AND status='sending'`).bind(status,code,next,finished,id,token),
-          ...(code === "E_RECIPIENT_SUPPRESSED" ? [env.DB.prepare(`INSERT INTO email_suppressions VALUES (?,?,'provider')
-            ON CONFLICT(address_hash) DO NOTHING`).bind(row.recipient_hash,ts)] : []),
-        ]);
-      } catch { console.error("Email state persistence failed"); }
+      result = { messageId: sent.messageId };
+    } catch (error) { result = { code: error?.code }; }
+    // A failed acceptance write is ambiguous too: unknown. If this write also fails, the stale claim becomes unknown next tick.
+    try { await settleOutbound(env, row, token, result, ts, clock()); }
+    catch {
+      try { if (!result.messageId) throw new Error("again"); await settleOutbound(env, row, token, { code: null }, ts, clock()); }
+      catch { console.error("Email state persistence failed"); }
     }
   }
+}
+
+// The subject as it goes out: the reference lets a reply find its email (server/email-inbound.js).
+const outboundSubject = row => `${row.subject} [HE-OUT-${row.ref}]`;
+
+// AUT-17: the same queue for Hermes's mail carrier (server/hermes-mail.js), one email per call, sent verbatim.
+// enquiry: AGE-05's check (server/consultation-email.js), as the clock's. Gmail took it (messageId), refused it
+// (failed, never sent again) or it is not known (unknown, for a person to check).
+// Retention notices stay on Cloudflare: they ask for a reply, and only Cloudflare's inbound brings it back to the app.
+export async function claimForHermes(env, enquiry) {
+  const ts = now();
+  await expireOutbound(env, ts);
+  for (const { id } of await candidates(env, ts, enquiry, 20)) {
+    if ((await env.DB.prepare("SELECT template FROM outbound WHERE id = ?").bind(id).first())?.template === "retention_notice") continue;
+    const claimed = await claimOutbound(env, id, ts, enquiry);
+    if (claimed) return { ref: claimed.row.ref, token: claimed.token, to: claimed.row.recipient, subject: outboundSubject(claimed.row), text: claimed.row.text };
+  }
+  return null;
+}
+// outcome: sent, failed (never sent again), retry (nothing left: queued again, as the clock's rate limits) or unknown.
+const HERMES_CODE = { failed: "E_DELIVERY_FAILED", retry: "E_RATE_LIMIT_EXCEEDED", unknown: null };
+export async function settleForHermes(env, ref, token, outcome, messageId) {
+  const row = await env.DB.prepare("SELECT * FROM outbound WHERE ref = ?").bind(ref).first();
+  if (!row) return "missing";
+  if (row.status === "accepted" && outcome === "sent" && row.message_id === messageId) return "same";
+  if (row.claim_token !== token) return row.claim_token === null ? "settled" : "token";
+  const ts = now();
+  if (row.status === "unknown" && row.error_code === "CLAIM_EXPIRED" && row.reviewed_at == null) {
+    // The claim expired while the result was on its way: only a send or a refusal says more than unknown.
+    if (outcome !== "sent" && outcome !== "failed") return "settled";
+    const r = await env.DB.prepare(`UPDATE outbound SET status=?, message_id=?, error_code=?, claim_token=NULL, updated_at=?
+      WHERE id=? AND claim_token=? AND status='unknown' AND error_code='CLAIM_EXPIRED' AND reviewed_at IS NULL`)
+      .bind(outcome === "sent" ? "accepted" : "failed", outcome === "sent" ? messageId : null, outcome === "sent" ? null : "E_DELIVERY_FAILED",
+        ts, row.id, token).run();
+    return r.meta.changes ? "ok" : "settled";
+  }
+  if (row.status !== "sending") return "settled";
+  const r = await settleOutbound(env, row, token, outcome === "sent" ? { messageId } : { code: HERMES_CODE[outcome] }, ts, ts);
+  return (Array.isArray(r) ? r[0] : r).meta.changes ? "ok" : "settled";
 }
 
 export { cleanEmail } from "./email-retention.js";
@@ -187,7 +256,7 @@ export async function emailPass(env, ts = now(), clock = now, enquiry) {
   try {
     await env.DB.prepare(`INSERT INTO app_settings VALUES ('email_worker',?,?, 'system') ON CONFLICT(key)
       DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`).bind(JSON.stringify({at:ts,
-        ready:serviceReady(env) && typeof env.EMAIL?.send === "function"}),ts).run();
+        ready:serviceReady(env) && typeof env.EMAIL?.send === "function", hermes:hermesTransport(env)}),ts).run();
     await prepareSummary(env, ts); await dispatchEmail(env, clock, enquiry);
   }
   catch { console.error("Email pass failed"); } // logs never include provider payloads, addresses or bodies

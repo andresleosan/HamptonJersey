@@ -30,20 +30,48 @@ async function door(cfg, path, body) {
   return r.json();
 }
 
-// Reports what a previous run kept: a result, or a claim stopped mid-send (unknown: it may have left).
+// Reports what a previous run kept: a result, or a claim stopped mid-send (unknown: it may have left). o-<ref>.json is
+// an email of the app's queue, <id>.json one Hermes wrote.
 async function pending(cfg) {
-  for (const name of readdirSync(cfg.estado).filter(n => /^\d+\.json$/.test(n))) {
+  for (const name of readdirSync(cfg.estado).filter(n => /^(o-[a-f0-9]{32}|\d+)\.json$/.test(n))) {
     const f = join(cfg.estado, name), claim = read(f);
     if (!claim.result && !claim.sending) continue;
     const result = claim.result ?? { outcome: "unknown", error: "carrier_stopped" };
-    try { await door(cfg, `${claim.id}/result`, { token: claim.token, ...result }); rmSync(f); }
+    const path = claim.ref ? `outbound/${claim.ref}/result` : `${claim.id}/result`;
+    try { await door(cfg, path, { token: claim.token, ...result }); rmSync(f); }
     catch (e) { if (/ 40[349] /.test(e.message)) rmSync(f); } // gone, or already settled: nothing more to say
   }
 }
 
+// The app's approved queue (team summary, approved enquiries, notices...): sent verbatim, no model, before any task
+// Hermes writes. ponytail: up to 10 a run; the rest on the next one.
+async function queue(cfg) {
+  try { await accessToken(cfg); } catch { return; } // Google not answering: claim nothing, the queue waits
+  for (let n = 0; n < 10; n++) {
+    let email;
+    try { ({ email } = await door(cfg, "outbound/next")); } catch (e) { if (/ 404 /.test(e.message)) return; throw e; } // switched off
+    if (!email) return;
+    const f = join(cfg.estado, `o-${email.ref}.json`), claim = { ref: email.ref, token: email.token, to: { email: email.to }, mode: "send" };
+    keep(f, { ...claim, sending: true });
+    const r = await gmail(cfg, claim, email.subject, email.text);
+    claim.result = { outcome: r.outcome, ...(r.message_id && { message_id: r.message_id }) };
+    keep(f, claim);
+    await door(cfg, `outbound/${email.ref}/result`, { token: email.token, ...claim.result });
+    rmSync(f);
+    if (r.outcome !== "sent") return; // a refusal or an outage: the rest waits for the next run
+  }
+}
+
+// One run at a time over the claims folder, so two overlapping calls never report each other's sends.
+let running = null;
 export async function siguiente(cfg) {
   mkdirSync(cfg.estado, { recursive: true, mode: 0o700 });
-  await pending(cfg);
+  if (!running) {
+    running = (async () => { await pending(cfg); await queue(cfg); })()
+      .catch(() => {}) // the queue's trouble never stops Hermes's own task; its files are reported next run
+      .finally(() => { running = null; });
+    await running;
+  }
   const { task, reason } = await door(cfg, "next");
   if (!task) return { task: null, reason };
   keep(claimFile(cfg.estado, task.id), { id: task.id, token: task.token, to: task.to, mode: task.mode });
@@ -71,17 +99,22 @@ async function accessToken(cfg) {
 
 // Gmail took it, refused it (a 4xx but 429: nothing was made), or it is not known (no answer, 5xx, 429, a body that
 // cannot be read): then it may exist, and a person checks Gmail.
+// retry: nothing was made and it can go later (Google's token, 429, Gmail's own rate limits). Hermes's own tasks read
+// it as failed: the team sends that one by hand.
+const LIMITED = /rateLimitExceeded|userRateLimitExceeded|dailyLimitExceeded|quotaExceeded/;
 async function gmail(cfg, claim, subject, body) {
   let auth;
-  try { auth = `Bearer ${await accessToken(cfg)}`; } catch { return { outcome: "failed", error: "google_token" }; }
+  try { auth = `Bearer ${await accessToken(cfg)}`; } catch { return { outcome: "retry", error: "google_token" }; }
   const send = claim.mode === "send", raw = mime(claim.to, subject, body);
   try {
     const r = await cfg.fetchFn(send ? `${GMAIL}/messages/send` : `${GMAIL}/drafts`, { method: "POST",
       headers: { authorization: auth, "content-type": "application/json" }, signal: AbortSignal.timeout(30000),
       body: JSON.stringify(send ? { raw } : { message: { raw } }) });
-    if (!r.ok) return { outcome: r.status < 500 && r.status !== 429 ? "failed" : "unknown", error: `gmail_${r.status}` };
+    if (r.status === 429 || (r.status === 403 && LIMITED.test(await r.text().catch(() => "")))) return { outcome: "retry", error: `gmail_${r.status}` };
+    if (!r.ok) return { outcome: r.status < 500 ? "failed" : "unknown", error: `gmail_${r.status}` };
     const m = await r.json(), msg = send ? m : m.message ?? {};
-    return { outcome: send ? "sent" : "drafted", message_id: msg.id, thread_id: msg.threadId };
+    if (typeof msg.id !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(msg.id)) return { outcome: "unknown", error: "gmail_no_id" };
+    return { outcome: send ? "sent" : "drafted", message_id: msg.id, thread_id: /^[A-Za-z0-9_-]{1,200}$/.test(msg.threadId ?? "") ? msg.threadId : undefined };
   } catch { return { outcome: "unknown", error: "gmail_no_answer" }; }
 }
 
@@ -103,7 +136,8 @@ export async function entregar(cfg, written) {
       const check = await door(cfg, `${id}/check`, { token: claim.token });
       if (!check.ok) { rmSync(f); return { skipped: check.reason }; }
       keep(f, { ...claim, sending: true }); // from here, a stop reports unknown, never a second call
-      claim.result = { ...await gmail(cfg, claim, subject, body), subject, body };
+      const g = await gmail(cfg, claim, subject, body);
+      claim.result = { ...g, outcome: g.outcome === "retry" ? "failed" : g.outcome, subject, body };
     }
     keep(f, claim);
     const { task } = await door(cfg, `${id}/result`, { token: claim.token, ...claim.result });

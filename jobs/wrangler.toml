@@ -46,6 +46,10 @@ PRE12_RETENTION_NOTICE_READY = "0"
 PRE12_TENANCY_LINK_READY = "1"
 VIS14_BLOCK_READY = "1"
 EMAIL_SERVICE_READY = "false"
+# AUT-17: Hermes's mail carrier delivers the app's approved email queue from Hampton's Gmail (server/email.js
+# hermesTransport): the clock then prepares the team summary and the retention notices without Cloudflare's binding.
+# Sends messages: only Luis switches it on, at the same time as in the other wrangler.toml.
+HERMES_MAIL_READY = "0"
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"
 # ANA-04: anonymous daily counts of the website's search filters and Insights' Search trends, with their 90-day retention (migration 0108). Switched on 17-nov-2026 by Luis (0108 applied). Must match the other wrangler.toml.
