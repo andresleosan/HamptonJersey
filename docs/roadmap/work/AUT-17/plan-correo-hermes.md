@@ -8,7 +8,7 @@
 
 | Pregunta | Decisión |
 | --- | --- |
-| Conexión | Google Cloud + OAuth: skill `google-workspace` de Hermes con la API de Gmail. Gmail no es un conector de Nous Portal en Hermes v0.22.5. |
+| Conexión | Google Cloud + OAuth con la API de Gmail. Gmail no es un conector de Nous Portal en Hermes v0.22.5. Desde el 21-nov, por seguridad, el token lo guarda el cartero (fase C), no la skill `google-workspace` de Hermes. |
 | Interruptores | Uno por tipo de correo en Settings › Automations: **Confirmar disponibilidad** y **Coordinar visitas**. Apagado, Hermes deja el correo en Borradores de Gmail. Encendido, lo envía solo, sin aprobación uno a uno. El interruptor es la aprobación. |
 | Visitas | Van a los dos. A la agencia o el propietario, para acordar el día y la hora. Al cliente, solo si al registrarse no dejó días y horas para visitas (`applicants.viewing_availability` vacío), para preguntárselos. |
 | Texto | Lo redacta Hermes con IA, a partir de los datos mínimos que le da la app. |
@@ -45,7 +45,7 @@ Estado comprobado el 21-nov:
 | Fase | Entrega | Responsable | Aceptación |
 | --- | --- | --- | --- |
 | A | Migración aditiva `mail_tasks`, los dos interruptores en Automations, `HERMES_MAIL_READY` apagado, las operaciones de la puerta (`next` y `result`) y los productores de las tres tareas. | Desarrollo | Pruebas: el modo sigue al interruptor del tipo. Con la pausa o el interruptor general apagado no se reserva nada. Un resultado repetido no duplica. Una reserva vencida queda `unknown`. Sin días ni horas, va una tarea al cliente. |
-| B | Conectar el Gmail con OAuth: proyecto de Google Cloud, API de Gmail, pantalla de consentimiento, cliente «Desktop» y autorización desde Hermes con `--services email`. Permitir en el proxy de Hermes `oauth2.googleapis.com` y `gmail.googleapis.com`. | Luis, guiado paso a paso | En Hermes, `setup.py --check` responde `AUTHENTICATED`. |
+| B | Conectar el Gmail con OAuth: activar la verificación en dos pasos de la cuenta (Google Cloud la exige), proyecto de Google Cloud, API de Gmail, pantalla de consentimiento, cliente «Desktop» y autorización desde el cartero (`correo.mjs autorizar` y `codigo`, permiso `gmail.compose`), no desde Hermes, para que el token nunca entre en su contenedor. Cambio del 21-nov tras la revisión de seguridad. | Luis, guiado paso a paso | El cartero guarda el token y un borrador de prueba aparece en Gmail. |
 | C | Skill `hampton-correo` y tarea programada de Hermes cada 10 minutos, con un pequeño script para crear borradores (la API `users.drafts.create`). | Desarrollo y Luis (instalarla es configuración de Hermes) | Con una casa y una agencia ficticias: con el interruptor apagado aparece el borrador en Gmail; con el interruptor encendido llega un solo correo al buzón de prueba. |
 | D | Respuestas a la ficha: Hermes lee solo los hilos de `mail_tasks` y la app los asocia (AGE-06, MSG-03). | Desarrollo | La misma respuesta, sincronizada dos veces, da una sola entrada. Se distinguen respuesta humana, acuse y rebote. |
 | E | Piloto real, cierre de AGE-05 y AUT-11, y avance de VIS-13. | Luis y desarrollo | Remitente correcto, una sola copia, respuesta en su ficha y tarea de llamada a los dos días laborables. |
@@ -72,3 +72,14 @@ Las tareas cerradas que dependían de AUT-17 siguen cerradas. Lo que dejaron pen
 2. Si hace falta parar todo, pulsar Pause all outbound o apagar `HERMES_MAIL_READY`.
 3. Conciliar en el panel las tareas reservadas o dudosas.
 4. Los envíos que salieron conservan su texto y sus identificadores de Gmail.
+
+## Fase C: piezas construidas (21-nov-2026, apagadas)
+
+- La puerta tiene su propia clave, `HERMES_MAIL_KEY` (creada el 21-nov en Pages y en `/root/hampton-hermes/secretos/hermes_mail_key`), y tres operaciones: `POST mail/next`, `POST mail/:id/check` y `POST mail/:id/result`. La comprobación se hace una sola vez por reserva, justo antes de Gmail (migración 0122). Si hay pausa o el tipo volvió a borradores, la tarea vuelve a la cola. Si hay una baja, o la consulta o la propuesta ya no está como se reservó, se cancela. Sin comprobación, no se acepta un borrador ni un envío.
+- `hermes/correo.mjs`, el **cartero**: un servicio aparte en el VPS, fuera del contenedor de Hermes. Solo él guarda la clave del correo, el token de Google y las reservas. Hermes le pide `POST /siguiente`, que devuelve los datos para redactar sin la dirección ni el token, y le entrega `POST /entregar {id, subject, body}`. El cartero comprueba, pone la dirección que eligió la app, crea el borrador o envía, y devuelve el resultado. Antes de llamar a Gmail marca «enviando», y guarda el resultado antes de comunicarlo: si se corta, da `unknown` y nunca llama dos veces. Un acuse perdido se repite en la siguiente llamada.
+- `hermes/skills/hampton-correo/SKILL.md`: la skill de Hermes, un correo por ejecución, solo con `curl` al cartero.
+
+Instalación (configuración del VPS y de Hermes: la hace o autoriza Luis, después de la fase B):
+1. Contenedor `hampton-cartero` con `node hermes/correo.mjs`, `APP_ORIGIN`, `HERMES_MAIL_KEY_FILE`, `GOOGLE_TOKEN_FILE` (el token `authorized_user` de la fase B, que no se copia en Hermes) y `ESTADO_DIR` privado. Va en una red propia con el contenedor de Hermes de Hampton, y su proxy de salida deja pasar solo la app, `oauth2.googleapis.com` y `gmail.googleapis.com`.
+2. En Hermes, la variable `CARTERO=http://<dirección privada>:8788`, la skill y la tarea programada cada 10 minutos.
+3. Con una casa y una agencia ficticias: con el interruptor apagado aparece el borrador. Después Luis decide encender `HERMES_MAIL_READY`.

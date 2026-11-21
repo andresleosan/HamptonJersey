@@ -151,6 +151,7 @@ async function mailResult({ request, env, params: [id] }) {
   const t = await env.DB.prepare("SELECT * FROM mail_tasks WHERE id = ?").bind(Number(id)).first() ?? fail(404, "Not found");
   if (!t.token_hash || (await sha256(b.token)) !== t.token_hash) fail(403, "This is not the token of this claim");
   if (t.status === b.outcome) return json({ task: shapeMail(t) }); // the same answer again
+  if (["drafted", "sent"].includes(b.outcome) && !t.checked_at) fail(409, "Check this email just before Gmail first");
   if (!["claimed", "unknown"].includes(t.status)) fail(409, "This email already has a result");
   if ((b.outcome === "drafted" && t.mode !== "draft") || (b.outcome === "sent" && t.mode !== "send"))
     fail(409, `This email was claimed to ${t.mode === "send" ? "send" : "leave as a draft"}`);
@@ -165,7 +166,61 @@ async function mailResult({ request, env, params: [id] }) {
   return json({ task: shapeMail(await env.DB.prepare("SELECT * FROM mail_tasks WHERE id = ?").bind(t.id).first()) });
 }
 
+// Fase C: the carrier asks this just before Gmail, once per claim, with the claim's token. Not ok: paused, suppressed, a
+// send whose switch went back to drafts (both come back on the next poll, so nothing is lost), or no longer due as it
+// was claimed (cancelled). Ok is said once: a second check, as after a carrier restarted mid-send, is refused.
+const PROPOSAL = (part, client) => `SELECT 1 FROM viewing_proposals p
+  LEFT JOIN applicants a ON a.id = p.applicant_id LEFT JOIN contacts ct ON ct.id = a.contact_id
+  WHERE p.id = ?1 AND p.state = 'open' AND p.date >= ?2 AND EXISTS (SELECT 1 FROM json_each(p.required) r WHERE r.value = '${part}')
+    AND NOT EXISTS (SELECT 1 FROM viewing_acceptances x WHERE x.proposal_id = p.id AND x.participant = '${part}')
+    ${client ? "AND a.viewing_availability IS NULL AND lower(trim(ct.email)) = ?3" : ""}`;
+async function stillDue(env, t) {
+  if (t.kind === "availability") {
+    const c = await env.DB.prepare("SELECT * FROM consultations WHERE id = ?").bind(t.entity_id).first();
+    // The version claimed, to the same address, and nothing blocks it now (detail's own checks, AGE-14 included).
+    if (c?.status !== "manual_pending" || c.revision !== t.entity_version) return false;
+    const f = await E.hermesFacts(env, c);
+    return !!f && (await sha256(f.to)) === t.recipient_hash;
+  }
+  const today = jerseyNow().date;
+  if (t.kind === "viewing_client") return !!(await env.DB.prepare(PROPOSAL("client", true)).bind(t.entity_id, today, t.recipient).first());
+  if (!(await env.DB.prepare(PROPOSAL("advertiser")).bind(t.entity_id, today).first())) return false;
+  const listing = (await env.DB.prepare("SELECT v.listing_id FROM viewing_proposals p JOIN viewing_requests v ON v.id = p.viewing_id WHERE p.id = ?")
+    .bind(t.entity_id).first())?.listing_id;
+  for (const a of listing ? await E.advertisersOf(env, listing) : [])
+    for (const c of a.contacts) if (emailAddress(c.email) === t.recipient) return true;
+  return false;
+}
+async function mailCheck({ request, env, params: [id] }) {
+  if (!mailReady(env)) fail(404, "Not found");
+  const b = await readJson(request, 1024) ?? {};
+  if (typeof b.token !== "string" || !/^[0-9a-f]{64}$/.test(b.token)) fail(400, "Send the claim's token");
+  const t = await env.DB.prepare("SELECT * FROM mail_tasks WHERE id = ?").bind(Number(id)).first() ?? fail(404, "Not found");
+  if (!t.token_hash || (await sha256(b.token)) !== t.token_hash) fail(403, "This is not the token of this claim");
+  if (t.status !== "claimed") return json({ ok: false, reason: "not_claimed" });
+  if (t.checked_at) return json({ ok: false, reason: "already_checked" });
+  const sw = await readMailSwitches(env);
+  const later = await env.DB.prepare(`SELECT 1 WHERE ${PAUSED}`).first() ? "paused"
+    : t.mode === "send" && !sw[TYPE[t.kind]] ? "switched_to_drafts" : null;
+  const reason = later ?? (await env.DB.prepare("SELECT 1 FROM email_suppressions WHERE address_hash = ?").bind(t.recipient_hash).first()
+    ? "suppressed" : !(await stillDue(env, t)) ? "no_longer_due" : null);
+  const ts = now();
+  if (!reason) {
+    const r = await env.DB.prepare("UPDATE mail_tasks SET checked_at = ?, updated_at = ? WHERE id = ? AND status = 'claimed' AND checked_at IS NULL")
+      .bind(ts, ts, t.id).run();
+    return json(r.meta.changes ? { ok: true } : { ok: false, reason: "already_checked" });
+  }
+  // Paused or back to drafts: the row and its place in the day's limit go, and the next poll claims it again.
+  await env.DB.batch(later ? [
+    env.DB.prepare("DELETE FROM email_attempts WHERE token = ?").bind(`hermes-mail:${t.id}`),
+    env.DB.prepare("DELETE FROM mail_tasks WHERE id = ? AND status = 'claimed' AND checked_at IS NULL").bind(t.id),
+  ] : [env.DB.prepare("UPDATE mail_tasks SET status = 'cancelled', error = ?, updated_at = ? WHERE id = ? AND status = 'claimed'")
+    .bind(reason, ts, t.id)]);
+  return json({ ok: false, reason });
+}
+
 export const mailDoor = [
+  ["POST", /^\/mail\/(\d+)\/check$/, mailCheck],
   ["POST", /^\/mail\/next$/, nextMail],
   ["POST", /^\/mail\/(\d+)\/result$/, mailResult],
 ];
