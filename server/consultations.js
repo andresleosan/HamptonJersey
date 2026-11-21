@@ -677,10 +677,29 @@ export function enquiries(gates) {
   };
   // AGE-05's own routes are not there until its switch, EST-15 and migration 0080 are. Those that only close what was
   // queued or left unconfirmed (closing) stay after it is switched off: nothing new can be sent through them.
+  // AUT-17 (Hermes mail, server/hermes-mail.js). An enquiry waiting to be sent by hand, as Hermes may write it: to the
+  // contact a person chose (AGE-05), or with none chosen the chosen recipient's first contact with an email. null: blocked, or no
+  // email to write to. Decision (plan AUT-17, simplest reversible): the recipient is the one a person chose; the switch of
+  // the type is the approval.
+  async function hermesFacts(env, c) {
+    const d = await detail(env, c);
+    if (d.blocked || d.recipient.removed || d.recipient.unlinked) return null;
+    const contacts = d.recipient.contacts ?? [];
+    const p = c.contact_key ? (await keyed(contacts)).find(x => x.key === c.contact_key) : contacts.find(x => emailAddress(x.email));
+    if (!emailAddress(p?.email)) return null; // a contact chosen without an email (phone only) stays by hand
+    const l = await env.DB.prepare("SELECT title, location, country FROM listings WHERE id = ?").bind(c.listing_id).first();
+    return { to: emailAddress(p.email), name: p.name || d.recipient.name, facts: { advertiser: d.recipient.name,
+      property: { reference: c.listing_id, title: l.title, place: l.location || l.country || null, offered: OFFER[c.operation] },
+      household: c.occupants ?? null, base_text: c.body } };
+  }
+  // Gmail took it: the enquiry is sent by email at that time, its manual task closed, whatever version it is at now.
+  const hermesSent = (env, c, at, task) => step(env, c, "hermes", "sent_by_hermes",
+    "status = 'sent', sent_at = ?, sent_via = 'email', sent_by = 'hermes', sent_recorded_at = ?", [at, now()],
+    { data: { mail_task: task }, task: { resolved: true } });
   const sends = (handler, closing) => guarded(async ctx => (await (closing ? migrated(ctx.env) : sending(ctx.env)) ? handler(ctx) : fail(404, "Not found")));
   // AGE-06's routes are not there until its switch, EST-16 and migration 0082 are.
   const answers = handler => guarded(async ctx => (await answering(ctx.env) ? handler(ctx) : fail(404, "Not found")));
-  return { settle, claimable, callPass, routes: [
+  return { settle, claimable, callPass, hermesFacts, hermesSent, advertisersOf: (env, listing) => recipients(env, listing, false), routes: [
     ["GET", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(context, true), true],
     ["POST", /^\/admin\/matches\/(\d+)\/consultation$/, guarded(prepare), true],
     ["GET", /^\/admin\/listings\/(HE-[A-Z]\d{3,})\/consultations$/, guarded(forListing, true), true],

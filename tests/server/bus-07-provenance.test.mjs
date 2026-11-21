@@ -290,7 +290,8 @@ test('a co-listed listing is enquired about only through AGE-03', () => {
   assert.deepEqual(code.filter(([, s]) => /INSERT INTO outbound/i.test(s)).map(([f]) => f).sort(),
     ['server/consultations.js', 'server/email.js', 'server/retention-notices.js', 'server/saved-searches.js']);
   assert.deepEqual(code.filter(([, s]) => /advertisers/.test(s) && /\.contacts\b|\$\.contacts/.test(s)).map(([f]) => f).sort(),
-    ['server/advertiser-privacy.js', 'server/consultations.js', 'server/routes/advertisers.js']);
+    // AUT-17 (Luis, 21-nov-2026): Hermes writes the enquiry and the viewing proposal to the advertiser from Gmail.
+    ['server/advertiser-privacy.js', 'server/consultations.js', 'server/hermes-mail.js', 'server/routes/advertisers.js']);
   // email.js queues only the team summary, to the team's own recipients.
   const email = readFileSync(new URL('../../server/email.js', import.meta.url), 'utf8');
   assert.equal(/advertiser/i.test(email), false);

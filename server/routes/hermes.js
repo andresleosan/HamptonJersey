@@ -5,6 +5,7 @@ import { pauseOutbound } from "./automations.js";
 import { nextImport, importFile, importProposal } from "./queue.js";
 import { QUIET, quietCutoff } from "./applicants.js";
 import { readyCount } from "../applicant-ready.js";
+import { mailDoor, mailRoutes } from "../hermes-mail.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
 // Authorization: Bearer <HERMES_KEY>. Fixed operations, public data (C0) and counts only: never who (H6, H7); since PUB-21
@@ -182,6 +183,8 @@ const DOOR = [
   ["POST", /^\/imports\/next$/, nextImport],
   ["GET", /^\/imports\/(\d+)\/files\/([A-Za-z0-9_-]{10,100})$/, importFile],
   ["POST", /^\/imports\/(\d+)\/proposal$/, importProposal],
+  // AUT-17: email through Hampton's Gmail (server/hermes-mail.js).
+  ...mailDoor,
 ];
 
 // path: what follows /hermes. Errors are thrown as HttpError, for server/api.js to answer.
@@ -249,4 +252,5 @@ export default [
   ["POST", /^\/admin\/jobs\/(\d+)\/use$/, draftersOnly(decide("used", ["draft"])), true],
   ["POST", /^\/admin\/jobs\/(\d+)\/discard$/, draftersOnly(decide("discarded", ["queued", "working", "draft"])), true],
   ["POST", /^\/admin\/outbound\/resume$/, resume, true],
+  ...mailRoutes,
 ];

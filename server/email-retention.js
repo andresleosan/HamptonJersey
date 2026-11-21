@@ -14,4 +14,13 @@ export async function cleanEmail(env, ts) {
     env.DB.prepare("DELETE FROM email_attempts WHERE at < ?").bind(metadata),
     env.DB.prepare("DELETE FROM email_inbound_keys WHERE created_at < ?").bind(metadata),
   ]);
+  // AUT-17 (migration 0121): the same 30/90 days for what Hermes wrote. Its own batch, so the rest runs before 0121.
+  try {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE mail_tasks SET recipient = NULL, recipient_name = NULL, facts = NULL, subject = NULL, body = NULL, error = NULL, token_hash = NULL,
+        status = CASE WHEN status = 'claimed' THEN 'unknown' WHEN status = 'queued' THEN 'cancelled' ELSE status END
+        WHERE created_at < ? AND (recipient IS NOT NULL OR facts IS NOT NULL OR body IS NOT NULL OR error IS NOT NULL)`).bind(content),
+      env.DB.prepare("DELETE FROM mail_tasks WHERE created_at < ?").bind(metadata),
+    ]);
+  } catch (e) { if (!/no such table/.test(e?.message ?? "")) throw e; }
 }

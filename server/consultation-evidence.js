@@ -11,7 +11,7 @@ import { json, fail } from "./http.js";
 
 export const evidenceReady = env => env?.AGE09_EVIDENCE_READY === "1" && env?.AGE03_ENQUIRIES_READY === "1";
 const missing = e => /no such (table|column)/.test(e?.message ?? "");
-const SENDING = ["prepared", "sent_manually", "send_approved", "email_queued", "sent_by_email", "email_unknown", "email_confirmed", "email_not_sent"];
+const SENDING = ["prepared", "sent_manually", "send_approved", "email_queued", "sent_by_email", "email_unknown", "email_confirmed", "email_not_sent", "sent_by_hermes"];
 // Of a match m: the events of its search about its property, and the approval each kind of enquiry joins under.
 const OF_MATCH = "e.entity_type = 'applicant' AND e.entity_id = CAST(m.applicant_id AS TEXT) AND json_extract(e.data, '$.listing_id') = m.listing_id";
 const APPROVAL = { general: "e.type = 'match.reviewed' AND json_extract(e.data, '$.to') = 'shortlisted'",

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+21-nov-2026 · **AUT-17 fase A, el puente del correo por Hermes (apagado):** la app ya prepara los correos que Hermes escribirá desde el Gmail de Hampton (consultas de disponibilidad a la agencia y propuestas de visita a la agencia y, si su búsqueda no tiene días de visita, al cliente) y Hermes podrá recogerlos y devolver el resultado. En Settings › Automations, «Email through Hermes» tendrá dos interruptores: apagado deja borradores en Gmail, encendido los envía. Sigue apagado hasta que Luis conecte el Gmail. **BUS-09:** la pasada diaria lee también Finders Keepers (unos 23 anuncios de venta y alquiler). Progreso 154 de 215 (sin cambio).
+
 21-nov-2026 · **PRE-23 y AUT-17, el correo pasa a Hermes:** por decisión de Luis, todas las automatizaciones se hacen mediante Hermes y el correo sale y entra por el Gmail de siempre de Hampton conectado al Hermes de Hampton. Ya no hacen falta el traspaso en Wix, el DNS ni Cloudflare Email Sending. Reformuladas AUT-17, AGE-05, AUT-11 y MSG-03, anotadas AUT-13 y PRE-13 y otras 10 que esperaban el correo. BUS-06 sale de la cola de Luis. Plan: [correo mediante Hermes](work/AUT-17/plan-correo-hermes.md). Lo de Luis: conectar el Gmail en Hermes, que hoy no tiene ninguna cuenta.
 
 21-nov-2026 · **BUS-09, lector de Keys Properties:** la pasada diaria lee también los alquileres de Keys (12 hoy) y los cruza con las búsquedas. El canal de ventas de Gaudin ya lee su lista completa (/property-for-sale, unas 200 casas). Progreso 154 de 215.

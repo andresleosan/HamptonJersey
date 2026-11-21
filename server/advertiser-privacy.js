@@ -75,6 +75,11 @@ export async function suppressAdvertiserPersonalData(env, id, body, actor) {
       (SELECT value FROM json_each(?)) AND EXISTS (SELECT 1 FROM advertiser_suppressions WHERE advertiser_id=? AND created_at=? AND actor=?)`)
       .bind(t, JSON.stringify(n.emails), row.id, t, actor),
   ]);
+  // AUT-17 (migration 0121): what Hermes holds for those addresses is cleared, and a claim in flight cannot settle as sent.
+  if (result[0].meta.changes) await env.DB.prepare(`UPDATE mail_tasks SET recipient = NULL, recipient_name = NULL, facts = NULL, subject = NULL,
+      body = NULL, error = NULL, token_hash = NULL, status = CASE WHEN status IN ('queued', 'claimed') THEN 'cancelled' ELSE status END, updated_at = ?
+    WHERE lower(recipient) IN (SELECT value FROM json_each(?))`).bind(t, JSON.stringify(n.emails)).run()
+    .catch(e => { if (!/no such table/.test(e?.message ?? "")) throw e; });
   const fresh = await get(env, id);
   if (!result[0].meta.changes) { if (fresh.suppressed_at) return { advertiser: output(fresh), already: true }; fail(409, changed); }
   return { advertiser: output(fresh), complete: p.complete, blockers: p.blockers, cancelled_outbound: result[2].meta.changes };

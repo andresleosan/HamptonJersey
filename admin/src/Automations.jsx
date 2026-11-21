@@ -87,6 +87,7 @@ export default function Automations({ stalled, outbound, onChange }) {
     {d.modes && <AutomationModes initial={d.modes} />}
     <ReviewSchedule />
     <WebChat initial={d.webchat} />
+    {d.hermes_mail && <HermesMail initial={d.hermes_mail} />}
     <EmailSettings />
     <MarketInventory />
     <SourceAccessReview />
@@ -146,6 +147,49 @@ function WebChat({ initial }) {
         onClick={flip}><span className="knob" aria-hidden="true" />{w.on ? "On" : "Off"}</button>
       {w.at && <span className="muted">Turned {w.on ? "on" : "off"} by {w.by} on {fmtDate(w.at)}</span>}
     </div>
+    {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
+  </article>;
+}
+
+// AUT-17: email Hermes writes from Hampton's Gmail. Off, it leaves each email as a draft in Gmail for a person to send;
+// on, it sends it with no review one by one. Pause all outbound stops both.
+const MAIL_TYPES = [["availability", "Confirm availability", "Enquiries waiting to be sent, to the agency or advertiser."],
+  ["viewings", "Coordinate viewings", "Proposed viewing times to the agency, and to the client when their search has no viewing days."]];
+const MAIL_KIND = { availability: "Availability", viewing_agency: "Viewing · agency", viewing_client: "Viewing · client" };
+const MAIL_STATUS = { claimed: ["Writing", "active"], drafted: ["Draft in Gmail", "neutral"], sent: ["Sent", "positive"],
+  failed: ["Failed", "neutral"], unknown: ["Check in Gmail", "attention"], cancelled: ["Cancelled", "neutral"] };
+function HermesMail({ initial }) {
+  const [sw, setSw] = useState(initial.switches), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null), said = useRef(null);
+  useEffect(() => { if (msg) said.current.focus(); }, [msg]);
+  const flip = async (type, label) => {
+    if (!sw[type] && !confirm(`Let Hermes send "${label}" emails on its own, with no review one by one?`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api("/admin/hermes-mail", { method: "POST", body: { type, on: !sw[type] } });
+      setSw(r.switches);
+      setMsg({ ok: true, text: r.switches[type] ? `${label}: Hermes sends them.` : `${label}: Hermes leaves them as drafts in Gmail.` });
+    } catch (e) { setMsg({ text: e.message }); }
+    finally { setBusy(false); }
+  };
+  return <article className="card" aria-labelledby="a-mail">
+    <h2 id="a-mail">Email through Hermes</h2>
+    <p className="muted">Hermes writes these emails from Hampton's Gmail. Off: it leaves a draft in Gmail for you to send. On: it sends them.</p>
+    {MAIL_TYPES.map(([type, label, hint]) => <div className="inline" key={type}>
+      <button type="button" role="switch" aria-checked={sw[type]} aria-label={label} className="switch" disabled={busy}
+        onClick={() => flip(type, label)}><span className="knob" aria-hidden="true" />{sw[type] ? "Sends" : "Drafts"}</button>
+      <span><strong>{label}</strong> <span className="muted">{hint}</span></span>
+    </div>)}
+    {sw.at && <p className="muted">Last changed by {sw.by} on {fmtDate(sw.at)}</p>}
+    {initial.unknown > 0 && <p className="err">{initial.unknown} {initial.unknown === 1 ? "email" : "emails"} may or may not have left:
+      check Gmail's Sent folder. They are never sent again on their own.</p>}
+    {initial.recent.length ? <table className="list jobs">
+      <thead><tr><th>Email</th><th>Property</th><th>Status</th><th>Since</th></tr></thead>
+      <tbody>{initial.recent.map(t => <tr key={t.id}>
+        <td>{MAIL_KIND[t.kind]}</td>
+        <td data-label="Property"><a href={`#/p/${encodeURIComponent(t.listing_id)}`}>{t.listing_id}</a></td>
+        <td data-label="Status"><span className={`badge ${MAIL_STATUS[t.status][1]}`}>{MAIL_STATUS[t.status][0]}</span></td>
+        <td data-label="Since">{fmtDate(t.result_at ?? t.claimed_at ?? t.created_at)}</td></tr>)}</tbody>
+    </table> : <p className="muted">Hermes has not written any email yet.</p>}
     {msg && <p ref={said} tabIndex={-1} role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
   </article>;
 }

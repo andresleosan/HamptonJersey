@@ -4,6 +4,7 @@ import { jobLastActivity } from "../retention.js";
 import { readWebchat } from "./chats.js";
 import { callsReady } from "../consultations.js";
 import { rentalClosureEnabled } from "../rental-closure.js";
+import { mailPanel } from "../hermes-mail.js";
 
 // AUT-01 (spec 2026-11-01): the Automations screen. What runs on its own and when it last ran, from app_settings (clock,
 // retention_run, hermes) and the jobs table. Counts, times and listing titles only: never who, nor a draft's text (A8).
@@ -56,6 +57,8 @@ async function automations({ env, admin }) {
     ],
     // AUT-10: absent while the flag is off, so the screen is exactly as before.
     ...(modesReady(env) && { modes: await readOperationModes(env, admin) }),
+    // AUT-17: absent while HERMES_MAIL_READY is off.
+    ...(await mailPanel(env).then(m => m && { hermes_mail: m })),
   });
 }
 
