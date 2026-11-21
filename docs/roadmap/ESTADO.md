@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+21-nov-2026 · **BUS-09:** las casas de Finders Keepers traen ahora si tienen aparcamiento, así que encajan mejor con las búsquedas que lo piden. Progreso 154 de 215 (sin cambio).
+
 21-nov-2026 · **AUT-17 fase C, el cartero del correo (apagado):** está construido el servicio que entregará los correos desde el Gmail de Hampton, fuera del alcance de la IA de Hermes: Hermes solo redacta, y el cartero comprueba con la app justo antes, pone la dirección que eligió la app y crea el borrador o envía, nunca dos veces. Falta la verificación en dos pasos del Gmail (Luis, 22-nov) y la autorización de Google. Progreso 154 de 215 (sin cambio).
 
 21-nov-2026 · **AUT-17 fase A, el puente del correo por Hermes (apagado):** la app ya prepara los correos que Hermes escribirá desde el Gmail de Hampton (consultas de disponibilidad a la agencia y propuestas de visita a la agencia y, si su búsqueda no tiene días de visita, al cliente) y Hermes podrá recogerlos y devolver el resultado. En Settings › Automations, «Email through Hermes» tendrá dos interruptores: apagado deja borradores en Gmail, encendido los envía. Sigue apagado hasta que Luis conecte el Gmail. **BUS-09:** la pasada diaria lee también Finders Keepers (unos 23 anuncios de venta y alquiler). Progreso 154 de 215 (sin cambio).

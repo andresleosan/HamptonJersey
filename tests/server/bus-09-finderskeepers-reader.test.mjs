@@ -47,3 +47,10 @@ test('a broken or empty first page is an invalid response; a wrong host is acces
   assert.equal((await reader([]).readPage(ctx({ allowed_hosts: ['evil.example'] })).catch(e => e)).code, 'access_denied');
   assert.equal(typeof MARKET_READERS['src-finders-keepers'].readPage, 'function');
 });
+
+test('parking: spaces on the advert say yes; none given or 0 stays unknown', async () => {
+  const r = reader([feed([adv(1, { parking: '2' }), adv(2, { parking: '0' }), adv(3)])]);
+  const { records } = await r.readPage(ctx());
+  assert.deepEqual(records.map(x => x.observation.parking), [true, undefined, undefined]);
+  for (const x of records) normalizeObservation({ ...x.observation, observed_at: '2026-11-21T00:00:00.000Z' });
+});

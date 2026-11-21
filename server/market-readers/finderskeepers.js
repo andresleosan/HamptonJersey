@@ -1,6 +1,6 @@
 // BUS-09: automatic reader for Finders Keepers (finderskeepers.je). It reads the JSON feed the site's own search page loads
 // (/property.json, unsold adverts only, 12 per page, one request per page) under the reviewed root. Facts only: operation,
-// parish, rooms, price and link; no descriptions, no photos, no detail pages. Commercial, land and garage adverts are left out.
+// parish, rooms, parking spaces, price and link; no descriptions, no photos, no detail pages. Commercial, land and garage adverts are left out.
 import { SourceReadError } from '../market-daily-sweep.js';
 import { fetchAllowed } from './fetch.js';
 
@@ -19,7 +19,9 @@ export function parseFindersKeepers(json) {
     // ponytail: Finders Keepers quotes lets per calendar month (its pages say "pcm"); the feed drops the unit.
     const terms = price > 0 ? [{ kind: operation === 'rent' ? 'rent' : 'sale_price', amount_minor: Math.round(price * 100), currency: 'GBP',
       period: operation === 'rent' ? 'month' : 'sale', raw_text: `£${price.toLocaleString('en-GB')}` }] : [];
-    items.push({ id: String(x.id), url, operation, parish, bedrooms, bathrooms, financial_terms: terms,
+    // ponytail: spaces > 0 is parking; 0 may mean "not given", so it stays unknown rather than "no parking".
+    const parking = Number(x.parking) > 0 ? true : null;
+    items.push({ id: String(x.id), url, operation, parish, bedrooms, bathrooms, parking, financial_terms: terms,
       title: `${bedrooms == null ? '' : `${bedrooms} bedroom `}${(type ?? 'home').toLowerCase()}${parish ? `, ${parish}` : ''}` });
   }
   const p = json?.meta?.pagination;
@@ -28,7 +30,8 @@ export function parseFindersKeepers(json) {
 
 const record = i => ({ external_key: `finderskeepers:${i.id}`, raw: { listing_url: i.url, price_text: i.financial_terms[0]?.raw_text ?? null },
   observation: { country_code: 'JE', territory_evidence: `Finders Keepers listing in Jersey${i.parish ? `: ${i.parish}` : ''}`, operation: i.operation,
-    title: i.title, parish: i.parish, bedrooms: i.bedrooms, bathrooms: i.bathrooms, financial_terms: i.financial_terms } });
+    title: i.title, parish: i.parish, bedrooms: i.bedrooms, bathrooms: i.bathrooms, ...(i.parking && { parking: true }),
+    financial_terms: i.financial_terms } });
 
 export function findersKeepersReader({ fetchImpl = fetch } = {}) {
   return { async readPage({ cursor, allowed_hosts, allowed_paths, signal }) {
