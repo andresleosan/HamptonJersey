@@ -38,5 +38,5 @@
     "email-pipeline",
     "external-account-config"
   ],
-  "nextStep": "Construir la selección de transporte y el puente Hermes-Gmail con pruebas simuladas (pasos 2-5 del plan); la activación real espera a que Luis conecte el Gmail."
+  "nextStep": "Fase A del plan (mail_tasks, interruptores, puerta next/result, productores) con pruebas; en paralelo Luis hace la fase B (OAuth de Gmail en Hermes)."
 }

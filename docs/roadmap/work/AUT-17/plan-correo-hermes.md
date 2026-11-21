@@ -1,46 +1,74 @@
 # Correo de la app mediante Hermes con el Gmail de Hampton
 
-Decisión de Luis del 21-nov-2026 (PRE-23): **todas las automatizaciones de la app se hacen mediante Hermes.** El correo sale desde el Gmail que Hampton ya usa, conectado al Hermes de Hampton, y las respuestas vuelven a ese buzón. Cloudflare Email Service, el traspaso del dominio en Wix y el DNS dejan de ser requisitos del correo. El dominio propio sigue sirviendo a la web (PRE-16).
+## Decisiones de Luis
 
-Reglas que no cambian:
-- El panel aprueba cada envío. Hermes solo entrega la versión aprobada y devuelve el resultado.
-- Hermes no aprueba sus propios envíos, no reanuda la salida y no consulta libremente la base.
-- Siguen igual la cola D1, la idempotencia, la cuota diaria, la pausa general, las bajas, los resultados inciertos en revisión y la retención de 30/90 días. Ya están construidos y no dependen del proveedor.
+**21-nov-2026 (PRE-23).** Todas las automatizaciones de la app se hacen mediante Hermes. El correo sale desde el Gmail que Hampton ya usa, conectado al Hermes de Hampton, y las respuestas vuelven a ese buzón. Cloudflare Email Service, el traspaso del dominio en Wix y el DNS dejan de ser requisitos del correo. El dominio propio sigue sirviendo a la web (PRE-16).
+
+**21-nov-2026, segunda ronda.** Respuestas de Luis:
+
+| Pregunta | Decisión |
+| --- | --- |
+| Conexión | Google Cloud + OAuth: skill `google-workspace` de Hermes con la API de Gmail. Gmail no es un conector de Nous Portal en Hermes v0.22.5. |
+| Interruptores | Uno por tipo de correo en Settings › Automations: **Confirmar disponibilidad** y **Coordinar visitas**. Apagado, Hermes deja el correo en Borradores de Gmail. Encendido, lo envía solo, sin aprobación uno a uno. El interruptor es la aprobación. |
+| Visitas | Van a los dos. A la agencia o el propietario, para acordar el día y la hora. Al cliente, solo si al registrarse no dejó días y horas para visitas (`applicants.viewing_availability` vacío), para preguntárselos. |
+| Texto | Lo redacta Hermes con IA, a partir de los datos mínimos que le da la app. |
+
+Consecuencias que Luis acepta con estas respuestas:
+- Con el interruptor encendido, el correo sale sin que una persona lo lea. Para estos dos tipos, esto sustituye la revisión individual del plan maestro (R01).
+- Hermes recibe por su puerta los datos mínimos del destinatario: correo, nombre, la casa y las franjas. Hasta ahora la puerta solo daba datos públicos y contadores (H6, H7). PRE-13 debe cubrir a Google y al proveedor del modelo.
+
+## Lo que no cambia
+
+- La app decide qué correo toca, a quién y en qué modo. Hermes no elige el destinatario, no se pone el modo él mismo y no puede reanudar una salida pausada.
+- Siguen igual Pause all outbound, el límite diario, las bajas y la regla de un envío por versión.
+- Un resultado dudoso queda pendiente de comprobación en el panel y no se reintenta solo.
+- Un interruptor general, `HERMES_MAIL_READY`, apagado por defecto en los dos `wrangler.toml`, lo para todo. Encenderlo es decisión de Luis.
 
 Estado comprobado el 21-nov:
-- El Hermes de Hampton (contenedor `hermes`, v0.22.5) responde «You have no gmail account».
-- Hermes 2 todavía no tiene sesión iniciada.
+- El Hermes de Hampton (contenedor `hermes`, v0.22.5) no tiene cuenta de Gmail.
+- Tiene instalada la skill `google-workspace`, pero sin `gws`. Su script `google_api.py` envía y responde, pero no crea borradores.
+
+## Cómo funciona
+
+1. **La app prepara la tarea.** El reloj crea una fila en `mail_tasks`, una sola por motivo:
+   - Consulta de disponibilidad lista para salir (AGE-03/AGE-05), a la agencia.
+   - Propuesta de visita abierta (VIS-17), a la agencia.
+   - Búsqueda sin días y horas, al cliente, para preguntárselos.
+2. **Hermes la recoge.** Cada 10 minutos pide `GET /api/hermes/mail/next`. La app comprueba el interruptor general, la pausa, el límite diario y el interruptor del tipo, y entonces reserva una tarea. Devuelve el modo (`draft` o `send`), el destinatario, los datos mínimos y las reglas de redacción.
+3. **Hermes la redacta.** Escribe el asunto y el texto en inglés con IA, sin inventar datos, firmado por Hampton Estates.
+4. **Hermes la entrega.** En modo `draft`, crea un borrador en Gmail. En modo `send`, la envía.
+5. **Hermes devuelve el resultado.** Llama a `POST /api/hermes/mail/:id/result` con el token de la reserva, el resultado (`drafted`, `sent`, `failed` o `unknown`), el texto que escribió y los identificadores de Gmail. La app lo guarda en la ficha. Un envío acreditado arranca los plazos de AGE-08.
+6. **Las respuestas vuelven.** Llegan al mismo hilo. Que se traigan a la ficha es la fase C, que es MSG-03 y AGE-06.
 
 ## Fases
 
 | Fase | Entrega | Responsable | Aceptación |
 | --- | --- | --- | --- |
-| 1 | Conectar el Gmail en el Hermes de Hampton (alias `hampton`) y permitir su salida a Gmail en el proxy. | Luis | `hermes connectors accounts gmail` muestra la cuenta esperada. Quedan documentados los permisos concedidos, el envío, la lectura por hilo y los identificadores que devuelve. |
-| 2 | Paso de una vivienda externa, con ficha o sin ella, a la consulta con contacto verificado. Reutiliza BUS-07, AGE-03 y AGE-04. | Desarrollo | Si falta la dirección o hay varios anunciantes, el panel pide elegir. Repetir la operación reutiliza la ficha y la consulta. |
-| 3 | Transporte por finalidad: la cola deja de exigir `send_email` y `EMAIL_SERVICE_READY`. | Desarrollo | Hermes reclama solo los tipos de mensaje habilitados, con un único propietario por fila. Remitente y respuesta van al mismo Gmail. |
-| 4 | Puente: operación de la puerta de Hermes con identidad propia. Toma un envío aprobado y devuelve un resultado autenticado: aceptado (con messageId y threadId), rechazado o incierto. Lleva una migración aditiva para cuenta, messageId y threadId. | Desarrollo | Tolera doble clic, dos ejecutores, la caída del VPS y la pérdida del acuse. Lo que pudo salir queda pendiente de comprobación hasta verlo en «Enviados». |
-| 5 | Respuestas: Hermes trae solo los hilos de envíos de Hampton. | Desarrollo | La misma respuesta sincronizada dos veces da una sola entrada. Se distinguen respuesta humana, acuse, rebote y caso ambiguo. El empleado confirma el resultado (AGE-06). |
-| 6 | Piloto con una consulta ficticia a un buzón de prueba. | Luis y desarrollo | Remitente correcto, una sola copia recibida, respuesta en la ficha correcta y tarea de llamada a los dos días laborables (AGE-08). Cierra AUT-11 y AGE-05. |
-
-Si el conector de Hermes no permite limitar la lectura a los hilos de Hampton, la alternativa es un pequeño servicio propio con OAuth de Google y Gmail API, invocado por Hermes con la misma operación.
+| A | Migración aditiva `mail_tasks`, los dos interruptores en Automations, `HERMES_MAIL_READY` apagado, las operaciones de la puerta (`next` y `result`) y los productores de las tres tareas. | Desarrollo | Pruebas: el modo sigue al interruptor del tipo. Con la pausa o el interruptor general apagado no se reserva nada. Un resultado repetido no duplica. Una reserva vencida queda `unknown`. Sin días ni horas, va una tarea al cliente. |
+| B | Conectar el Gmail con OAuth: proyecto de Google Cloud, API de Gmail, pantalla de consentimiento, cliente «Desktop» y autorización desde Hermes con `--services email`. Permitir en el proxy de Hermes `oauth2.googleapis.com` y `gmail.googleapis.com`. | Luis, guiado paso a paso | En Hermes, `setup.py --check` responde `AUTHENTICATED`. |
+| C | Skill `hampton-correo` y tarea programada de Hermes cada 10 minutos, con un pequeño script para crear borradores (la API `users.drafts.create`). | Desarrollo y Luis (instalarla es configuración de Hermes) | Con una casa y una agencia ficticias: con el interruptor apagado aparece el borrador en Gmail; con el interruptor encendido llega un solo correo al buzón de prueba. |
+| D | Respuestas a la ficha: Hermes lee solo los hilos de `mail_tasks` y la app los asocia (AGE-06, MSG-03). | Desarrollo | La misma respuesta, sincronizada dos veces, da una sola entrada. Se distinguen respuesta humana, acuse y rebote. |
+| E | Piloto real, cierre de AGE-05 y AUT-11, y avance de VIS-13. | Luis y desarrollo | Remitente correcto, una sola copia, respuesta en su ficha y tarea de llamada a los dos días laborables. |
 
 ## Tareas afectadas
 
 | ID | Cambio |
 | --- | --- |
-| PRE-23 | Recoge la nueva decisión, que sustituye la del 6-nov. |
-| AUT-17 | Pasa a ser «Correo mediante Hermes». Cambia su responsable a desarrollo y su bloqueo a «conectar el Gmail». Ya no requiere Wix, DNS ni Email Sending. |
-| AGE-05 | Se cierra cuando Gmail, vía Hermes, acepta el mensaje aprobado, la app registra el acuse y un segundo intento no duplica el envío. |
-| AUT-11 | Su prueba real usa el transporte Hermes-Gmail. Cierra el componente de correo. |
-| MSG-03 | Las respuestas llegan por Hermes y cada una aparece una sola vez. |
-| AUT-13, PRE-13 | Hermes pasa a ver direcciones y respuestas: hay que definir la instancia y los acuerdos de tratamiento (Google y VPS). |
-| ADM-10, ADM-12, ADM-18, ADM-19, NOT-10, OFE-02, PRE-12, REG-15, VIS-13, MSG-02 | Siguen dependiendo de AUT-17, ahora como canal Hermes. Cada una conserva su propio interruptor y su aprobación humana. |
+| PRE-23 | Recoge las decisiones del 21-nov, que sustituyen la del 6-nov. |
+| AUT-17 | Pasa a ser «Correo mediante Hermes». La construye desarrollo, y su bloqueo es conectar el Gmail (fase B). |
+| AGE-05 | Se cierra cuando Gmail, vía Hermes, acepta la consulta, la app registra el acuse y un segundo intento no duplica. Con el interruptor apagado, queda en borrador. |
+| VIS-13, VIS-17 | La coordinación de visitas por correo usa la tarea de agencia y la de cliente de este plan. |
+| AUT-11 | Su prueba real usa el transporte Hermes-Gmail. |
+| MSG-03, AGE-06 | Las respuestas llegan por Hermes y cada una aparece una sola vez (fase D). |
+| AUT-13, PRE-13 | Hermes pasa a ver direcciones y datos mínimos de clientes, así que los acuerdos de tratamiento deben cubrir a Google y al proveedor del modelo. |
+| ADM-10, ADM-12, ADM-18, ADM-19, NOT-10, OFE-02, PRE-12, REG-15, MSG-02 | Siguen dependiendo de AUT-17, ahora como canal Hermes. Cada una conserva su interruptor. |
 | BUS-06 | Se quita de la cola de Luis porque está hecha desde el 20-nov. |
 
-Las tareas cerradas que dependían de AUT-17 (ADM-03, ADM-09, ADM-14, ANA-08, NOT-08, NOT-09, PRE-10, PUB-16, SAP-08, VIS-04, VIS-08, VIS-10) siguen cerradas. Lo que dejaron pendiente de correo está en la lista «Traído de…» de AUT-17.
+Las tareas cerradas que dependían de AUT-17 siguen cerradas. Lo que dejaron pendiente de correo está en la lista «Traído de…» de AUT-17.
 
 ## Volver al envío manual
 
-1. Apagar el interruptor de la finalidad, por ejemplo `AGE05_SEND_READY`, o pulsar Pause all outbound.
-2. Conciliar los intentos que Hermes tenga reclamados.
-3. Devolver a manual solo los que estén acreditados como no enviados. Los que salieron conservan sus identificadores y su evidencia.
+1. Apagar el interruptor del tipo: lo nuevo queda en borradores.
+2. Si hace falta parar todo, pulsar Pause all outbound o apagar `HERMES_MAIL_READY`.
+3. Conciliar en el panel las tareas reservadas o dudosas.
+4. Los envíos que salieron conservan su texto y sus identificadores de Gmail.
