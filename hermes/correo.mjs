@@ -8,10 +8,12 @@
 // mid-send reports unknown and never calls Gmail twice, and a lost report is sent again on the next /siguiente.
 // Node, no dependencies.
 //
-// APP_ORIGIN=https://<app host> HERMES_MAIL_KEY_FILE=<file> GOOGLE_TOKEN_FILE=<authorized_user JSON> \
+// APP_ORIGIN=https://<app host> HERMES_MAIL_KEY_FILE=<file> CARTERO_KEY_FILE=<Hermes's key to call it> \
+//   GOOGLE_TOKEN_FILE=<authorized_user JSON> \
 //   ESTADO_DIR=<private dir> LISTEN_HOST=<private address> LISTEN_PORT=8788 node hermes/correo.mjs
 // Once, before: GOOGLE_TOKEN_FILE=<file> node hermes/correo.mjs autorizar|codigo <client.json> [<code>] (see below).
 import { createServer } from "node:http";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { readFileSync, writeFileSync, renameSync, rmSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -110,9 +112,18 @@ export async function entregar(cfg, written) {
   } finally { busy.delete(id); }
 }
 
+// Only Hermes calls the carrier, with its own key (CARTERO_KEY_FILE, never the mail door's), compared in constant time.
+const digest = v => createHash("sha256").update(String(v)).digest();
+export const callerOk = (header, key) => typeof key === "string" && key.length >= 32
+  && timingSafeEqual(digest(/^Bearer (\S+)$/.exec(header ?? "")?.[1] ?? ""), digest(key));
+// Loopback or a private network (RFC 1918, IPv6 ULA): never every interface nor a public address.
+export const privateHost = h => /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(h ?? "")
+  || /^(::1|f[cd][0-9a-f]{2}:[0-9a-f:]+)$/i.test(h ?? "");
+
 export function makeCarrier(cfg) {
   return createServer(async (req, res) => {
     const reply = (status, v) => res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(v));
+    if (!callerOk(req.headers.authorization, cfg.callerKey)) return reply(401, { error: "Unauthorized" });
     if (req.method !== "POST" || !["/siguiente", "/entregar"].includes(req.url)) return reply(404, { error: "Not found" });
     let raw = "";
     try { for await (const c of req) { raw += c; if (raw.length > 65536) return reply(413, { error: "Too large" }); } }
@@ -141,7 +152,7 @@ export async function exchange(c, code, fetchFn = fetch) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const { APP_ORIGIN: origin, HERMES_MAIL_KEY_FILE: keyFile, GOOGLE_TOKEN_FILE: tokenFile, ESTADO_DIR: estado,
-    LISTEN_HOST: host, LISTEN_PORT: port = "8788" } = process.env;
+    CARTERO_KEY_FILE: callerFile, LISTEN_HOST: host, LISTEN_PORT: port = "8788" } = process.env;
   const [cmd, clientFile, code] = process.argv.slice(2);
   if (cmd === "autorizar") { console.log(consentLink(client(clientFile))); process.exit(0); }
   if (cmd === "codigo") {
@@ -149,12 +160,14 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     exchange(client(clientFile), code).then(t => { writeFileSync(tokenFile, JSON.stringify(t), { mode: 0o600 }); console.log("Token saved"); },
       e => { console.error(e.message); process.exit(1); });
   } else {
-    const key = keyFile ? readFileSync(keyFile, "utf8").trim() : "";
-    if (!/^https:\/\/[^/]+$/.test(origin ?? "") || key.length < 32 || !tokenFile || !estado || !host) {
-      console.error("Set APP_ORIGIN, HERMES_MAIL_KEY_FILE, GOOGLE_TOKEN_FILE, ESTADO_DIR and LISTEN_HOST (a private address)");
+    const key = keyFile ? readFileSync(keyFile, "utf8").trim() : "", callerKey = callerFile ? readFileSync(callerFile, "utf8").trim() : "";
+    if (!/^https:\/\/[^/]+$/.test(origin ?? "") || key.length < 32 || callerKey.length < 32 || callerKey === key || !tokenFile || !estado
+      || !privateHost(host)) {
+      console.error("Set APP_ORIGIN, HERMES_MAIL_KEY_FILE, CARTERO_KEY_FILE (another key of 32+), GOOGLE_TOKEN_FILE, ESTADO_DIR"
+        + " and LISTEN_HOST (a loopback or private address)");
       process.exit(1);
     }
-    makeCarrier({ origin, key, tokenFile, estado, fetchFn: fetch }).on("error", e => { console.error(e.message); process.exit(1); })
+    makeCarrier({ origin, key, callerKey, tokenFile, estado, fetchFn: fetch }).on("error", e => { console.error(e.message); process.exit(1); })
       .listen(Number(port), host, () => console.log(`Mail carrier on ${host}:${port}`));
   }
 }

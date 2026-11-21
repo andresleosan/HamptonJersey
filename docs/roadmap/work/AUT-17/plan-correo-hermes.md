@@ -81,5 +81,5 @@ Las tareas cerradas que dependían de AUT-17 siguen cerradas. Lo que dejaron pen
 
 Instalación (configuración del VPS y de Hermes: la hace o autoriza Luis, después de la fase B):
 1. Contenedor `hampton-cartero` con `node hermes/correo.mjs`, `APP_ORIGIN`, `HERMES_MAIL_KEY_FILE`, `GOOGLE_TOKEN_FILE` (el token `authorized_user` de la fase B, que no se copia en Hermes) y `ESTADO_DIR` privado. Va en una red propia con el contenedor de Hermes de Hampton, y su proxy de salida deja pasar solo la app, `oauth2.googleapis.com` y `gmail.googleapis.com`.
-2. En Hermes, la variable `CARTERO=http://<dirección privada>:8788`, la skill y la tarea programada cada 10 minutos.
+2. Una clave propia para llamar al cartero (`CARTERO_KEY_FILE` en el cartero y en Hermes, distinta de la del correo); el cartero solo escucha en una dirección privada. En Hermes, `CARTERO=http://<dirección privada>:8788`, `CARTERO_KEY_FILE`, la skill y la tarea programada cada 10 minutos.
 3. Con una casa y una agencia ficticias: con el interruptor apagado aparece el borrador. Después Luis decide encender `HERMES_MAIL_READY`.

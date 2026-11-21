@@ -105,3 +105,18 @@ test("Google's consent asks only gmail.compose, offline, and keeps the refresh t
   assert.deepEqual([t.type, t.refresh_token, t.client_id], ["authorized_user", "rt", "id"]);
   await assert.rejects(exchange(c, "code", async () => new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 })), /refresh token/);
 });
+
+test("the carrier answers only Hermes's key, and listens only on a private address", async () => {
+  const { makeCarrier, callerOk, privateHost } = await import("../../hermes/correo.mjs");
+  const { cfg } = world(), callerKey = "h".repeat(40), server = makeCarrier({ ...cfg, callerKey });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  const url = `http://127.0.0.1:${server.address().port}/siguiente`;
+  try {
+    assert.equal((await fetch(url, { method: "POST" })).status, 401);
+    assert.equal((await fetch(url, { method: "POST", headers: { authorization: `Bearer ${"x".repeat(40)}` } })).status, 401);
+    assert.equal((await fetch(url, { method: "POST", headers: { authorization: `Bearer ${callerKey}` } })).status, 200);
+  } finally { server.close(); }
+  assert.equal(callerOk(`Bearer ${callerKey}`, "short"), false, "no key configured: closed");
+  for (const h of ["127.0.0.1", "10.0.0.5", "172.16.45.2", "192.168.1.9", "::1", "fd00::5"]) assert.equal(privateHost(h), true, h);
+  for (const h of ["0.0.0.0", "::", "8.8.8.8", "172.32.0.1", "", undefined]) assert.equal(privateHost(h), false, String(h));
+});
