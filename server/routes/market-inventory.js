@@ -169,17 +169,19 @@ async function marketHomes({ request, env }) {
   const { homes, open_sources, more } = await readMarketHomesPage(env, after, HOMES_PAGE)
     .catch(e => { if (/no such table/.test(e?.message ?? '')) fail(404, 'Not found'); throw e; });
   const { results } = homes.length ? await primary(env.DB).prepare(`SELECT m.home_key,m.operation,m.applicant_id,c.name,m.result,
-      m.score,m.checks,m.observed_at,m.changed_at FROM market_matches m JOIN applicants a ON a.id=m.applicant_id
-      JOIN contacts c ON c.id=a.contact_id WHERE ${activeSql('a')} AND a.search_category='residential'
+      m.score,m.checks,m.observed_at,m.changed_at,a.search_category FROM market_matches m JOIN applicants a ON a.id=m.applicant_id
+      JOIN contacts c ON c.id=a.contact_id WHERE ${activeSql('a')}
       AND (m.home_key,m.operation) IN (SELECT json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?))
     ORDER BY m.requirements_rank,m.score DESC,m.applicant_id`).bind(JSON.stringify(homes.map(h => [h.home, h.operation]))).all() : { results: [] };
   const last = homes.at(-1);
   return json({ summary: { open_sources },
     homes: homes.map(h => {
       const { facts, disagree } = marketHomeFacts(h);
-      // A home linked to a listing is matched through the listing; a result from before the link is not shown.
-      const searches = h.listing_id ? [] : results.filter(r => r.home_key === h.home && r.operation === h.operation)
-        .map(({ home_key, operation, checks, ...r }) => ({ ...r, checks: JSON.parse(checks).filter(c => c.result !== 'meets') }));
+      // A home linked to a listing is matched through the listing; a result from before the link is not shown, nor one
+      // of a search of another kind than the home (BUS-12).
+      const kind = h.commercial ? 'commercial' : 'residential';
+      const searches = h.listing_id ? [] : results.filter(r => r.home_key === h.home && r.operation === h.operation && r.search_category === kind)
+        .map(({ home_key, operation, checks, search_category, ...r }) => ({ ...r, checks: JSON.parse(checks).filter(c => c.result !== 'meets') }));
       return { key: h.home, operation: h.operation, listing_id: h.listing_id, observed_at: h.observed_at, facts, disagree,
         publications: h.publications, searches };
     }),

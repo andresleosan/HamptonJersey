@@ -90,6 +90,16 @@ export function normalizeObservation(input) {
       issues.push(`${field}_review`);
     } else fields[field] = value ?? null;
   }
+  // BUS-12: an advert's use and floor area, only when stated (absent: residential, as every earlier reading).
+  if (has(input, 'use')) {
+    if (!['residential', 'commercial'].includes(input.use)) throw new TypeError('Invalid observation field');
+    fields.use = input.use; present_fields.push('use');
+  }
+  if (has(input, 'area_sqft')) {
+    if (typeof input.area_sqft !== 'number' || !(input.area_sqft > 0) || !Number.isFinite(input.area_sqft))
+      throw new TypeError('Invalid observation field');
+    fields.area_sqft = input.area_sqft; present_fields.push('area_sqft');
+  }
   if (rents.length > 1) issues.push('multiple_rents_review');
   if (rents.some(rent => rent.amount_minor != null && !knownCurrency(rent.currency))) issues.push('currency_unknown');
   if (input.operation === 'sale' && rents.length) issues.push('rent_not_for_operation_review');

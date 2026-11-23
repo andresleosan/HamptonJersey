@@ -17,23 +17,29 @@ import { RECOMPUTE_FLAGS, RECOMPUTE_PER_TICK } from './market-daily-sweep.js';
 export const rematchReady = env => env?.BUS04_REMATCH_READY === '1';
 export const CHANGES_PER_TICK = 50, MAX_ATTEMPTS = 3;
 export const EVENT = 'applicant.market_matched';
-// An advert's operation, as the searches that may be offered it state theirs. A business advert concerns none (BUS-12:
-// commercial searches are not crossed with the market).
+// An advert's operation, as the searches that may be offered it state theirs. A business advert concerns none: a business
+// transfer has no market part (match-store.js).
 const SEARCHES_OF = { rent: 'rent', sale: 'buy' };
+// BUS-12: the kind of search an advert concerns; one that states no use is residential.
+const kind = n => n.fields?.use === 'commercial' ? 'commercial' : 'residential';
 
 // What a search reads of an advert (marketHomeFacts): a change to anything else, a title, a text, a date, crosses nothing.
 // Whether it has a reading time at all counts: the facts of an undated reading do not count towards its home (BUS-01).
 const facts = n => { const f = n.fields ?? {};
   return JSON.stringify([n.operation ?? null, f.parish ?? null, f.bedrooms ?? null, f.bathrooms ?? null, f.pets ?? null,
-    f.parking ?? null, advertPrice(n), n.observed_at == null]); };
+    f.parking ?? null, advertPrice(n), n.observed_at == null, kind(n), f.area_sqft ?? null]); };
 // One outbox change: before and after as their normalized JSON text (before null for a new advert), gone when the
 // reading withdraws the advert. A reading that cannot be read is material for both operations: never a missed search.
+// searches: '<search_category>:<operation>' of the searches it may concern, before and after.
+const ALL = ['rent', 'sale'];
 export function classifyMarketChange({ before, after, gone }) {
   let a, b;
   try { a = JSON.parse(after); b = before == null ? null : JSON.parse(before); } catch { a = null; }
-  if (!a || typeof a !== 'object' || (b !== null && typeof b !== 'object')) return { material: true, operations: ['rent', 'sale'] };
-  const operations = [...new Set([b?.operation, a.operation])].filter(o => o in SEARCHES_OF);
-  return { material: !b || !!gone || facts(b) !== facts(a), operations };
+  if (!a || typeof a !== 'object' || (b !== null && typeof b !== 'object')) return { material: true, operations: ALL,
+    searches: ['residential', 'commercial'].flatMap(k => ALL.map(o => `${k}:${SEARCHES_OF[o]}`)) };
+  const both = [b, a].filter(n => n?.operation in SEARCHES_OF);
+  return { material: !b || !!gone || facts(b) !== facts(a), operations: [...new Set(both.map(n => n.operation))],
+    searches: [...new Set(both.map(n => `${kind(n)}:${SEARCHES_OF[n.operation]}`))] };
 }
 
 // Whether a home's price now is lower than when it was proposed: the same currency and period, or a monthly and a
@@ -59,13 +65,13 @@ async function consume(env, ts) {
   if (!results.length) return 0;
   const searches = new Set();
   for (const change of results) {
-    const { material, operations } = classifyMarketChange(change);
-    if (material) for (const o of operations) searches.add(SEARCHES_OF[o]);
+    const { material, searches: of } = classifyMarketChange(change);
+    if (material) for (const s of of) searches.add(s);
   }
   await env.DB.batch([
     ...(searches.size ? [env.DB.prepare(`INSERT INTO market_rematch_queue(applicant_id,queued_at)
-      SELECT a.id,? FROM applicants a WHERE ${activeSql('a')} AND a.search_category='residential'
-        AND a.operation IN (SELECT value FROM json_each(?))
+      SELECT a.id,? FROM applicants a WHERE ${activeSql('a')} AND a.search_operation IS NULL
+        AND a.search_category||':'||a.operation IN (SELECT value FROM json_each(?))
       ON CONFLICT(applicant_id) DO UPDATE SET generation=generation+1`).bind(ts, JSON.stringify([...searches]))] : []),
     env.DB.prepare(`UPDATE market_change_outbox SET consumer_state='consumed'
       WHERE consumer_state='pending' AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(results.map(r => r.id))),
@@ -135,11 +141,11 @@ async function propose(env, id, ts, read) {
 // A crossing whose market part could not be worked out is a failed attempt, not a crossing of the old results.
 const CROSSED = new Set(['searched', 'incomplete', 'no_source']);
 // A few queued searches, in queue order. The first crossing of a search takes its baseline, once. A search no longer
-// active and residential leaves the queue. One queued again while it was crossed, or that failed, goes to the back;
+// active, or a business transfer, leaves the queue. One queued again while it was crossed, or that failed, goes to the back;
 // a failed one MAX_ATTEMPTS times in all.
 async function cross(env, ts) {
   const { results } = await env.DB.prepare(`SELECT q.applicant_id,q.generation,
-      EXISTS (SELECT 1 FROM applicants a WHERE a.id=q.applicant_id AND ${activeSql('a')} AND a.search_category='residential') AS live
+      EXISTS (SELECT 1 FROM applicants a WHERE a.id=q.applicant_id AND ${activeSql('a')} AND a.search_operation IS NULL) AS live
     FROM market_rematch_queue q ORDER BY q.queued_at,q.applicant_id LIMIT ?`).bind(RECOMPUTE_PER_TICK).all();
   const out = [];
   for (const { applicant_id: id, generation, live } of results) {

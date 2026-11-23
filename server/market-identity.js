@@ -252,7 +252,8 @@ export const readLinkedPublications = gated(async (env, links) => {
 // BUS-01 / BUS-03: the homes of the common inventory, one per operation, worked out in SQL so that a search or a page
 // reads a few rows, never the whole inventory nor the history of its readings. A home is a root BUS-10's decisions stand
 // for, or an advert nobody decided on yet (its own home); its adverts are their latest reading (market_latest_observations,
-// 0083, the same rule as LATEST) from a source open now. A fact counts when the dated readings that state it agree;
+// 0083, the same rule as LATEST) from a source open now. A home is commercial when any of its adverts says so (BUS-12):
+// an advert that states no use is residential, so a home search is never offered one an advert calls commercial. A fact counts when the dated readings that state it agree;
 // <fact>_disagree when they do not. A parish outside the twelve reads '?', so it disagrees with any other.
 // listing_id: the Hampton listing a person linked the home to (BUS-07), matched instead.
 // A parish as plain() compares it: lower case, "saint" as "st", punctuation as spaces, spaces collapsed.
@@ -295,13 +296,15 @@ const HOMES = `WITH RECURSIVE
       ${N('observed_at')} AS observed_at,
       CASE WHEN ${N('fields.parish')} IS NOT NULL THEN COALESCE((SELECT v FROM parishes WHERE k=${NORMAL(N('fields.parish'))}),'?') END AS parish,
       ${N('fields.bedrooms')} AS bedrooms,${N('fields.bathrooms')} AS bathrooms,${N('fields.pets')} AS pets,${N('fields.parking')} AS parking,
+      ${N('fields.use')} IS 'commercial' AS commercial,${N('fields.area_sqft')} AS area_sqft,
       ${PRICE} AS price,COALESCE(r.id,json_array(lt.source_ref,lt.channel_id,lt.external_key,lt.op)) AS home
     FROM (${CURRENT}) lt
     LEFT JOIN decided d ON d.source_ref=lt.source_ref AND d.channel_id=lt.channel_id AND d.external_key=lt.external_key AND d.operation=lt.op
     LEFT JOIN roots r ON r.start=d.property_id),
   homes AS MATERIALIZED (SELECT home,operation,MAX(observed_at) AS observed_at,COUNT(*) AS adverts,
       json_group_array(json_array(source_ref,channel_id,external_key)) AS members,
-      ${['parish', 'bedrooms', 'bathrooms', 'pets', 'parking', 'price'].map(agree).join(',')},
+      ${['parish', 'bedrooms', 'bathrooms', 'pets', 'parking', 'price', 'area_sqft'].map(agree).join(',')},
+      MAX(commercial) AS commercial,
       (SELECT k.listing_id FROM listing_market_links k JOIN roots r ON r.start=k.property_id WHERE r.id=adverts.home
         AND k.action='link' AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id)
         ORDER BY k.created_at DESC LIMIT 1) AS listing_id
@@ -321,11 +324,13 @@ const number = v => v != null && v !== '' && Number.isFinite(Number(v)) ? String
 // The order approximates what evaluate() rewards, with known data only: fewest must-haves known to fail, then most
 // must-haves known to be met, a known parish, most criteria known to be met, and only then the newest reading. A home
 // that meets every must-have therefore comes before any that fails one or leaves one unknown. fit: the search's own
-// terms (numbers, the wanted and excluded parishes as lists, the must-have keys). open_sources 0: no source is open,
+// terms (numbers, the wanted and excluded parishes as lists, the must-have keys). commercial: offer the commercial homes
+// instead of the residential ones (BUS-12). open_sources 0: no source is open,
 // which is not an empty market. Reading writes nothing.
-export const readMarketCandidates = gated(async (env, { operation, legacy, fit, limit }) => {
+export const readMarketCandidates = gated(async (env, { operation, commercial = false, legacy, fit, limit }) => {
   const db = primary(env.DB), top = number(fit.top), min = number(fit.bedrooms_min), max = number(fit.bedrooms_max);
-  const baths = number(fit.bathrooms_min), spaces = number(fit.parking_spaces);
+  const baths = number(fit.bathrooms_min), spaces = number(fit.parking_spaces), fmin = number(fit.floor_min), fmax = number(fit.floor_max);
+  const small = `(${fmin} IS NOT NULL AND area_sqft<${fmin}) OR (${fmax} IS NOT NULL AND area_sqft>${fmax})`;
   // [known to fail, known to be met] per criterion the search states; NULL (data unknown) counts as neither.
   const rule = {
     budget: fit.top != null && [`monthly>${top}`, `monthly<=${top}`],
@@ -336,6 +341,7 @@ export const readMarketCandidates = gated(async (env, { operation, legacy, fit, 
     area: fit.area && [`parish<>'?' AND parish NOT IN (SELECT v FROM wanted)`, `parish IN (SELECT v FROM wanted)`],
     pets: fit.pets && ['pets=0', 'pets=1'],
     parking: Number(fit.parking_spaces) > 0 && ['parking=0', `parking=1 AND ${spaces}<=1`],
+    floor: (fit.floor_min != null || fit.floor_max != null) && [small, `area_sqft IS NOT NULL AND NOT (${small})`],
   };
   const stated = Object.keys(rule).filter(k => rule[k]), must = stated.filter(k => fit.must.includes(k));
   // NULL when nothing to add: a bare 0 in ORDER BY would name a column.
@@ -343,12 +349,12 @@ export const readMarketCandidates = gated(async (env, { operation, legacy, fit, 
   const known = k => `NOT COALESCE((${rule[k][0]}),0)`;
   const [homes, open] = await db.batch([
     db.prepare(`${HOMES}, wanted(v) AS (SELECT value FROM json_each(?)), unwanted(v) AS (SELECT value FROM json_each(?))
-      SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h WHERE h.operation=? AND h.listing_id IS NULL) c
+      SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h WHERE h.operation=? AND h.commercial=? AND h.listing_id IS NULL) c
       WHERE (parish IS NULL OR parish NOT IN (SELECT v FROM unwanted)) ${fit.pets ? 'AND COALESCE(pets,1)<>0' : ''}
         ${legacy ? ['budget', 'bedrooms', 'bathrooms'].filter(k => rule[k]).map(k => `AND ${known(k)}`).join(' ') : ''}
       ORDER BY ${sum(must, 0)},${sum(must, 1)} DESC,(parish IS NOT NULL AND parish<>'?') DESC,${sum(stated, 1)} DESC,
         observed_at DESC,home,operation LIMIT ?`)
-      .bind(JSON.stringify(fit.wanted), JSON.stringify(fit.excluded), operation, limit),
+      .bind(JSON.stringify(fit.wanted), JSON.stringify(fit.excluded), operation, commercial ? 1 : 0, limit),
     db.prepare(OPEN_SOURCES),
   ]);
   return { homes: homes.results, open_sources: open.results[0].n };
