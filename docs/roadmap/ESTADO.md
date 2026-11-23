@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+23-nov-2026 · **BUS-09, Hermes como único lector del mercado (construido, apagado):** la app tiene una puerta propia para que Hermes entregue cada día las casas de las webs del directorio, con un custodio que comprueba cada anuncio contra la web real antes de guardarlo; las casas que faltan en dos lecturas completas se retiran solas (sin borrar), y las búsquedas comerciales reciben locales del mercado. Todo con interruptores apagados hasta que Luis instale las piezas del VPS ([guía](work/BUS-09/instalar-hermes-mercado.md)). Progreso 154 de 215 (sin cambio).
+
 23-nov-2026 · **BUS-09, Finders Keepers arreglado:** su lectura fallaba cada día sin traer ninguna casa porque su web da 12 anuncios por página y la pasada acepta 10; ahora los lee en tandas de 10. Se comprobará con la pasada del 24-nov. Progreso 154 de 215 (sin cambio).
 
 21-nov-2026 · **AUT-17, toda la cola de correo por Hermes (apagado):** cuando se conecte el Gmail, el resumen diario del equipo, las consultas aprobadas y las alertas saldrán también desde el Gmail de Hampton, tal cual, sin pasar por la IA. Progreso 154 de 215 (sin cambio).

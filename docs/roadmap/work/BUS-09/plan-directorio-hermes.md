@@ -1,6 +1,6 @@
 # Plan: Hermes busca las casas del mercado y mantiene el inventario al día
 
-23-nov-2026 · Tareas: BUS-09 (lectura), BUS-08 (pasada diaria), BUS-04 (cruce con búsquedas), BUS-12 (matching comercial). Estado: **plan aprobado por decisiones de Luis; fase 0 hecha; fases 1-6 sin construir.**
+23-nov-2026 · Tareas: BUS-09 (lectura), BUS-08 (pasada diaria), BUS-04 (cruce con búsquedas), BUS-12 (matching comercial). Estado: **fases 0-3 construidas el 23-nov, apagadas; fases 4-6 esperan a que Luis instale las piezas del VPS.**
 
 ## 1. Qué se consigue
 

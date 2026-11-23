@@ -28,7 +28,8 @@
     "Comprobado el 16-nov-2026: el lector de fichas propias no puede ser el primer lector de la pasada diaria sin reabrir el diseño TP-04: migrations/0043_market_inventory.sql (market_run_snapshot_sources), server/market-inventory-store.js (claimSourcePage, eligible) y server/market-identity.js atan las fuentes internas a own_pilot y las externas a initial/daily.",
     "npm test 20-nov: 3467/3479 antes del cambio de conteos; fallos restantes = 3 de REG-15 (fecha, conocidos). Pruebas focales BUS-08/BUS-04/AUT-20/jobs 66/66 con el interruptor encendido.",
     "Producción 20-nov 23:30 UTC: primera lectura real (page 10, complete 2) de Gaudin. Arreglo c8f8ed35: los canales con lector se leen primero.",
-    "21-nov 02:30 UTC: market_daily_sweeps 2026-11-20 comparada (30 cambios, recálculo hecho); la pasada del 21-nov sigue en curso"
+    "21-nov 02:30 UTC: market_daily_sweeps 2026-11-20 comparada (30 cambios, recálculo hecho); la pasada del 21-nov sigue en curso",
+    "23-nov: retirada automática tras dos lecturas completas sin la casa (MARKET_AUTO_WITHDRAW_READY=0, sin borrar nada; vuelve si reaparece); comparación a las 20:00 de Jersey aunque Hermes no haya leído; lectura corta (<80 % de la última completa) rechazada salvo bajada real repetida (tabla 0123 market_short_reads)."
   ],
   "modulo": "M05",
   "deps": [
@@ -96,5 +97,5 @@
     "availability-contract"
   ],
   "nextStep": "El 22-nov: leer market_daily_sweeps del 21-nov y cerrar si compara bien.",
-  "actualizado": "2026-11-21"
+  "actualizado": "2026-11-23"
 }

@@ -3062,7 +3062,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "Comprobado el 16-nov-2026: el lector de fichas propias no puede ser el primer lector de la pasada diaria sin reabrir el diseño TP-04: migrations/0043_market_inventory.sql (market_run_snapshot_sources), server/market-inventory-store.js (claimSourcePage, eligible) y server/market-identity.js atan las fuentes internas a own_pilot y las externas a initial/daily.",
     "npm test 20-nov: 3467/3479 antes del cambio de conteos; fallos restantes = 3 de REG-15 (fecha, conocidos). Pruebas focales BUS-08/BUS-04/AUT-20/jobs 66/66 con el interruptor encendido.",
     "Producción 20-nov 23:30 UTC: primera lectura real (page 10, complete 2) de Gaudin. Arreglo c8f8ed35: los canales con lector se leen primero.",
-    "21-nov 02:30 UTC: market_daily_sweeps 2026-11-20 comparada (30 cambios, recálculo hecho); la pasada del 21-nov sigue en curso"
+    "21-nov 02:30 UTC: market_daily_sweeps 2026-11-20 comparada (30 cambios, recálculo hecho); la pasada del 21-nov sigue en curso",
+    "23-nov: retirada automática tras dos lecturas completas sin la casa (MARKET_AUTO_WITHDRAW_READY=0, sin borrar nada; vuelve si reaparece); comparación a las 20:00 de Jersey aunque Hermes no haya leído; lectura corta (\u003c80 % de la última completa) rechazada salvo bajada real repetida (tabla 0123 market_short_reads)."
    ],
    "modulo": "M05",
    "deps": [
@@ -3074,7 +3075,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "EST-15"
    ],
    "criterio_aceptacion": "Una fuente caída conserva sus propiedades y muestra el fallo; una bajada de precio actualiza la propiedad y recalcula búsquedas activas.",
-   "actualizado": "2026-11-21"
+   "actualizado": "2026-11-23"
   },
   {
    "id": "BUS-09",
@@ -3085,7 +3086,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales. 20-nov-2026: primer lector externo, Gaudin & Co (server/market-readers/gaudin.js; deja fuera los anuncios Let Agreed, Under Offer o Sold), registrado en server/market-readers/index.js y usado por el barrido diario: lee solo la ruta revisada del canal (?page=N), una petición por página, y solo datos de la tarjeta (enlace, parroquia, precio, dormitorios, baños); sin fotos ni descripciones. 21-nov-2026: segundo lector, Keys Properties (server/market-readers/keys.js): el sitemap HTML da los anuncios vigentes y el RSS sus datos (dormitorios, tipo, parroquia, precio, enlace); 2 peticiones por pasada. El canal de Keys revisado en una subpágina (St Helier) se lee como subconjunto vacío del canal raíz. Petición común con guarda de host, ruta y redirecciones en server/market-readers/fetch.js. 21-nov-2026: tercer lector, Finders Keepers (server/market-readers/finderskeepers.js): lee el JSON que usa la búsqueda de su propia web (/property.json, solo anuncios no vendidos, 12 por página, una petición por página); deja fuera comercial, terreno y garajes; sin descripciones ni fotos. 21-nov: Finders Keepers guarda también si hay aparcamiento (plazas > 0 = sí; 0 o sin dato = desconocido).",
-   "falta": "Lectores para el resto de canales permitidos: 75 fuentes están revisadas como permitidas para lectura automática y solo 3 tienen lector (Gaudin, Keys, Finders Keepers). Prioridad: agencias residenciales cuyo canal permitido sea una lista de anuncios legible sin JavaScript (Bull & Company y Maillard ya están permitidas; Connections es solo manual). Oficinas y coworking no sirven al matching de mercado (no cruza búsquedas comerciales). La categoría de vivienda (Qualified, Entitled…) no se guarda: los listados que leemos no la publican.",
+   "falta": "Instalar las piezas del VPS (guía docs/roadmap/work/BUS-09/instalar-hermes-mercado.md, la hace Luis), aplicar 0123, piloto de Hermes con Gaudin, Keys y Finders Keepers (HERMES_MARKET_SOURCES) y, si pasa, borrar los lectores de código; después la primera carga por tandas.",
    "bloqueo": "",
    "evidencia": [
     "server/listing-features.js:1-30",
@@ -3109,7 +3110,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "21-nov-2026: server/market-readers/finderskeepers.js, registrado en server/market-readers/index.js; tests/server/bus-09-finderskeepers-reader.test.mjs. node --test tests/server/bus-09-*.test.mjs tests/server/bus-08-daily-sweep.test.mjs: 66/66. Lectura real de solo lectura 21-nov (robots.txt revisado: solo veta cpresources/, vendor/ y .env): 2 páginas del feed, 23 anuncios válidos (24 con 1 comercial excluido), 5 de alquiler.",
     "21-nov: node --test tests/server/bus-09-*.test.mjs tests/server/bus-08-daily-sweep.test.mjs: 67/67 (aparcamiento de Finders Keepers)",
     "23-nov: Finders Keepers fallaba cada día en producción (6 intentos invalid_response, 0 casas): su feed da 12 anuncios por página y la pasada acepta 10 como máximo (server/market-daily-sweep.js:122). Arreglo: cursor «página:desplazamiento» en tandas de 10, como Gaudin y Keys. node --test bus-09-* y bus-08-daily-sweep: 68/68; lectura real 23-nov: 10 + 10 por página. Comprobación en producción pendiente de la pasada del 24-nov.",
-    "23-nov: decisión de Luis: solo Hermes busca casas y actualiza el inventario; los lectores de código se retiran tras el piloto. Plan: docs/roadmap/work/BUS-09/plan-directorio-hermes.md."
+    "23-nov: decisión de Luis: solo Hermes busca casas y actualiza el inventario; los lectores de código se retiran tras el piloto. Plan: docs/roadmap/work/BUS-09/plan-directorio-hermes.md.",
+    "23-nov: construido apagado: puerta /api/hermes/market (HERMES_MARKET_KEY, HERMES_MARKET_READY=0, HERMES_MARKET_SOURCES vacío), custodio hermes/mercado.mjs (comprueba cada anuncio contra la página real, DNS/SSRF), skill hampton-mercado, script de dominios y guía. Revisión independiente con hallazgos corregidos. npm test 3543/3547 (4 fallos de fecha, iguales en main), hermes-mercado 20/20, build y check:release correctos."
    ],
    "modulo": "M02",
    "deps": [
@@ -3268,7 +3270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "Decisión: sin migración. Los triggers de versión de 0037 no vigilan los campos comerciales; el recálculo corre igual en cada guardado. Que un cambio comercial invalide una aprobación previa pasa a AGE-03, que es quien consumirá aprobaciones. Fuente: skill §3.",
     "Decisión: solo fichas propias. El servicio de normalización del inventario de mercado (BUS-06) no se conecta; los términos de la búsqueda salen de normalizeBudgetTerms (REG-04) y los de la ficha de sus columnas estructuradas.",
     "Sin comprobar: npm test completo, producción y la pantalla Review en navegador con una coincidencia comercial (sí por la ruta del servidor).",
-    "Cierre 14-nov-2026: publicada en c6bfbc4 (0597c9d residencial, 65c1247 comercial); npm test 2499/2499, build y check:release; tests/bus12-matching.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 evaluaciones aleatorias sin excepción, residencial intacto)."
+    "Cierre 14-nov-2026: publicada en c6bfbc4 (0597c9d residencial, 65c1247 comercial); npm test 2499/2499, build y check:release; tests/bus12-matching.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 evaluaciones aleatorias sin excepción, residencial intacto).",
+    "23-nov: las búsquedas comerciales se cruzan con los locales del inventario de mercado (use/area_sqft) y las de vivienda nunca los reciben. Traspasos de negocio fuera: market_matches solo admite sale/rent (cambiarlo no es aditivo)."
    ],
    "modulo": "M04",
    "deps": [
@@ -3281,7 +3284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "BUS-09"
    ],
    "criterio_aceptacion": "Dos plazas imprescindibles y una disponible es alternativa; parking desconocido es pendiente; el resto favorable no cambia ese resultado.",
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-23"
   },
   {
    "id": "BUS-13",

@@ -53,7 +53,8 @@
     "Decisión: sin migración. Los triggers de versión de 0037 no vigilan los campos comerciales; el recálculo corre igual en cada guardado. Que un cambio comercial invalide una aprobación previa pasa a AGE-03, que es quien consumirá aprobaciones. Fuente: skill §3.",
     "Decisión: solo fichas propias. El servicio de normalización del inventario de mercado (BUS-06) no se conecta; los términos de la búsqueda salen de normalizeBudgetTerms (REG-04) y los de la ficha de sus columnas estructuradas.",
     "Sin comprobar: npm test completo, producción y la pantalla Review en navegador con una coincidencia comercial (sí por la ruta del servidor).",
-    "Cierre 14-nov-2026: publicada en c6bfbc4 (0597c9d residencial, 65c1247 comercial); npm test 2499/2499, build y check:release; tests/bus12-matching.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 evaluaciones aleatorias sin excepción, residencial intacto)."
+    "Cierre 14-nov-2026: publicada en c6bfbc4 (0597c9d residencial, 65c1247 comercial); npm test 2499/2499, build y check:release; tests/bus12-matching.e2e.cjs pasa a 1280 y 390; revisión independiente sin hallazgos graves (200.000 evaluaciones aleatorias sin excepción, residencial intacto).",
+    "23-nov: las búsquedas comerciales se cruzan con los locales del inventario de mercado (use/area_sqft) y las de vivienda nunca los reciben. Traspasos de negocio fuera: market_matches solo admite sale/rent (cambiarlo no es aditivo)."
   ],
   "modulo": "M04",
   "deps": [
@@ -107,5 +108,5 @@
     "market-inventory"
   ],
   "nextStep": "Hecha.",
-  "actualizado": "2026-11-14"
+  "actualizado": "2026-11-23"
 }
