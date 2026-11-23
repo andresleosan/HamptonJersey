@@ -288,6 +288,26 @@ test('a pass that ends with no advert taken, over several slices, on a channel w
   assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND gone=0"), 3);
 });
 
+test('a short pass, under 80% of a channel\'s live adverts (5 or more), fails; 80% completes', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world();
+  await marketSweepPass(env, at(0), { readers: {} });
+  await deliver(t, env, runOf(env, 0).id, 'agency-a', many('agency-a', 'A', 10), at(0, 10));
+  t.mock.timers.setTime(Date.parse(at(1)));
+  await marketSweepPass(env, at(1), { readers: {} });
+  const run = runOf(env, 1).id, claim = { run_id: run, source_ref: 'agency-a', channel_id: 'site' };
+  rest(env); t.mock.timers.setTime(Date.parse(at(1, 5)));
+  let { lease } = ok(await door(env, 'POST', '/claim', claim));
+  assert.equal((await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 7), exhausted: true })).status, 409);
+  assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'failed');
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE run_id=? AND outcome='invalid_response'", run), 1);
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_pages WHERE run_id=?', run), 0);
+  rest(env); t.mock.timers.setTime(Date.parse(at(1, 30)));
+  ({ lease } = ok(await door(env, 'POST', '/claim', claim)));
+  assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 8), exhausted: true })), { accepted: true, skipped: 0 });
+  assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'complete');
+});
+
 test('a sub-channel of a source read at "/" is completed empty by the sweep and is not Hermes work', async t => {
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
   const env = world();

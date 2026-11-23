@@ -84,13 +84,18 @@ async function page({ request, env }) {
   // The cursor is the door's: the offset of adverts received (a code reader's cursor from earlier today counts as 0).
   const offset = /^\d{1,9}$/.test(l.cursor ?? '') ? Number(l.cursor) : 0;
   // A pass that ends with no advert taken, on a channel with live ones, is a broken read, not an empty market (as the
-  // sweep's guard on a first page, here over all the pass's slices).
-  if (b.exhausted && !records.some(Boolean) && await env.DB.prepare(`SELECT 1 FROM market_latest_observations
-      WHERE source_ref=? AND channel_id=? AND gone=0 AND NOT EXISTS (SELECT 1 FROM market_pages p JOIN market_observations o
-        ON o.page_id=p.id WHERE p.run_id=? AND p.source_ref=? AND p.channel_id=?) LIMIT 1`)
-      .bind(c.source_ref, c.channel_id, c.run_id, c.source_ref, c.channel_id).first()) {
-    await failed(env, c.run_id, c, l, new SourceReadError('invalid_response'), ts);
-    return wait(env, c, ts);
+  // sweep's guard on a first page, here over all the pass's slices); so is one that took under 80% of the live adverts
+  // of a channel with 5 or more: a short read never completes a pass.
+  if (b.exhausted) {
+    const { live, seen } = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM market_latest_observations WHERE source_ref=?
+        AND channel_id=? AND gone=0) AS live, (SELECT COUNT(*) FROM (SELECT o.external_key FROM market_pages p
+        JOIN market_observations o ON o.page_id=p.id WHERE p.run_id=? AND p.source_ref=? AND p.channel_id=?
+        UNION SELECT value FROM json_each(?))) AS seen`).bind(c.source_ref, c.channel_id, c.run_id, c.source_ref, c.channel_id,
+      JSON.stringify(records.filter(Boolean).map(r => r.external_key))).first();
+    if ((live > 0 && !seen) || (live >= 5 && seen < live * 0.8)) {
+      await failed(env, c.run_id, c, l, new SourceReadError('invalid_response'), ts);
+      return wait(env, c, ts);
+    }
   }
   const { outcome, skipped } = await commitRead(env, c.run_id, c, l,
     { records, exhausted: b.exhausted, next_cursor: b.exhausted ? null : String(offset + b.records.length) }, ts);
