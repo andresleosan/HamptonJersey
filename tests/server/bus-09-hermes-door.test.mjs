@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { makeEnv, call } from './helpers.mjs';
-import { marketSweepPass } from '../../server/market-daily-sweep.js';
+import { jerseyDayEnd, marketSweepPass } from '../../server/market-daily-sweep.js';
 import { advertRecord, normaliseUrl, parsePrice } from '../../server/market-hermes.js';
 
 const DAY0 = Date.parse(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10) + 'T03:00:00.000Z');
@@ -306,6 +306,23 @@ test('a short pass, under 80% of a channel\'s live adverts (5 or more), fails; 8
   ({ lease } = ok(await door(env, 'POST', '/claim', claim)));
   assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 8), exhausted: true })), { accepted: true, skipped: 0 });
   assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'complete');
+});
+
+test("from 20:00 Jersey time Hermes's unread channel no longer holds back the day: not read in full, never missing", async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world(), { readers } = fixtures({ 'agency-b': ['B-1'] });
+  await marketSweepPass(env, at(0), { readers });
+  await deliver(t, env, runOf(env, 0).id, 'agency-a', many('agency-a', 'A', 3), at(0, 10));
+  rest(env); assert.equal((await marketSweepPass(env, at(0, 20), { readers })).compared, true);
+  // Day 1: Hermes never comes.
+  const day = at(1).slice(0, 10), cutoff = Date.parse(jerseyDayEnd(day)) - 4 * 3600000;
+  await marketSweepPass(env, at(1), { readers });
+  rest(env); assert.equal((await marketSweepPass(env, new Date(cutoff - 60000).toISOString(), { readers })).compared, false);
+  rest(env); assert.equal((await marketSweepPass(env, new Date(cutoff).toISOString(), { readers })).compared, true);
+  const run = runOf(env, 1).id;
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_sweep_missing WHERE run_id=?', run), 0);
+  assert.match(one(env, 'SELECT task_reason FROM notifications WHERE task_key=?', `bus08:sweep:${run}`).task_reason,
+    /0 adverts not found, 1 sources not read in full/);
 });
 
 test('a sub-channel of a source read at "/" is completed empty by the sweep and is not Hermes work', async t => {

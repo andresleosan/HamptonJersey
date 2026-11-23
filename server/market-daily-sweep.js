@@ -16,6 +16,7 @@ import { autoWithdrawReady, withdrawnSql } from './market-identity.js';
 import { recomputeForApplicant } from './search-state.js';
 
 export const sweepReady = env => env?.BUS08_SWEEP_READY === '1';
+export const HERMES_CUTOFF_H = 20; // Jersey hour after which Hermes's unread channels stop holding back the day
 export const CHANNELS_PER_TICK = 3, RECOMPUTE_PER_TICK = 2, MAX_FAILURES = 3, READ_TIMEOUT_MS = 10000;
 // The flags a recompute reads on the website. Without the same answer in the clock it would match differently, and
 // could propose again a home confirmed not available (EST-15), so the clock waits for them.
@@ -323,10 +324,13 @@ export async function marketSweepPass(env, ts, { readers = READERS } = {}) {
       ORDER BY sr.source_ref NOT IN (SELECT value FROM json_each(?)),sr.next_due IS NOT NULL,sr.next_due,sr.paging_key LIMIT ?`)
       .bind(...h?.args ?? [], run.id, ts, ts, ...h?.args ?? [], JSON.stringify(Object.keys(readers)), CHANNELS_PER_TICK).all(); // channels with a reader first
     for (const c of channels) out.read.push(await readChannel(env, run, c, c.hermes_sub ? EMPTY : readers[c.source_ref], ts));
-    // A channel told to wait past the end of the day (its interval, a rate limit) does not hold back the comparison.
+    // A channel told to wait past the end of the day (its interval, a rate limit) does not hold back the comparison, nor,
+    // from HERMES_CUTOFF_H Jersey time, one of Hermes's not read yet: it is then a source not read in full.
+    const end = jerseyDayEnd(run.jersey_day), late = h && ts >= later(end, -(24 - HERMES_CUTOFF_H) * 3600);
     const left = await env.DB.prepare(`SELECT 1 FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
       AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}
-        AND (sr.next_due IS NULL OR sr.next_due<?) LIMIT 1`).bind(run.id, jerseyDayEnd(run.jersey_day)).first();
+        AND (sr.next_due IS NULL OR sr.next_due<?)${late ? ` AND NOT (${h.sql} AND NOT ${SUB_CHANNEL})` : ''} LIMIT 1`)
+      .bind(run.id, end, ...late ? h.args : []).first();
     if (!left) { await compare(env, run, ts); out.compared = true; }
   }
   out.recompute = await recompute(env, ts);
