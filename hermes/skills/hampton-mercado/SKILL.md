@@ -59,8 +59,9 @@ header file; never print, copy or open it) and `--noproxy '*'`.
   "parish": "St Helier", "bedrooms": 2, "bathrooms": 1, "parking": true, "area_sqft": null, "title": "Two bed flat" }
 ```
 
-- `listing_url` (required): the advert's own link exactly as on the page, made absolute with `https://`, on the item's
-  hosts and paths, without `?…` or `#…` (the custodian rejects those). Never invent it; never the list page itself.
+- `listing_url` (required): the advert's own link exactly as on the page, made absolute with `https://`, on one of the
+  item's hosts (its path may be outside the item's paths, e.g. `/property/<slug>/<id>`; you do not need to open it),
+  without `?…` or `#…` (the custodian rejects those). Never invent it; never the list page itself.
 - `operation` (required): `rent` or `sale`. `use` (required): `residential` or `commercial` (offices, shops, warehouses,
   land for business).
 - `price_text`: the price **verbatim** as written on the listing page ("£1,950 pcm", "£625,000", "POA"); `null` if none.

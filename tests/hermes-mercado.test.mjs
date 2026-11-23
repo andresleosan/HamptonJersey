@@ -55,6 +55,7 @@ async function setup(t, opts) {
   const clock = { t: 1_000_000 };
   const app = fakeApp(clock, opts);
   const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>",
+    "/residential-for-rent": '<a href="/property/sea-view-flat/4321">Sea view</a> &pound;2,100 pcm',
     "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000' };
   const appSrv = await listen(app.handler);
   const agency = await listen((req, res) => pages[req.url] === undefined ? res.writeHead(404).end()
@@ -63,7 +64,7 @@ async function setup(t, opts) {
   const net = { lose: 0 };
   const fetchFn = async (url, init) => {
     const u = new URL(url);
-    if (u.hostname === "agency.test") return fetch(`http://127.0.0.1:${agency.address().port}${u.pathname}`, init);
+    if (u.hostname === "agency.test" || u.hostname === "gaudin.co") return fetch(`http://127.0.0.1:${agency.address().port}${u.pathname}`, init);
     const r = await fetch(url, init);
     if (u.pathname.endsWith("/page") && net.lose > 0) { net.lose--; throw new Error("answer lost"); }
     return r;
@@ -116,6 +117,24 @@ test("a cut price, the index page, a query or a fragment never pass", async t =>
     { ...advert(5), listing_url: "https://agency.test/to-let/home-5#x" }] });
   assert.deepEqual(r.json, { queued: 5, rejected: 4,
     reasons: { price_not_on_page: 1, not_a_listing: 1, query_or_fragment: 2 } });
+});
+
+test("Gaudin-shaped: pages under the channel's paths, listings anywhere on its host", async t => {
+  const { app, cfg, call } = await setup(t);
+  app.items = [{ source_ref: "src-gaudin-co", channel_id: "rent", hosts: ["gaudin.co"], paths: ["/residential-for-rent"],
+    status: "pending", min_interval_s: 60 }];
+  const ids = { run_id: RUN, source_ref: "src-gaudin-co", channel_id: "rent" };
+  const home = { ...advert(0), listing_url: null, price_text: "£2,100 pcm" };
+  assert.equal((await call("POST", "/mercado/entregar", { ...ids, pages: ["https://gaudin.co/property/sea-view-flat/4321"],
+    adverts: [] })).status, 400); // a page Hermes read must still be under the channel's paths
+  const r = await call("POST", "/mercado/entregar", { ...ids, pages: ["https://gaudin.co/residential-for-rent"], adverts: [
+    { ...home, listing_url: "https://www.gaudin.co/property/sea-view-flat/4321" },
+    { ...home, listing_url: "https://www.gaudin.co/property/sea-view-flat/4321#photos" },
+    { ...home, listing_url: "https://evil.test/property/sea-view-flat/4321" },
+    { ...home, listing_url: "https://gaudin.co/property/sea-view-flat/4321" }] });
+  assert.deepEqual(r.json, { queued: 1, rejected: 2, reasons: { query_or_fragment: 1, off_channel: 1 } });
+  await pump(cfg);
+  assert.equal(app.commits[0].records[0].listing_url, "https://www.gaudin.co/property/sea-view-flat/4321");
 });
 
 test("more than half rejected: the channel is reported as invalid_response, nothing posted", async t => {

@@ -86,11 +86,20 @@ async function fetchPage(cfg, url, item) {
   return null;
 }
 
+// An advert's own link: https on one of the channel's hosts (www. or not), any path: agencies list under one path
+// (/residential-for-rent) and publish each home under another (/property/<slug>/<id>).
+const bare = h => h.replace(/^www\./, "");
+export function onHost(value, item) {
+  let u;
+  try { u = new URL(value); } catch { return false; }
+  return u.protocol === "https:" && !u.username && !u.password && !u.port && item.hosts.map(bare).includes(bare(u.hostname));
+}
+
 // Only the contract's fields go on, each type- and length-checked; anything else (descriptions, names…) is dropped.
 const intOrNull = v => v === null || v === undefined ? null : Number.isInteger(v) && v >= 0 && v <= 50 ? v : undefined;
 function advert(a, item) {
   if (!a || typeof a !== "object" || typeof a.listing_url !== "string" || a.listing_url.length > 2048
-    || !inScope(a.listing_url, item)) return { reason: "off_channel" };
+    || !onHost(a.listing_url, item)) return { reason: "off_channel" };
   const u = new URL(a.listing_url);
   if (u.search || u.hash || a.listing_url.includes("#")) return { reason: "query_or_fragment" }; // one advert = one clean link
   const price = a.price_text ?? null, title = a.title ?? null, area = a.area_sqft ?? null;
