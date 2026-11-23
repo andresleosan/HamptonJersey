@@ -1,6 +1,6 @@
 # Plan: Hermes lee el directorio y lo mantiene al día
 
-23-nov-2026 · Tareas: BUS-09 (lectores), BUS-08 (pasada diaria), BUS-04 (cruce con búsquedas). Estado: **propuesta, pendiente de las decisiones de Luis** (sección 6). Nada de esto está construido.
+23-nov-2026 · Tareas: BUS-09 (lectores), BUS-08 (pasada diaria), BUS-04 (cruce con búsquedas). Estado: **decisiones tomadas por Luis el 23-nov (sección 6); fase 0 en curso.** La puerta y el lector aún no están construidos.
 
 ## 1. Qué se consigue
 
@@ -20,9 +20,9 @@ Hermes no será un segundo sistema: será **un lector más de la pasada diaria q
 
 1. **La app reparte el trabajo.** La pasada diaria deja en espera los canales asignados a Hermes, en vez de marcarlos «sin lector».
 2. **Hermes pide un canal.** Llama a `GET /api/hermes/market/next`. La app comprueba el interruptor y le reserva un canal: le da la dirección permitida, la página por la que va y un token de reserva.
-3. **El lector abre la página.** Descarga solo esa dirección, dentro del dominio y la ruta revisados.
-4. **La IA extrae los datos.** De cada anuncio saca solo hechos: operación (venta o alquiler), precio, parroquia, dormitorios, baños, aparcamiento y enlace. Sin descripciones ni fotos, igual que los lectores actuales.
-5. **Comprobación contra invenciones.** Un programa fijo, sin IA, descarta cualquier anuncio cuyo enlace o cuyo texto de precio no aparezca literalmente en la página descargada, o cuyo enlace salga del dominio revisado.
+3. **Hermes abre la web.** El agente Hermes, con una tarea programada diaria y una skill propia, abre solo esa dirección y las páginas de anuncios que cuelgan de ella, dentro del dominio y la ruta revisados.
+4. **Hermes extrae los datos.** De cada anuncio saca solo hechos: operación (venta o alquiler), uso (vivienda o comercial), precio, parroquia, dormitorios, baños, aparcamiento, superficie si es comercial, y enlace. Sin descripciones ni fotos.
+5. **La app comprueba lo que recibe.** Rechaza cualquier anuncio cuyo enlace salga del dominio y la ruta revisados, y comprueba por muestreo que los enlaces existen. Hermes no puede escribir en nada más: su llave solo abre estas dos rutas.
 6. **Hermes devuelve la página.** Llama a `POST /api/hermes/market/:id/result` con hasta 10 anuncios y si quedan más páginas. La app la guarda por el mismo camino que usan Gaudin y Keys.
 7. **La pasada compara y cruza.** Al acabar el día: casas nuevas y bajadas de precio → se recalculan las búsquedas y sale el aviso «New market homes for …» en el Inbox. Casas que ya no aparecen → quedan como no encontradas y sale una tarea en el Inbox.
 
@@ -35,9 +35,10 @@ Reglas que protegen los datos:
 
 | Fase | Qué se hace | Quién | Se da por hecha cuando |
 | --- | --- | --- | --- |
-| 0. Preparación | Publicar el arreglo de Finders Keepers. Clasificar las 72 fuentes: ¿es de viviendas?, ¿la dirección permitida es una lista de anuncios?, ¿se lee sin JavaScript? Comparar el directorio local (138 fuentes) con el de producción (119). | Desarrollo; el push, Luis | Hay una tabla con cada fuente y su destino: lector de Hermes, lector de código, o fuera. |
+| 0. Preparación | Publicar el arreglo de Finders Keepers. Clasificar las 72 fuentes ([primera pasada](clasificacion-fuentes.md)). Comparar el directorio local (138 fuentes) con el de producción (119). | Desarrollo; el push, Luis | Hay una tabla con cada fuente y su destino: lector de Hermes, lector de código, o fuera. |
+| 1b. Comercial | Guardar uso y superficie de los anuncios de mercado y cruzar las búsquedas comerciales con ellos. | Desarrollo | Una búsqueda comercial de prueba recibe una oficina del mercado y una de vivienda no. |
 | 1. Puerta en la app | Las dos rutas de la puerta, su llave propia (`HERMES_MARKET_KEY`), el interruptor `HERMES_MARKET_READY` apagado, y el cambio en la pasada para que espere a Hermes. Sin migración si se reutilizan los resultados de lectura que ya existen. | Desarrollo | Pruebas con un Hermes simulado: página buena, página inventada, reserva caducada, lectura a medias, interruptor apagado. |
-| 2. Lector en el VPS | El programa que pide canal, descarga, pasa el texto a la IA, comprueba y devuelve. | Desarrollo lo prepara; Luis lo instala | Lee de punta a punta 3 fuentes reales con el interruptor encendido solo para la prueba. |
+| 2. Hermes | La skill de Hermes (pedir canal, abrir, extraer, devolver) y su tarea programada diaria. | Desarrollo lo prepara; Luis lo instala | Lee de punta a punta 3 fuentes reales con el interruptor encendido solo para la prueba. |
 | 3. Primera carga | Encender por tandas de unas 10 fuentes al día, revisando cada tanda. | Luis enciende; desarrollo revisa | Cada fuente clasificada en la fase 0 tiene una lectura completa o un motivo anotado. |
 | 4. Diario | La pasada de cada día incluye las fuentes de Hermes. El resumen de las 08:00 dice cuántas fuentes no se pudieron leer. | Automático | Siete días seguidos con comparación hecha y sin fuentes bloqueadas sin explicar. |
 
@@ -46,19 +47,19 @@ Las fuentes grandes o que fallen con la IA pasan a tener un lector de código, c
 ## 5. Lo que es de Luis
 
 - Publicar los commits (hoy GitHub rechaza el push desde el VPS).
-- Añadir los dominios de las fuentes a la lista de salida del proxy del lector.
+- Añadir los dominios de las fuentes a la lista de salida del proxy de Hermes e instalar su skill y su tarea diaria.
 - Crear y guardar la llave `HERMES_MARKET_KEY`.
 - Encender `HERMES_MARKET_READY`.
 - Si el directorio local es más nuevo que el de producción, aceptarlo en Settings › Automations › Market inventory y revisar los canales nuevos.
 
-## 6. Decisiones que necesito
+## 6. Decisiones de Luis (23-nov-2026)
 
-| # | Decisión | Recomendación |
+| # | Decisión | Qué implica |
 | --- | --- | --- |
-| 1 | **Quién abre las webs.** (a) Un lector enjaulado y sin herramientas, como el que ya lee las carpetas (`hampton-lector`). (b) El agente Hermes directamente. | **(a).** Una web ajena es texto que no controlamos, y el agente Hermes tiene terminal, la llave de GitHub y la de la base de datos. Es la misma elección que hiciste para los documentos el 6-nov. |
-| 2 | **Qué pasa con una casa que ya no aparece.** (a) Queda como no encontrada y una persona la confirma, como hoy. (b) Tras dos lecturas completas seguidas sin aparecer, se retira sola de las propuestas. | **(b)**, sin borrar nada: con 70 fuentes, confirmar a mano cada casa no es viable. |
-| 3 | **Qué fuentes entran.** (a) Solo agencias de viviendas, primero las de más anuncios. (b) También oficinas y coworking. | **(a).** El matching de mercado no cruza búsquedas comerciales, así que hoy esas casas no servirían. |
-| 4 | **Las 44 fuentes que no están permitidas** (23 solo manuales, 21 sin revisar). | Quedan fuera, como decidiste el 20-nov (BUS-24). Entran cuando las revises. |
+| 1 | **Las webs las abre el agente Hermes directamente** (no un lector enjaulado). | Se construye como skill y tarea programada de Hermes. Riesgo aceptado: una web podría intentar darle instrucciones a un agente que tiene terminal. Se limita con una llave que solo abre las dos rutas del mercado, la lista de dominios del proxy y la comprobación de la app. |
+| 2 | **Una casa que deja de aparecer se retira sola** tras dos lecturas completas seguidas sin aparecer. | No se borra nada: deja de proponerse y vuelve sola si reaparece. Cambio en la comparación diaria (BUS-08). |
+| 3 | **El directorio incluye propiedades comerciales**; a quien busca comercial se le sugiere comercial. | Trabajo añadido (fase 1b): hoy el cruce con el mercado se salta las búsquedas comerciales. Hay que guardar el uso y la superficie de cada anuncio y cruzar las búsquedas comerciales con el inventario de mercado. |
+| 4 | **Las 44 fuentes no permitidas quedan fuera por ahora.** | Sin cambios (BUS-24). |
 
 ## 7. Riesgos
 
