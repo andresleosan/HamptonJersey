@@ -82,22 +82,25 @@ test('price_text: per month, week and year are rent; a sale without period is th
   ]) assert.deepEqual(parsePrice(text, op), want, String(text));
 });
 
-test('an advert maps to a reader record only on the channel host and path; facts only', () => {
-  const hosts = ['www.agency-a.example.test'], paths = ['/properties'];
+test('an advert maps to a reader record only on the channel host (any path); facts only', () => {
+  const hosts = ['www.agency-a.example.test'];
   assert.equal(normaliseUrl('https://WWW.Agency-A.example.test/properties/X-1/?ref=feed#top'), 'https://agency-a.example.test/properties/X-1');
-  const r = advertRecord({ ...advert('agency-a', 'X-1'), parking: true, area_sqft: 850, description: 'never', phone: '0' }, hosts, paths);
+  const r = advertRecord({ ...advert('agency-a', 'X-1'), parking: true, area_sqft: 850, description: 'never', phone: '0' }, hosts);
   assert.equal(r.url, 'https://agency-a.example.test/properties/X-1');
   assert.deepEqual(r.raw, { listing_url: url('agency-a', 'X-1'), price_text: '£1,500 pcm' });
+  assert.deepEqual(advertRecord(advert('agency-a', 'X-1', { listing_url: `${url('agency-a', 'X-1')}?ref=feed#top` }), hosts).raw.listing_url,
+    url('agency-a', 'X-1'));
   assert.deepEqual(r.observation, { country_code: 'JE', territory_evidence: 'Advert on agency-a.example.test: St Helier', operation: 'rent',
     title: 'Flat X-1', parish: 'St Helier', bedrooms: 2, bathrooms: 1, parking: true, use: 'residential', area_sqft: 850,
     financial_terms: [{ kind: 'rent', amount_minor: 150000, currency: 'GBP', period: 'month', raw_text: '£1,500 pcm' }] });
-  assert.ok(!('parking' in advertRecord(advert('agency-a', 'X-2'), hosts, paths).observation));
-  assert.equal(advertRecord(advert('agency-a', 'X-3', { parish: 'Atlantis' }), hosts, paths).observation.parish, null);
-  for (const bad of [{ listing_url: 'https://evil.example.test/properties/X' }, { listing_url: 'https://www.agency-a.example.test/about/X' },
-    { listing_url: 'https://www.agency-a.example.test/propertiesX/1' }, { listing_url: 'http://www.agency-a.example.test/properties/X' },
+  assert.ok(!('parking' in advertRecord(advert('agency-a', 'X-2'), hosts).observation));
+  assert.equal(advertRecord(advert('agency-a', 'X-3', { parish: 'Atlantis' }), hosts).observation.parish, null);
+  for (const bad of [{ listing_url: 'https://evil.example.test/properties/X' }, { listing_url: 'http://www.agency-a.example.test/properties/X' },
     { listing_url: 'https://www.agency-a.example.test.evil.test/properties/X' }, { operation: 'lease' }, { use: 'land' }, { listing_url: 7 }])
-    assert.equal(advertRecord({ ...advert('agency-a', 'X'), ...bad }, hosts, paths), null, JSON.stringify(bad));
-  assert.ok(advertRecord(advert('agency-a', 'X'), hosts, ['/']));
+    assert.equal(advertRecord({ ...advert('agency-a', 'X'), ...bad }, hosts), null, JSON.stringify(bad));
+  // Only the pages Hermes reads are bound to the channel's paths (the custodian checks them); a listing may live anywhere on the host.
+  for (const u of ['https://agency-a.example.test/about/X', 'https://www.agency-a.example.test/propertiesX/1'])
+    assert.ok(advertRecord(advert('agency-a', 'X', { listing_url: u }), hosts), u);
 });
 
 test('switched off: every route answers 404, nothing is written, and the sweep runs exactly as today', async () => {
@@ -216,6 +219,16 @@ test('three failures in a day block the channel, as for a code reader; refused a
   const closed = await door(env, 'POST', '/claim', ch('agency-a'));
   assert.equal(closed.status, 409);
   assert.ok(closed.data.retry_after_s >= 1);
+  // Nothing more is written into a closed run: a failure is not recorded, a page on an old lease is refused.
+  const lease = { ...ch('agency-a'), token: crypto.randomUUID(), generation: 1, policy_version: 1, run_version: 1, cursor: null };
+  env.DB.raw.prepare("UPDATE market_source_runs SET lease_token=?,lease_generation=1,lease_until=? WHERE source_ref='agency-a'")
+    .run(lease.token, at(0, 30));
+  const state = () => [n(env, 'SELECT COUNT(*) AS n FROM market_sweep_attempts'), one(env, "SELECT status,lease_token FROM market_source_runs WHERE source_ref='agency-a'")];
+  const was = state();
+  assert.deepEqual(ok(await door(env, 'POST', '/fail', { ...ch('agency-a'), lease, reason: 'unavailable' })), { ok: true });
+  assert.equal((await door(env, 'POST', '/page', { lease, records: many('agency-a', 'Z', 2), exhausted: true })).status, 409);
+  assert.deepEqual(state(), was);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_pages WHERE source_ref='agency-a'"), 0);
   assert.deepEqual(ok(await door(env, 'GET', '/work')), { day: null, run_id: null, items: [] });
 });
 
@@ -237,6 +250,42 @@ test('a takeover keeps each home: a known listing_url reuses the code reader key
     ['code:A-1', 'code:A-2', 'code:A-3', 'hermes:H']);
   rest(env); assert.equal((await marketSweepPass(env, at(1, 10), { readers })).compared, true);
   assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_sweep_missing'), 0);
+});
+
+test('a Gaudin-shaped channel (index page paths) takes its /property/<slug>/<id> listings', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world({ HERMES_MARKET_READY: '1', HERMES_MARKET_SOURCES: 'agency-g' });
+  source(env, 'agency-g', 'site', ['gaudin.example.test'], ['/residential-for-rent']);
+  await marketSweepPass(env, at(0), { readers: {} });
+  const pages = await deliver(t, env, runOf(env, 0).id, 'agency-g', [1, 2, 3].map(i => advert('agency-g', `G-${i}`,
+    { listing_url: `https://www.gaudin.example.test/property/flat-in-st-helier/10${i}` })), at(0, 10));
+  assert.deepEqual(pages, [{ accepted: true, skipped: 0 }]);
+  assert.deepEqual(rows(env, "SELECT json_extract(raw_json,'$.listing_url') AS u FROM market_observations WHERE source_ref='agency-g' ORDER BY u").map(r => r.u),
+    [1, 2, 3].map(i => `https://www.gaudin.example.test/property/flat-in-st-helier/10${i}`));
+});
+
+test('a pass that ends with no advert taken, over several slices, on a channel with live adverts fails; it does not complete empty', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world();
+  await marketSweepPass(env, at(0), { readers: {} });
+  await deliver(t, env, runOf(env, 0).id, 'agency-a', many('agency-a', 'A', 3), at(0, 10));
+  rest(env); assert.equal((await marketSweepPass(env, at(0, 20), { readers: {} })).compared, true);
+  // Day 1: every advert Hermes sends is off the channel's host, in two slices.
+  t.mock.timers.setTime(Date.parse(at(1)));
+  await marketSweepPass(env, at(1), { readers: {} });
+  const run = runOf(env, 1).id, off = Array.from({ length: 13 }, (_, i) => advert('agency-a', `X-${i}`,
+    { listing_url: `https://elsewhere.example.test/properties/X-${i}` })), claim = { run_id: run, source_ref: 'agency-a', channel_id: 'site' };
+  rest(env); t.mock.timers.setTime(Date.parse(at(1, 5)));
+  let { lease } = ok(await door(env, 'POST', '/claim', claim));
+  assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: off.slice(0, 10), exhausted: false })), { accepted: true, skipped: 10 });
+  rest(env); t.mock.timers.setTime(Date.parse(at(1, 6)));
+  ({ lease } = ok(await door(env, 'POST', '/claim', claim)));
+  assert.equal((await door(env, 'POST', '/page', { lease, records: off.slice(10), exhausted: true })).status, 409);
+  assert.deepEqual({ ...one(env, 'SELECT status,lease_token FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a') },
+    { status: 'failed', lease_token: null });
+  assert.deepEqual(rows(env, "SELECT outcome FROM market_sweep_attempts WHERE run_id=? AND source_ref='agency-a' ORDER BY attempted_at", run)
+    .map(r => r.outcome), ['page', 'invalid_response']);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND gone=0"), 3);
 });
 
 test('a sub-channel of a source read at "/" is completed empty by the sweep and is not Hermes work', async t => {

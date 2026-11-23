@@ -16,7 +16,7 @@ const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 async function channels(env, where, ...args) {
   const h = hermesChannels(env);
   if (!h) return [];
-  const { results } = await env.DB.prepare(`SELECT sr.run_id,sr.source_ref,sr.channel_id,sr.page_no,sr.status,s.allowed_hosts,
+  const { results } = await env.DB.prepare(`SELECT sr.run_id,mr.status AS run_status,sr.source_ref,sr.channel_id,sr.page_no,sr.status,s.allowed_hosts,
       s.allowed_paths,s.min_interval_s FROM market_source_runs sr JOIN market_runs mr ON mr.id=sr.run_id AND mr.kind='daily'
     JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
     WHERE ${where} AND ${AUTOMATIC} AND ${h.sql} AND NOT ${SUB_CHANNEL} ORDER BY sr.paging_key LIMIT 200`).bind(...args, ...h.args).all();
@@ -61,6 +61,7 @@ async function page({ request, env }) {
       !Array.isArray(b.records) || b.records.length > 10 || typeof b.exhausted !== 'boolean' || (!b.exhausted && !b.records.length))
     fail(400, 'Send the lease, up to 10 records and exhausted');
   const c = await channel(env, l), ts = now();
+  if (c.run_status !== 'open') return wait(env, c, ts); // a closed run takes nothing more
   // A lease commits one page: the same slice sent again is answered as already taken.
   if (await env.DB.prepare(`SELECT 1 FROM market_pages WHERE run_id=? AND source_ref=? AND channel_id=? AND lease_token=?
       AND lease_generation=?`).bind(c.run_id, c.source_ref, c.channel_id, l.token, l.generation).first())
@@ -69,7 +70,7 @@ async function page({ request, env }) {
   if (!(await env.DB.prepare(`SELECT 1 FROM market_source_runs WHERE run_id=? AND source_ref=? AND channel_id=? AND lease_token=?
       AND lease_generation=? AND lease_until>?`).bind(c.run_id, c.source_ref, c.channel_id, l.token, l.generation, ts).first()))
     return wait(env, c, ts);
-  const hosts = JSON.parse(c.allowed_hosts), paths = JSON.parse(c.allowed_paths);
+  const hosts = JSON.parse(c.allowed_hosts);
   // The channel's known homes by listing URL, so one a code reader or an earlier day saw keeps its key.
   const { results } = await env.DB.prepare(`SELECT l.external_key,json_extract(o.raw_json,'$.listing_url') AS url
     FROM market_latest_observations l JOIN market_observations o ON o.id=l.observation_id WHERE l.source_ref=? AND l.channel_id=?`)
@@ -77,11 +78,20 @@ async function page({ request, env }) {
   const known = new Map(results.map(r => [normaliseUrl(r.url), r.external_key]));
   // An advert off the channel or without what a record needs goes as null, which the sweep counts as skipped.
   const records = await Promise.all(b.records.map(async a => {
-    const r = advertRecord(a, hosts, paths);
+    const r = advertRecord(a, hosts);
     return r && { external_key: known.get(r.url) ?? `hermes:${(await sha256(r.url)).slice(0, 32)}`, raw: r.raw, observation: r.observation };
   }));
   // The cursor is the door's: the offset of adverts received (a code reader's cursor from earlier today counts as 0).
   const offset = /^\d{1,9}$/.test(l.cursor ?? '') ? Number(l.cursor) : 0;
+  // A pass that ends with no advert taken, on a channel with live ones, is a broken read, not an empty market (as the
+  // sweep's guard on a first page, here over all the pass's slices).
+  if (b.exhausted && !records.some(Boolean) && await env.DB.prepare(`SELECT 1 FROM market_latest_observations
+      WHERE source_ref=? AND channel_id=? AND gone=0 AND NOT EXISTS (SELECT 1 FROM market_pages p JOIN market_observations o
+        ON o.page_id=p.id WHERE p.run_id=? AND p.source_ref=? AND p.channel_id=?) LIMIT 1`)
+      .bind(c.source_ref, c.channel_id, c.run_id, c.source_ref, c.channel_id).first()) {
+    await failed(env, c.run_id, c, l, new SourceReadError('invalid_response'), ts);
+    return wait(env, c, ts);
+  }
   const { outcome, skipped } = await commitRead(env, c.run_id, c, l,
     { records, exhausted: b.exhausted, next_cursor: b.exhausted ? null : String(offset + b.records.length) }, ts);
   return outcome === 'failed' ? wait(env, c, ts) : json({ accepted: true, skipped });
@@ -92,8 +102,8 @@ async function failure({ request, env }) {
   if (!plain(b) || ![b.run_id, b.source_ref, b.channel_id].every(text) || !REASONS.includes(b.reason) ||
       (b.lease != null && !(plain(b.lease) && text(b.lease.token)))) fail(400, 'Send the channel, its lease or null, and a reason');
   const c = await channel(env, b);
-  // ponytail: a channel already complete or blocked keeps its count; nothing to record.
-  if (!['pending', 'running', 'failed'].includes(c.status)) return json({ ok: true });
+  // ponytail: a closed run, or a channel already complete or blocked, keeps its count; nothing to record.
+  if (c.run_status !== 'open' || !['pending', 'running', 'failed'].includes(c.status)) return json({ ok: true });
   await failed(env, c.run_id, c, b.lease ? { token: b.lease.token } : null, new SourceReadError(b.reason), now());
   return json({ ok: true });
 }

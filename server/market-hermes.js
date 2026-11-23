@@ -1,5 +1,5 @@
 // BUS-09: Hermes's adverts as the daily sweep's reader records (contract "Advert" and "Mapping in the door"). Pure: an
-// advert off its channel's hosts or paths, or without what a record needs, is left out (null). Facts only: never a
+// advert off its channel's hosts (any path: only the pages Hermes reads are bound to the channel's paths), or without what a record needs, is left out (null). Facts only: never a
 // description, photo, name, phone or email, whatever Hermes sends.
 import { OPTIONS } from './applicants.js';
 
@@ -14,11 +14,6 @@ export function normaliseUrl(value) {
   return `https://${bare(u.hostname)}${u.pathname.replace(/\/+$/, '')}`;
 }
 
-const onChannel = (url, hosts, paths) => {
-  const u = new URL(url);
-  return hosts.some(h => bare(h) === bare(u.hostname)) &&
-    paths.some(p => p === '/' || u.pathname === p || u.pathname.startsWith(p.endsWith('/') ? p : `${p}/`));
-};
 
 // "£1,950 pcm" and the like, as BUS-09 financial terms. A period makes it rent; a sale without one is the price.
 export function parsePrice(text, operation) {
@@ -34,15 +29,16 @@ export function parsePrice(text, operation) {
 }
 
 // { url (normalised), raw, observation } or null.
-export function advertRecord(a, hosts, paths) {
+export function advertRecord(a, hosts) {
   if (!a || typeof a !== 'object' || Array.isArray(a) || typeof a.listing_url !== 'string' || a.listing_url.length > 2048) return null;
   const url = normaliseUrl(a.listing_url);
-  if (!url || !onChannel(a.listing_url, hosts, paths) || !['rent', 'sale'].includes(a.operation) ||
+  if (!url || !hosts.some(h => bare(h) === bare(new URL(url).hostname)) || !['rent', 'sale'].includes(a.operation) ||
       !['residential', 'commercial'].includes(a.use)) return null;
   const price = typeof a.price_text === 'string' && a.price_text.length <= 200 ? a.price_text : null;
   const parish = typeof a.parish === 'string' ? PARISH.get(a.parish.trim().toLowerCase()) ?? null : null;
   const title = typeof a.title === 'string' && a.title.trim() ? a.title.trim().slice(0, 120) : null;
-  return { url, raw: { listing_url: a.listing_url, price_text: price },
+  const u = new URL(a.listing_url); // stored without query or fragment
+  return { url, raw: { listing_url: u.origin + u.pathname, price_text: price },
     observation: { country_code: 'JE', territory_evidence: `Advert on ${bare(new URL(url).hostname)}${parish ? `: ${parish}` : ''}`,
       operation: a.operation, title, parish, bedrooms: count(a.bedrooms), bathrooms: count(a.bathrooms),
       ...(a.parking === true && { parking: true }), use: a.use,
