@@ -397,9 +397,9 @@ test('a sub-channel with adverts read before completes empty every day: never bl
   assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND channel_id='site' AND gone=0"), 2);
 });
 
-test('both switches exist off, and equal, in both wrangler files', () => {
+test('pilot switches (23-nov: three agencies), equal in both wrangler files', () => {
   const vars = f => [...readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8').matchAll(/^(HERMES_MARKET_\w+) = (.*)$/gm)].map(m => m.slice(1));
-  assert.deepEqual(vars('wrangler.toml'), [['HERMES_MARKET_READY', '"0"'], ['HERMES_MARKET_SOURCES', '""']]);
+  assert.deepEqual(vars('wrangler.toml'), [['HERMES_MARKET_READY', '"1"'], ['HERMES_MARKET_SOURCES', '"src-gaudin-co,src-keys-properties,src-finders-keepers"']]);
   assert.deepEqual(vars('jobs/wrangler.toml'), vars('wrangler.toml'));
 });
 
