@@ -6,6 +6,7 @@ import { json, fail, readJson, now, sha256 } from '../http.js';
 import { claimSourcePage } from '../market-inventory-store.js';
 import { AUTOMATIC, SUB_CHANNEL, SourceReadError, commitRead, failed, hermesChannels } from '../market-daily-sweep.js';
 import { advertRecord, normaliseUrl } from '../market-hermes.js';
+import { READ_SOME } from '../market-identity.js';
 
 export const marketReady = env => env?.HERMES_MARKET_READY === '1';
 const REASONS = ['access_denied', 'unavailable', 'invalid_response', 'rate_limited'];
@@ -84,21 +85,31 @@ async function page({ request, env }) {
   // The cursor is the door's: the offset of adverts received (a code reader's cursor from earlier today counts as 0).
   const offset = /^\d{1,9}$/.test(l.cursor ?? '') ? Number(l.cursor) : 0;
   // A pass that ends with no advert taken, on a channel with live ones, is a broken read, not an empty market (as the
-  // sweep's guard on a first page, here over all the pass's slices); so is one that took under 80% of the live adverts
-  // of a channel with 5 or more: a short read never completes a pass. Unless the channel's previous day ended without a
-  // full pass after such a refusal (invalid_response): a real drop then completes on the second day.
+  // sweep's guard on a first page, here over all the pass's slices); so is one that took under 80% of the adverts of the
+  // channel's last complete pass, when it read 5 or more: a short read never completes a pass. Each such refusal is kept
+  // (market_short_reads, 0123). The next day, after a day that ended without a full pass on such a refusal, a pass within
+  // ±10% of that day's and at least half the measure is a real drop: it completes, and is the next day's measure.
   if (b.exhausted) {
-    const { live, seen, again } = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM market_latest_observations WHERE source_ref=?
-        AND channel_id=? AND gone=0) AS live, (SELECT COUNT(*) FROM (SELECT o.external_key FROM market_pages p
+    const { live, base, seen, prev } = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM market_latest_observations WHERE source_ref=?
+        AND channel_id=? AND gone=0) AS live,
+      (SELECT (SELECT COUNT(DISTINCT o.external_key) FROM market_pages p JOIN market_observations o ON o.page_id=p.id
+          WHERE p.run_id=sr.run_id AND p.source_ref=sr.source_ref AND p.channel_id=sr.channel_id)
+        FROM market_source_runs sr JOIN market_runs r ON r.id=sr.run_id WHERE sr.source_ref=? AND sr.channel_id=? AND sr.run_id<>?
+          AND sr.status='complete' AND r.kind IN ('initial','daily') AND ${READ_SOME('sr')}
+        ORDER BY sr.last_full_pass_at DESC LIMIT 1) AS base, (SELECT COUNT(*) FROM (SELECT o.external_key FROM market_pages p
         JOIN market_observations o ON o.page_id=p.id WHERE p.run_id=? AND p.source_ref=? AND p.channel_id=?
         UNION SELECT value FROM json_each(?))) AS seen,
-      (SELECT sr.status<>'complete' AND EXISTS (SELECT 1 FROM market_sweep_attempts a WHERE a.run_id=sr.run_id
-          AND a.source_ref=sr.source_ref AND a.channel_id=sr.channel_id AND a.outcome='invalid_response')
-        FROM market_source_runs sr JOIN market_runs r ON r.id=sr.run_id WHERE r.kind='daily' AND sr.source_ref=? AND sr.channel_id=?
-          AND r.jersey_day<(SELECT jersey_day FROM market_runs WHERE id=?) ORDER BY r.jersey_day DESC LIMIT 1) AS again`)
-      .bind(c.source_ref, c.channel_id, c.run_id, c.source_ref, c.channel_id,
+      (SELECT CASE WHEN sr.status<>'complete' THEN q.seen END FROM market_source_runs sr JOIN market_runs r ON r.id=sr.run_id
+        LEFT JOIN market_short_reads q ON q.run_id=sr.run_id AND q.source_ref=sr.source_ref AND q.channel_id=sr.channel_id
+        WHERE r.kind='daily' AND sr.source_ref=? AND sr.channel_id=?
+          AND r.jersey_day<(SELECT jersey_day FROM market_runs WHERE id=?) ORDER BY r.jersey_day DESC LIMIT 1) AS prev`)
+      .bind(c.source_ref, c.channel_id, c.source_ref, c.channel_id, c.run_id, c.run_id, c.source_ref, c.channel_id,
         JSON.stringify(records.filter(Boolean).map(r => r.external_key)), c.source_ref, c.channel_id, c.run_id).first();
-    if ((live > 0 && !seen) || (live >= 5 && seen < live * 0.8 && !again)) {
+    const short = base >= 5 && seen < base * 0.8;
+    if ((live > 0 && !seen) || (short && !(prev != null && Math.abs(seen - prev) <= prev * 0.1 && seen >= base * 0.5))) {
+      if (short) await env.DB.prepare(`INSERT INTO market_short_reads(run_id,source_ref,channel_id,seen,baseline,at)
+        VALUES (?,?,?,?,?,?) ON CONFLICT(run_id,source_ref,channel_id) DO UPDATE SET seen=excluded.seen,baseline=excluded.baseline,
+          at=excluded.at`).bind(c.run_id, c.source_ref, c.channel_id, seen, base, ts).run();
       await failed(env, c.run_id, c, l, new SourceReadError('invalid_response'), ts);
       return wait(env, c, ts);
     }

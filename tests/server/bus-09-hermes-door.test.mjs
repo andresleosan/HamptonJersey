@@ -301,36 +301,46 @@ test('a pass that ends with no advert taken, over several slices, on a channel w
   assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND gone=0"), 3);
 });
 
-test('a short pass, under 80% of a channel\'s live adverts (5 or more), fails; 80% completes', async t => {
+test('a short pass, under 80% of the last complete pass (5 or more), fails; a real drop completes the next day, once', async t => {
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
-  const env = world();
-  await marketSweepPass(env, at(0), { readers: {} });
-  await deliver(t, env, runOf(env, 0).id, 'agency-a', many('agency-a', 'A', 10), at(0, 10));
-  t.mock.timers.setTime(Date.parse(at(1)));
-  await marketSweepPass(env, at(1), { readers: {} });
-  const run = runOf(env, 1).id, claim = { run_id: run, source_ref: 'agency-a', channel_id: 'site' };
-  rest(env); t.mock.timers.setTime(Date.parse(at(1, 5)));
-  let { lease } = ok(await door(env, 'POST', '/claim', claim));
-  assert.equal((await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 7), exhausted: true })).status, 409);
-  assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'failed');
-  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE run_id=? AND outcome='invalid_response'", run), 1);
-  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_pages WHERE run_id=?', run), 0);
-  rest(env); t.mock.timers.setTime(Date.parse(at(1, 30)));
-  ({ lease } = ok(await door(env, 'POST', '/claim', claim)));
-  assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 8), exhausted: true })), { accepted: true, skipped: 0 });
-  assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'complete');
-  // Day 2, after a full day: 7 of 10 is still refused. Day 3, after a day that ended so: a real drop, 7 completes.
-  const short = async (d, status) => {
+  // A channel whose last complete pass (day 0) read 10 adverts.
+  const channel = async () => {
+    const env = world();
+    t.mock.timers.setTime(Date.parse(at(0, 5)));
+    await marketSweepPass(env, at(0), { readers: {} });
+    await deliver(t, env, runOf(env, 0).id, 'agency-a', many('agency-a', 'A', 10), at(0, 10));
+    return env;
+  };
+  // Day d: Hermes sends count adverts in one pass (or reports a failure); the answer's status and the channel's.
+  const day = async (env, d, count, fail = false) => {
     t.mock.timers.setTime(Date.parse(at(d)));
     await marketSweepPass(env, at(d), { readers: {} });
-    const r = runOf(env, d).id;
+    const claim = { run_id: runOf(env, d).id, source_ref: 'agency-a', channel_id: 'site' };
     rest(env); t.mock.timers.setTime(Date.parse(at(d, 5)));
-    const { lease: l } = ok(await door(env, 'POST', '/claim', { ...claim, run_id: r }));
-    assert.equal((await door(env, 'POST', '/page', { lease: l, records: many('agency-a', 'A', 7), exhausted: true })).status, status);
-    return one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', r, 'agency-a').status;
+    const { lease } = ok(await door(env, 'POST', '/claim', claim));
+    const r = fail ? await door(env, 'POST', '/fail', { ...claim, lease, reason: 'invalid_response' })
+      : await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', count), exhausted: true });
+    return [r.status, one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', claim.run_id, 'agency-a').status];
   };
-  assert.equal(await short(2, 409), 'failed');
-  assert.equal(await short(3, 200), 'complete');
+  // A real drop to 7: refused once (and kept), then the same size completes and is the measure from then on.
+  let env = await channel();
+  assert.deepEqual(await day(env, 1, 7), [409, 'failed']);
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_pages WHERE run_id=?', runOf(env, 1).id), 0);
+  assert.deepEqual({ ...one(env, 'SELECT seen,baseline FROM market_short_reads') }, { seen: 7, baseline: 10 });
+  assert.deepEqual(await day(env, 2, 7), [200, 'complete']);
+  assert.deepEqual(await day(env, 3, 7), [200, 'complete']);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND gone=0"), 10);
+  // Hermes's own /fail invalid_response unlocks nothing.
+  env = await channel();
+  assert.deepEqual(await day(env, 1, 0, true), [200, 'failed']);
+  assert.deepEqual(await day(env, 2, 7), [409, 'failed']);
+  // A short pass of another size the next day is refused again.
+  env = await channel();
+  assert.deepEqual(await day(env, 1, 7), [409, 'failed']);
+  assert.deepEqual(await day(env, 2, 6), [409, 'failed']);
+  // Under half the measure never completes.
+  env = await channel();
+  for (const d of [1, 2, 3]) assert.deepEqual(await day(env, d, 4), [409, 'failed']);
 });
 
 test("from 20:00 Jersey time Hermes's unread channel no longer holds back the day: not read in full, never missing", async t => {
