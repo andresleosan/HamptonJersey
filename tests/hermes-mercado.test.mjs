@@ -274,7 +274,7 @@ test('behind the proxy: IP literals and NO_PROXY hosts are still judged locally'
     const { _publicHostForTest: ph } = await import('../hermes/mercado.mjs');
     if (ph) {
       assert.equal(await ph({}, '10.0.0.5'), false);
-      assert.equal(await ph({}, 'agency.je'), true);
+      assert.equal(await ph({}, 'agency.je'), true); // resolves publicly or is left to squid
       assert.equal(await ph({ lookupFn: async () => [{ address: '127.0.0.1' }] }, 'x.internal.test'), false);
     }
     assert.equal(publicAddress('10.0.0.5'), false);

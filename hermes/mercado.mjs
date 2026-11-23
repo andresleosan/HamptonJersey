@@ -80,16 +80,18 @@ export const publicAddress = a => isIP(a) === 4 ? !PRIVATE.test(a)
   : isIP(a) === 6 && !/^(::1?$|f[cd]|fe[89ab]|ff|::ffff:)/i.test(a) && !/^(64:ff9b|2001:db8|100::)/i.test(a);
 export async function _publicHostForTest(cfg, host) { return publicHost(cfg, host); }
 async function publicHost(cfg, host) {
-  // ponytail: behind hampton-squid (no outside DNS on its internal network) squid resolves and its `deny private` refuses
-  // private addresses, so the local lookup is skipped; without a proxy the custodian checks itself.
   if (isIP(host)) return publicAddress(host); // an IP literal is judged here, proxy or not
   const noProxy = (process.env.NO_PROXY ?? process.env.no_proxy ?? "").split(",").map(x => x.trim().replace(/^\*?\./, "")).filter(Boolean);
-  const proxied = !noProxy.some(n => n === "*" || host === n || host.endsWith(`.${n}`));
-  if (!cfg.lookupFn && proxied && process.env.NODE_USE_ENV_PROXY === "1" && process.env.HTTPS_PROXY) return true;
+  const proxied = !cfg.lookupFn && process.env.NODE_USE_ENV_PROXY === "1" && /^http:\/\/172\.16\.46\.2:3128\/?$/.test(process.env.HTTPS_PROXY ?? "")
+    && !noProxy.some(n => n === "*" || host === n || host.endsWith(`.${n}`));
   try {
     const all = await (cfg.lookupFn ?? lookup)(host, { all: true, verbatim: true });
     return all.length > 0 && all.every(r => publicAddress(r.address));
-  } catch { return false; }
+  } catch (e) {
+    // ponytail: hampton-squid's internal network has no outside DNS. Only when this request goes through that squid,
+    // whose global `http_access deny private` sits before every allow, is a failed lookup left to it.
+    return proxied && ["ENOTFOUND", "EAI_AGAIN"].includes(e?.code);
+  }
 }
 
 async function fetchPage(cfg, url, item) {
