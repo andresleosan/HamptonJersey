@@ -79,6 +79,9 @@ const PRIVATE = /^(0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\
 export const publicAddress = a => isIP(a) === 4 ? !PRIVATE.test(a)
   : isIP(a) === 6 && !/^(::1?$|f[cd]|fe[89ab]|ff|::ffff:)/i.test(a) && !/^(64:ff9b|2001:db8|100::)/i.test(a);
 async function publicHost(cfg, host) {
+  // ponytail: behind hampton-squid (no outside DNS on its internal network) squid resolves and its `deny private` refuses
+  // private addresses, so the local lookup is skipped; without a proxy the custodian checks itself.
+  if (!cfg.lookupFn && process.env.NODE_USE_ENV_PROXY === "1" && process.env.HTTPS_PROXY) return true;
   try {
     const all = await (cfg.lookupFn ?? lookup)(host, { all: true, verbatim: true });
     return all.length > 0 && all.every(r => publicAddress(r.address));
