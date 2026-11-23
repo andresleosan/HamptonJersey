@@ -113,7 +113,8 @@ export default function MarketInventory() {
 const homesValid = data => data && Array.isArray(data.homes) && data.summary && (data.next === null || typeof data.next === "string");
 const RESULT = { meets: ["positive", "Meets stated must-haves"], pending: ["attention", "To confirm"],
   alternative: ["neutral", "Alternative"] };
-const FACT_LABEL = { parish: "parish", bedrooms: "bedrooms", bathrooms: "bathrooms", price: "price", pets: "pets", parking: "parking" };
+const FACT_LABEL = { parish: "parish", bedrooms: "bedrooms", bathrooms: "bathrooms", price: "price", pets: "pets", parking: "parking",
+  area_sqft: "floor area" };
 const notMet = c => `${CHECK_LABEL[c.key] ?? c.key} ${c.result === "fails" ? "not met" : "to confirm"}${c.evidence ? ` (${c.evidence})` : ""}`;
 function Homes() {
   const [pages, setPages] = useState([null]), after = pages.at(-1);

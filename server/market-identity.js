@@ -329,7 +329,8 @@ const number = v => v != null && v !== '' && Number.isFinite(Number(v)) ? String
 // which is not an empty market. Reading writes nothing.
 export const readMarketCandidates = gated(async (env, { operation, commercial = false, legacy, fit, limit }) => {
   const db = primary(env.DB), top = number(fit.top), min = number(fit.bedrooms_min), max = number(fit.bedrooms_max);
-  const baths = number(fit.bathrooms_min), spaces = number(fit.parking_spaces);
+  const baths = number(fit.bathrooms_min), spaces = number(fit.parking_spaces), fmin = number(fit.floor_min), fmax = number(fit.floor_max);
+  const small = `(${fmin} IS NOT NULL AND area_sqft<${fmin}) OR (${fmax} IS NOT NULL AND area_sqft>${fmax})`;
   // [known to fail, known to be met] per criterion the search states; NULL (data unknown) counts as neither.
   const rule = {
     budget: fit.top != null && [`monthly>${top}`, `monthly<=${top}`],
@@ -340,6 +341,7 @@ export const readMarketCandidates = gated(async (env, { operation, commercial = 
     area: fit.area && [`parish<>'?' AND parish NOT IN (SELECT v FROM wanted)`, `parish IN (SELECT v FROM wanted)`],
     pets: fit.pets && ['pets=0', 'pets=1'],
     parking: Number(fit.parking_spaces) > 0 && ['parking=0', `parking=1 AND ${spaces}<=1`],
+    floor: (fit.floor_min != null || fit.floor_max != null) && [small, `area_sqft IS NOT NULL AND NOT (${small})`],
   };
   const stated = Object.keys(rule).filter(k => rule[k]), must = stated.filter(k => fit.must.includes(k));
   // NULL when nothing to add: a bare 0 in ORDER BY would name a column.

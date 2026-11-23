@@ -97,6 +97,16 @@ test('an office search is offered commercial adverts by its own rules, and never
   assert.deepEqual(on('HOME'), []);
 });
 
+test('the limit keeps the offices that fit best: newer offices too small or too dear never push out an older one that fits', async () => {
+  const env = world();
+  advert(env, 'GOOD', { use: 'commercial', area_sqft: 800 });
+  for (let i = 0; i < 30; i++) advert(env, `SMALL-${i}`, { use: 'commercial', area_sqft: 300 });
+  for (let i = 0; i < 30; i++) advert(env, `DEAR-${i}`, { use: 'commercial', area_sqft: 800, amount: 400000 });
+  const office = await officeSearch(env);
+  assert.equal(held(env, office).GOOD?.result, 'meets');
+  assert.equal(rows(env, 'SELECT market_state FROM applicant_search_runs WHERE applicant_id=?', office)[0].market_state, 'incomplete');
+});
+
 test('a home search is offered homes, including adverts that do not state their use, and never an office', async () => {
   const env = world();
   inventory(env);

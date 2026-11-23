@@ -73,8 +73,13 @@ async function matchMarket(env, a) {
   try {
     const priorities = parsePriorities(a.requirement_priorities), wanted = asList(a.parishes_wanted), shop = commercial(a);
     const petsRule = !shop && hasHouseholdPets(a) && (!!priorities || hasAnswer('pets', a)); // when evaluate() checks pets at all
-    // A commercial search is narrowed by parish only: BUS-12's evaluate() judges its area and each money term.
-    const fit = shop ? { wanted, excluded: asList(a.parishes_excluded), area: wanted.length > 0, must: [] }
+    // A commercial search: its rent (monthly) or purchase limit and its floor area in sq ft only order the offices, so the
+    // limit keeps those that fit best; BUS-12's evaluate() judges each of them.
+    const sqft = v => v == null ? null : a.area_unit === 'sqft' ? v : a.area_unit === 'sqm' ? v / 0.09290304 : null;
+    const fit = shop ? { top: a.operation === 'buy' ? a.commercial_purchase
+        : a.commercial_rent == null ? null : a.commercial_rent / (a.commercial_rent_period === 'year' ? 12 : 1),
+      floor_min: sqft(a.area_min), floor_max: sqft(a.area_max), wanted, excluded: asList(a.parishes_excluded),
+      area: wanted.length > 0, must: ['budget', 'floor', 'area'] }
       : { top: a.budget_stretch ?? a.budget_max, bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max,
         bathrooms_min: a.bathrooms_min, parking_spaces: a.parking_spaces, wanted, excluded: asList(a.parishes_excluded),
         area: wanted.length > 0 && !['unknown', 'any'].includes(a.area_answer), pets: petsRule,

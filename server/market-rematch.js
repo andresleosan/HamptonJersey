@@ -141,11 +141,11 @@ async function propose(env, id, ts, read) {
 // A crossing whose market part could not be worked out is a failed attempt, not a crossing of the old results.
 const CROSSED = new Set(['searched', 'incomplete', 'no_source']);
 // A few queued searches, in queue order. The first crossing of a search takes its baseline, once. A search no longer
-// active leaves the queue. One queued again while it was crossed, or that failed, goes to the back;
+// active, or a business transfer, leaves the queue. One queued again while it was crossed, or that failed, goes to the back;
 // a failed one MAX_ATTEMPTS times in all.
 async function cross(env, ts) {
   const { results } = await env.DB.prepare(`SELECT q.applicant_id,q.generation,
-      EXISTS (SELECT 1 FROM applicants a WHERE a.id=q.applicant_id AND ${activeSql('a')}) AS live
+      EXISTS (SELECT 1 FROM applicants a WHERE a.id=q.applicant_id AND ${activeSql('a')} AND a.search_operation IS NULL) AS live
     FROM market_rematch_queue q ORDER BY q.queued_at,q.applicant_id LIMIT ?`).bind(RECOMPUTE_PER_TICK).all();
   const out = [];
   for (const { applicant_id: id, generation, live } of results) {
