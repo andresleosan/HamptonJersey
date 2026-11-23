@@ -42,7 +42,7 @@ const clockAt = ts => () => new Date(ts);
 const REVIEWED = "s.access_status='allowed' AND s.method='http'";
 // The ones the sweep reads: those claimSourcePage (BUS-06) would lease now, so one it would refuse is not taken
 // again and again, nor waited for. sr: the channel's row in the run.
-const AUTOMATIC = `${REVIEWED} AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
+export const AUTOMATIC = `${REVIEWED} AND s.evidence_ref IS NOT NULL AND s.retention_ref IS NOT NULL
   AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now') AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')
   AND EXISTS (SELECT 1 FROM market_runs r JOIN market_directory_manifests m ON m.revision=r.manifest_revision
     WHERE r.id=sr.run_id AND s.directory_revision=r.manifest_revision AND m.status='accepted' AND m.sha256=r.manifest_sha256)`;
@@ -88,14 +88,14 @@ async function openToday(env, ts) {
   return dailyRun(env, jersey_day);
 }
 
-const attempt = (env, runId, c, ts, outcome, records = null, skipped = null) => env.DB.prepare(`INSERT INTO market_sweep_attempts
+export const attempt = (env, runId, c, ts, outcome, records = null, skipped = null) => env.DB.prepare(`INSERT INTO market_sweep_attempts
   (id,run_id,source_ref,channel_id,attempted_at,outcome,records,skipped) VALUES (?,?,?,?,?,?,?,?)`)
   .bind(crypto.randomUUID(), runId, c.source_ref, c.channel_id, ts, outcome, records, skipped);
 
 // A failed read keeps the inventory as it was. Access refused is not retried that day; a rate limit waits as asked
 // (the channel's interval at least, as every wait); a network or page failure, or a lease BUS-06 refuses, is retried on later ticks, MAX_FAILURES
 // times in all. lease: the one held, or null when none could be taken (then only an expired one is released).
-function failed(env, runId, c, lease, error, ts) {
+export function failed(env, runId, c, lease, error, ts) {
   const code = error instanceof SourceReadError ? error.code : 'unavailable';
   const wait = Math.max(c.min_interval_s ?? 60, code === 'rate_limited' ? Number(error.retryAfterS) || 0 : 1200);
   return env.DB.batch([attempt(env, runId, c, ts, code),
@@ -143,8 +143,24 @@ async function toPage(read, lease, ts) {
   return { ...page, skipped: read.records.length - page.records.length };
 }
 
-async function readChannel(env, run, c, readers, ts) {
-  const reader = readers[c.source_ref];
+// BUS-09: the channels Hermes reads through its door (routes/hermes-market.js, contract "Assignment"): with
+// HERMES_MARKET_READY, the automatic channels of the sources in HERMES_MARKET_SOURCES ("*": all), also those with a code
+// reader. As SQL on sr (the channel's run row); null while off, so the sweep's queries stay as they were.
+export function hermesChannels(env) {
+  const list = String(env?.HERMES_MARKET_SOURCES ?? '').split(',').map(v => v.trim()).filter(Boolean);
+  if (env?.HERMES_MARKET_READY !== '1' || !list.length) return null;
+  return list.includes('*') ? { sql: '1', args: [] } : { sql: 'sr.source_ref IN (SELECT value FROM json_each(?))', args: [JSON.stringify(list)] };
+}
+const bareSql = x => `CASE WHEN lower(${x}) LIKE 'www.%' THEN substr(lower(${x}),5) ELSE lower(${x}) END`;
+// A sub-channel: its source has another allowed channel at "/" on the same bare host, which reads it all. On s.
+export const SUB_CHANNEL = `(NOT EXISTS (SELECT 1 FROM json_each(s.allowed_paths) WHERE value='/') AND EXISTS (SELECT 1
+  FROM market_sources r, json_each(r.allowed_paths) rp, json_each(r.allowed_hosts) rh, json_each(s.allowed_hosts) sh
+  WHERE r.source_ref=s.source_ref AND r.channel_id<>s.channel_id AND r.directory_revision IS s.directory_revision
+    AND r.access_status='allowed' AND r.method='http' AND rp.value='/' AND ${bareSql('rh.value')}=${bareSql('sh.value')}))`;
+// ponytail: Hermes's sub-channels are completed empty here, through the same lease and commit, as the Finders Keepers reader does.
+const EMPTY = Object.freeze({ readPage: async () => ({ records: [], exhausted: true, next_cursor: null }) });
+
+async function readChannel(env, run, c, reader, ts) {
   if (!reader) {
     await env.DB.batch([attempt(env, run.id, c, ts, 'no_reader'), env.DB.prepare(`UPDATE market_source_runs
       SET status='blocked',lease_token=NULL,lease_until=NULL
@@ -169,28 +185,37 @@ async function readChannel(env, run, c, readers, ts) {
     if (paced) return 'waiting';
     await failed(env, run.id, c, null, error, ts); return 'failed'; // refused otherwise: counted, retried later
   }
-  let page, skipped;
+  let read;
   try {
-    const read = await reader.readPage({ source_ref: c.source_ref, channel_id: c.channel_id, cursor: lease.cursor,
+    read = await reader.readPage({ source_ref: c.source_ref, channel_id: c.channel_id, cursor: lease.cursor,
       allowed_hosts: JSON.parse(c.allowed_hosts), allowed_paths: JSON.parse(c.allowed_paths),
       signal: AbortSignal.timeout(READ_TIMEOUT_MS) });
+  } catch (error) { await failed(env, run.id, c, lease, error, ts); return 'failed'; }
+  return (await commitRead(env, run.id, c, lease, read, ts)).outcome;
+}
+
+// A reader's answer committed on its lease: also Hermes's pages, from its door. c: source_ref, channel_id, page_no,
+// min_interval_s. { outcome: 'page'|'complete'|'failed', skipped }.
+export async function commitRead(env, runId, c, lease, read, ts) {
+  let page, skipped;
+  try {
     ({ skipped, ...page } = await toPage(read, lease, ts));
     // A first page that says the channel is empty when it had adverts is a broken reader, not a market with none.
     if (page.exhausted && !page.records.length && c.page_no === 0 && await env.DB.prepare(`SELECT 1 FROM
       market_latest_observations WHERE source_ref=? AND channel_id=? AND gone=0 LIMIT 1`).bind(c.source_ref, c.channel_id).first())
       throw new SourceReadError('invalid_response');
-  } catch (error) { await failed(env, run.id, c, lease, error, ts); return 'failed'; }
+  } catch (error) { await failed(env, runId, c, lease, error, ts); return { outcome: 'failed', skipped }; }
   try {
     await commitObservationPage(env, { lease, page, material_compare: true }, 'system', clockAt(ts));
   } catch (error) {
     // A page BUS-06 refuses counts as a failed read; a state that moved (pause, review) just ends this attempt.
-    if ([400, 413].includes(error?.status)) { await failed(env, run.id, c, lease, new SourceReadError('invalid_response'), ts); return 'failed'; }
+    if ([400, 413].includes(error?.status)) { await failed(env, runId, c, lease, new SourceReadError('invalid_response'), ts); return { outcome: 'failed', skipped }; }
     // A state that moved under the read (pause, review): counted like a failed read; the other channels go on.
-    if (error?.status === 409) { await failed(env, run.id, c, lease, new SourceReadError('unavailable'), ts); return 'failed'; }
+    if (error?.status === 409) { await failed(env, runId, c, lease, new SourceReadError('unavailable'), ts); return { outcome: 'failed', skipped }; }
     throw error;
   }
-  await attempt(env, run.id, c, ts, page.exhausted ? 'complete' : 'page', page.records.length, skipped || null).run();
-  return page.exhausted ? 'complete' : 'page';
+  await attempt(env, runId, c, ts, page.exhausted ? 'complete' : 'page', page.records.length, skipped || null).run();
+  return { outcome: page.exhausted ? 'complete' : 'page', skipped };
 }
 
 // The day's comparison, once per run. An advert of the channel's previous full pass (initial or daily) not read in
@@ -267,13 +292,17 @@ export async function marketSweepPass(env, ts, { readers = READERS } = {}) {
   const run = await openToday(env, ts);
   if (run?.status === 'open') {
     out.run = run.id;
-    const { results: channels } = await env.DB.prepare(`SELECT sr.source_ref,sr.channel_id,sr.page_no,s.allowed_hosts,s.allowed_paths,s.min_interval_s
+    // BUS-09: Hermes's channels are left to its door (no code read, no no_reader), but for its sub-channels.
+    const h = hermesChannels(env);
+    const { results: channels } = await env.DB.prepare(`SELECT sr.source_ref,sr.channel_id,sr.page_no,s.allowed_hosts,s.allowed_paths,s.min_interval_s${
+      h ? `,(${h.sql} AND ${SUB_CHANNEL}) AS hermes_sub` : ''}
       FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
       WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}
-        AND (sr.lease_until IS NULL OR sr.lease_until<=?) AND (sr.next_due IS NULL OR sr.next_due<=?)
+        AND (sr.lease_until IS NULL OR sr.lease_until<=?) AND (sr.next_due IS NULL OR sr.next_due<=?)${h ? `
+        AND (NOT ${h.sql} OR ${SUB_CHANNEL})` : ''}
       ORDER BY sr.source_ref NOT IN (SELECT value FROM json_each(?)),sr.next_due IS NOT NULL,sr.next_due,sr.paging_key LIMIT ?`)
-      .bind(run.id, ts, ts, JSON.stringify(Object.keys(readers)), CHANNELS_PER_TICK).all(); // channels with a reader first
-    for (const c of channels) out.read.push(await readChannel(env, run, c, readers, ts));
+      .bind(...h?.args ?? [], run.id, ts, ts, ...h?.args ?? [], JSON.stringify(Object.keys(readers)), CHANNELS_PER_TICK).all(); // channels with a reader first
+    for (const c of channels) out.read.push(await readChannel(env, run, c, c.hermes_sub ? EMPTY : readers[c.source_ref], ts));
     // A channel told to wait past the end of the day (its interval, a rate limit) does not hold back the comparison.
     const left = await env.DB.prepare(`SELECT 1 FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
       AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND sr.status IN ('pending','running','failed') AND ${AUTOMATIC}

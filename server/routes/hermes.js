@@ -6,6 +6,7 @@ import { nextImport, importFile, importProposal } from "./queue.js";
 import { QUIET, quietCutoff } from "./applicants.js";
 import { readyCount } from "../applicant-ready.js";
 import { mailDoor, mailRoutes } from "../hermes-mail.js";
+import { marketDoor, marketReady } from "./hermes-market.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
 // Authorization: Bearer <HERMES_KEY>. Fixed operations, public data (C0) and counts only: never who (H6, H7); since PUB-21
@@ -193,6 +194,18 @@ export async function hermesDoor(request, env, path) {
     if (!env.HERMES_MAIL_KEY || env.HERMES_MAIL_KEY === env.HERMES_KEY || !(await keyOk(request, env, env.HERMES_MAIL_KEY))) fail(401, "Unauthorized");
     await setting(env, "hermes_mail_seen", { at: now() }, "hermes").run(); // the panel's "sender is running"
     for (const [m, re, handler] of mailDoor) {
+      const hit = m === request.method && re.exec(path);
+      if (hit) return await handler({ request, env, params: hit.slice(1) });
+    }
+    fail(404, "Not found");
+  }
+  // BUS-09: the market door (routes/hermes-market.js), with its own key, held only by the market custodian on the VPS.
+  if (path.startsWith("/market/")) {
+    if (!marketReady(env)) fail(404, "Not found");
+    if (!env.HERMES_MARKET_KEY || [env.HERMES_KEY, env.HERMES_MAIL_KEY].includes(env.HERMES_MARKET_KEY) ||
+        !(await keyOk(request, env, env.HERMES_MARKET_KEY))) fail(401, "Unauthorized");
+    await setting(env, "hermes_market_seen", { at: now() }, "hermes").run();
+    for (const [m, re, handler] of marketDoor) {
       const hit = m === request.method && re.exec(path);
       if (hit) return await handler({ request, env, params: hit.slice(1) });
     }

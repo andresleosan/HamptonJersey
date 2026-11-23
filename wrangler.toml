@@ -170,6 +170,11 @@ EMAIL_SERVICE_READY = "false"
 # each type's switch in Automations, sent. The door opens only with the secret HERMES_MAIL_KEY. Sends messages: only Luis
 # switches it on, here and in jobs/wrangler.toml at the same time, once Gmail is connected.
 HERMES_MAIL_READY = "0"
+# BUS-09: Hermes reads the market's allowed channels of the sources in HERMES_MARKET_SOURCES (comma list, "*": all) through
+# its own door (/api/hermes/market/*, secret HERMES_MARKET_KEY, held by the market custodian on the VPS); the daily sweep
+# leaves those channels to it, also when a code reader exists. No migration. Keep equal in jobs/wrangler.toml.
+HERMES_MARKET_READY = "0"
+HERMES_MARKET_SOURCES = ""
 # REG-15: «Save this search» for website visitors and a daily email of new homes through the email pipeline (migration 0107; needs PRE10_PURPOSE_READY). Collects emails from the public and sends: only Luis switches it on. Must match the other wrangler.toml.
 REG15_ALERTS_READY = "0"
 # ANA-04: anonymous daily counts of the website's search filters and Insights' Search trends, with their 90-day retention (migration 0108). Switched on 17-nov-2026 by Luis (0108 applied; privacy notice updated).
