@@ -17,6 +17,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { readFileSync, writeFileSync, renameSync, rmSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
 const UA = "HamptonEstatesBot/1.0 (+market review; reads allowed pages only)";
 const REASONS = ["access_denied", "unavailable", "invalid_response", "rate_limited"];
@@ -57,19 +59,35 @@ const code = e => { try { return String.fromCodePoint(/^#x/i.test(e) ? parseInt(
 // What is compared: HTML entities decoded, JSON's "\/" undone, whitespace collapsed. Same for page and advert.
 export const plain = s => String(s).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === "#" ? code(e) : ENT[e.toLowerCase()] ?? m)
   .replaceAll("\\/", "/").replace(/\s+/g, " ").trim();
-// A whole token only: "/property/12" is not found in "/property/123", "1,950" not in "11,950", "£625" not in "£625,000".
-const has = (hay, needle) => {
+// Where a needle sits as a whole token: "/property/12" is not in "/property/123", "1,950" not in "11,950", "£625" not
+// in "£625,000".
+const at = (hay, needle) => {
+  const found = [];
   for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1)) {
     const after = hay.slice(i + needle.length, i + needle.length + 2), before = hay[i - 1] ?? "";
     if (/^[A-Za-z0-9_%-]/.test(after) || (/[0-9]$/.test(needle) && /^[,.][0-9]/.test(after))
       || (/^[0-9]/.test(needle) && /[0-9,.]/.test(before))) continue;
-    return true;
+    found.push(i);
   }
-  return false;
+  return found;
 };
+// Spans [start, end] of an advert's link on a page: the whole link or its path.
+const linkAt = (hay, url) => [url, new URL(url).pathname].flatMap(n => at(hay, n).map(i => [i, i + n.length]));
+
+// Never a private, loopback, link-local or shared (CGNAT) address, checked on every hop before it is fetched.
+const PRIVATE = /^(0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|22[4-9]\.|2[3-5]\d\.)/;
+export const publicAddress = a => isIP(a) === 4 ? !PRIVATE.test(a)
+  : isIP(a) === 6 && !/^(::1?$|f[cd]|fe[89ab]|ff|::ffff:)/i.test(a) && !/^(64:ff9b|2001:db8|100::)/i.test(a);
+async function publicHost(cfg, host) {
+  try {
+    const all = await (cfg.lookupFn ?? lookup)(host, { all: true, verbatim: true });
+    return all.length > 0 && all.every(r => publicAddress(r.address));
+  } catch { return false; }
+}
 
 async function fetchPage(cfg, url, item) {
   for (let hop = 0; hop < 5; hop++) {
+    if (!(await publicHost(cfg, new URL(url).hostname))) return null;
     const r = await cfg.fetchFn(url, { redirect: "manual", headers: { "user-agent": UA, accept: "text/html,*/*" },
       signal: AbortSignal.timeout(15000) });
     if (r.status >= 300 && r.status < 400) {
@@ -102,13 +120,14 @@ function advert(a, item) {
     || !onHost(a.listing_url, item)) return { reason: "off_channel" };
   const u = new URL(a.listing_url);
   if (u.search || u.hash || a.listing_url.includes("#")) return { reason: "query_or_fragment" }; // one advert = one clean link
+  if (typeof a.price_text !== "string") return { reason: "no_price" }; // a price ties the advert to its card
   const price = a.price_text ?? null, title = a.title ?? null, area = a.area_sqft ?? null;
   const out = { listing_url: `${u.origin}${u.pathname}`, operation: a.operation, use: a.use,
     price_text: typeof price === "string" ? plain(price) : price, parish: a.parish ?? null,
     bedrooms: intOrNull(a.bedrooms), bathrooms: intOrNull(a.bathrooms), parking: a.parking === true ? true : null,
     area_sqft: area, title: typeof title === "string" ? title.replace(/\s+/g, " ").trim() : title };
   if (!["rent", "sale"].includes(out.operation) || !["residential", "commercial"].includes(out.use)
-    || !(out.price_text === null || (typeof out.price_text === "string" && out.price_text && out.price_text.length <= 100))
+    || !(typeof out.price_text === "string" && out.price_text && out.price_text.length <= 100)
     || !(out.parish === null || PARISHES.includes(out.parish)) || out.bedrooms === undefined || out.bathrooms === undefined
     || !(a.parking === undefined || a.parking === null || typeof a.parking === "boolean")
     || !(area === null || (typeof area === "number" && area > 0 && area < 1e7))
@@ -141,29 +160,48 @@ export async function entregar(cfg, body) {
     if (!Array.isArray(pages) || !pages.length || pages.length > MAX_PAGES || !pages.every(p => typeof p === "string" && inScope(p, item)))
       throw err(400, `pages: 1 to ${MAX_PAGES} https links on the channel's hosts and paths`);
     if (!Array.isArray(adverts) || adverts.length > MAX_ADVERTS) throw err(400, `adverts: a list of at most ${MAX_ADVERTS}`);
-    const bodies = [];
-    for (const p of [...new Set(pages)]) bodies.push(await fetchPage(cfg, p, item).catch(() => null));
+    const unique = [...new Set(pages)], bodies = [];
+    for (const p of unique) bodies.push(await fetchPage(cfg, p, item).catch(() => null));
     const fetched = bodies.filter(b => b !== null);
-    const reasons = {}, records = [], seen = new Set(), pageKeys = new Set(pages.map(urlKey));
+    const reasons = {}, seen = new Set(), pageKeys = new Set(pages.map(urlKey)), kept = [];
     const reject = r => { reasons[r] = (reasons[r] ?? 0) + 1; };
     for (const a of adverts) {
       const { out, reason } = advert(a, item);
       if (reason) { reject(reason); continue; }
       const key = urlKey(out.listing_url);
       if (seen.has(key)) continue; // the same advert twice (a featured box): kept once, not a rejection
-      const path = new URL(out.listing_url).pathname;
-      // The channel's own index or a page Hermes read is not an advert, even when it links to itself.
-      if (path === "/" || item.paths.includes(path) || item.paths.includes(`${path}/`) || pageKeys.has(key)) { reject("not_a_listing"); continue; }
-      const linkFound = fetched.some(b => has(b, out.listing_url) || has(b, path));
-      if (!linkFound) { reject("link_not_on_page"); continue; }
-      if (out.price_text !== null && !fetched.some(b => has(b, out.price_text))) { reject("price_not_on_page"); continue; }
       seen.add(key);
-      records.push(out);
+      const path = new URL(out.listing_url).pathname;
+      // Not an advert: the channel's own index, a page Hermes read, a next-page link, or a link on every page read
+      // (the site's navigation).
+      if (path === "/" || item.paths.some(p => path === p || path === `${p}/` || path === p.replace(/\/$/, ""))
+        || pageKeys.has(key) || /\/(page|p)\/?\d+\/?$/i.test(path)
+        || (fetched.length > 1 && fetched.every(b => linkAt(b, out.listing_url).length))) { reject("not_a_listing"); continue; }
+      kept.push(out);
     }
+    // Each kept advert's price must sit in its own card: an occurrence of the price whose nearest advert link (among all
+    // delivered) is this advert's, at most 1,500 characters away. A swapped price is closer to the other advert's link.
+    const links = fetched.map(b => kept.map(o => linkAt(b, o.listing_url)));
+    const records = kept.filter((o, n) => {
+      if (!links.some(l => l[n].length)) { reject("link_not_on_page"); return false; }
+      const ok = fetched.some((b, i) => at(b, o.price_text).some(q => {
+        let best = Infinity, owner = -1;
+        links[i].forEach((spans, m) => spans.forEach(([a, z]) => {
+          const d = q >= z ? q - z : Math.max(0, a - q); // gap between the price and that link
+          if (d < best) { best = d; owner = m; }
+        }));
+        return owner === n && best <= 1500;
+      }));
+      if (!ok) reject("price_not_on_page");
+      return ok;
+    });
     const rejected = Object.values(reasons).reduce((s, n) => s + n, 0);
     let fail = null;
     if (!fetched.length) fail = "unavailable";
-    else if (rejected * 2 > adverts.length || (adverts.length && !records.length)) fail = "invalid_response";
+    // An advert that is not on the page, or a price that is not its own, means the copy cannot be trusted: nothing of
+    // this channel goes on. So does a list that filled every page slot (it may go on beyond them).
+    else if (reasons.link_not_on_page || reasons.price_not_on_page || unique.length >= MAX_PAGES
+      || rejected * 2 > adverts.length || (adverts.length && !records.length)) fail = "invalid_response";
     keep(f, fail ? { ...q, fail } : { ...q, records });
     log(cfg, `${name} delivered ${adverts.length}, queued ${fail ? 0 : records.length}, rejected ${rejected}`
       + `${fail ? `, reported as ${fail}` : ""} ${JSON.stringify(reasons)}`);

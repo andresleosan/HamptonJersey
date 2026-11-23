@@ -63,13 +63,12 @@ Salida esperada: ninguna.
 
 📍 Terminal del VPS · usuario root · cualquier directorio
 
-Guarda los cuatro archivos que se van a cambiar, para la marcha atrás:
+Guarda los tres archivos que se van a cambiar, para la marcha atrás:
 
 ```bash
 cp /root/hampton-hermes/compose.yaml /root/hampton-hermes/plan/compose.yaml.ANTES-MERCADO &&
 cp /root/hampton-hermes/squid/squid.conf /root/hampton-hermes/plan/squid.conf.ANTES-MERCADO &&
-cp /root/hermes/compose.yaml /root/hermes/compose.yaml.ANTES-MERCADO &&
-cp /root/hermes/squid/allowlist.txt /root/hermes/squid/allowlist.txt.ANTES-MERCADO
+cp /root/hermes/compose.yaml /root/hermes/compose.yaml.ANTES-MERCADO
 ```
 
 Salida esperada: ninguna.
@@ -234,23 +233,54 @@ Debajo de `http_access allow desde_custodio_cola para_custodio`, añadir:
 http_access allow desde_mercado para_mercado
 ```
 
-### Paso 6. Dejar a Hermes abrir las webs de las agencias
+### Paso 6. Dejar a Hermes 1, y solo a él, abrir las webs de las agencias
+
+`hermes-squid` (Hermes 1) y `hermes2-squid` (Hermes 2) comparten `squid.conf` y `allowlist.txt`. Para que Hermes 2 no gane estos dominios, Hermes 1 recibe su propia copia de `squid.conf` y su propia lista; los archivos compartidos no se tocan.
 
 📍 Terminal del VPS · usuario root · cualquier directorio
 
-Añade un comentario con la fecha al final de la lista de Hermes:
+Copia la lista de dominios del paso 3 junto a la de Hermes:
 
 ```bash
-printf '# BUS-09: webs del mercado (%s)\n' "$(date +%F)" >> /root/hermes/squid/allowlist.txt
+cp /root/hampton-hermes/squid/mercado-dominios.txt /root/hermes/squid/mercado-dominios.txt
 ```
 
-Añade los dominios del paso 3:
+Crea la configuración propia de Hermes 1 a partir de la compartida:
 
 ```bash
-cat /root/hampton-hermes/squid/mercado-dominios.txt >> /root/hermes/squid/allowlist.txt
+cp /root/hermes/squid/squid.conf /root/hermes/squid/squid-hermes1.conf
 ```
 
-Salida esperada: ninguna. Nota: Hermes 2 (`hermes2-squid`) usa el mismo archivo y cargará estos dominios en su próximo reinicio (paso 22).
+📍 Archivo `/root/hermes/squid/squid-hermes1.conf`
+
+Debajo de `acl allowed dstdomain -n "/etc/squid/allowlist.txt"`, añadir:
+
+```
+acl allowed dstdomain -n "/etc/squid/mercado-dominios.txt"
+```
+
+📍 Archivo `/root/hermes/compose.yaml`, **solo en el servicio `squid`** (el de `container_name: hermes-squid`; el de `hermes2-squid` no se toca)
+
+Cambiar:
+
+```yaml
+      - ./squid/squid.conf:/etc/squid/squid.conf:ro
+```
+
+por:
+
+```yaml
+      - ./squid/squid-hermes1.conf:/etc/squid/squid.conf:ro
+      - ./squid/mercado-dominios.txt:/etc/squid/mercado-dominios.txt:ro
+```
+
+Comprueba que `hermes2-squid` sigue igual (debe salir la línea original, una vez):
+
+```bash
+grep -c 'squid/squid.conf:/etc/squid/squid.conf' /root/hermes/compose.yaml
+```
+
+Salida esperada: «1».
 
 ### Paso 7. Conectar el taller de Hermes con el custodio
 
@@ -290,7 +320,7 @@ Copia la skill a la carpeta que Hermes lee en vivo (solo lectura para él; no ha
 cp -r /root/HamptonJersey/.worktrees/avanzar/hermes/skills/hampton-mercado /root/hermes/skills/
 ```
 
-Salida esperada: ninguna. Hermes 2 también la verá, pero no tiene ni la red ni la llave para usarla.
+Salida esperada: ninguna. Hermes 2 también la verá; no tiene la red para usarla (la llave sí puede leerla: ver el riesgo del paso 15).
 
 ### Paso 9. Comprobar que los dos compose se leen bien
 
@@ -392,7 +422,9 @@ Deja que solo root y el usuario del taller (10001) la lean:
 chown root:10001 "$S" && chmod 640 "$S"
 ```
 
-Salida esperada: ninguna. Nota: esa carpeta también la monta el taller de Hermes 2.
+Salida esperada: ninguna.
+
+⚠️ **Riesgo que aceptas con este paso:** `/root/hermes/taller/secretos` está montada en los dos talleres (`hermes-taller` y `hermes-taller2`). Por eso **Hermes 2 puede leer esta llave**, igual que cualquier encargo de Claude o Codex que corra en cualquiera de los dos talleres. Con ella se puede entregar anuncios al custodio en nombre de Hermes (solo desde el taller de Hermes 1, el único conectado a su red). Lo que limita el daño: el custodio comprueba cada anuncio contra la web real y no da acceso a nada más de la app. Si no lo aceptas, para aquí y díselo a Claude.
 
 ### Paso 16. Guardar dónde está la llave de la puerta
 
@@ -472,19 +504,19 @@ docker logs hampton-mercado --since 2m
 
 Salida esperada: «Market custodian on 172.16.47.20:8789». Si dice «Set APP_ORIGIN, …», falta una llave o tiene otro dueño: repite los pasos 10 a 12.
 
-### Paso 22. Reiniciar el squid de Hermes
+### Paso 22. Recrear el squid de Hermes 1
 
-⚠️ Reinicia `hermes-squid`: Hermes pierde la salida a internet unos segundos (un mensaje de Telegram en curso puede tardar).
+⚠️ Recrea `hermes-squid`: Hermes pierde la salida a internet unos segundos (un mensaje de Telegram en curso puede tardar). Hermes 2 y su squid no se tocan.
 
 📍 Terminal del VPS · usuario root · directorio `/root/hermes`
 
-Reinicia solo el squid de Hermes para que lea la lista nueva:
+Recrea solo el squid de Hermes 1 con su configuración y su lista nuevas:
 
 ```bash
-cd /root/hermes && docker compose -p hermes restart squid
+cd /root/hermes && docker compose -p hermes up -d --no-deps squid
 ```
 
-Salida esperada: «Container hermes-squid Started». Hermes 2 (`hermes2-squid`) usa el mismo archivo: no se reinicia ahora, pero cargará estos dominios en su próximo reinicio o al reiniciar el VPS.
+Salida esperada: «Container hermes-squid Started».
 
 ### Paso 23. Comprobar que el squid de Hermes no se queja
 
@@ -673,12 +705,12 @@ Salida esperada: «hampton-mercado Up …». Junto con el paso 33 (líneas «don
 
 1. **Apagar el piloto** (🧑‍💻 por commit): `HERMES_MARKET_READY = "0"` en `wrangler.toml` y `jobs/wrangler.toml`. Los lectores de código vuelven a leer sus agencias.
 2. **Quitar la tarea** (👤 Telegram): «Borra la tarea programada hampton-mercado».
-3. **Lista de Hermes** (👤, ⚠️ reinicia `hermes-squid`):
+3. **Squid de Hermes 1 sin las webs** (👤, ⚠️ recrea `hermes-squid`; el punto 5 lo hace también):
    ```bash
-   cp /root/hermes/squid/allowlist.txt.ANTES-MERCADO /root/hermes/squid/allowlist.txt
+   cp /root/hermes/compose.yaml.ANTES-MERCADO /root/hermes/compose.yaml
    ```
    ```bash
-   cd /root/hermes && docker compose -p hermes restart squid
+   cd /root/hermes && docker compose -p hermes up -d --no-deps squid
    ```
 4. **Parar el custodio** (👤):
    ```bash
@@ -712,3 +744,4 @@ Salida esperada: «hampton-mercado Up …». Junto con el paso 33 (líneas «don
 - Que la tarea programada de Hermes respete la hora de Jersey: lo dice el paso 30.
 - Que `curl -H @archivo` pase las aprobaciones de Hermes en una tarea nocturna: lo dirá la primera noche (paso 33). Si se queda esperando una aprobación, avisa a Claude.
 - Que `wrangler pages secret put` lea la llave del archivo (paso 17).
+- Que el custodio pueda resolver los nombres de las agencias: antes de abrir una web comprueba que su dirección no es privada, y sus redes son internas (sin salida). Si el DNS de Docker no responde ahí, todas las agencias saldrán como `unavailable` en el paso 33: avisa a Claude.

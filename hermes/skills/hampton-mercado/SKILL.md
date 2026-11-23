@@ -37,8 +37,11 @@ header file; never print, copy or open it) and `--noproxy '*'`.
    - Otherwise each item has `run_id` (at the top), `source_ref`, `channel_id`, `hosts`, `paths`.
 2. For each item, at most **40 items per run**, one at a time:
    a. Open the listing page `https://<first host><first path>`. Follow "next page" links only while they stay inside the
-      item's hosts and paths; at most 20 pages. Keep the exact address of every page you used.
-   b. For every property advert on those pages write one Advert (below). Copy, do not interpret.
+      item's hosts and paths; at most 19 pages. If the list has 20 pages or more, do not read it: deliver
+      `fail` = `invalid_response` (d). Keep the exact address of every page you used.
+   b. For every property advert on those pages write one Advert (below). Copy, do not interpret. One advert whose
+      link is not on the pages, or whose price belongs to another advert, makes the custodian refuse the whole channel:
+      leave out any advert you are not sure of rather than guess.
    c. Save `{"run_id": "...", "source_ref": "...", "channel_id": "...", "pages": ["https://…", …], "adverts": [ … ]}`
       to `/home/taller/proyectos/mercado/entrega.json` and run
       `curl -s --noproxy '*' --max-time 360 -H @/etc/taller/mercado.cabecera -H 'content-type: application/json' --data @/home/taller/proyectos/mercado/entrega.json -o /home/taller/proyectos/mercado/respuesta.json http://172.16.47.20:8789/mercado/entregar`
@@ -64,7 +67,8 @@ header file; never print, copy or open it) and `--noproxy '*'`.
   without `?…` or `#…` (the custodian rejects those). Never invent it; never the list page itself.
 - `operation` (required): `rent` or `sale`. `use` (required): `residential` or `commercial` (offices, shops, warehouses,
   land for business).
-- `price_text`: the price **verbatim** as written on the listing page ("£1,950 pcm", "£625,000", "POA"); `null` if none.
+- `price_text` (required): the price **verbatim** as written in that advert's own card on the list page ("£1,950 pcm",
+  "£625,000", "POA"). An advert with no price text at all is left out.
 - `parish`: one of Grouville, St Brelade, St Clement, St Helier, St John, St Lawrence, St Martin, St Mary, St Ouen,
   St Peter, St Saviour, Trinity, only if the page says it; otherwise `null`.
 - `bedrooms`, `bathrooms`: whole numbers if shown, else `null`. `parking`: `true` only if the page says so, else `null`.

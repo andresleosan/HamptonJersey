@@ -56,7 +56,9 @@ async function setup(t, opts) {
   const app = fakeApp(clock, opts);
   const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>",
     "/residential-for-rent": '<a href="/property/sea-view-flat/4321">Sea view</a> &pound;2,100 pcm',
-    "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000' };
+    "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000',
+    "/to-let/a": '<nav><a href="/to-let/contact">Contact</a></nav>' + card(1) + '<a href="/to-let/page/2">Next</a>',
+    "/to-let/b": '<nav><a href="/to-let/contact">Contact</a> &pound;1 pcm</nav>' + card(2) };
   const appSrv = await listen(app.handler);
   const agency = await listen((req, res) => pages[req.url] === undefined ? res.writeHead(404).end()
     : res.writeHead(200, { "content-type": "text/html" }).end(pages[req.url]));
@@ -70,7 +72,9 @@ async function setup(t, opts) {
     return r;
   };
   const estado = mkdtempSync(join(tmpdir(), "mercado-"));
-  const mk = () => ({ origin, key: KEY, callerKey: CALLER, estado, fetchFn, now: () => clock.t, log: () => {} });
+  const dns = { address: "93.184.216.34" }; // the agency's address as the custodian resolves it
+  const lookupFn = async () => [{ address: dns.address, family: 4 }];
+  const mk = () => ({ origin, key: KEY, callerKey: CALLER, estado, fetchFn, lookupFn, now: () => clock.t, log: () => {} });
   const cfg = mk();
   const srv = makeServer(cfg);
   await new Promise(ok => srv.listen(0, "127.0.0.1", ok));
@@ -82,15 +86,14 @@ async function setup(t, opts) {
   };
   const deliver = extra => call("POST", "/mercado/entregar", { run_id: RUN, source_ref: "src-a", channel_id: "ch-1",
     pages: ["https://agency.test/to-let"], ...extra });
-  return { clock, app, cfg, mk, call, deliver, net };
+  return { clock, app, cfg, mk, call, deliver, net, dns };
 }
 
-test("a verified advert passes with only the contract's fields; an invented link or price is rejected", async t => {
+test("verified adverts pass with only the contract's fields", async t => {
   const { app, cfg, deliver } = await setup(t);
-  const r = await deliver({ adverts: [advert(1, { description: "lovely", phone: "07700" }), advert(2), advert(3),
-    advert(99), advert(4, { price_text: "£999 pcm" })] });
+  const r = await deliver({ adverts: [advert(1, { description: "lovely", phone: "07700" }), advert(2), advert(3)] });
   assert.equal(r.status, 202);
-  assert.deepEqual(r.json, { queued: 3, rejected: 2, reasons: { link_not_on_page: 1, price_not_on_page: 1 } });
+  assert.deepEqual(r.json, { queued: 3, rejected: 0, reasons: {} });
   await pump(cfg);
   assert.equal(app.commits.length, 1);
   assert.equal(app.commits[0].exhausted, true);
@@ -98,25 +101,62 @@ test("a verified advert passes with only the contract's fields; an invented link
     use: "residential", price_text: "£1001 pcm", parish: "St Helier", bedrooms: 2, bathrooms: 1, parking: true, area_sqft: null, title: "Home 1" });
 });
 
-test("a link is matched as a whole token, not as the prefix of another listing; a repeated advert counts once", async t => {
-  const { deliver } = await setup(t);
-  const r = await deliver({ adverts: [advert(1), advert(2), { ...advert(2), listing_url: "https://agency.test/to-let/home-2" + "" },
-    { ...advert(1), listing_url: "https://agency.test/to-let/home-" }] });
-  assert.equal(r.json.queued, 2);
-  assert.equal(r.json.reasons.link_not_on_page, 1);
+// One advert not on the page, or one price that is not its own, and nothing of the channel goes on.
+for (const [name, bad, reason] of [
+  ["an invented link", advert(99), "link_not_on_page"],
+  ["an invented price", advert(4, { price_text: "£999 pcm" }), "price_not_on_page"],
+  ["a link that is only the prefix of another", { ...advert(1), listing_url: "https://agency.test/to-let/home-" }, "link_not_on_page"],
+  ["a cut price (£100 of £1005 pcm)", advert(5, { price_text: "£100" }), "price_not_on_page"],
+]) test(`${name} fails the whole delivery`, async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ adverts: [advert(1), advert(2), advert(3), advert(6), bad] });
+  assert.deepEqual(r.json, { queued: 0, rejected: 1, reasons: { [reason]: 1 }, fail: "invalid_response" });
+  await pump(cfg);
+  assert.equal(app.commits.length, 0);
+  assert.equal(app.fails[0].reason, "invalid_response");
 });
 
-test("a cut price, the index page, a query or a fragment never pass", async t => {
+test("swapped prices are rejected: each price must be in its own advert's card", async t => {
   const { deliver } = await setup(t);
-  const sale = { operation: "sale", parish: null, bedrooms: null, bathrooms: null, parking: null, title: null };
-  const r = await deliver({ pages: ["https://agency.test/to-let", "https://agency.test/to-let/sales"], adverts: [
-    advert(1), advert(2), advert(3), advert(6), advert(7),
-    { ...advert(0), ...sale, listing_url: "https://agency.test/to-let/big", price_text: "£625" },
-    { ...advert(0), ...sale, listing_url: "https://agency.test/to-let", price_text: null },
+  const r = await deliver({ adverts: [advert(1, { price_text: "£1002 pcm" }), advert(2, { price_text: "£1001 pcm" }), advert(3)] });
+  assert.deepEqual(r.json, { queued: 0, rejected: 2, reasons: { price_not_on_page: 2 }, fail: "invalid_response" });
+});
+
+test("a null price, a query or a fragment is dropped per advert; the index and a repeat do not count", async t => {
+  const { deliver } = await setup(t);
+  const r = await deliver({ adverts: [advert(1), advert(2), advert(3), advert(6), advert(7), advert(2),
+    advert(8, { price_text: null }),
     { ...advert(4), listing_url: "https://agency.test/to-let/home-4?ref=evil" },
-    { ...advert(5), listing_url: "https://agency.test/to-let/home-5#x" }] });
-  assert.deepEqual(r.json, { queued: 5, rejected: 4,
-    reasons: { price_not_on_page: 1, not_a_listing: 1, query_or_fragment: 2 } });
+    { ...advert(5), listing_url: "https://agency.test/to-let/home-5#x" },
+    { ...advert(0), listing_url: "https://agency.test/to-let", price_text: "£1000 pcm" }] });
+  assert.deepEqual(r.json, { queued: 5, rejected: 4, reasons: { no_price: 1, query_or_fragment: 2, not_a_listing: 1 } });
+});
+
+test("next-page links and links on every page read (navigation) are not adverts", async t => {
+  const { deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/a", "https://agency.test/to-let/b"], adverts: [advert(1), advert(2),
+    { ...advert(0), listing_url: "https://agency.test/to-let/page/2", price_text: "£1001 pcm" },
+    { ...advert(0), listing_url: "https://agency.test/to-let/contact", price_text: "£1 pcm" }] });
+  assert.deepEqual(r.json, { queued: 2, rejected: 2, reasons: { not_a_listing: 2 } });
+});
+
+test("a list that fills every page slot fails: it may go on beyond them", async t => {
+  const { deliver } = await setup(t);
+  const pages = Array.from({ length: 20 }, (_, i) => `https://agency.test/to-let${i ? `/p${i}` : ""}`);
+  const r = await deliver({ pages, adverts: [advert(1)] });
+  assert.equal(r.json.fail, "invalid_response");
+});
+
+test("an agency name that resolves to a private address is never fetched", async t => {
+  const { app, cfg, deliver, dns } = await setup(t);
+  dns.address = "127.0.0.1";
+  assert.equal((await deliver({ adverts: [advert(1)] })).json.fail, "unavailable");
+  await pump(cfg);
+  assert.equal(app.fails[0].reason, "unavailable");
+  const { publicAddress } = await import("../hermes/mercado.mjs");
+  for (const a of ["10.0.0.1", "172.16.47.20", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "::1", "fd00::1",
+    "fe80::1", "::ffff:127.0.0.1"]) assert.equal(publicAddress(a), false, a);
+  assert.equal(publicAddress("93.184.216.34"), true);
 });
 
 test("Gaudin-shaped: pages under the channel's paths, listings anywhere on its host", async t => {
