@@ -57,7 +57,8 @@ export function lowerPrice(now, before) {
 // queued and the changes marked consumed in one transaction. A search already queued keeps its place and its failed
 // attempts; its generation says a change arrived.
 async function consume(env, ts) {
-  const { results } = await env.DB.prepare(`SELECT x.id,o.normalized_json AS after,o.deleted_tombstone AS gone,
+  // A change of version 2 or 3 is BUS-09's withdrawal or return of an advert (market-daily-sweep.js): material like a tombstone.
+  const { results } = await env.DB.prepare(`SELECT x.id,o.normalized_json AS after,(o.deleted_tombstone OR x.observation_version>1) AS gone,
       (SELECT p.normalized_json FROM market_observations p WHERE p.source_ref=o.source_ref AND p.channel_id=o.channel_id
         AND p.external_key=o.external_key AND p.sequence<o.sequence ORDER BY p.source_at DESC,p.sequence DESC LIMIT 1) AS before
     FROM market_change_outbox x JOIN market_observations o ON o.id=x.observation_id

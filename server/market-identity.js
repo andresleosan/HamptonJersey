@@ -276,15 +276,26 @@ const PRICE = `(SELECT CASE WHEN COUNT(*)=1 THEN json_array(CASE WHEN ${MONTHLY_
 const agree = f => `CASE WHEN COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)=1
     THEN MAX(CASE WHEN observed_at IS NOT NULL THEN ${f} END) END AS ${f},
   COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)>1 AS ${f}_disagree`;
+// BUS-09 (MARKET_AUTO_WITHDRAW_READY): an advert missing from two complete passes of its channel (initial or daily, none
+// with adverts left out) begun after its latest reading was recorded, in another run. Derived, never stored: nothing is
+// deleted and a new reading brings it back. o: that reading.
+export const autoWithdrawReady = env => env?.MARKET_AUTO_WITHDRAW_READY === '1';
+export const withdrawnSql = o => `(SELECT COUNT(*) FROM market_source_runs wr JOIN market_runs wk ON wk.id=wr.run_id
+  JOIN market_pages wp ON wp.id=${o}.page_id WHERE wr.source_ref=${o}.source_ref AND wr.channel_id=${o}.channel_id
+    AND wr.status='complete' AND wk.kind IN ('initial','daily') AND wr.run_id<>wp.run_id
+    AND (SELECT MIN(f.committed_at) FROM market_pages f WHERE f.run_id=wr.run_id AND f.source_ref=wr.source_ref
+      AND f.channel_id=wr.channel_id)>wp.committed_at
+    AND NOT EXISTS (SELECT 1 FROM market_sweep_attempts a WHERE a.run_id=wr.run_id AND a.source_ref=wr.source_ref
+      AND a.channel_id=wr.channel_id AND a.skipped>0))>=2`;
 // Each advert once, at its latest reading, from a source open now; never one its source withdrew.
-const CURRENT = `SELECT obs.id,obs.source_ref,obs.channel_id,obs.external_key,obs.normalized_json,
+const current = withdraw => `SELECT obs.id,obs.source_ref,obs.channel_id,obs.external_key,obs.normalized_json,
     json_extract(obs.raw_json,'$.listing_url') AS listing_url,json_extract(obs.normalized_json,'$.operation') AS op
   FROM market_latest_observations x JOIN market_sources s ON s.source_ref=x.source_ref AND s.channel_id=x.channel_id
     AND s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
     AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR EXISTS (SELECT 1
       FROM market_directory_manifests m WHERE m.revision=s.directory_revision AND m.status='accepted'))
-  JOIN market_observations obs ON obs.id=x.observation_id WHERE x.gone=0`;
-const HOMES = `WITH RECURSIVE
+  JOIN market_observations obs ON obs.id=x.observation_id WHERE x.gone=0${withdraw ? ` AND NOT ${withdrawnSql('obs')}` : ''}`;
+const homesSql = (withdraw = false) => `WITH RECURSIVE
   up(start,id) AS (SELECT property_id,property_id FROM market_identity_observations
     UNION SELECT up.start,a.target_property_id FROM market_identity_aliases a JOIN up ON a.source_property_id=up.id),
   roots(start,id) AS (SELECT start,id FROM up WHERE NOT EXISTS (SELECT 1 FROM market_identity_aliases a WHERE a.source_property_id=up.id)),
@@ -298,7 +309,7 @@ const HOMES = `WITH RECURSIVE
       ${N('fields.bedrooms')} AS bedrooms,${N('fields.bathrooms')} AS bathrooms,${N('fields.pets')} AS pets,${N('fields.parking')} AS parking,
       ${N('fields.use')} IS 'commercial' AS commercial,${N('fields.area_sqft')} AS area_sqft,
       ${PRICE} AS price,COALESCE(r.id,json_array(lt.source_ref,lt.channel_id,lt.external_key,lt.op)) AS home
-    FROM (${CURRENT}) lt
+    FROM (${current(withdraw)}) lt
     LEFT JOIN decided d ON d.source_ref=lt.source_ref AND d.channel_id=lt.channel_id AND d.external_key=lt.external_key AND d.operation=lt.op
     LEFT JOIN roots r ON r.start=d.property_id),
   homes AS MATERIALIZED (SELECT home,operation,MAX(observed_at) AS observed_at,COUNT(*) AS adverts,
@@ -309,6 +320,7 @@ const HOMES = `WITH RECURSIVE
         AND k.action='link' AND NOT EXISTS (SELECT 1 FROM listing_market_links u WHERE u.undoes=k.id)
         ORDER BY k.created_at DESC LIMIT 1) AS listing_id
     FROM adverts GROUP BY home,operation)`;
+const HOMES = homesSql();
 const OPEN_SOURCES = `SELECT COUNT(*) AS n FROM market_sources s LEFT JOIN market_directory_manifests m ON m.revision=s.directory_revision
   WHERE s.access_status IN ('allowed','manual_only') AND s.reviewed_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')
     AND s.review_due_at>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND (s.source_kind='internal' OR m.status='accepted')`;
@@ -348,7 +360,7 @@ export const readMarketCandidates = gated(async (env, { operation, commercial = 
   const sum = (keys, i) => keys.length ? keys.map(k => `COALESCE((${rule[k][i]}),0)`).join('+') : 'NULL';
   const known = k => `NOT COALESCE((${rule[k][0]}),0)`;
   const [homes, open] = await db.batch([
-    db.prepare(`${HOMES}, wanted(v) AS (SELECT value FROM json_each(?)), unwanted(v) AS (SELECT value FROM json_each(?))
+    db.prepare(`${homesSql(autoWithdrawReady(env))}, wanted(v) AS (SELECT value FROM json_each(?)), unwanted(v) AS (SELECT value FROM json_each(?))
       SELECT * FROM (SELECT h.*,${MONTHLY} AS monthly FROM homes h WHERE h.operation=? AND h.commercial=? AND h.listing_id IS NULL) c
       WHERE (parish IS NULL OR parish NOT IN (SELECT v FROM unwanted)) ${fit.pets ? 'AND COALESCE(pets,1)<>0' : ''}
         ${legacy ? ['budget', 'bedrooms', 'bathrooms'].filter(k => rule[k]).map(k => `AND ${known(k)}`).join(' ') : ''}

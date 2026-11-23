@@ -12,6 +12,7 @@ import { jerseyNow } from './viewings.js';
 import { normalizeObservation } from './market-extraction.js';
 import { claimSourcePage, closeInventoryRun, commitObservationPage, createInventoryRun } from './market-inventory-store.js';
 import { activeSql } from './applicants.js';
+import { autoWithdrawReady, withdrawnSql } from './market-identity.js';
 import { recomputeForApplicant } from './search-state.js';
 
 export const sweepReady = env => env?.BUS08_SWEEP_READY === '1';
@@ -221,11 +222,27 @@ export async function commitRead(env, runId, c, lease, read, ts) {
 // The day's comparison, once per run. An advert of the channel's previous full pass (initial or daily) not read in
 // this one's full pass is kept as not found; a channel without a full pass today says nothing about its adverts.
 // One Inbox task when adverts were not found or a source was not read in full. Nothing is marked unavailable.
+// BUS-09, with MARKET_AUTO_WITHDRAW_READY: an advert of a channel read in full today that is now withdrawn
+// (withdrawnSql), and one read today whose previous reading was withdrawn, are told to BUS-04 through the change outbox
+// (version 2: withdrawn, 3: back) on that reading, once each; the task counts the withdrawn.
 async function compare(env, run, ts) {
   if (await env.DB.prepare('SELECT 1 FROM market_daily_sweeps WHERE run_id=?').bind(run.id).first()) return;
+  const auto = autoWithdrawReady(env);
+  const { results: out } = auto ? await env.DB.prepare(`SELECT o.id FROM market_source_runs sr
+    JOIN market_latest_observations x ON x.source_ref=sr.source_ref AND x.channel_id=sr.channel_id AND x.gone=0
+    JOIN market_observations o ON o.id=x.observation_id
+    WHERE sr.run_id=? AND sr.status='complete' AND ${withdrawnSql('o')} AND NOT EXISTS (SELECT 1 FROM market_change_outbox w
+      WHERE w.observation_id=o.id AND w.observation_version=2)`).bind(run.id).all() : { results: [] };
+  const signals = auto ? [env.DB.prepare(`INSERT OR IGNORE INTO market_change_outbox(id,observation_id,observation_version,kind)
+      SELECT lower(hex(randomblob(16))),value,2,'observation_changed' FROM json_each(?)`).bind(JSON.stringify(out.map(r => r.id))),
+    env.DB.prepare(`INSERT OR IGNORE INTO market_change_outbox(id,observation_id,observation_version,kind)
+      SELECT lower(hex(randomblob(16))),o.id,3,'observation_changed' FROM market_pages p JOIN market_observations o ON o.page_id=p.id
+      WHERE p.run_id=? AND EXISTS (SELECT 1 FROM market_change_outbox w WHERE w.observation_version=2 AND w.observation_id=(
+        SELECT b.id FROM market_observations b WHERE b.source_ref=o.source_ref AND b.channel_id=o.channel_id
+          AND b.external_key=o.external_key AND b.sequence<o.sequence ORDER BY b.sequence DESC LIMIT 1))`).bind(run.id)] : [];
   const unread = `(SELECT COUNT(*) FROM market_source_runs sr JOIN market_sources s ON s.source_ref=sr.source_ref
     AND s.channel_id=sr.channel_id WHERE sr.run_id=? AND ${REVIEWED} AND sr.status<>'complete')`;
-  await env.DB.batch([
+  await env.DB.batch([...signals,
     env.DB.prepare(`INSERT OR IGNORE INTO market_sweep_missing(run_id,source_ref,channel_id,external_key,observation_id)
       SELECT run_id,source_ref,channel_id,external_key,id FROM (
         SELECT sr.run_id,o.source_ref,o.channel_id,o.external_key,o.id,
@@ -241,19 +258,22 @@ async function compare(env, run, ts) {
           JOIN market_observations co ON co.page_id=cp.id WHERE cp.run_id=sr.run_id AND cp.source_ref=sr.source_ref
             AND cp.channel_id=sr.channel_id AND co.external_key=o.external_key)) WHERE n=1`).bind(run.id),
     env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
-      SELECT ?,'system','collection',?,'${TASK_TYPE}',json_object('day',?,'missing',m,'unread',u) FROM (SELECT
-        (SELECT COUNT(*) FROM market_sweep_missing WHERE run_id=?) AS m, ${unread} AS u)
-      WHERE (m>0 OR u>0) AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key=?)`)
-      .bind(ts, entity(run.id), run.jersey_day, run.id, run.id, taskKey(run.id)),
+      SELECT ?,'system','collection',?,'${TASK_TYPE}',json_object('day',?,'missing',m,'unread',u${auto ? ",'withdrawn',w" : ''}) FROM (SELECT
+        (SELECT COUNT(*) FROM market_sweep_missing WHERE run_id=?) AS m, ${unread} AS u${auto ? ', CAST(? AS INTEGER) AS w' : ''})
+      WHERE (m>0 OR u>0${auto ? ' OR w>0' : ''}) AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key=?)`)
+      .bind(ts, entity(run.id), run.jersey_day, run.id, run.id, ...auto ? [out.length] : [], taskKey(run.id)),
     env.DB.prepare(`INSERT INTO notifications(event_id,category,title,task_reason,action_required,created_at,task_key)
       SELECT e.id,'task','Daily market sweep needs review',json_extract(e.data,'$.day')||': '||json_extract(e.data,'$.missing')||
-        ' adverts not found, '||json_extract(e.data,'$.unread')||' sources not read in full. Nothing was marked unavailable.',1,e.at,?
+        ' adverts not found, '||${auto ? `json_extract(e.data,'$.withdrawn')||' withdrawn after two complete reads without them, '||` : ''}
+        json_extract(e.data,'$.unread')||' sources not read in full. ${auto
+          ? 'Nothing was deleted; a withdrawn advert comes back when it is read again.' : 'Nothing was marked unavailable.'}',1,e.at,?
       FROM events e WHERE e.entity_type='collection' AND e.entity_id=? AND e.type='${TASK_TYPE}'
         AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key=?) ORDER BY e.id DESC LIMIT 1`)
       .bind(taskKey(run.id), entity(run.id), taskKey(run.id)),
     env.DB.prepare(`INSERT INTO market_daily_sweeps(run_id,jersey_day,compared_at,changes)
       SELECT ?,?,?,(SELECT COUNT(*) FROM market_change_outbox x JOIN market_observations o ON o.id=x.observation_id
-        JOIN market_pages p ON p.id=o.page_id WHERE p.run_id=?) ON CONFLICT DO NOTHING`).bind(run.id, run.jersey_day, ts, run.id),
+        JOIN market_pages p ON p.id=o.page_id WHERE p.run_id=?)${auto ? '+CAST(? AS INTEGER)' : ''} ON CONFLICT DO NOTHING`)
+      .bind(run.id, run.jersey_day, ts, run.id, ...auto ? [out.length] : []),
   ]);
 }
 

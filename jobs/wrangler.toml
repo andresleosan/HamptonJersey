@@ -27,6 +27,8 @@ ADM13_INSPECTIONS_READY = "1"
 BUS08_SWEEP_READY = "1"
 # BUS-04: the market's changes cross again only the active searches they affect, with one Inbox task per search for homes newly proposed or back at a lower price (migration 0097). Sends nothing. Needs the same recompute flags in both files as BUS-08 (a test checks it). Must match the other wrangler.toml.
 BUS04_REMATCH_READY = "1"
+# BUS-09: a market advert missing from two complete reads of its channel (initial or daily, none with adverts left out) after it was last read is no longer offered to searches; nothing is deleted and a later read brings it back. Off: as before. Must match the other wrangler.toml.
+MARKET_AUTO_WITHDRAW_READY = "0"
 BUS01_MARKET_MATCHING_READY = "1"
 BUS10_IDENTITY_READY = "1"
 EST01_SEARCH_STATE_READY = "1"
