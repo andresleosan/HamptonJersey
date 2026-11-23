@@ -232,6 +232,18 @@ test('three failures in a day block the channel, as for a code reader; refused a
   assert.deepEqual(ok(await door(env, 'GET', '/work')), { day: null, run_id: null, items: [] });
 });
 
+test('a failure without the lease while another is live changes nothing and is never counted', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world();
+  await marketSweepPass(env, at(0), { readers: {} });
+  const ch = { run_id: runOf(env, 0).id, source_ref: 'agency-a', channel_id: 'site' };
+  const { lease } = ok(await door(env, 'POST', '/claim', ch));
+  for (let i = 0; i < 3; i++) ok(await door(env, 'POST', '/fail', { ...ch, lease: null, reason: 'unavailable' }));
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE source_ref='agency-a'"), 0);
+  assert.equal(one(env, "SELECT lease_token FROM market_source_runs WHERE source_ref='agency-a'").lease_token, lease.token);
+  assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 2), exhausted: true })), { accepted: true, skipped: 0 });
+});
+
 test('a takeover keeps each home: a known listing_url reuses the code reader key, so nothing looks gone and new', async t => {
   const env = world({}), { readers, reader } = fixtures({ 'agency-a': ['A-1', 'A-2', 'A-3'] });
   for (let i = 0; i < 3; i++) { rest(env); if ((await marketSweepPass(env, at(0, i * 10), { readers })).compared) break; }

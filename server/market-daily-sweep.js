@@ -97,17 +97,21 @@ export const attempt = (env, runId, c, ts, outcome, records = null, skipped = nu
 // A failed read keeps the inventory as it was. Access refused is not retried that day; a rate limit waits as asked
 // (the channel's interval at least, as every wait); a network or page failure, or a lease BUS-06 refuses, is retried on later ticks, MAX_FAILURES
 // times in all. lease: the one held, or null when none could be taken (then only an expired one is released).
+// A failure that changes nothing (another lease is live, the channel moved on) is not recorded, so it is never counted.
 export function failed(env, runId, c, lease, error, ts) {
   const code = error instanceof SourceReadError ? error.code : 'unavailable';
   const wait = Math.max(c.min_interval_s ?? 60, code === 'rate_limited' ? Number(error.retryAfterS) || 0 : 1200);
-  return env.DB.batch([attempt(env, runId, c, ts, code),
+  const held = `status IN ('pending','running','failed') AND (lease_token=? OR (? IS NULL AND (lease_token IS NULL OR lease_until<=?)))`;
+  return env.DB.batch([env.DB.prepare(`INSERT INTO market_sweep_attempts(id,run_id,source_ref,channel_id,attempted_at,outcome)
+      SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM market_source_runs WHERE run_id=? AND source_ref=? AND channel_id=? AND ${held})`)
+      .bind(crypto.randomUUID(), runId, c.source_ref, c.channel_id, ts, code, runId, c.source_ref, c.channel_id,
+        lease?.token ?? null, lease?.token ?? null, ts),
     env.DB.prepare(`UPDATE market_source_runs SET lease_token=NULL,lease_until=NULL,next_due=?,
       status=CASE WHEN ?='access_denied' THEN 'blocked' WHEN ?='rate_limited' THEN 'pending'
         WHEN (SELECT COUNT(*) FROM market_sweep_attempts a WHERE a.run_id=market_source_runs.run_id
           AND a.source_ref=market_source_runs.source_ref AND a.channel_id=market_source_runs.channel_id
           AND a.outcome IN ('unavailable','invalid_response'))>=? THEN 'blocked' ELSE 'failed' END
-      WHERE run_id=? AND source_ref=? AND channel_id=? AND status IN ('pending','running','failed')
-        AND (lease_token=? OR (? IS NULL AND (lease_token IS NULL OR lease_until<=?)))`)
+      WHERE run_id=? AND source_ref=? AND channel_id=? AND ${held}`)
       .bind(later(ts, wait), code, code, MAX_FAILURES, runId, c.source_ref, c.channel_id, lease?.token ?? null,
         lease?.token ?? null, ts)]);
 }
