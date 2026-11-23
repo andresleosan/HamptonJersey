@@ -265,3 +265,18 @@ test("trabajo lists the app's channels minus the queued ones, and says when the 
   app.on = false;
   assert.deepEqual(await call("GET", "/mercado/trabajo"), { status: 502, json: { error: "Hampton App answered 404 to market/work" } });
 });
+
+test('behind the proxy: IP literals and NO_PROXY hosts are still judged locally', async () => {
+  const { publicAddress } = await import('../hermes/mercado.mjs');
+  const keep = { ...process.env };
+  Object.assign(process.env, { NODE_USE_ENV_PROXY: '1', HTTPS_PROXY: 'http://172.16.46.2:3128', NO_PROXY: 'internal.test' });
+  try {
+    const { _publicHostForTest: ph } = await import('../hermes/mercado.mjs');
+    if (ph) {
+      assert.equal(await ph({}, '10.0.0.5'), false);
+      assert.equal(await ph({}, 'agency.je'), true);
+      assert.equal(await ph({ lookupFn: async () => [{ address: '127.0.0.1' }] }, 'x.internal.test'), false);
+    }
+    assert.equal(publicAddress('10.0.0.5'), false);
+  } finally { for (const k of ['NODE_USE_ENV_PROXY', 'HTTPS_PROXY', 'NO_PROXY']) if (keep[k] === undefined) delete process.env[k]; else process.env[k] = keep[k]; }
+});

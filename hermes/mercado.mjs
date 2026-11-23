@@ -78,10 +78,14 @@ const linkAt = (hay, url) => [url, new URL(url).pathname].flatMap(n => at(hay, n
 const PRIVATE = /^(0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|22[4-9]\.|2[3-5]\d\.)/;
 export const publicAddress = a => isIP(a) === 4 ? !PRIVATE.test(a)
   : isIP(a) === 6 && !/^(::1?$|f[cd]|fe[89ab]|ff|::ffff:)/i.test(a) && !/^(64:ff9b|2001:db8|100::)/i.test(a);
+export async function _publicHostForTest(cfg, host) { return publicHost(cfg, host); }
 async function publicHost(cfg, host) {
   // ponytail: behind hampton-squid (no outside DNS on its internal network) squid resolves and its `deny private` refuses
   // private addresses, so the local lookup is skipped; without a proxy the custodian checks itself.
-  if (!cfg.lookupFn && process.env.NODE_USE_ENV_PROXY === "1" && process.env.HTTPS_PROXY) return true;
+  if (isIP(host)) return publicAddress(host); // an IP literal is judged here, proxy or not
+  const noProxy = (process.env.NO_PROXY ?? process.env.no_proxy ?? "").split(",").map(x => x.trim().replace(/^\*?\./, "")).filter(Boolean);
+  const proxied = !noProxy.some(n => n === "*" || host === n || host.endsWith(`.${n}`));
+  if (!cfg.lookupFn && proxied && process.env.NODE_USE_ENV_PROXY === "1" && process.env.HTTPS_PROXY) return true;
   try {
     const all = await (cfg.lookupFn ?? lookup)(host, { all: true, verbatim: true });
     return all.length > 0 && all.every(r => publicAddress(r.address));
