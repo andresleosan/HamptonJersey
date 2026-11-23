@@ -277,8 +277,11 @@ const agree = f => `CASE WHEN COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL T
     THEN MAX(CASE WHEN observed_at IS NOT NULL THEN ${f} END) END AS ${f},
   COUNT(DISTINCT CASE WHEN observed_at IS NOT NULL THEN ${f} END)>1 AS ${f}_disagree`;
 // BUS-09 (MARKET_AUTO_WITHDRAW_READY): an advert missing from two complete passes of its channel (initial or daily, none
-// with adverts left out) begun after its latest reading was recorded, in another run. Derived, never stored: nothing is
-// deleted and a new reading brings it back. o: that reading.
+// with adverts left out, each with some advert read) begun after its latest reading was recorded, in another run.
+// Derived, never stored: nothing is deleted and a new reading brings it back. o: that reading.
+// A pass that read no advert says nothing of any (a Hermes sub-channel completed empty); on a market_source_runs row.
+export const READ_SOME = r => `EXISTS (SELECT 1 FROM market_pages rp JOIN market_observations ro ON ro.page_id=rp.id
+  WHERE rp.run_id=${r}.run_id AND rp.source_ref=${r}.source_ref AND rp.channel_id=${r}.channel_id)`;
 export const autoWithdrawReady = env => env?.MARKET_AUTO_WITHDRAW_READY === '1';
 export const withdrawnSql = o => `(SELECT COUNT(*) FROM market_source_runs wr JOIN market_runs wk ON wk.id=wr.run_id
   JOIN market_pages wp ON wp.id=${o}.page_id WHERE wr.source_ref=${o}.source_ref AND wr.channel_id=${o}.channel_id
@@ -286,7 +289,8 @@ export const withdrawnSql = o => `(SELECT COUNT(*) FROM market_source_runs wr JO
     AND (SELECT MIN(f.committed_at) FROM market_pages f WHERE f.run_id=wr.run_id AND f.source_ref=wr.source_ref
       AND f.channel_id=wr.channel_id)>wp.committed_at
     AND NOT EXISTS (SELECT 1 FROM market_sweep_attempts a WHERE a.run_id=wr.run_id AND a.source_ref=wr.source_ref
-      AND a.channel_id=wr.channel_id AND a.skipped>0))>=2`;
+      AND a.channel_id=wr.channel_id AND a.skipped>0)
+    AND ${READ_SOME('wr')})>=2`;
 // Each advert once, at its latest reading, from a source open now; never one its source withdrew.
 const current = withdraw => `SELECT obs.id,obs.source_ref,obs.channel_id,obs.external_key,obs.normalized_json,
     json_extract(obs.raw_json,'$.listing_url') AS listing_url,json_extract(obs.normalized_json,'$.operation') AS op

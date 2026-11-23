@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { makeEnv, call } from './helpers.mjs';
 import { jerseyDayEnd, marketSweepPass } from '../../server/market-daily-sweep.js';
+import { withdrawnSql } from '../../server/market-identity.js';
 import { advertRecord, normaliseUrl, parsePrice } from '../../server/market-hermes.js';
 
 const DAY0 = Date.parse(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10) + 'T03:00:00.000Z');
@@ -349,6 +350,29 @@ test('a sub-channel of a source read at "/" is completed empty by the sweep and 
   assert.deepEqual(ok(await door(env, 'GET', '/work')).items.map(i => i.channel_id), ['root']);
   const run = runOf(env, 0).id;
   assert.equal((await door(env, 'POST', '/claim', { run_id: run, source_ref: 'agency-a', channel_id: 'site' })).status, 404);
+});
+
+test('a sub-channel with adverts read before completes empty every day: never blocked, missing or withdrawn', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0, 5)) });
+  const env = world({ MARKET_AUTO_WITHDRAW_READY: '1' }), { readers } = fixtures({ 'agency-a': ['A-1', 'A-2'], 'agency-b': ['B-1'] });
+  for (let i = 0; i < 3; i++) { rest(env); if ((await marketSweepPass(env, at(0, i * 10), { readers })).compared) break; }
+  // From day 1 Hermes reads the whole site at "/"; "site" becomes its sub-channel.
+  source(env, 'agency-a', 'root', ['agency-a.example.test'], ['/']);
+  Object.assign(env, { HERMES_MARKET_READY: '1', HERMES_MARKET_SOURCES: 'agency-a' });
+  for (const d of [1, 2, 3]) {
+    t.mock.timers.setTime(Date.parse(at(d)));
+    rest(env); await marketSweepPass(env, at(d), { readers });
+    const run = runOf(env, d).id;
+    rest(env); t.mock.timers.setTime(Date.parse(at(d, 5)));
+    const { lease } = ok(await door(env, 'POST', '/claim', { run_id: run, source_ref: 'agency-a', channel_id: 'root' }));
+    ok(await door(env, 'POST', '/page', { lease, records: [advert('agency-a', 'A-1'), advert('agency-a', 'A-2')], exhausted: true }));
+    rest(env); assert.equal((await marketSweepPass(env, at(d, 10), { readers })).compared, true);
+    assert.equal(one(env, "SELECT status FROM market_source_runs WHERE run_id=? AND channel_id='site' AND source_ref='agency-a'", run).status, 'complete');
+    assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_missing WHERE run_id=? AND channel_id='site'", run), 0);
+  }
+  assert.equal(n(env, `SELECT COUNT(*) AS n FROM market_latest_observations x JOIN market_observations o ON o.id=x.observation_id
+    WHERE x.channel_id='site' AND x.source_ref='agency-a' AND ${withdrawnSql('o')}`), 0);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_latest_observations WHERE source_ref='agency-a' AND channel_id='site' AND gone=0"), 2);
 });
 
 test('both switches exist off, and equal, in both wrangler files', () => {

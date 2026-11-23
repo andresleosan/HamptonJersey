@@ -12,7 +12,7 @@ import { jerseyNow } from './viewings.js';
 import { normalizeObservation } from './market-extraction.js';
 import { claimSourcePage, closeInventoryRun, commitObservationPage, createInventoryRun } from './market-inventory-store.js';
 import { activeSql } from './applicants.js';
-import { autoWithdrawReady, withdrawnSql } from './market-identity.js';
+import { READ_SOME, autoWithdrawReady, withdrawnSql } from './market-identity.js';
 import { recomputeForApplicant } from './search-state.js';
 
 export const sweepReady = env => env?.BUS08_SWEEP_READY === '1';
@@ -206,8 +206,9 @@ export async function commitRead(env, runId, c, lease, read, ts) {
   let page, skipped;
   try {
     ({ skipped, ...page } = await toPage(read, lease, ts));
-    // A first page that says the channel is empty when it had adverts is a broken reader, not a market with none.
-    if (page.exhausted && !page.records.length && c.page_no === 0 && await env.DB.prepare(`SELECT 1 FROM
+    // A first page that says the channel is empty when it had adverts is a broken reader, not a market with none. Not so
+    // for a Hermes sub-channel, completed empty on purpose (its homes are its root channel's).
+    if (page.exhausted && !page.records.length && c.page_no === 0 && !c.hermes_sub && await env.DB.prepare(`SELECT 1 FROM
       market_latest_observations WHERE source_ref=? AND channel_id=? AND gone=0 LIMIT 1`).bind(c.source_ref, c.channel_id).first())
       throw new SourceReadError('invalid_response');
   } catch (error) { await failed(env, runId, c, lease, error, ts); return { outcome: 'failed', skipped }; }
@@ -259,7 +260,7 @@ async function compare(env, run, ts) {
             AND p2.status='complete' AND r2.kind IN ('initial','daily') AND p2.last_full_pass_at<sr.last_full_pass_at
           ORDER BY p2.last_full_pass_at DESC LIMIT 1)
         JOIN market_observations o ON o.page_id=pp.id
-        WHERE sr.run_id=? AND sr.status='complete' AND NOT EXISTS (SELECT 1 FROM market_pages cp
+        WHERE sr.run_id=? AND sr.status='complete' AND ${READ_SOME('sr')} AND NOT EXISTS (SELECT 1 FROM market_pages cp
           JOIN market_observations co ON co.page_id=cp.id WHERE cp.run_id=sr.run_id AND cp.source_ref=sr.source_ref
             AND cp.channel_id=sr.channel_id AND co.external_key=o.external_key)) WHERE n=1`).bind(run.id),
     env.DB.prepare(`INSERT INTO events(at,actor,entity_type,entity_id,type,data)
