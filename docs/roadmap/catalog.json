@@ -13602,7 +13602,8 @@
         "node --test bus-09-keys-reader 4/4, bus-09-gaudin-reader 6/6. Lectura real 21-nov: Keys 12 anuncios válidos (los 12 del sitemap; el RSS traía 13, uno ya retirado y excluido).",
         "21-nov-2026: server/market-readers/finderskeepers.js, registrado en server/market-readers/index.js; tests/server/bus-09-finderskeepers-reader.test.mjs. node --test tests/server/bus-09-*.test.mjs tests/server/bus-08-daily-sweep.test.mjs: 66/66. Lectura real de solo lectura 21-nov (robots.txt revisado: solo veta cpresources/, vendor/ y .env): 2 páginas del feed, 23 anuncios válidos (24 con 1 comercial excluido), 5 de alquiler.",
         "21-nov: node --test tests/server/bus-09-*.test.mjs tests/server/bus-08-daily-sweep.test.mjs: 67/67 (aparcamiento de Finders Keepers)",
-        "23-nov: Finders Keepers fallaba cada día en producción (6 intentos invalid_response, 0 casas): su feed da 12 anuncios por página y la pasada acepta 10 como máximo (server/market-daily-sweep.js:122). Arreglo: cursor «página:desplazamiento» en tandas de 10, como Gaudin y Keys. node --test bus-09-* y bus-08-daily-sweep: 68/68; lectura real 23-nov: 10 + 10 por página. Comprobación en producción pendiente de la pasada del 24-nov."
+        "23-nov: Finders Keepers fallaba cada día en producción (6 intentos invalid_response, 0 casas): su feed da 12 anuncios por página y la pasada acepta 10 como máximo (server/market-daily-sweep.js:122). Arreglo: cursor «página:desplazamiento» en tandas de 10, como Gaudin y Keys. node --test bus-09-* y bus-08-daily-sweep: 68/68; lectura real 23-nov: 10 + 10 por página. Comprobación en producción pendiente de la pasada del 24-nov.",
+        "23-nov: decisión de Luis: solo Hermes busca casas y actualiza el inventario; los lectores de código se retiran tras el piloto. Plan: docs/roadmap/work/BUS-09/plan-directorio-hermes.md."
       ],
       "modulo": "M02",
       "deps": [
@@ -13641,7 +13642,7 @@
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "Siguiente lector: Bull & Company, luego Maillard y el resto de agencias residenciales permitidas.",
+      "nextStep": "Fase 1 del plan docs/roadmap/work/BUS-09/plan-directorio-hermes.md: puerta del mercado para Hermes (next/page/fail), HERMES_MARKET_KEY y HERMES_MARKET_READY apagado.",
       "actualizado": "2026-11-23"
     },
     {
