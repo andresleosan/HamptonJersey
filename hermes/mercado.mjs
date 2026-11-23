@@ -57,10 +57,14 @@ const code = e => { try { return String.fromCodePoint(/^#x/i.test(e) ? parseInt(
 // What is compared: HTML entities decoded, JSON's "\/" undone, whitespace collapsed. Same for page and advert.
 export const plain = s => String(s).replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === "#" ? code(e) : ENT[e.toLowerCase()] ?? m)
   .replaceAll("\\/", "/").replace(/\s+/g, " ").trim();
-// A whole token only: "/property/12" is not found in "/property/123", nor "1,950" in "11,950".
+// A whole token only: "/property/12" is not found in "/property/123", "1,950" not in "11,950", "£625" not in "£625,000".
 const has = (hay, needle) => {
-  for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1))
-    if (!/[A-Za-z0-9_%-]/.test(hay[i + needle.length] ?? "") && !(/^[0-9]/.test(needle) && /[0-9,.]/.test(hay[i - 1] ?? ""))) return true;
+  for (let i = hay.indexOf(needle); i !== -1; i = hay.indexOf(needle, i + 1)) {
+    const after = hay.slice(i + needle.length, i + needle.length + 2), before = hay[i - 1] ?? "";
+    if (/^[A-Za-z0-9_%-]/.test(after) || (/[0-9]$/.test(needle) && /^[,.][0-9]/.test(after))
+      || (/^[0-9]/.test(needle) && /[0-9,.]/.test(before))) continue;
+    return true;
+  }
   return false;
 };
 
@@ -87,8 +91,10 @@ const intOrNull = v => v === null || v === undefined ? null : Number.isInteger(v
 function advert(a, item) {
   if (!a || typeof a !== "object" || typeof a.listing_url !== "string" || a.listing_url.length > 2048
     || !inScope(a.listing_url, item)) return { reason: "off_channel" };
+  const u = new URL(a.listing_url);
+  if (u.search || u.hash || a.listing_url.includes("#")) return { reason: "query_or_fragment" }; // one advert = one clean link
   const price = a.price_text ?? null, title = a.title ?? null, area = a.area_sqft ?? null;
-  const out = { listing_url: a.listing_url, operation: a.operation, use: a.use,
+  const out = { listing_url: `${u.origin}${u.pathname}`, operation: a.operation, use: a.use,
     price_text: typeof price === "string" ? plain(price) : price, parish: a.parish ?? null,
     bedrooms: intOrNull(a.bedrooms), bathrooms: intOrNull(a.bathrooms), parking: a.parking === true ? true : null,
     area_sqft: area, title: typeof title === "string" ? title.replace(/\s+/g, " ").trim() : title };
@@ -129,7 +135,7 @@ export async function entregar(cfg, body) {
     const bodies = [];
     for (const p of [...new Set(pages)]) bodies.push(await fetchPage(cfg, p, item).catch(() => null));
     const fetched = bodies.filter(b => b !== null);
-    const reasons = {}, records = [], seen = new Set();
+    const reasons = {}, records = [], seen = new Set(), pageKeys = new Set(pages.map(urlKey));
     const reject = r => { reasons[r] = (reasons[r] ?? 0) + 1; };
     for (const a of adverts) {
       const { out, reason } = advert(a, item);
@@ -137,8 +143,9 @@ export async function entregar(cfg, body) {
       const key = urlKey(out.listing_url);
       if (seen.has(key)) continue; // the same advert twice (a featured box): kept once, not a rejection
       const path = new URL(out.listing_url).pathname;
-      const linkFound = fetched.some(b => has(b, out.listing_url) || (path.length > 1 && !item.paths.includes(path)
-        && !item.paths.includes(`${path}/`) && has(b, path)));
+      // The channel's own index or a page Hermes read is not an advert, even when it links to itself.
+      if (path === "/" || item.paths.includes(path) || item.paths.includes(`${path}/`) || pageKeys.has(key)) { reject("not_a_listing"); continue; }
+      const linkFound = fetched.some(b => has(b, out.listing_url) || has(b, path));
       if (!linkFound) { reject("link_not_on_page"); continue; }
       if (out.price_text !== null && !fetched.some(b => has(b, out.price_text))) { reject("price_not_on_page"); continue; }
       seen.add(key);
@@ -222,8 +229,9 @@ export function makeServer(cfg) {
     const tooBig = () => res.writeHead(413, { "content-type": "application/json", connection: "close" })
       .end(JSON.stringify({ error: "Too large" }), () => req.destroy());
     if (Number(req.headers["content-length"]) > MAX_BODY) return tooBig();
-    let raw = "";
-    try { for await (const c of req) { raw += c; if (raw.length > MAX_BODY) return tooBig(); } } catch { return res.destroy(); }
+    const chunks = []; let size = 0;
+    try { for await (const c of req) { if ((size += c.length) > MAX_BODY) return tooBig(); chunks.push(c); } } catch { return res.destroy(); }
+    const raw = Buffer.concat(chunks).toString("utf8");
     try {
       if (req.method === "GET") return reply(200, await trabajo(cfg));
       let body;
@@ -246,5 +254,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   makeServer(cfg).on("error", e => { console.error(e.message); process.exit(1); })
     .listen(Number(port), host, () => console.log(`Market custodian on ${host}:${port}`));
   let pumping = false;
-  setInterval(() => { if (pumping) return; pumping = true; pump(cfg).finally(() => { pumping = false; }); }, 5000);
+  setInterval(() => { if (pumping) return; pumping = true; pump(cfg).catch(e => console.error(`mercado: queue round failed (${e.code ?? e.name})`))
+    .finally(() => { pumping = false; }); }, 5000);
 }

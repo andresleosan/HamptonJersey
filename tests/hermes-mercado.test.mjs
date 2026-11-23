@@ -54,7 +54,8 @@ const advert = (n, extra = {}) => ({ listing_url: `https://agency.test/to-let/ho
 async function setup(t, opts) {
   const clock = { t: 1_000_000 };
   const app = fakeApp(clock, opts);
-  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>" };
+  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>",
+    "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000' };
   const appSrv = await listen(app.handler);
   const agency = await listen((req, res) => pages[req.url] === undefined ? res.writeHead(404).end()
     : res.writeHead(200, { "content-type": "text/html" }).end(pages[req.url]));
@@ -102,6 +103,19 @@ test("a link is matched as a whole token, not as the prefix of another listing; 
     { ...advert(1), listing_url: "https://agency.test/to-let/home-" }] });
   assert.equal(r.json.queued, 2);
   assert.equal(r.json.reasons.link_not_on_page, 1);
+});
+
+test("a cut price, the index page, a query or a fragment never pass", async t => {
+  const { deliver } = await setup(t);
+  const sale = { operation: "sale", parish: null, bedrooms: null, bathrooms: null, parking: null, title: null };
+  const r = await deliver({ pages: ["https://agency.test/to-let", "https://agency.test/to-let/sales"], adverts: [
+    advert(1), advert(2), advert(3), advert(6), advert(7),
+    { ...advert(0), ...sale, listing_url: "https://agency.test/to-let/big", price_text: "£625" },
+    { ...advert(0), ...sale, listing_url: "https://agency.test/to-let", price_text: null },
+    { ...advert(4), listing_url: "https://agency.test/to-let/home-4?ref=evil" },
+    { ...advert(5), listing_url: "https://agency.test/to-let/home-5#x" }] });
+  assert.deepEqual(r.json, { queued: 5, rejected: 4,
+    reasons: { price_not_on_page: 1, not_a_listing: 1, query_or_fragment: 2 } });
 });
 
 test("more than half rejected: the channel is reported as invalid_response, nothing posted", async t => {

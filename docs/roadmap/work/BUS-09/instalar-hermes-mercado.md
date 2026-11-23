@@ -2,7 +2,7 @@
 
 **Qué se consigue:** cada noche a las 02:00 de Jersey, Hermes abre las webs permitidas de las agencias, copia los anuncios y se los da al **custodio del mercado** (`hampton-mercado`). El custodio comprueba cada anuncio contra la web, sin IA, y se los pasa a la app de 10 en 10. Solo el custodio tiene la llave de la puerta del mercado.
 
-**Cuántos pasos:** 25, en seis partes. Cada paso dice quién lo hace:
+**Cuántos pasos:** 35, en seis partes. Cada paso dice quién lo hace:
 - 🤖 **Claude** en una sesión del VPS, después de tu «sí» (editar archivos; no reinicia nada).
 - 👤 **Tú, Luis** (llaves, reinicios, Telegram, comprobaciones).
 - 🧑‍💻 **El desarrollador**, con un commit (el interruptor del piloto).
@@ -49,6 +49,12 @@ Copia el código del custodio desde el repo:
 
 ```bash
 cp /root/HamptonJersey/.worktrees/avanzar/hermes/mercado.mjs /root/hampton-hermes/mercado/
+```
+
+Deja el código legible para el usuario del contenedor:
+
+```bash
+chmod 644 /root/hampton-hermes/mercado/mercado.mjs
 ```
 
 Salida esperada: ninguna.
@@ -244,7 +250,7 @@ Añade los dominios del paso 3:
 cat /root/hampton-hermes/squid/mercado-dominios.txt >> /root/hermes/squid/allowlist.txt
 ```
 
-Salida esperada: ninguna. Nota: Hermes 2 (`hermes2-squid`) usa el mismo archivo, pero solo lo lee al reiniciarse; en el paso 15 solo se reinicia el de Hermes.
+Salida esperada: ninguna. Nota: Hermes 2 (`hermes2-squid`) usa el mismo archivo y cargará estos dominios en su próximo reinicio (paso 22).
 
 ### Paso 7. Conectar el taller de Hermes con el custodio
 
@@ -306,7 +312,7 @@ Comprueba el compose de Hermes sin arrancar nada:
 cd /root/hermes && docker compose -p hermes config -q
 ```
 
-Salida esperada: ninguna, o solo un aviso de que la red `hampton_mercado_hermes` todavía no existe (se crea en el paso 14).
+Salida esperada: ninguna, o solo un aviso de que la red `hampton_mercado_hermes` todavía no existe (se crea en el paso 20).
 
 ---
 
@@ -318,7 +324,7 @@ Ninguna llave sale en pantalla.
 
 📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
 
-Crea una llave aleatoria de 64 caracteres, solo legible por root:
+Entra en la carpeta y crea una llave aleatoria de 64 caracteres, solo legible por root:
 
 ```bash
 cd /root/hampton-hermes && umask 077 &&
@@ -337,7 +343,13 @@ Crea la segunda llave (distinta de la primera):
 openssl rand -hex 32 > secretos/mercado_custodio_key
 ```
 
-Da las dos al usuario del custodio (10500) y las deja en solo lectura:
+Salida esperada: ninguna.
+
+### Paso 12. Dar las dos llaves al usuario del custodio
+
+📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
+
+Las deja en solo lectura para el usuario 10500 (el del contenedor `hampton-mercado`):
 
 ```bash
 chown 10500:10500 secretos/hermes_market_key secretos/mercado_custodio_key &&
@@ -346,52 +358,74 @@ chmod 400 secretos/hermes_market_key secretos/mercado_custodio_key
 
 Salida esperada: ninguna.
 
-### Paso 12. Dar al taller la llave del custodio
+### Paso 13. Guardar dónde va la llave del taller
 
 📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
 
-Escribe la llave como cabecera de `curl` en la carpeta de secretos del taller (la ve como `/etc/taller/mercado.cabecera`):
+Guarda en una variable la ruta (el taller la ve como `/etc/taller/mercado.cabecera`):
 
 ```bash
-printf 'Authorization: Bearer %s\n' "$(cat secretos/mercado_custodio_key)" \
-  > /root/hermes/taller/secretos/mercado.cabecera
-```
-
-Deja que solo root y el usuario del taller la lean:
-
-```bash
-chown root:10001 /root/hermes/taller/secretos/mercado.cabecera &&
-chmod 640 /root/hermes/taller/secretos/mercado.cabecera
+S=/root/hermes/taller/secretos/mercado.cabecera
 ```
 
 Salida esperada: ninguna.
 
-### Paso 13. Poner la llave de la puerta en Cloudflare
+### Paso 14. Escribir la llave del custodio como cabecera para el taller
+
+📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes` (la misma terminal del paso 13)
+
+Escribe la cabecera que usará `curl` en el taller:
+
+```bash
+printf 'Authorization: Bearer %s\n' "$(cat secretos/mercado_custodio_key)" > "$S"
+```
+
+Salida esperada: ninguna.
+
+### Paso 15. Permisos de la cabecera
+
+📍 Terminal del VPS · usuario root · la misma terminal
+
+Deja que solo root y el usuario del taller (10001) la lean:
+
+```bash
+chown root:10001 "$S" && chmod 640 "$S"
+```
+
+Salida esperada: ninguna. Nota: esa carpeta también la monta el taller de Hermes 2.
+
+### Paso 16. Guardar dónde está la llave de la puerta
 
 📍 Terminal del VPS · usuario root · directorio `/root/HamptonJersey/.worktrees/avanzar`
 
-Entra en la copia del repo:
+Entra en la copia del repo y guarda la ruta de la llave en una variable:
 
 ```bash
-cd /root/HamptonJersey/.worktrees/avanzar
+cd /root/HamptonJersey/.worktrees/avanzar &&
+K=/root/hampton-hermes/secretos/hermes_market_key
 ```
 
-Guarda la llave como secreto de producción de la web (la lee del archivo, no de la pantalla):
+Salida esperada: ninguna.
+
+### Paso 17. Poner la llave de la puerta en Cloudflare
+
+📍 Terminal del VPS · usuario root · la misma terminal del paso 16
+
+Guarda la llave como secreto de producción de la web, leyéndola del archivo:
 
 ```bash
-npx wrangler pages secret put HERMES_MARKET_KEY --project-name hamptonjersey \
-  < /root/hampton-hermes/secretos/hermes_market_key
+npx wrangler pages secret put HERMES_MARKET_KEY --project-name hamptonjersey < "$K"
 ```
 
-Salida esperada: «✨ Success! Uploaded secret HERMES_MARKET_KEY». Si te pide escribir el valor en vez de leerlo, pulsa Ctrl+C y avisa a Claude: no lo escribas a mano. El reloj `hampton-jobs` no necesita esta llave. Cloudflare la usa a partir del siguiente despliegue de la web.
+Salida esperada: «✨ Success! Uploaded secret HERMES_MARKET_KEY». Si te pide escribir el valor, pulsa Ctrl+C y avisa a Claude: no lo escribas a mano. El reloj `hampton-jobs` no necesita esta llave. Cloudflare la usa a partir del siguiente despliegue de la web.
 
 ---
 
 ## Parte C. Arrancar (👤 Luis)
 
-### Paso 14. Reiniciar el squid de Hampton y arrancar el custodio
+### Paso 18. Recrear el squid de Hampton
 
-⚠️ Reinicia `hampton-squid`: durante unos segundos el avisador, los custodios y el lector no salen a internet. No borra nada.
+⚠️ Recrea `hampton-squid`: durante unos segundos el avisador, los custodios y el lector no salen a internet. No borra nada.
 
 📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
 
@@ -402,31 +436,45 @@ cd /root/hampton-hermes &&
 docker compose -p hampton-hermes up -d --no-deps squid
 ```
 
-Arranca el custodio:
+Salida esperada: «Container hampton-squid Started».
 
-```bash
-docker compose -p hampton-hermes up -d --no-deps mercado
-```
+### Paso 19. Comprobar que squid no se queja
 
-Mira su registro:
+📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
 
-```bash
-docker logs hampton-mercado --since 2m
-```
-
-Salida esperada: «Market custodian on 172.16.47.20:8789». Si dice «Set APP_ORIGIN, …», falta una llave o tiene otro dueño: repite los pasos 10 y 11.
-
-Comprueba que squid no se ha quejado:
+Cuenta los errores de los dos últimos minutos:
 
 ```bash
 docker logs hampton-squid --since 2m 2>&1 | grep -ciE 'fatal|error'
 ```
 
-Salida esperada: «0».
+Salida esperada: «0». Si sale otro número, haz la marcha atrás del punto 6.
 
-### Paso 15. Reiniciar el squid de Hermes
+### Paso 20. Arrancar el custodio
 
-⚠️ Reinicia `hermes-squid`: Hermes pierde la salida a internet unos segundos (un mensaje de Telegram en curso puede tardar). Hermes 2 no se toca.
+📍 Terminal del VPS · usuario root · directorio `/root/hampton-hermes`
+
+Arranca el contenedor nuevo:
+
+```bash
+docker compose -p hampton-hermes up -d --no-deps mercado
+```
+
+Salida esperada: «Container hampton-mercado Started».
+
+### Paso 21. Mirar el registro del custodio
+
+📍 Terminal del VPS · usuario root · cualquier directorio
+
+```bash
+docker logs hampton-mercado --since 2m
+```
+
+Salida esperada: «Market custodian on 172.16.47.20:8789». Si dice «Set APP_ORIGIN, …», falta una llave o tiene otro dueño: repite los pasos 10 a 12.
+
+### Paso 22. Reiniciar el squid de Hermes
+
+⚠️ Reinicia `hermes-squid`: Hermes pierde la salida a internet unos segundos (un mensaje de Telegram en curso puede tardar).
 
 📍 Terminal del VPS · usuario root · directorio `/root/hermes`
 
@@ -436,7 +484,11 @@ Reinicia solo el squid de Hermes para que lea la lista nueva:
 cd /root/hermes && docker compose -p hermes restart squid
 ```
 
-Comprueba que no se ha quejado:
+Salida esperada: «Container hermes-squid Started». Hermes 2 (`hermes2-squid`) usa el mismo archivo: no se reinicia ahora, pero cargará estos dominios en su próximo reinicio o al reiniciar el VPS.
+
+### Paso 23. Comprobar que el squid de Hermes no se queja
+
+📍 Terminal del VPS · usuario root · cualquier directorio
 
 ```bash
 docker logs hermes-squid --since 2m 2>&1 | grep -ciE 'fatal|error'
@@ -444,7 +496,7 @@ docker logs hermes-squid --since 2m 2>&1 | grep -ciE 'fatal|error'
 
 Salida esperada: «0». Si sale otro número, haz la marcha atrás del punto 3.
 
-### Paso 16. Conectar el taller a la red del custodio
+### Paso 24. Conectar el taller a la red del custodio
 
 ⚠️ Recrea `hermes-taller`: si en ese momento Hermes tiene un encargo de Claude o Codex en marcha, se corta. Hazlo cuando no haya ninguno. Sus proyectos y sesiones están en un volumen y no se pierden.
 
@@ -458,37 +510,59 @@ docker compose -p hermes up -d --no-deps taller
 
 Salida esperada: «Container hermes-taller Started».
 
+### Paso 25. Crear la carpeta de trabajo de Hermes en el taller
+
+📍 Terminal del VPS · usuario root · cualquier directorio
+
+Crea, como usuario del taller, la carpeta donde Hermes guarda sus entregas:
+
+```bash
+docker exec -u taller hermes-taller mkdir -p /home/taller/proyectos/mercado
+```
+
+Salida esperada: ninguna.
+
 ---
 
 ## Parte D. Prueba en seco, con la puerta apagada (👤 Luis)
 
-### Paso 17. Sin llave, el custodio no abre
+### Paso 26. Guardar las dos rutas de la prueba
 
 📍 Terminal del VPS · usuario root · cualquier directorio
+
+Guarda la dirección del custodio y la cabecera del taller en variables:
+
+```bash
+U=http://172.16.47.20:8789/mercado/trabajo && C=/etc/taller/mercado.cabecera
+```
+
+Salida esperada: ninguna.
+
+### Paso 27. Sin llave, el custodio no abre
+
+📍 Terminal del VPS · usuario root · la misma terminal del paso 26
 
 Llama al custodio desde el taller, sin la llave:
 
 ```bash
-docker exec -u taller hermes-taller \
-  curl -s --noproxy '*' http://172.16.47.20:8789/mercado/trabajo
+docker exec -u taller hermes-taller curl -s --noproxy '*' "$U"
 ```
 
-Salida esperada: «{"error":"Unauthorized"}». Si sale «Failed to connect» o nada, el taller no está en la red: repasa los pasos 7 y 16.
+Salida esperada: «{"error":"Unauthorized"}». Si sale «Failed to connect» o nada, el taller no está en la red: repasa los pasos 7 y 24.
 
-### Paso 18. Con la llave, el custodio llega a la app
+### Paso 28. Con la llave, el custodio llega a la app
 
-📍 Terminal del VPS · usuario root · cualquier directorio
+📍 Terminal del VPS · usuario root · la misma terminal del paso 26
 
 Llama igual que lo hará Hermes:
 
 ```bash
-docker exec -u taller hermes-taller curl -s --noproxy '*' \
-  -H @/etc/taller/mercado.cabecera http://172.16.47.20:8789/mercado/trabajo
+docker exec -u taller hermes-taller curl -s --noproxy '*' -H @"$C" "$U"
 ```
 
-Salida esperada: «{"error":"Hampton App answered 404 to market/work"}». Es lo correcto: la puerta existe pero está apagada. Si dice «answered 401», la llave de Cloudflare no coincide o la web no se ha vuelto a desplegar desde el paso 13. Si dice «Hampton App did not answer», revisa el paso 5 y el 14.
+Salida esperada: «{"error":"Hampton App answered 404 to market/work"}». Es lo correcto: la puerta está apagada. Con la puerta apagada la app contesta 404 antes de mirar la llave, así que esta prueba todavía no confirma la llave de Cloudflare: eso lo hace el paso 32. Si dice «Hampton App did not answer», revisa los pasos 5 y 18.
 
-### Paso 19. Hermes abre una web de agencia
+### Paso 29. Hermes abre una web de agencia
 
 📍 Telegram · tu chat con Hermes
 
@@ -506,7 +580,7 @@ Salida esperada: el título de la web. Si dice que no puede abrirla, Hermes usa 
 
 ## Parte E. La tarea programada (👤 Luis)
 
-### Paso 20. Crear la tarea de las 02:00
+### Paso 30. Crear la tarea de las 02:00
 
 📍 Telegram · tu chat con Hermes
 
@@ -522,7 +596,7 @@ Salida esperada: Hermes confirma la tarea y da la próxima ejecución a las 02:0
 
 ## Parte F. El piloto: tres agencias (🧑‍💻 desarrollador, luego 👤 Luis)
 
-### Paso 21. Encender el piloto (🧑‍💻 por commit)
+### Paso 31. Encender el piloto (🧑‍💻 por commit)
 
 El desarrollador cambia en `wrangler.toml` **y** en `jobs/wrangler.toml`, los dos a la vez:
 
@@ -533,20 +607,25 @@ HERMES_MARKET_SOURCES = "src-gaudin-co,src-keys-properties,src-finders-keepers"
 
 y lo publica con un commit en `main`. Cloudflare despliega la web y el reloj. Desde ese momento Hermes sustituye a los lectores de código de esas tres agencias.
 
-### Paso 22. Ver que hay trabajo (👤, después de la 01:00 de Jersey)
+### Paso 32. Ver que hay trabajo (👤, después de la 01:00 de Jersey)
 
 📍 Terminal del VPS · usuario root · cualquier directorio
 
-Repite la llamada del paso 18:
+Guarda las variables otra vez (cada terminal nueva las pierde):
 
 ```bash
-docker exec -u taller hermes-taller curl -s --noproxy '*' \
-  -H @/etc/taller/mercado.cabecera http://172.16.47.20:8789/mercado/trabajo
+U=http://172.16.47.20:8789/mercado/trabajo && C=/etc/taller/mercado.cabecera
 ```
 
-Salida esperada: un JSON que empieza por «{"day":"» con canales de `src-gaudin-co`, `src-keys-properties` y `src-finders-keepers` en `items`. Antes de la 01:00 sale «"items":[]».
+Repite la llamada del paso 28:
 
-### Paso 23. Ver la entrega de la noche (👤, por la mañana)
+```bash
+docker exec -u taller hermes-taller curl -s --noproxy '*' -H @"$C" "$U"
+```
+
+Salida esperada: un JSON que empieza por «{"day":"» con canales de `src-gaudin-co`, `src-keys-properties` y `src-finders-keepers` en `items`. Antes de la 01:00 sale «"items":[]». Si dice «Hampton App answered 401 to market/work», la llave de Cloudflare no coincide con la del custodio o la web no se ha desplegado desde el paso 17: avisa a Claude antes de las 02:00.
+
+### Paso 33. Ver la entrega de la noche (👤, por la mañana)
 
 📍 Terminal del VPS · usuario root · cualquier directorio
 
@@ -558,7 +637,7 @@ docker logs hampton-mercado --since 12h 2>&1 | tail -40
 
 Salida esperada: líneas como «mercado: src-gaudin-co/<canal> delivered 24, queued 24, rejected 0 {}» y después «mercado: src-gaudin-co/<canal> done, 24 adverts». Una línea «reported as invalid_response» significa que más de la mitad de lo que copió Hermes no estaba en la web: avisa a Claude.
 
-### Paso 24. Ver la cola vacía
+### Paso 34. Ver la cola vacía
 
 📍 Terminal del VPS · usuario root · cualquier directorio
 
@@ -570,9 +649,9 @@ ls /root/hampton-hermes/mercado/estado | grep -c json
 
 Salida esperada: «0» cuando ya se entregó todo (a 10 anuncios por minuto, una agencia de 60 casas tarda unos 6 minutos).
 
-### Paso 25. Comprobar en la app
+### Paso 35. Comprobar en la app
 
-En el panel, Automations › Market (o la pasada del día): las tres agencias aparecen leídas enteras, con la hora de esta noche. Las casas que ya existían conservan su ficha.
+En el panel, donde ves la pasada diaria del mercado y sus fuentes: las tres agencias aparecen leídas enteras esta noche, y las casas que ya existían conservan su ficha. Si no sabes dónde mirarlo, pídeselo a Claude: lo comprueba en la base de datos.
 
 ---
 
@@ -584,7 +663,7 @@ En el panel, Automations › Market (o la pasada del día): las tres agencias ap
 docker ps --filter name=hampton-mercado --format '{{.Names}} {{.Status}}'
 ```
 
-Salida esperada: «hampton-mercado Up …». Junto con el paso 23 (líneas «done») y el paso 25 (agencias leídas), el lector del mercado de Hermes está funcionando.
+Salida esperada: «hampton-mercado Up …». Junto con el paso 33 (líneas «done») y el paso 35 (agencias leídas), el lector del mercado de Hermes está funcionando.
 
 ---
 
@@ -628,8 +707,8 @@ Salida esperada: «hampton-mercado Up …». Junto con el paso 23 (líneas «don
 
 ## Lo que no se ha podido probar antes de instalar
 
-- El custodio, la skill y el script se probaron contra una app y unas webs falsas en el ordenador (`node --test tests/hermes-mercado.test.mjs`). Con la app real, la primera prueba es el paso 18.
-- Que las herramientas de web de Hermes salgan por `hermes-squid` sin otro servicio: lo dice el paso 19.
-- Que la tarea programada de Hermes respete la hora de Jersey: lo dice el paso 20.
-- Que `curl -H @archivo` pase las aprobaciones de Hermes en una tarea nocturna: lo dirá la primera noche (paso 23). Si se queda esperando una aprobación, avisa a Claude.
-- Que `wrangler pages secret put` lea la llave del archivo (paso 13).
+- El custodio, la skill y el script se probaron contra una app y unas webs falsas en el ordenador (`node --test tests/hermes-mercado.test.mjs`). Con la app real, la primera prueba es el paso 28 (y la llave, el 32).
+- Que las herramientas de web de Hermes salgan por `hermes-squid` sin otro servicio: lo dice el paso 29.
+- Que la tarea programada de Hermes respete la hora de Jersey: lo dice el paso 30.
+- Que `curl -H @archivo` pase las aprobaciones de Hermes en una tarea nocturna: lo dirá la primera noche (paso 33). Si se queda esperando una aprobación, avisa a Claude.
+- Que `wrangler pages secret put` lea la llave del archivo (paso 17).
