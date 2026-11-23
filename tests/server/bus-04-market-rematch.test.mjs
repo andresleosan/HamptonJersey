@@ -80,7 +80,8 @@ test('a change is material only when it touches what a search reads; a lower pri
   const base = { operation: 'rent', observed_at: '2026-11-15T10:00:00.000Z', fields: { title: 'Flat', parish: 'St Helier', bedrooms: 2 },
     financial_terms: [{ kind: 'rent', amount_minor: 200000, currency: 'GBP', period: 'month' }] };
   const text = o => JSON.stringify(o);
-  assert.deepEqual(classifyMarketChange({ before: null, after: text(base) }), { material: true, operations: ['rent'] });
+  assert.deepEqual(classifyMarketChange({ before: null, after: text(base) }), { material: true, operations: ['rent'],
+    searches: ['residential:rent'] });
   assert.equal(classifyMarketChange({ before: text(base), after: text({ ...base, fields: { ...base.fields, title: 'Bright flat' },
     observed_at: AT }) }).material, false);
   // A reading that loses its time no longer counts towards its home's facts (BUS-01): material.
@@ -89,7 +90,8 @@ test('a change is material only when it touches what a search reads; a lower pri
     amount_minor: 190000 }] }) }).material, true);
   assert.equal(classifyMarketChange({ before: text(base), after: text(base), gone: 1 }).material, true);
   assert.deepEqual(classifyMarketChange({ before: text(base), after: text({ ...base, operation: 'sale' }) }).operations, ['rent', 'sale']);
-  assert.deepEqual(classifyMarketChange({ before: null, after: '{broken' }), { material: true, operations: ['rent', 'sale'] });
+  assert.deepEqual(classifyMarketChange({ before: null, after: '{broken' }), { material: true, operations: ['rent', 'sale'],
+    searches: ['residential:rent', 'residential:buy', 'commercial:rent', 'commercial:buy'] });
   const p = (amount, currency = 'GBP', period = 'month') => JSON.stringify([amount, currency, period]);
   assert.equal(lowerPrice(p(190000), p(200000)), true);
   assert.equal(lowerPrice(p(200000), p(200000)), false);

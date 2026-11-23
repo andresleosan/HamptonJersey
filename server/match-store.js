@@ -25,15 +25,16 @@ const commercial = a => a.search_category === 'commercial';
 const candidatesFor = (env, a) => (commercial(a) ? COMMERCIAL_SQL : CANDIDATES_SQL) + notConfirmedUnavailable(env);
 export const operationFor = a => (commercial(a) && a.search_operation === 'transfer' ? 'business' : LISTING_OPERATION[a.operation]);
 
-// BUS-01: with BUS01_MARKET_MATCHING_READY (and BUS10's identity, which decides what one home is), a residential search
-// also crosses the homes of the common market inventory, after its listings and apart from them: nothing of the market
+// BUS-01: with BUS01_MARKET_MATCHING_READY (and BUS10's identity, which decides what one home is), a search also crosses
+// the homes of the common market inventory of its own kind (BUS-12: commercial ones for a commercial search), after its listings and apart from them: nothing of the market
 // can stop, undo or delay saving the listings' matches or the search's record (EST-01). Off, nothing of it is read.
 export const marketMatchingEnabled = env => env?.BUS01_MARKET_MATCHING_READY === '1' && env?.BUS10_IDENTITY_READY === '1';
 // At most this many homes are evaluated per search, the best fitting first (readMarketCandidates); more leaves the
 // market part 'incomplete'. It also bounds the rows a run writes: changed results plus withdrawn ones, each ≤ this.
 export const MARKET_HOMES_LIMIT = 50;
 // The check each fact answers, to say which ones the adverts disagree on.
-const FACT_CHECK = { parish: 'area', bedrooms: 'bedrooms', bathrooms: 'bathrooms', price: 'budget', pets: 'pets', parking: 'parking' };
+const FACT_CHECK = { parish: 'area', bedrooms: 'bedrooms', bathrooms: 'bathrooms', price: 'budget', pets: 'pets', parking: 'parking',
+  area_sqft: 'floor_area' };
 const ON_ADVERT = 'Stated on the advert';
 // A home as readMarketCandidates/readMarketHomesPage aggregate it, as evaluate() reads a listing. Nothing the adverts do
 // not state is assumed: housing category, tenure, type, outdoor space, furniture and availability stay unknown, and an
@@ -47,14 +48,14 @@ export function marketHomeFacts(h) {
   const { pets, parking } = facts, rent = h.operation === 'rent' && facts.price;
   const policy = { ...(pets != null && { pets: pets ? 'yes' : 'no' }),
     ...(parking != null && { parking: parking ? { kind: 'minimum', value: 1 } : { kind: 'exact', value: 0 } }) };
-  return { disagree, facts, row: { id: h.home, operation: h.operation, candidate: 1, use: 'residential', archived_at: null,
+  return { disagree, facts, row: { id: h.home, operation: h.operation, candidate: 1, use: h.commercial ? 'commercial' : 'residential', archived_at: null,
     availability: null, parish: facts.parish, bedrooms: facts.bedrooms, bathrooms: facts.bathrooms,
     sale_price: h.operation === 'sale' && price ? price[0] / 100 : null, rent: rent ? price[0] / 100 : null,
     rent_period: rent ? price[2] : null, currency: price?.[1] ?? null,
     feat_pets: policy.pets ?? null, feat_parking: parking == null ? null : parking ? 1 : 0,
     feat_evidence: JSON.stringify({ ...Object.fromEntries(Object.keys(policy).map(k => [k, ON_ADVERT])), _requirements: { version: 1, ...policy } }),
     feat_furnished: null, feat_outdoor: null, feat_type: null, tenure_type: null, housing_category: null, restriction: null,
-    premium: null, interior_area_sqft: null, property_type: null } };
+    premium: null, interior_area_sqft: h.area_sqft ?? null, property_type: null } };
 }
 // One search against one market home, as market_matches keeps it (checks as their JSON text, compared as such).
 function marketResult(a, h) {
@@ -70,14 +71,17 @@ const pairKey = (home, operation) => JSON.stringify([home, operation]);
 // ponytail: the adverts are not fenced like listings are; an advert read meanwhile is evaluated by the next full run.
 async function matchMarket(env, a) {
   try {
-    const priorities = parsePriorities(a.requirement_priorities), wanted = asList(a.parishes_wanted);
-    const petsRule = hasHouseholdPets(a) && (!!priorities || hasAnswer('pets', a)); // when evaluate() checks pets at all
-    const fit = { top: a.budget_stretch ?? a.budget_max, bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max,
-      bathrooms_min: a.bathrooms_min, parking_spaces: a.parking_spaces, wanted, excluded: asList(a.parishes_excluded),
-      area: wanted.length > 0 && !['unknown', 'any'].includes(a.area_answer), pets: petsRule,
-      must: [...Object.entries(priorities?.values ?? {}).filter(([, v]) => v === 'must').map(([k]) => k), ...(petsRule ? ['pets'] : [])] };
+    const priorities = parsePriorities(a.requirement_priorities), wanted = asList(a.parishes_wanted), shop = commercial(a);
+    const petsRule = !shop && hasHouseholdPets(a) && (!!priorities || hasAnswer('pets', a)); // when evaluate() checks pets at all
+    // A commercial search is narrowed by parish only: BUS-12's evaluate() judges its area and each money term.
+    const fit = shop ? { wanted, excluded: asList(a.parishes_excluded), area: wanted.length > 0, must: [] }
+      : { top: a.budget_stretch ?? a.budget_max, bedrooms_min: a.bedrooms_min, bedrooms_max: a.bedrooms_max,
+        bathrooms_min: a.bathrooms_min, parking_spaces: a.parking_spaces, wanted, excluded: asList(a.parishes_excluded),
+        area: wanted.length > 0 && !['unknown', 'any'].includes(a.area_answer), pets: petsRule,
+        must: [...Object.entries(priorities?.values ?? {}).filter(([, v]) => v === 'must').map(([k]) => k), ...(petsRule ? ['pets'] : [])] };
     const [{ homes, open_sources }, { results: stored }] = await Promise.all([
-      readMarketCandidates(env, { operation: operationFor(a), legacy: !priorities, fit, limit: MARKET_HOMES_LIMIT + 1 }),
+      readMarketCandidates(env, { operation: operationFor(a), commercial: shop, legacy: !shop && !priorities, fit,
+        limit: MARKET_HOMES_LIMIT + 1 }),
       env.DB.prepare('SELECT home_key,operation,result,score,requirements_rank,checks,observed_at FROM market_matches WHERE applicant_id=?')
         .bind(a.id).all()]);
     const capped = homes.length > MARKET_HOMES_LIMIT, evaluated = homes.slice(0, MARKET_HOMES_LIMIT).map(h => marketResult(a, h));
@@ -270,8 +274,9 @@ export async function recomputeForApplicantWithStatus(env, applicantId, actor, r
   try {
     const outcome=await recomputeApplicantSnapshot(env,a,actor,restoreNotice,ticket);
     if(!outcome.completed)await recordFailure();
-    // BUS-01: only once the listings are saved, in its own batch; matchMarket never throws.
-    else if(marketMatchingEnabled(env)&&!commercial(a))outcome.market=await matchMarket(env,a);
+    // BUS-01: only once the listings are saved, in its own batch; matchMarket never throws. A business transfer has no
+    // market part: market_matches (0083) holds sales and lets only.
+    else if(marketMatchingEnabled(env)&&operationFor(a)!=='business')outcome.market=await matchMarket(env,a);
     return outcome;
   } catch(error) {
     await recordFailure();
