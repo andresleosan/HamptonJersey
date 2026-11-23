@@ -26,7 +26,7 @@ const ctx = over => ({ source_ref: 'src-finders-keepers', channel_id: 'c', curso
 test('readPage: one request per feed page on the reviewed host, records the sweep accepts, no descriptions', async () => {
   const calls = [], r = reader([feed([adv(1), adv(2)], 1, 2), feed([adv(3)], 2, 2)], calls);
   const a = await r.readPage(ctx());
-  assert.deepEqual([a.records.length, a.exhausted, a.next_cursor], [2, false, '2']);
+  assert.deepEqual([a.records.length, a.exhausted, a.next_cursor], [2, false, '2:0']);
   for (const x of a.records) { normalizeObservation({ ...x.observation, observed_at: new Date().toISOString() });
     assert.equal(x.raw.description, undefined); assert.match(x.raw.listing_url, /^https:\/\/www\.finderskeepers\.je\/property\//); }
   const b = await r.readPage(ctx({ cursor: a.next_cursor }));
@@ -53,4 +53,14 @@ test('parking: spaces on the advert say yes; none given or 0 stays unknown', asy
   const { records } = await r.readPage(ctx());
   assert.deepEqual(records.map(x => x.observation.parking), [true, undefined, undefined]);
   for (const x of records) normalizeObservation({ ...x.observation, observed_at: '2026-11-21T00:00:00.000Z' });
+});
+
+test('a feed page of 12 adverts is read in slices of at most 10 (the sweep refuses more), none lost', async () => {
+  const page1 = Array.from({ length: 12 }, (_, i) => adv(i + 1)), calls = [];
+  const r = reader([feed(page1, 1, 2), feed(page1, 1, 2), feed([adv(13)], 2, 2)], calls), seen = [];
+  let cursor = null, out;
+  do { out = await r.readPage(ctx({ cursor })); assert.ok(out.records.length <= 10); seen.push(...out.records.map(x => x.external_key)); cursor = out.next_cursor; }
+  while (!out.exhausted);
+  assert.deepEqual(seen, Array.from({ length: 13 }, (_, i) => `finderskeepers:${i + 1}`));
+  assert.equal(calls.length, 3);
 });

@@ -4,7 +4,7 @@
 import { SourceReadError } from '../market-daily-sweep.js';
 import { fetchAllowed } from './fetch.js';
 
-const HOST_RE = /^(?:www\.)?finderskeepers\.je$/, MAX_PAGES = 30, NOT_HOME = /commercial|land|garage|parking|retail|office|warehouse|industrial/i;
+const HOST_RE = /^(?:www\.)?finderskeepers\.je$/, MAX_PAGES = 30, PER_PAGE = 10, NOT_HOME = /commercial|land|garage|parking|retail|office|warehouse|industrial/i;
 const FEED = '/property.json?isUnSold=1&minPrice=1&maxPrice=99999999999';
 const label = (list, one) => (Array.isArray(list) ? list[0] : one)?.title?.toString().trim() || null;
 
@@ -39,7 +39,8 @@ export function findersKeepersReader({ fetchImpl = fetch } = {}) {
     if (!host || !allowed_paths?.length) throw new SourceReadError('access_denied');
     // ponytail: a channel reviewed on a sub-page is a subset of the root channel, which reads it all.
     if (!allowed_paths.includes('/')) return { records: [], exhausted: true, next_cursor: null };
-    const pageNo = cursor == null ? 1 : /^\d{1,3}$/.test(cursor) ? Number(cursor) : NaN;
+    // Cursor "page:offset": the feed gives 12 adverts a page and the sweep takes 10 at most, so a page is read in two slices.
+    const m = cursor == null ? ['', '1', '0'] : /^(\d{1,3})(?::(\d{1,2}))?$/.exec(cursor), pageNo = m ? Number(m[1]) : NaN, offset = m ? Number(m[2] ?? 0) : NaN;
     if (!Number.isInteger(pageNo) || pageNo < 1) throw new SourceReadError('invalid_response');
     // The bare host redirects to an index.php path; the www host answers directly.
     const body = await fetchAllowed(fetchImpl, `https://www.${host.replace(/^www\./, '')}${FEED}${pageNo > 1 ? `&page=${pageNo}` : ''}`, { host, path: '/', signal });
@@ -47,7 +48,8 @@ export function findersKeepersReader({ fetchImpl = fetch } = {}) {
     const { items, pages } = parseFindersKeepers(json);
     if (!Array.isArray(json?.data) || !Number.isInteger(pages) || pages < 1) throw new SourceReadError('invalid_response');
     if (pageNo === 1 && !items.length) throw new SourceReadError('invalid_response');
-    const last = pageNo >= pages || pageNo >= MAX_PAGES;
-    return { records: items.map(record), exhausted: last, next_cursor: last ? null : String(pageNo + 1) };
+    const more = offset + PER_PAGE < items.length, last = !more && (pageNo >= pages || pageNo >= MAX_PAGES);
+    return { records: items.slice(offset, offset + PER_PAGE).map(record), exhausted: last,
+      next_cursor: last ? null : more ? `${pageNo}:${offset + PER_PAGE}` : `${pageNo + 1}:0` };
   } };
 }
