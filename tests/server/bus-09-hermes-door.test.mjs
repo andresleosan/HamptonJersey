@@ -319,6 +319,18 @@ test('a short pass, under 80% of a channel\'s live adverts (5 or more), fails; 8
   ({ lease } = ok(await door(env, 'POST', '/claim', claim)));
   assert.deepEqual(ok(await door(env, 'POST', '/page', { lease, records: many('agency-a', 'A', 8), exhausted: true })), { accepted: true, skipped: 0 });
   assert.equal(one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', run, 'agency-a').status, 'complete');
+  // Day 2, after a full day: 7 of 10 is still refused. Day 3, after a day that ended so: a real drop, 7 completes.
+  const short = async (d, status) => {
+    t.mock.timers.setTime(Date.parse(at(d)));
+    await marketSweepPass(env, at(d), { readers: {} });
+    const r = runOf(env, d).id;
+    rest(env); t.mock.timers.setTime(Date.parse(at(d, 5)));
+    const { lease: l } = ok(await door(env, 'POST', '/claim', { ...claim, run_id: r }));
+    assert.equal((await door(env, 'POST', '/page', { lease: l, records: many('agency-a', 'A', 7), exhausted: true })).status, status);
+    return one(env, 'SELECT status FROM market_source_runs WHERE run_id=? AND source_ref=?', r, 'agency-a').status;
+  };
+  assert.equal(await short(2, 409), 'failed');
+  assert.equal(await short(3, 200), 'complete');
 });
 
 test("from 20:00 Jersey time Hermes's unread channel no longer holds back the day: not read in full, never missing", async t => {
