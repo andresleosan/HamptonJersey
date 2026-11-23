@@ -175,6 +175,8 @@ test('a bad envelope is 400; the same page sent twice is a replay; a stale lease
     assert.equal((await door(env, 'POST', '/page', body)).status, 400, JSON.stringify(body).slice(0, 80));
   const body = { lease, records: many('agency-a', 'A', 3), exhausted: false };
   assert.deepEqual(ok(await door(env, 'POST', '/page', body)), { accepted: true, skipped: 0 });
+  // The channel's pace holds: no claim again within its interval.
+  assert.deepEqual(await door(env, 'POST', '/claim', claim).then(r => [r.status, r.data]), [409, { retry_after_s: 60 }]);
   t.mock.timers.setTime(Date.parse(at(0, 6)));
   assert.deepEqual(ok(await door(env, 'POST', '/page', body)), { accepted: true, skipped: 0, replayed: true });
   assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_pages WHERE source_ref='agency-a'"), 1);
@@ -204,6 +206,17 @@ test('three failures in a day block the channel, as for a code reader; refused a
   assert.equal(one(env, "SELECT status FROM market_source_runs WHERE source_ref='agency-b'").status, 'blocked');
   assert.deepEqual(ok(await door(env, 'GET', '/work')).items, []);
   assert.equal(n(env, "SELECT COUNT(*) AS n FROM market_sweep_attempts WHERE outcome='no_reader'"), 0);
+  // A blocked channel keeps its count; a closed run is refused like a claim too soon.
+  const before = n(env, 'SELECT COUNT(*) AS n FROM market_sweep_attempts');
+  ok(await door(env, 'POST', '/fail', { ...ch('agency-a'), lease: null, reason: 'unavailable' }));
+  assert.equal(n(env, 'SELECT COUNT(*) AS n FROM market_sweep_attempts'), before);
+  env.DB.raw.prepare("UPDATE market_source_runs SET status='pending',next_due=NULL WHERE source_ref='agency-a'").run();
+  env.DB.raw.prepare("UPDATE market_runs SET status='partial',version=version+1 WHERE id=?").run(run);
+  rest(env);
+  const closed = await door(env, 'POST', '/claim', ch('agency-a'));
+  assert.equal(closed.status, 409);
+  assert.ok(closed.data.retry_after_s >= 1);
+  assert.deepEqual(ok(await door(env, 'GET', '/work')), { day: null, run_id: null, items: [] });
 });
 
 test('a takeover keeps each home: a known listing_url reuses the code reader key, so nothing looks gone and new', async t => {
@@ -240,12 +253,10 @@ test('a sub-channel of a source read at "/" is completed empty by the sweep and 
   assert.equal((await door(env, 'POST', '/claim', { run_id: run, source_ref: 'agency-a', channel_id: 'site' })).status, 404);
 });
 
-test('both switches exist off in both wrangler files', () => {
-  for (const f of ['wrangler.toml', 'jobs/wrangler.toml']) {
-    const text = readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
-    assert.match(text, /^HERMES_MARKET_READY = "0"$/m, f);
-    assert.match(text, /^HERMES_MARKET_SOURCES = ""$/m, f);
-  }
+test('both switches exist off, and equal, in both wrangler files', () => {
+  const vars = f => [...readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8').matchAll(/^(HERMES_MARKET_\w+) = (.*)$/gm)].map(m => m.slice(1));
+  assert.deepEqual(vars('wrangler.toml'), [['HERMES_MARKET_READY', '"0"'], ['HERMES_MARKET_SOURCES', '""']]);
+  assert.deepEqual(vars('jobs/wrangler.toml'), vars('wrangler.toml'));
 });
 
 test('D1 local: a sub-channel completes empty, and Hermes reads its root channel through the door in the real runtime', async () => {

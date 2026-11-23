@@ -12,13 +12,13 @@ const REASONS = ['access_denied', 'unavailable', 'invalid_response', 'rate_limit
 const text = v => typeof v === 'string' && v.length > 0 && v.length <= 160;
 const plain = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-// Hermes's channels of an open daily run, sub-channels left out (the sweep completes those empty). where: SQL on sr.
+// Hermes's channels of a daily run, sub-channels left out (the sweep completes those empty). where: SQL on sr.
 async function channels(env, where, ...args) {
   const h = hermesChannels(env);
   if (!h) return [];
   const { results } = await env.DB.prepare(`SELECT sr.run_id,sr.source_ref,sr.channel_id,sr.page_no,sr.status,s.allowed_hosts,
       s.allowed_paths,s.min_interval_s FROM market_source_runs sr JOIN market_runs mr ON mr.id=sr.run_id AND mr.kind='daily'
-      AND mr.status='open' JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
+    JOIN market_sources s ON s.source_ref=sr.source_ref AND s.channel_id=sr.channel_id
     WHERE ${where} AND ${AUTOMATIC} AND ${h.sql} AND NOT ${SUB_CHANNEL} ORDER BY sr.paging_key LIMIT 200`).bind(...args, ...h.args).all();
   return results;
 }
@@ -92,6 +92,8 @@ async function failure({ request, env }) {
   if (!plain(b) || ![b.run_id, b.source_ref, b.channel_id].every(text) || !REASONS.includes(b.reason) ||
       (b.lease != null && !(plain(b.lease) && text(b.lease.token)))) fail(400, 'Send the channel, its lease or null, and a reason');
   const c = await channel(env, b);
+  // ponytail: a channel already complete or blocked keeps its count; nothing to record.
+  if (!['pending', 'running', 'failed'].includes(c.status)) return json({ ok: true });
   await failed(env, c.run_id, c, b.lease ? { token: b.lease.token } : null, new SourceReadError(b.reason), now());
   return json({ ok: true });
 }
