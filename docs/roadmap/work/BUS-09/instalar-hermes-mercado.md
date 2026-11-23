@@ -1,5 +1,7 @@
 # Instalar el lector del mercado de Hermes (BUS-09)
 
+> **Cambio del 23-nov (instalado):** por decisión de Luis, el que lee el mercado es **Hermes 2** (`@Carl_Bro_001_bot`, contenedor `hermes2`), no Hermes 1. Donde esta guía dice `hermes-squid` o `hermes-taller`, léase `hermes2-squid` (con `squid-hermes2.conf`) y `hermes-taller2` (IP `172.16.47.31`). Hermes 1 quedó como antes de empezar. La herramienta de lectura de webs de Hermes no pasa por su lista de dominios (el paso 29 no prueba el proxy); el custodio comprueba cada anuncio contra la web real igualmente.
+
 **Qué se consigue:** cada noche a las 02:00 de Jersey, Hermes abre las webs permitidas de las agencias, copia los anuncios y se los da al **custodio del mercado** (`hampton-mercado`). El custodio comprueba cada anuncio contra la web, sin IA, y se los pasa a la app de 10 en 10. Solo el custodio tiene la llave de la puerta del mercado.
 
 **Cuántos pasos:** 35, en seis partes. Cada paso dice quién lo hace:
