@@ -11,7 +11,8 @@
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/work/BUS-24/canales-aplazados.md",
-    "Decisión de Luis 20-nov-2026: empezar con los canales permitidos y dejar el resto para el final."
+    "Decisión de Luis 20-nov-2026: empezar con los canales permitidos y dejar el resto para el final.",
+    "24-nov: BUS-08 cerrada; decisión: el grupo D espera a la lectura de Hermes (BUS-09), porque esas webs cargan sus términos con JavaScript. Fuente: plan-directorio-hermes.md y opción más simple y reversible (skill §4.5)."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -24,12 +25,19 @@
       "reason": "Primero se enciende la pasada diaria con los canales permitidos.",
       "basis": "explicit",
       "scope": "whole"
+    },
+    {
+      "id": "BUS-09",
+      "requires": "activated",
+      "reason": "Las 20 webs ilegibles (grupo D) se reclasifican con la lectura de Hermes cuando pase su piloto.",
+      "basis": "explicit",
+      "scope": "whole"
     }
   ],
   "resources": [
     "sources-directory",
     "data-processing-policy"
   ],
-  "nextStep": "Revisar la lista cuando BUS-08 esté cerrada; decidir canal por canal.",
-  "actualizado": "2026-11-20"
+  "nextStep": "Tras el piloto de Hermes (BUS-09): reclasificar el grupo D con su lectura; los grupos A y B solo con permiso por escrito (Luis o Hampton).",
+  "actualizado": "2026-11-24"
 }

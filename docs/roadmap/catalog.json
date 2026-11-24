@@ -13588,7 +13588,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales. 20-nov-2026: primer lector externo, Gaudin & Co (server/market-readers/gaudin.js; deja fuera los anuncios Let Agreed, Under Offer o Sold), registrado en server/market-readers/index.js y usado por el barrido diario: lee solo la ruta revisada del canal (?page=N), una petición por página, y solo datos de la tarjeta (enlace, parroquia, precio, dormitorios, baños); sin fotos ni descripciones. 21-nov-2026: segundo lector, Keys Properties (server/market-readers/keys.js): el sitemap HTML da los anuncios vigentes y el RSS sus datos (dormitorios, tipo, parroquia, precio, enlace); 2 peticiones por pasada. El canal de Keys revisado en una subpágina (St Helier) se lee como subconjunto vacío del canal raíz. Petición común con guarda de host, ruta y redirecciones en server/market-readers/fetch.js. 21-nov-2026: tercer lector, Finders Keepers (server/market-readers/finderskeepers.js): lee el JSON que usa la búsqueda de su propia web (/property.json, solo anuncios no vendidos, 12 por página, una petición por página); deja fuera comercial, terreno y garajes; sin descripciones ni fotos. 21-nov: Finders Keepers guarda también si hay aparcamiento (plazas > 0 = sí; 0 o sin dato = desconocido).",
-      "falta": "Instalar las piezas del VPS (guía docs/roadmap/work/BUS-09/instalar-hermes-mercado.md, la hace Luis), aplicar 0123, piloto de Hermes con Gaudin, Keys y Finders Keepers (HERMES_MARKET_SOURCES) y, si pasa, borrar los lectores de código; después la primera carga por tandas.",
+      "falta": "Piloto de Hermes con Gaudin, Keys y Finders Keepers (piezas del VPS instaladas el 23-nov, 0123 aplicada): la primera lectura es la noche del 24-nov; comparar casa por casa dos días seguidos con la última lectura completa (al menos el 95 % de cada fuente, ninguna inventada) y, si pasa, borrar los lectores de código y encender MARKET_AUTO_WITHDRAW_READY; después la primera carga por tandas. Finders Keepers nunca completó una lectura de código en producción (invalid_response el 22 y el 23-nov): para el piloto hace falta contar sus casas aparte.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -13613,7 +13613,8 @@
         "21-nov: node --test tests/server/bus-09-*.test.mjs tests/server/bus-08-daily-sweep.test.mjs: 67/67 (aparcamiento de Finders Keepers)",
         "23-nov: Finders Keepers fallaba cada día en producción (6 intentos invalid_response, 0 casas): su feed da 12 anuncios por página y la pasada acepta 10 como máximo (server/market-daily-sweep.js:122). Arreglo: cursor «página:desplazamiento» en tandas de 10, como Gaudin y Keys. node --test bus-09-* y bus-08-daily-sweep: 68/68; lectura real 23-nov: 10 + 10 por página. Comprobación en producción pendiente de la pasada del 24-nov.",
         "23-nov: decisión de Luis: solo Hermes busca casas y actualiza el inventario; los lectores de código se retiran tras el piloto. Plan: docs/roadmap/work/BUS-09/plan-directorio-hermes.md.",
-        "23-nov: construido apagado: puerta /api/hermes/market (HERMES_MARKET_KEY, HERMES_MARKET_READY=0, HERMES_MARKET_SOURCES vacío), custodio hermes/mercado.mjs (comprueba cada anuncio contra la página real, DNS/SSRF), skill hampton-mercado, script de dominios y guía. Revisión independiente con hallazgos corregidos. npm test 3543/3547 (4 fallos de fecha, iguales en main), hermes-mercado 20/20, build y check:release correctos."
+        "23-nov: construido apagado: puerta /api/hermes/market (HERMES_MARKET_KEY, HERMES_MARKET_READY=0, HERMES_MARKET_SOURCES vacío), custodio hermes/mercado.mjs (comprueba cada anuncio contra la página real, DNS/SSRF), skill hampton-mercado, script de dominios y guía. Revisión independiente con hallazgos corregidos. npm test 3543/3547 (4 fallos de fecha, iguales en main), hermes-mercado 20/20, build y check:release correctos.",
+        "24-nov: market_short_reads vacío y la pasada del 24-nov (run 3aa0144f) sin lecturas de Gaudin ni Finders Keepers: Hermes aún no ha leído; el piloto no se puede juzgar hasta el 25-nov."
       ],
       "modulo": "M02",
       "deps": [
@@ -13647,13 +13648,12 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Luis/Hampton: aceptar al menos un canal externo en Automations › Market inventory (BUS-19, BUS-08; filas en COLA-LUIS). Con una fuente aceptada vuelve a desarrollo: su lector y la integración con el inventario BUS-06.",
       "resources": [
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "Luis: instalar el custodio, la skill y la tarea diaria de Hermes con la guía; luego encender el piloto.",
-      "actualizado": "2026-11-23"
+      "nextStep": "25 y 26-nov: leer market_short_reads y los intentos de la pasada del piloto y comparar con la última lectura completa.",
+      "actualizado": "2026-11-24"
     },
     {
       "id": "BUS-10",
@@ -20758,7 +20758,8 @@
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/work/BUS-24/canales-aplazados.md",
-        "Decisión de Luis 20-nov-2026: empezar con los canales permitidos y dejar el resto para el final."
+        "Decisión de Luis 20-nov-2026: empezar con los canales permitidos y dejar el resto para el final.",
+        "24-nov: BUS-08 cerrada; decisión: el grupo D espera a la lectura de Hermes (BUS-09), porque esas webs cargan sus términos con JavaScript. Fuente: plan-directorio-hermes.md y opción más simple y reversible (skill §4.5)."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -20771,14 +20772,21 @@
           "reason": "Primero se enciende la pasada diaria con los canales permitidos.",
           "basis": "explicit",
           "scope": "whole"
+        },
+        {
+          "id": "BUS-09",
+          "requires": "activated",
+          "reason": "Las 20 webs ilegibles (grupo D) se reclasifican con la lectura de Hermes cuando pase su piloto.",
+          "basis": "explicit",
+          "scope": "whole"
         }
       ],
       "resources": [
         "sources-directory",
         "data-processing-policy"
       ],
-      "nextStep": "Revisar la lista cuando BUS-08 esté cerrada; decidir canal por canal.",
-      "actualizado": "2026-11-20"
+      "nextStep": "Tras el piloto de Hermes (BUS-09): reclasificar el grupo D con su lectura; los grupos A y B solo con permiso por escrito (Luis o Hampton).",
+      "actualizado": "2026-11-24"
     }
   ]
 }
