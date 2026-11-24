@@ -20835,14 +20835,19 @@
       "titulo": "Alta automática de la agencia de cada ficha para poder preparar consultas sin trabajo manual",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Todo: lista revisada de agencias con correo genérico, sincronización diaria apagada por interruptor, pruebas, encender y comprobar en producción (plan docs/roadmap/work/AGE-15/plan.md).",
+      "hecho": "Sincronización diaria solo-añadir (server/advertiser-sync.js) en el reloj tras AGE15_AUTO_ADVERTISERS_READY, encendido en jobs/wrangler.toml: las 5 agencias de la importación (Hunt, Red, Slomans, Prestige, Columbia) entran en Advertisers con su correo genérico y sus fichas. El directorio admite hasta 1000 fichas por anunciante y comprueba las fichas en una sola consulta.",
+      "falta": "Comprobar en producción, tras la primera pasada del reloj, que Advertisers tiene las 5 agencias con su correo. Después, la primera consulta real con AGE05_SEND_READY (decisión de Luis, fila AGE-05 de COLA-LUIS) que deje su borrador en el Gmail de Hampton.",
       "bloqueo": "",
       "evidencia": [
         "24-nov-2026: decisión de Luis, opción A (alta automática en vez de manual).",
-        "Lectura de producción 24-nov: advertisers 0, listing_market_links 0; media.provider nombra la agencia de las fichas importadas (Hunt 162, Red 43, Slomans 40, Prestige 14, Columbia 6)."
+        "Lectura de producción 24-nov: advertisers 0, listing_market_links 0; media.provider nombra la agencia de las fichas importadas (Hunt 162, Red 43, Slomans 40, Prestige 14, Columbia 6).",
+        "24-nov-2026: lectura de producción: las fotos de importación (origin upload, created_by import) nombran solo 5 agencias: Hunt Estates 162 fichas, Red Properties 42, Slomans Estate Agents 40, Prestige Properties 14, Columbia Estates 6 (el plan decía Red 43 y Slomans +1: esos están en fotos externas de fichas propias de Hampton). La cola larga (Savills, Knight Frank, Reside…) solo aparece en fichas propias (HE-R001 a HE-R027, HE-C) y queda fuera, como en BUS-07; por eso no hizo falta normalizar «OnTheMarket / X».",
+        "24-nov-2026: correos genéricos leídos en la web de cada agencia (URL y fecha en AGENCIES de server/advertiser-sync.js); ninguno de persona.",
+        "Decisiones (fuente: plan y opción más simple y reversible): estado en app_settings.advertiser_sync (agencia → anunciante y fichas ya dadas), sin migración; el contacto genérico solo al crear; una ficha o contacto que una persona quitó no vuelve; un anunciante renombrado no se duplica; uno suprimido (AGE-14) no se toca ni se recrea; solo el rango de la importación HE-R028–HE-R285.",
+        "24-nov-2026: node --test tests/server/age-15-advertiser-sync.test.mjs tests/server/advertisers.test.mjs tests/server/jobs.test.mjs → 21/21. npm test 3555/3564: los 9 fallos eran el número de tareas fijo en las pruebas (251 → 252 por el alta de AGE-15), corregido → 39/39. npm run build y check:release OK.",
+        "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación)."
       ],
       "modulo": "M06",
       "deps": [
@@ -20866,7 +20871,7 @@
         "advertiser-directory",
         "jobs-clock"
       ],
-      "nextStep": "Construir la lista revisada de agencias y la sincronización según el plan.",
+      "nextStep": "Leer advertisers y app_settings.advertiser_sync en producción tras el despliegue de hampton-jobs.",
       "actualizado": "2026-11-24"
     }
   ]

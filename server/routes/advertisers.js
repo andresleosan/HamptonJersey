@@ -26,8 +26,9 @@ function validate(b) {
     try { const u = new URL(url); if (!['http:', 'https:'].includes(u.protocol) || u.username || u.password) throw Error(); } catch { throw new FieldError(`channels.${index}.url`, 'Enter an http or https URL'); }
     return { label: clean(c?.label, 'channel label', 100, true), url };
   });
-  const ids = (v, label) => [...new Set(list(v, label, 100).map(x => clean(x, label, 100)).filter(Boolean))];
-  return { name, kind, details: { contacts, channels, source_ids: ids(b.source_ids, 'source'), listing_ids: ids(b.listing_ids, 'listing'), commission: clean(b.commission, 'commission', 2000), photo_permission: clean(b.photo_permission, 'photo permission', 2000) } };
+  const ids = (v, label, max = 100) => [...new Set(list(v, label, max).map(x => clean(x, label, 100)).filter(Boolean))];
+  // AGE-15: an agency of the import advertises up to 162 listings today.
+  return { name, kind, details: { contacts, channels, source_ids: ids(b.source_ids, 'source'), listing_ids: ids(b.listing_ids, 'listing', 1000), commission: clean(b.commission, 'commission', 2000), photo_permission: clean(b.photo_permission, 'photo permission', 2000) } };
 }
 function monthAfter(date, months) {
   const [y, m, d] = date.split('-').map(Number), base = new Date(Date.UTC(y, m - 1 + months, 1));
@@ -39,11 +40,11 @@ const columns = `a.*, (SELECT r.action FROM advertiser_reviews r WHERE r.adverti
 export async function get(env, id) { const r = await env.DB.prepare(`SELECT ${columns} FROM advertisers a WHERE a.id = ?`).bind(id).first(); if (!r) fail(404, 'Advertiser not found'); return r; }
 async function refs(env, d, previous = []) {
   for (const id of d.source_ids) if (!await env.DB.prepare('SELECT source_id FROM research_sources WHERE source_id = ?').bind(id).first()) throw new FieldError('source_ids', 'Source not found');
-  for (const id of d.listing_ids) {
-    if (await env.DB.prepare('SELECT id FROM listings WHERE id = ?').bind(id).first()) continue;
-    if (previous.includes(id) && await env.DB.prepare('SELECT id FROM deleted_listings WHERE id = ?').bind(id).first()) continue;
-    throw new FieldError('listing_ids', 'Listing not found');
-  }
+  // One statement for every listing (a query each would pass D1's limit per request): any that is neither a listing
+  // nor a deleted one it already had.
+  if (await env.DB.prepare(`SELECT 1 FROM json_each(?1) j WHERE NOT EXISTS (SELECT 1 FROM listings WHERE id = j.value)
+    AND NOT (j.value IN (SELECT value FROM json_each(?2)) AND EXISTS (SELECT 1 FROM deleted_listings WHERE id = j.value)) LIMIT 1`)
+    .bind(JSON.stringify(d.listing_ids), JSON.stringify(previous)).first()) throw new FieldError('listing_ids', 'Listing not found');
 }
 async function all({ env, request }) {
   const p = new URL(request.url).searchParams, offset = Math.max(0, Math.min(100000, Number.parseInt(p.get('offset'), 10) || 0));
@@ -55,8 +56,9 @@ async function all({ env, request }) {
   return json({ advertisers: rows.slice(0, 50).map(output), more: rows.length > 50, offset, suppression: env.AGE14_SUPPRESSION_READY === '1' });
 }
 async function withHistory(env, row) {
-  const a = output(row); a.deleted_listing_ids = [];
-  for (const id of a.listing_ids) if (await env.DB.prepare('SELECT id FROM deleted_listings WHERE id = ?').bind(id).first()) a.deleted_listing_ids.push(id);
+  const a = output(row);
+  a.deleted_listing_ids = (await env.DB.prepare('SELECT j.value AS id FROM json_each(?) j JOIN deleted_listings d ON d.id = j.value ORDER BY j.key')
+    .bind(JSON.stringify(a.listing_ids)).all()).results.map(r => r.id);
   return a;
 }
 async function one({ env, params: [id] }) {

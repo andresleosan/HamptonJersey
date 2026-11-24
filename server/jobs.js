@@ -23,6 +23,7 @@ import { backupStartPass } from './backup-start.js';
 import { spoolReady, stageInboundDuringBackup, replayBackupInbound } from './backup-mail-spool.js';
 import { calendarReady, calendarRetryTick } from './calendar-sync.js';
 import { savedSearchesReady, savedSearchPass, savedSearchCleanup } from './saved-searches.js';
+import { syncReady, advertiserSyncPass } from './advertiser-sync.js';
 
 // AUT-07: the clock. Cloudflare wakes this Worker (hampton-jobs, configured in jobs/wrangler.toml) every 10 minutes, on
 // the website's D1. Each tick leaves its time in app_settings.clock, then runs what is due. Each job claims its run in
@@ -72,6 +73,10 @@ const clock = {
     if (reviewReady(env)) { // BUS-17: the internal review of a search with no complete option for 21 days, then each 7
       try { await searchReviewPass(env, now()); }
       catch { console.error('Search review pass failed'); }
+    }
+    if (syncReady(env)) { // AGE-15: the import's agencies into the Advertisers directory, once a Jersey day
+      try { await advertiserSyncPass(env, ts); }
+      catch { console.error('Advertiser sync pass failed'); }
     }
     if (calendarReady(env)) { // VIS-12: viewings Google Calendar did not take yet, up to 50 a tick
       try { await calendarRetryTick(env, { limit: 50 }); }

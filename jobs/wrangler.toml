@@ -66,6 +66,10 @@ OFE06_WEEKLY_REVIEW_READY = "1"
 ADM17_LEGAL_TERMS_READY = "1"
 # ADM-11: the rest of the rental compliance calendar; keep equal in ../wrangler.toml.
 ADM11_CALENDAR_READY = "1"
+# AGE-15: once a Jersey day the agencies named by the import's photos enter the Advertisers directory with their generic
+# address (server/advertiser-sync.js), add-only. No migration; sends nothing and collects nothing from the public. Only the
+# clock reads it: not in ../wrangler.toml. Switched on 24-nov-2026 by /avanzar (CONTINUIDAD).
+AGE15_AUTO_ADVERTISERS_READY = "1"
 # AGE-05: enquiry emails to advertisers. Off; keep equal in ../wrangler.toml. To stop, switch off here first.
 AGE05_SEND_READY = "0"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.

@@ -13,15 +13,15 @@ test('all checklist points retain every field and exactly one owner, with determ
   const allocation = JSON.parse(fs.readFileSync(path.join(root, 'docs/roadmap/reparto-equipo.json')));
   const catalog = api.catalogFromAllocation(allocation);
   assert.deepEqual(shared.validateCatalog(catalog), []);
-  assert.equal(catalog.tasks.length, 251);
-  assert.equal(catalog.units.length, 251);
+  assert.equal(catalog.tasks.length, 252);
+  assert.equal(catalog.units.length, 252);
   for (const item of allocation.items) {
     const task = catalog.tasks.find(t => t.id === item.id);
     assert.deepEqual(task, item);
     assert.ok(catalog.units.some(u => u.parentTaskId === task.id));
   }
   assert.deepEqual(catalog, api.catalogFromAllocation(allocation));
-  assert.deepEqual(catalog.slots.map(s => catalog.tasks.filter(t => t.assignedSlot === s.id).length), [59,62,65,65]);
+  assert.deepEqual(catalog.slots.map(s => catalog.tasks.filter(t => t.assignedSlot === s.id).length), [59,63,65,65]);
 });
 test('rejects missing allocation, duplicate IDs, dangling dependencies, cycles and uncovered tasks', () => {
   const make = () => api.catalogFromAllocation(JSON.parse(fs.readFileSync(path.join(root, 'docs/roadmap/reparto-equipo.json'))));
