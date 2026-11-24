@@ -3347,7 +3347,7 @@
       "preferredSlot": "hermes",
       "priority": 187,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -13476,10 +13476,10 @@
       "titulo": "Pasada diaria automática del mercado con comparación con el día anterior",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
       "hecho": "Construida apagada el 16-nov tras BUS08_SWEEP_READY=\"0\" (wrangler.toml y jobs/wrangler.toml) con la migración aditiva 0095, sin aplicar. El reloj abre desde la 01:00 de Jersey una pasada diaria por fecha local (también en los cambios de hora) sobre el último directorio aceptado, con el manifiesto fijado al abrirla; un día perdido no se recupera y la pasada anterior se compara y se cierra. Lee por tandas (3 canales por tick, uno tras otro) solo los canales revisados como permitidos para lectura automática, a través de un lector inyectable, con la concesión, la página, las observaciones y la salida de cambios de BUS-06 y la normalización de BUS-09. Guarda cada intento (página, pasada completa, límite de ritmo, acceso denegado, fuente caída, respuesta inválida, sin lector), la última lectura correcta y la última pasada completa de cada canal. Un fallo conserva el inventario: acceso denegado no se reintenta ese día, un 429 espera lo pedido, una caída se reintenta hasta 3 veces; una primera página vacía de un canal con anuncios es un fallo, no un mercado vacío. Retoma desde el cursor guardado sin repetir páginas. Releer un anuncio igual no emite cambio; una novedad o un cambio de precio emite una fila en market_change_outbox (lo que consume BUS-04). Al terminar, compara con la pasada completa anterior de cada canal: un anuncio no encontrado queda como revisión (market_sweep_missing), nunca como indisponibilidad, y un día con anuncios no encontrados o fuentes no leídas deja una tarea en el Inbox. Después de un día con cambios recalcula las búsquedas activas, 2 por tick, solo si el reloj tiene las mismas reglas de disponibilidad que la web (EST-15/EST-16); si no, espera. No descarga fotos. GET /admin/market/daily-sweep (solo con el interruptor) muestra los últimos días, el último intento, la última lectura correcta y la última pasada completa por canal y los anuncios no encontrados. Corregidos el 16-nov los dos hallazgos de la tercera revisión: un canal que debe esperar más allá del fin del día de Jersey (su intervalo o un límite de ritmo) ya no retrasa la comparación del día (cuenta como no leído entero), y un anuncio con un valor anidado que BUS-06 no puede guardar (NaN, undefined, Date) se deja fuera y se cuenta, sin tirar la página. 20-nov-2026: migración 0095 aplicada en remoto (marcador previo en el relevo) y BUS08_SWEEP_READY=1 en los dos wrangler, con el lector de Gaudin.",
-      "falta": "Comprobar la comparación del 21-nov (sale el 22-nov hacia la 01:00 de Jersey) contra la del 20-nov.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
@@ -13501,7 +13501,12 @@
         "npm test 20-nov: 3467/3479 antes del cambio de conteos; fallos restantes = 3 de REG-15 (fecha, conocidos). Pruebas focales BUS-08/BUS-04/AUT-20/jobs 66/66 con el interruptor encendido.",
         "Producción 20-nov 23:30 UTC: primera lectura real (page 10, complete 2) de Gaudin. Arreglo c8f8ed35: los canales con lector se leen primero.",
         "21-nov 02:30 UTC: market_daily_sweeps 2026-11-20 comparada (30 cambios, recálculo hecho); la pasada del 21-nov sigue en curso",
-        "23-nov: retirada automática tras dos lecturas completas sin la casa (MARKET_AUTO_WITHDRAW_READY=0, sin borrar nada; vuelve si reaparece); comparación a las 20:00 de Jersey aunque Hermes no haya leído; lectura corta (<80 % de la última completa) rechazada salvo bajada real repetida (tabla 0123 market_short_reads)."
+        "23-nov: retirada automática tras dos lecturas completas sin la casa (MARKET_AUTO_WITHDRAW_READY=0, sin borrar nada; vuelve si reaparece); comparación a las 20:00 de Jersey aunque Hermes no haya leído; lectura corta (<80 % de la última completa) rechazada salvo bajada real repetida (tabla 0123 market_short_reads).",
+        "24-nov, producción (lecturas D1): market_daily_sweeps comparó los días 20, 21, 22 y 23-nov (30, 157, 0 y 1 cambios). El 22-nov releer Gaudin y Keys igual no emitió cambios; el 23-nov el anuncio nuevo gaudin:1882 entró en market_change_outbox, BUS-04 lo consumió y el día quedó recalculado (recomputed_at).",
+        "24-nov, fuente caída en producción: Keys dio invalid_response el 23-nov 01:20 UTC y se completó después; Finders Keepers falló los días 22 y 23 (3 intentos al día). Ningún anuncio quedó como no encontrado ni indisponible (market_sweep_missing vacío) y cada día dejó su tarea «Daily market sweep needs review» en el Inbox.",
+        "Bajada de precio: comprobada solo en local (tests/server/bus-08-daily-sweep.test.mjs, 20 pruebas pasadas el 24-nov); en producción aún no hubo ninguna. Usa el mismo camino que la novedad del 23-nov (outbox → BUS-04 → recálculo).",
+        "24-nov: la pasada del día abrió con el código del piloto de Hermes (run 3aa0144f: 1 complete, 68 no_reader, sin errores).",
+        "Decisión: se cierra por aceptación propia (skill §3); el aviso del Inbox que siempre cuenta los canales sin lector va a MEJORAS."
       ],
       "modulo": "M05",
       "deps": [
@@ -13561,15 +13566,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Cargar el directorio privado de fuentes y revisar al menos un canal externo (BUS-06 y BUS-19); después se construye su lector",
       "resources": [
         "jobs-clock",
         "market-inventory",
         "source-connectors",
         "availability-contract"
       ],
-      "nextStep": "El 22-nov: leer market_daily_sweeps del 21-nov y cerrar si compara bien.",
-      "actualizado": "2026-11-23"
+      "nextStep": "",
+      "actualizado": "2026-11-24"
     },
     {
       "id": "BUS-09",

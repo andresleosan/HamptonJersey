@@ -3347,7 +3347,7 @@
       "preferredSlot": "hermes",
       "priority": 187,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {

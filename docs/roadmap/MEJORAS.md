@@ -250,3 +250,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-17] Los envíos de Hermes cuentan en el mismo límite de 100 que los códigos de acceso del inquilino (case-auth-email): valorar reservarles un cupo · revisión del 21-nov · 2026-11-21
 - [AUT-17] El cartero entrega la cola aprobada solo cuando Hermes ejecuta su tarea cada 10 min: si Hermes se para, el resumen del equipo también; valorar un temporizador propio del cartero · revisión del 21-nov · 2026-11-21
 - [AUT-17] Con el correo por Gmail, las respuestas de agencias no llegan a la app hasta la fase D: AGE-08 puede abrir tareas de llamada para consultas ya contestadas (el equipo las registra a mano) · revisión del 21-nov · 2026-11-21
+- [BUS-08] La tarea diaria del Inbox cuenta como «no leídos» los canales sin lector (125 cada día), así que un fallo real de una fuente no se distingue: contar aparte no_reader y fallos · producción 20-23 nov · 2026-11-24
