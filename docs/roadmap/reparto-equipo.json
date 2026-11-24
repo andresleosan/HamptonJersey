@@ -3833,7 +3833,8 @@
         "Decisión: el permiso gmail.readonly no se pide por defecto; ampliar el token es decisión de Luis (CONTINUIDAD, permisos). Fuente: revisión de seguridad del 21-nov (gmail.compose) y documentación de Google (threads.get exige readonly, metadata o modify).",
         "Decisión: en la fase D solo los hilos de mail_tasks, como dice el plan; los de outbound quedan para AGE-06. Fuente: plan-correo-hermes.md, fase D.",
         "24-nov: migración aditiva 0124 aplicada en remoto sola (configuración temporal con solo ese archivo), tras ensayo en D1 local con todas las migraciones y marcador de Time Travel; email_inbound tiene mail_task_id y reply_kind y 0124 ya no figura pendiente. Verificación del lote: npm test con 5 fallos, 4 iguales en una copia limpia del commit anterior (meta-webhooks, reg-15 por fecha) y search-stats-d1 por caída de Miniflare (no toca archivos del lote); build y check:release pasan.",
-        "24-nov-2026: decisión de Luis: sí a leer respuestas (GMAIL_LEER=1 al autorizar desde el cartero, permiso gmail.readonly)."
+        "24-nov-2026: decisión de Luis: sí a leer respuestas (GMAIL_LEER=1 al autorizar desde el cartero, permiso gmail.readonly).",
+        "24-nov-2026: Luis activó la verificación en dos pasos del Gmail de Hampton (fase B, paso 1)."
       ],
       "actualizado": "2026-11-24",
       "assignedSlot": "hermes",
@@ -3846,7 +3847,7 @@
         "email-pipeline",
         "external-account-config"
       ],
-      "nextStep": "Luis: activar la verificación en dos pasos del Gmail de Hampton y seguir la fase B paso a paso; después, instalar el cartero."
+      "nextStep": "Luis: fase B paso 2, crear el proyecto «Hampton Hermes» en Google Cloud con la cuenta de Hampton; después API de Gmail, consentimiento en «In production», cliente Desktop y autorizar desde el cartero con GMAIL_LEER=1."
     },
     {
       "id": "AUT-18",
