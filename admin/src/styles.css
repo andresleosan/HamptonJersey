@@ -633,3 +633,12 @@ dialog.sheet::backdrop{background:rgba(20,20,20,.55)}
 @media (max-width:760px),(pointer:coarse){.access-reauth .btn{min-height:44px}}
 /* SAP-09: the applicant's quick actions (Send shortlist, Book viewing): a 32px panel target, 44px on a phone (DESIGN.md). */
 .btn.quick{min-height:32px} @media (max-width:760px),(pointer:coarse){.btn.quick{min-height:44px}}
+
+.listings-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}
+.listings-pagination p{margin:0}
+.listings-pagination button{min-width:44px;min-height:44px}
+.listings-pagination button:disabled{opacity:.5;cursor:default}
+.listings-edited-sort{border:0;background:none;padding:0;color:inherit;font:inherit;text-align:inherit;cursor:pointer}
+.listings-edited-sort:hover{text-decoration:underline}
+.listings-screen .filters>.listings-sort-mobile{display:none}
+@media (max-width:760px){.listings-screen .filters>.listings-sort-mobile{display:grid}}
