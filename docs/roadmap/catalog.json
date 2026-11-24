@@ -12716,7 +12716,8 @@
         "24-nov: migración aditiva 0124 aplicada en remoto sola (configuración temporal con solo ese archivo), tras ensayo en D1 local con todas las migraciones y marcador de Time Travel; email_inbound tiene mail_task_id y reply_kind y 0124 ya no figura pendiente. Verificación del lote: npm test con 5 fallos, 4 iguales en una copia limpia del commit anterior (meta-webhooks, reg-15 por fecha) y search-stats-d1 por caída de Miniflare (no toca archivos del lote); build y check:release pasan.",
         "24-nov-2026: decisión de Luis: sí a leer respuestas (GMAIL_LEER=1 al autorizar desde el cartero, permiso gmail.readonly).",
         "24-nov-2026: Luis activó la verificación en dos pasos del Gmail de Hampton (fase B, paso 1).",
-        "24-nov-2026: fase B hecha. Proyecto Google Cloud «Hampton Hermes» en la cuenta de Hampton, API de Gmail activada, consentimiento External «In production» (Branding: web y aviso de privacidad de hamptonestatesjersey.com), cliente Desktop «Hampton cartero». Autorizado con GMAIL_LEER=1: correo.mjs codigo → token authorized_user guardado 0600 en el VPS (carpeta privada del cartero, fuera del repo y de Hermes). Comprobación: renovación del token 200 con gmail.compose + gmail.readonly; GET users/me/profile 200."
+        "24-nov-2026: fase B hecha. Proyecto Google Cloud «Hampton Hermes» en la cuenta de Hampton, API de Gmail activada, consentimiento External «In production» (Branding: web y aviso de privacidad de hamptonestatesjersey.com), cliente Desktop «Hampton cartero». Autorizado con GMAIL_LEER=1: correo.mjs codigo → token authorized_user guardado 0600 en el VPS (carpeta privada del cartero, fuera del repo y de Hermes). Comprobación: renovación del token 200 con gmail.compose + gmail.readonly; GET users/me/profile 200.",
+        "24-nov-2026 ~08:10 UTC, con el «sí» de Luis: cartero instalado y arrancado en el VPS (hampton-cartero, uid 10600, solo lectura, sin capacidades; salida por squid solo a la app, oauth2.googleapis.com y gmail.googleapis.com; escucha solo en la red privada con Hermes 2). Comprobado: app 200, renovación de Google 200, perfil de Gmail 200, otros dominios bloqueados; /siguiente sin llave 401, con llave 200 {task:null, reason:switched_off} (HERMES_MAIL_READY=0, no se reservó nada)."
       ],
       "actualizado": "2026-11-24",
       "assignedSlot": "hermes",
@@ -12729,7 +12730,7 @@
         "email-pipeline",
         "external-account-config"
       ],
-      "nextStep": "Instalar el cartero en el VPS (contenedor hampton-cartero, red y salida solo a la app y Google, clave CARTERO) y en Hermes la skill hampton-correo y la tarea cada 10 min; borrador de prueba con el interruptor apagado; Luis decide HERMES_MAIL_READY."
+      "nextStep": "Lado de Hermes 2 (red del taller, cabecera, skill, carpeta y tarea cada 10 min); después Luis decide HERMES_MAIL_READY=1 con los tipos en borrador y la prueba con casa y agencia ficticias deja un borrador en Gmail."
     },
     {
       "id": "AUT-18",
