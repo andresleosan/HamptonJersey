@@ -9,7 +9,10 @@ import worker from "../../server/jobs.js";
 
 // REG-15: «Save this search». Synthetic visitors and homes only; Turnstile and the email provider are test doubles.
 const EMAIL = "reg15-visitor@example.test", NOTICE = "privacy-2026-11";
-const LATER = "2026-11-20T09:00:00.000Z";
+// Forms confirm on the test clock; the explicit daily pass runs two days later.
+const NOW = Date.parse("2026-11-18T09:00:00.000Z");
+const LATER = new Date(NOW + 2 * 864e5).toISOString();
+test.beforeEach(t => t.mock.timers.enable({ apis: ["Date"], now: NOW }));
 const rows = (env, sql, ...a) => env.DB.raw.prepare(sql).all(...a);
 const one = (env, sql, ...a) => env.DB.raw.prepare(sql).get(...a);
 let turnstileCalls = 0;
