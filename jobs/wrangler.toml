@@ -51,7 +51,7 @@ EMAIL_SERVICE_READY = "false"
 # AUT-17: Hermes's mail carrier delivers the app's approved email queue from Hampton's Gmail (server/email.js
 # hermesTransport): the clock then prepares the team summary and the retention notices without Cloudflare's binding.
 # Sends messages: only Luis switches it on, at the same time as in the other wrangler.toml.
-HERMES_MAIL_READY = "0"
+HERMES_MAIL_READY = "1"
 # BUS-09: the sweep leaves the allowed channels of HERMES_MARKET_SOURCES ("*": all) to Hermes's market door. Keep equal
 # in ../wrangler.toml.
 HERMES_MARKET_READY = "1"

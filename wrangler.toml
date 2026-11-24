@@ -171,7 +171,7 @@ EMAIL_SERVICE_READY = "false"
 # verbatim, and the emails Hermes writes (enquiries waiting by hand, VIS-17 viewing proposals) as Gmail drafts or, with
 # each type's switch in Automations, sent. The door opens only with the secret HERMES_MAIL_KEY. Sends messages: only Luis
 # switches it on, here and in jobs/wrangler.toml at the same time, once Gmail is connected.
-HERMES_MAIL_READY = "0"
+HERMES_MAIL_READY = "1"
 # BUS-09: Hermes reads the market's allowed channels of the sources in HERMES_MARKET_SOURCES (comma list, "*": all) through
 # its own door (/api/hermes/market/*, secret HERMES_MARKET_KEY, held by the market custodian on the VPS); the daily sweep
 # leaves those channels to it, also when a code reader exists. No migration. Keep equal in jobs/wrangler.toml.
