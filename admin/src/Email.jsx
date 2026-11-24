@@ -3,6 +3,8 @@ import { api } from "./api.js";
 import { fmtDate } from "./format.js";
 
 const STATUS={draft:"Draft",queued:"Queued",sending:"Sending",accepted:"Accepted by Cloudflare",failed:"Failed",unknown:"Unknown result",cancelled:"Cancelled"};
+// AUT-17 fase D: replies to an email Hermes sent from Gmail, sorted by their headers (what the sender says).
+const REPLY_KIND={human:"Reply from a person to an email Hermes sent.",auto:"Automatic reply (out of office or acknowledgement) to an email Hermes sent.",bounce:"Delivery failure: an email Hermes sent did not reach this address."};
 export default function Email({query,privacy}) {
   const params=new URLSearchParams(query), pendingOnly=params.get("review")==="pending";
   const [box,setBox]=useState(pendingOnly||params.get("box")==="outbound"?"outbound":"inbound"),[before,setBefore]=useState(null),[revision,setRevision]=useState(0);
@@ -85,6 +87,7 @@ function EmailDetail({box,id,privacy,onChanged,onReviewed,onOutgoing}) {
       {message.reviewed_at&&<p className="muted">Reviewed {fmtDate(message.reviewed_at)}.</p>}
     </>:<><p className="muted">Check the sender before acting on this message. A suggested thread does not verify who sent it.</p>
       {privacy&&<dl className="kv"><div><dt>Reference</dt><dd>HE-IN-{message.id}</dd></div></dl>}
+      {REPLY_KIND[message.reply_kind]&&<p>{REPLY_KIND[message.reply_kind]}</p>}
       {message.outbound_id&&<button type="button" className="btn ghost sm" onClick={()=>onOutgoing(message.outbound_id)}>View suggested outgoing thread</button>}
       {message.html_only===1&&<p className="muted">HTML-only message shown as source text. Formatting and remote content are not loaded.</p>}
       {message.attachments>0&&<p className="muted">{message.attachments} attachments were not saved.</p>}

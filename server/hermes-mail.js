@@ -237,12 +237,67 @@ async function outboundResult({ request, env, params: [ref] }) {
     ? "This is not the token of this claim" : "Not found" }, SETTLED[r]);
 }
 
+// Fase D: the threads of what went out in the last 30 days (sent, or a draft a person may have sent from Gmail), so the
+// carrier reads only those and never searches the mailbox. ponytail: the newest 50; older ones wait for a quieter day.
+const WATCH_MS = 30 * 86400e3;
+async function mailThreads({ env }) {
+  if (!mailReady(env)) fail(404, "Not found");
+  const { results } = await env.DB.prepare(`SELECT gmail_thread_id AS id, result_at AS after FROM mail_tasks
+    WHERE status IN ('sent', 'drafted') AND gmail_thread_id IS NOT NULL AND result_at >= ? ORDER BY result_at DESC LIMIT 50`)
+    .bind(new Date(Date.now() - WATCH_MS).toISOString()).all();
+  return json({ threads: results });
+}
+
+// A delivery failure, an automatic answer (RFC 3834 Auto-Submitted, Precedence, X-Autoreply), or a person. Headers are
+// what the sender says: this sorts the list for the team, it never acts on its own.
+export function replyKind(m) {
+  const from = String(m.from ?? "").toLowerCase(), type = String(m.content_type ?? "").toLowerCase();
+  if (/\b(mailer-daemon|postmaster)@/.test(from) || (type.startsWith("multipart/report") && type.includes("delivery-status"))) return "bounce";
+  const auto = String(m.auto_submitted ?? "").trim().toLowerCase();
+  if ((auto && auto !== "no") || /^(bulk|junk|list|auto_reply)$/i.test(String(m.precedence ?? "").trim()) || m.autoreply === true) return "auto";
+  return "human";
+}
+
+// What the carrier found in one watched thread: messages not sent by Hampton, after the first email of the thread went
+// out. Each Gmail message is kept once, as the app's other inbound email: its key stays in email_inbound_keys, so a
+// reply deleted by the team or by a contact's erasure is never brought back by a later sync. Linked to the latest email
+// of Hermes in the thread, never to a person. Headers are cut to size and a malformed message is skipped, so one odd
+// email never stops the rest.
+const cut = (v, max) => typeof v === "string" && v ? v.slice(0, max) : null;
+async function mailReplies({ request, env }) {
+  if (!mailReady(env)) fail(404, "Not found");
+  const b = await readJson(request, 1024 * 1024) ?? {};
+  if (!GMAIL_ID.test(b.thread_id ?? "")) fail(400, "thread_id is not a Gmail id");
+  if (!Array.isArray(b.messages) || b.messages.length > 50) fail(400, "Send at most 50 messages");
+  const t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(result_at) AS result_at FROM mail_tasks WHERE gmail_thread_id = ?
+    AND status IN ('sent', 'drafted')`).bind(b.thread_id).first();
+  if (!t?.id) fail(404, "Not a thread of the app's email");
+  const stmts = [], ts = now();
+  for (const m of b.messages) {
+    if (!GMAIL_ID.test(m?.id ?? "") || Number.isNaN(Date.parse(m.at ?? ""))) continue;
+    const at = new Date(m.at).toISOString();
+    if (at < t.result_at) continue; // before the email went out: not a reply
+    const sender = emailAddress(/<([^<>]+)>\s*$/.exec(cut(m.from, 500) ?? "")?.[1] ?? cut(m.from, 500));
+    const body = cut(m.text, 1e6) ?? "(No text content)", key = await sha256(`gmail\0${m.id}`);
+    stmts.push(env.DB.prepare("INSERT INTO email_inbound_keys VALUES (?, ?) ON CONFLICT (key) DO NOTHING").bind(key, ts),
+      env.DB.prepare(`INSERT INTO email_inbound (dedupe_key, sender, header_from, recipient, subject, text, html_only, truncated,
+        attachments, message_id, in_reply_to, references_header, received_at, mail_task_id, reply_kind)
+      SELECT ?, ?, ?, NULL, ?, ?, 0, ?, 0, ?, ?, ?, ?, ?, ? WHERE changes() = 1`)
+      .bind(key, sender, sender, cut(m.subject, 500) ?? "(No subject)", body.slice(0, 50000), body.length > 50000 ? 1 : 0,
+        cut(m.message_id, 512), cut(m.in_reply_to, 512), cut(m.references, 2048), at, t.id, replyKind(m)));
+  }
+  const out = stmts.length ? await env.DB.batch(stmts) : [];
+  return json({ stored: out.filter((_, i) => i % 2).reduce((n, r) => n + r.meta.changes, 0) });
+}
+
 export const mailDoor = [
   ["POST", /^\/mail\/outbound\/next$/, outboundNext],
   ["POST", /^\/mail\/outbound\/([a-f0-9]{32})\/result$/, outboundResult],
   ["POST", /^\/mail\/(\d+)\/check$/, mailCheck],
   ["POST", /^\/mail\/next$/, nextMail],
   ["POST", /^\/mail\/(\d+)\/result$/, mailResult],
+  ["POST", /^\/mail\/threads$/, mailThreads],
+  ["POST", /^\/mail\/replies$/, mailReplies],
 ];
 
 // The panel: the two switches (Automations), and what Hermes did lately, without addresses or text.

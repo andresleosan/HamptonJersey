@@ -251,3 +251,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-17] El cartero entrega la cola aprobada solo cuando Hermes ejecuta su tarea cada 10 min: si Hermes se para, el resumen del equipo también; valorar un temporizador propio del cartero · revisión del 21-nov · 2026-11-21
 - [AUT-17] Con el correo por Gmail, las respuestas de agencias no llegan a la app hasta la fase D: AGE-08 puede abrir tareas de llamada para consultas ya contestadas (el equipo las registra a mano) · revisión del 21-nov · 2026-11-21
 - [BUS-08] La tarea diaria del Inbox cuenta como «no leídos» los canales sin lector (125 cada día), así que un fallo real de una fuente no se distingue: contar aparte no_reader y fallos · producción 20-23 nov · 2026-11-24
+- [AUT-17] Revisar a mano un resultado unknown de Hermes desde el panel (hoy se ve el aviso y se comprueba en Enviados de Gmail) · trasladado del falta · 2026-11-24
+- [AUT-17] Un rebote de Hermes (reply_kind bounce) podría proponer «Stop sending to this address» en el aviso; hoy solo se ve en Settings › Email · fase D · 2026-11-24
+- [AUT-17] Una respuesta automática o falsificada en un hilo vigilado cuenta como «respondido» en los avisos de PRE-12 (NOTICE_ANSWERED, REVIEW_ANSWERED) y retrasa el borrado; falla del lado seguro (conserva). Valorar ignorar reply_kind auto/bounce · revisión de la fase D · 2026-11-24

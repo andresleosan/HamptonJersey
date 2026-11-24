@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { siguiente, entregar, mime } from "../../hermes/correo.mjs";
+import { siguiente, entregar, mime, consentLink } from "../../hermes/correo.mjs";
 
 const TASK = { id: 7, token: "f".repeat(64), kind: "availability", mode: "draft", purpose: "p", rules: "r",
   to: { email: "desk@agency.example.test", name: "Agency Desk" }, facts: { property: { reference: "HE-R001" } } };
-function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200, body: { id: "d1", message: { id: "m1", threadId: "t1" } } }), resultFails = 0, outbound = [] } = {}) {
+function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200, body: { id: "d1", message: { id: "m1", threadId: "t1" } } }), resultFails = 0, outbound = [], threads = [] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "correo-")), tokenFile = join(dir, "token.json"), calls = [];
   writeFileSync(tokenFile, JSON.stringify({ client_id: "c", client_secret: "s", refresh_token: "r" }));
   const answer = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -18,6 +18,8 @@ function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200
     if (/\/outbound\/[a-f0-9]{32}\/result$/.test(url)) return answer(200, { ok: true });
     if (url.endsWith("/mail/next")) { const t = task; task = null; return answer(200, t ? { task: t } : { task: null, reason: "none" }); }
     if (url.endsWith("/check")) return answer(200, check);
+    if (url.endsWith("/mail/threads")) return answer(200, { threads });
+    if (url.endsWith("/mail/replies")) return answer(200, { stored: JSON.parse(o.body).messages.length });
     if (url.endsWith("/result")) return resultFails-- > 0 ? answer(502, {}) : answer(200, { task: { id: 7, status: JSON.parse(o.body).outcome } });
     if (url.includes("oauth2")) return answer(200, { access_token: "a" });
     const g = gmail(url); return g.throws ? Promise.reject(new Error("timeout")) : answer(g.status, g.body);
@@ -150,4 +152,56 @@ test("the queue: Google down claims nothing; a rate limit is retry and stops the
   const noId = world({ outbound: [email(4)], gmail: () => ({ status: 200, body: {} }) });
   await siguiente(noId.cfg);
   assert.deepEqual(noId.calls.filter(c => /outbound\/4{32}\/result$/.test(c.url)).map(c => JSON.parse(c.body).outcome), ["unknown"]);
+});
+
+// Fase D: the replies in the threads the app names, read by the carrier (never the model) and handed to the app.
+const b64 = v => Buffer.from(v, "utf8").toString("base64url");
+const THREAD = { id: "t1", messages: [
+  { id: "m1", internalDate: String(Date.parse("2026-11-24T10:00:00Z")), labelIds: ["SENT"], payload: { mimeType: "text/plain", headers: [], body: { data: b64("ours") } } },
+  { id: "g1", internalDate: String(Date.parse("2026-11-24T11:00:00Z")), labelIds: ["INBOX"], payload: { mimeType: "multipart/alternative",
+    headers: [{ name: "From", value: "Agency Desk <desk@agency.example.test>" }, { name: "Subject", value: "Re: Enquiry" },
+      { name: "Message-ID", value: "<r1@agency>" }, { name: "In-Reply-To", value: "<m1@gmail>" }, { name: "Auto-Submitted", value: "auto-replied" },
+      { name: "X-Autoreply", value: "yes" }],
+    parts: [{ mimeType: "text/html", body: { data: b64("<p>Yes</p>") } }, { mimeType: "text/plain", body: { data: b64("Yes, still available.") } }] } }] };
+
+test("the carrier reads only the threads the app names and hands their replies to the app, not to the model", async () => {
+  const { cfg, calls } = world({ threads: [{ id: "t1", after: "2026-11-24T10:00:00.000Z" }],
+    gmail: url => url.includes("/threads/t1") ? { status: 200, body: THREAD } : { status: 404, body: {} } });
+  const out = await siguiente(cfg);
+  assert.equal(JSON.stringify(out).includes("still available"), false, "the model sees no reply");
+  assert.ok(calls.some(c => c.url.endsWith("/users/me/threads/t1?format=full")));
+  assert.equal(calls.some(c => /\/messages\?|q=/.test(c.url)), false, "never a mailbox search");
+  const sent = JSON.parse(calls.find(c => c.url.endsWith("/mail/replies")).body);
+  assert.equal(sent.thread_id, "t1");
+  assert.deepEqual(sent.messages, [{ id: "g1", at: "2026-11-24T11:00:00.000Z", from: "Agency Desk <desk@agency.example.test>", subject: "Re: Enquiry",
+    message_id: "<r1@agency>", in_reply_to: "<m1@gmail>", references: null, auto_submitted: "auto-replied", precedence: null,
+    autoreply: true, content_type: "multipart/alternative", text: "Yes, still available." }]);
+});
+
+test("without the read permission (Gmail 403) the carrier hands nothing and Hermes still gets its task", async () => {
+  const { cfg, calls } = world({ threads: [{ id: "t1", after: "2026-11-24T10:00:00.000Z" }], gmail: () => ({ status: 403, body: {} }) });
+  const out = await siguiente(cfg);
+  assert.equal(out.task.id, 7);
+  assert.equal(calls.some(c => c.url.endsWith("/mail/replies")), false);
+});
+
+test("the consent asks to read the mailbox only when Luis sets GMAIL_LEER", () => {
+  const scope = read => new URL(consentLink({ client_id: "c" }, read)).searchParams.get("scope");
+  assert.equal(scope(false), "https://www.googleapis.com/auth/gmail.compose");
+  assert.equal(scope(true), "https://www.googleapis.com/auth/gmail.compose https://www.googleapis.com/auth/gmail.readonly");
+});
+
+test("a thread the app refuses, or a 403 on a later thread, does not stop the other threads", async () => {
+  let refused = false;
+  const { cfg, calls } = world({ threads: [{ id: "t1", after: "2026-11-24T10:00:00.000Z" }, { id: "t2", after: "2026-11-24T10:00:00.000Z" },
+    { id: "t3", after: "2026-11-24T10:00:00.000Z" }],
+    gmail: url => url.includes("/threads/t2") ? { status: 403, body: {} } : { status: 200, body: { ...THREAD, id: "x" } } });
+  const inner = cfg.fetchFn;
+  cfg.fetchFn = async (url, o) => {
+    if (url.endsWith("/mail/replies") && !refused) { refused = true; return new Response("{}", { status: 400 }); }
+    return inner(url, o);
+  };
+  await siguiente(cfg);
+  assert.ok(calls.some(c => c.url.includes("/threads/t3")), "t3 is still read");
+  assert.equal(calls.filter(c => c.url.endsWith("/mail/replies")).length, 1, "t3's replies reach the app after t1's were refused");
 });

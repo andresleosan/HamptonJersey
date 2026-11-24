@@ -62,12 +62,53 @@ async function queue(cfg) {
   }
 }
 
+// Fase D: the replies in the threads of what went out. The app names the threads (never a mailbox search); the carrier
+// reads each with gmail.readonly and hands the app what Hampton did not send, after the email left. The model sees
+// none of it. Without the read permission Gmail answers 403 and nothing is read. ponytail: every thread on every run
+// (10 min, 50 threads at most); the app keeps each message once.
+const head = (p, n) => p?.headers?.find(h => h.name.toLowerCase() === n)?.value ?? null;
+const part = (p, type) => p?.mimeType === type && p.body?.data ? Buffer.from(p.body.data, "base64url").toString("utf8")
+  : (p?.parts ?? []).reduce((found, x) => found ?? part(x, type), null);
+const clip = (v, max) => typeof v === "string" ? v.slice(0, max) : null;
+async function respuestas(cfg) {
+  let threads;
+  try { ({ threads } = await door(cfg, "threads")); } catch { return; } // switched off, or the app is not answering
+  if (!threads?.length) return;
+  let auth, read = 0;
+  try { auth = `Bearer ${await accessToken(cfg)}`; } catch { return; }
+  for (const t of threads) {
+    if (!/^[A-Za-z0-9_-]{1,200}$/.test(t.id ?? "")) continue;
+    try {
+      const r = await cfg.fetchFn(`${GMAIL}/threads/${t.id}?format=full`, { headers: { authorization: auth }, signal: AbortSignal.timeout(15000) });
+      // No read permission (401, or 403 before any thread was read): nothing more this run. A 403 on one thread later is that thread's.
+      if (r.status === 401 || (r.status === 403 && !read)) return;
+      if (!r.ok) continue;
+      read++;
+      let batch = [], size = 0;
+      const flush = async () => { if (batch.length) await door(cfg, "replies", { thread_id: t.id, messages: batch }); batch = []; size = 0; };
+      for (const m of (await r.json()).messages ?? []) {
+        const at = new Date(Number(m.internalDate)).toISOString(), p = m.payload;
+        if (m.labelIds?.some(l => l === "SENT" || l === "DRAFT") || at < (t.after ?? "")) continue;
+        const msg = { id: m.id, at, from: clip(head(p, "from"), 500), subject: clip(head(p, "subject"), 500), message_id: clip(head(p, "message-id"), 512),
+          in_reply_to: clip(head(p, "in-reply-to"), 512), references: clip(head(p, "references"), 2048), auto_submitted: clip(head(p, "auto-submitted"), 100),
+          precedence: clip(head(p, "precedence"), 100), autoreply: !!(head(p, "x-autoreply") || head(p, "x-autorespond")),
+          content_type: clip(head(p, "content-type") ?? p?.mimeType ?? null, 300),
+          text: (part(p, "text/plain") ?? part(p, "text/html") ?? "").slice(0, 50000) || null };
+        const n = Buffer.byteLength(JSON.stringify(msg));
+        if (batch.length === 50 || size + n > 900_000) await flush(); // under the app's 1 MiB and 50 messages
+        batch.push(msg); size += n;
+      }
+      await flush();
+    } catch { /* this thread's trouble stays with it; the next one is read, and the app keeps each message once */ }
+  }
+}
+
 // One run at a time over the claims folder, so two overlapping calls never report each other's sends.
 let running = null;
 export async function siguiente(cfg) {
   mkdirSync(cfg.estado, { recursive: true, mode: 0o700 });
   if (!running) {
-    running = (async () => { await pending(cfg); await queue(cfg); })()
+    running = (async () => { await pending(cfg); await queue(cfg); await respuestas(cfg).catch(() => {}); })()
       .catch(() => {}) // the queue's trouble never stops Hermes's own task; its files are reported next run
       .finally(() => { running = null; });
     await running;
@@ -169,13 +210,15 @@ export function makeCarrier(cfg) {
 }
 
 // Fase B, once, from the carrier (never from Hermes): Google's consent for Hampton's Gmail with the least scope that
-// creates drafts and sends (gmail.compose: it cannot read the mailbox). `autorizar <client.json>` prints the link to
+// creates drafts and sends (gmail.compose: it cannot read the mailbox). With GMAIL_LEER=1 (Luis's decision) it also asks
+// gmail.readonly, which fase D needs to read the replies in the threads the app names. `autorizar <client.json>` prints the link to
 // open signed in as Hampton; the browser then lands on a localhost address that will not load: its `code` goes to
 // `codigo <client.json> <code>`, which writes GOOGLE_TOKEN_FILE (0600).
-const SCOPE = "https://www.googleapis.com/auth/gmail.compose", REDIRECT = "http://localhost";
+const G = "https://www.googleapis.com/auth/gmail.", REDIRECT = "http://localhost";
+export const scopes = read => [`${G}compose`, ...(read ? [`${G}readonly`] : [])].join(" ");
 const client = file => { const c = read(file); return c.installed ?? c; };
-export const consentLink = c => `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ client_id: c.client_id,
-  redirect_uri: REDIRECT, response_type: "code", scope: SCOPE, access_type: "offline", prompt: "consent" })}`;
+export const consentLink = (c, read = false) => `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ client_id: c.client_id,
+  redirect_uri: REDIRECT, response_type: "code", scope: scopes(read), access_type: "offline", prompt: "consent" })}`;
 export async function exchange(c, code, fetchFn = fetch) {
   const r = await fetchFn("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ grant_type: "authorization_code", code, client_id: c.client_id, client_secret: c.client_secret, redirect_uri: REDIRECT }) });
@@ -188,7 +231,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const { APP_ORIGIN: origin, HERMES_MAIL_KEY_FILE: keyFile, GOOGLE_TOKEN_FILE: tokenFile, ESTADO_DIR: estado,
     CARTERO_KEY_FILE: callerFile, LISTEN_HOST: host, LISTEN_PORT: port = "8788" } = process.env;
   const [cmd, clientFile, code] = process.argv.slice(2);
-  if (cmd === "autorizar") { console.log(consentLink(client(clientFile))); process.exit(0); }
+  if (cmd === "autorizar") { console.log(consentLink(client(clientFile), process.env.GMAIL_LEER === "1")); process.exit(0); }
   if (cmd === "codigo") {
     if (!tokenFile || !code) { console.error("Set GOOGLE_TOKEN_FILE and pass the code"); process.exit(1); }
     exchange(client(clientFile), code).then(t => { writeFileSync(tokenFile, JSON.stringify(t), { mode: 0o600 }); console.log("Token saved"); },

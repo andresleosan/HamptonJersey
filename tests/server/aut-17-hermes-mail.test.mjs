@@ -283,3 +283,74 @@ test("the check just before Gmail is said once, and stops what changed since the
   assert.deepEqual(ok(await check(views, v)), { ok: false, reason: "no_longer_due" }, "already answered by phone");
   assert.ok(c);
 });
+
+// Fase D: replies in the threads of what Hermes sent come back to the app through the carrier, once each, told apart.
+const reply = (over = {}) => ({ id: "g1", at: new Date(Date.now() + 60e3).toISOString(), from: `Agency Desk <${DESK}>`,
+  subject: "Re: Enquiry", message_id: "<r1@agency.example.test>", in_reply_to: "<m1@mail.gmail.com>", text: "Yes, still available.", ...over });
+async function sentTask(env) {
+  await enquiry(env);
+  ok(await mode(env, "availability", true));
+  const { task } = await next(env);
+  ok(await result(env, task, SENT));
+  return task;
+}
+const replies = (env, thread_id, messages) => door(env, "POST", "/mail/replies", { thread_id, messages });
+
+test("switched off, the threads and replies doors are closed", async () => {
+  const env = world({ mail: false });
+  assert.equal((await door(env, "POST", "/mail/threads")).status, 404);
+  assert.equal((await replies(env, "t1", [reply()])).status, 404);
+});
+
+test("the carrier is told only the threads of what went out, and a reply synced twice is one entry", async () => {
+  const env = world(), task = await sentTask(env);
+  assert.deepEqual(ok(await door(env, "POST", "/mail/threads")).threads.map(t => t.id), ["t1"]);
+  assert.deepEqual(ok(await replies(env, "t1", [reply()])), { stored: 1 });
+  assert.deepEqual(ok(await replies(env, "t1", [reply()])), { stored: 0 }, "the same reply again");
+  const r = row(env, "SELECT * FROM email_inbound");
+  assert.deepEqual([r.sender, r.mail_task_id, r.reply_kind, r.text, r.outbound_id], [DESK, task.id, "human", "Yes, still available.", null]);
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM email_inbound").n, 1);
+  const shown = ok(await req(env, "GET", `/admin/email/inbound/${r.id}`)).message;
+  assert.deepEqual([shown.reply_kind, shown.mail_task_id], ["human", task.id]);
+});
+
+test("a human reply, an automatic acknowledgement and a bounce are told apart", async () => {
+  const env = world();
+  await sentTask(env);
+  ok(await replies(env, "t1", [reply(),
+    reply({ id: "g2", message_id: "<a@x>", auto_submitted: "auto-replied", text: "I am out of the office." }),
+    reply({ id: "g3", message_id: "<a2@x>", precedence: "bulk" }),
+    reply({ id: "g4", message_id: "<b@x>", from: "Mail Delivery Subsystem <mailer-daemon@googlemail.com>", text: "Address not found" }),
+    reply({ id: "g5", message_id: "<b2@x>", from: "postmaster@agency.example.test", content_type: "multipart/report; report-type=delivery-status" })]));
+  const kinds = env.DB.raw.prepare("SELECT reply_kind FROM email_inbound ORDER BY id").all().map(r => r.reply_kind);
+  assert.deepEqual(kinds, ["human", "auto", "auto", "bounce", "bounce"]);
+});
+
+test("a thread the app did not send, or a message older than the send, is not taken", async () => {
+  const env = world();
+  await sentTask(env);
+  assert.equal((await replies(env, "t-other", [reply()])).status, 404);
+  assert.deepEqual(ok(await replies(env, "t1", [reply({ at: "2000-01-01T00:00:00.000Z" })])), { stored: 0 });
+  assert.deepEqual(ok(await replies(env, "t1", [{ ...reply(), id: "bad id!" }, reply({ references: "<x@y> ".repeat(900), subject: "S".repeat(900) })])),
+    { stored: 1 }, "a malformed message is skipped, long headers are cut, the rest is kept");
+  assert.equal((await door(env, "POST", "/mail/replies", { thread_id: "t1", messages: Array(51).fill(reply()) })).status, 400);
+});
+
+test("a reply deleted by the team or by a contact's erasure does not come back on the next sync", async () => {
+  const env = world();
+  await sentTask(env);
+  ok(await replies(env, "t1", [reply()]));
+  const id = row(env, "SELECT id FROM email_inbound").id;
+  ok(await req(env, "DELETE", `/admin/email/inbound/${id}`));
+  assert.deepEqual(ok(await replies(env, "t1", [reply()])), { stored: 0 });
+  assert.equal(row(env, "SELECT COUNT(*) AS n FROM email_inbound").n, 0);
+});
+
+test("a thread with two emails of Hermes takes replies from the first send and links them to the latest", async () => {
+  const env = world(), first = await sentTask(env);
+  run(env, "UPDATE mail_tasks SET result_at = '2026-01-01T00:00:00.000Z' WHERE id = ?", first.id);
+  run(env, `INSERT INTO mail_tasks (kind, source_key, entity_id, listing_id, recipient_hash, status, result_at, gmail_thread_id, created_at, updated_at)
+    VALUES ('viewing_agency', 'proposal:99:agency', 99, ?, 'h', 'sent', '2099-01-01T00:00:00.000Z', 't1', ?, ?)`, HOME, T0, T0);
+  ok(await replies(env, "t1", [reply({ at: "2026-06-01T00:00:00.000Z" })]));
+  assert.equal(row(env, "SELECT mail_task_id FROM email_inbound").mail_task_id, row(env, "SELECT MAX(id) AS id FROM mail_tasks").id);
+});

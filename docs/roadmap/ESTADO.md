@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+24-nov-2026 · **AUT-17 fase D, respuestas a los correos de Hermes (construida, apagada):** cuando el correo por Gmail esté activo, las respuestas de las agencias a lo que envía Hermes aparecerán en Settings › Email, una sola vez cada una, marcadas como respuesta de una persona, respuesta automática o rebote; el modelo no las lee. Para activarla, Luis decide en la fase B si añade el permiso de lectura de Gmail. Progreso 155 de 215 (sin cambio).
+
 24-nov-2026 · **BUS-08 cerrada, pasada diaria del mercado:** cada noche se leen las agencias permitidas y se compara con el día anterior; las casas nuevas pasan solas al cruce con las búsquedas, y una web caída conserva sus casas y deja un aviso en el Inbox (comprobado en producción del 20 al 23-nov). Progreso 154 → 155 de 215.
 
 23-nov-2026 · **BUS-09, Hermes como único lector del mercado (construido, apagado):** la app tiene una puerta propia para que Hermes entregue cada día las casas de las webs del directorio, con un custodio que comprueba cada anuncio contra la web real antes de guardarlo; las casas que faltan en dos lecturas completas se retiran solas (sin borrar), y las búsquedas comerciales reciben locales del mercado. Todo con interruptores apagados hasta que Luis instale las piezas del VPS ([guía](work/BUS-09/instalar-hermes-mercado.md)). Progreso 154 de 215 (sin cambio).
