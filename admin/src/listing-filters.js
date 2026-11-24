@@ -35,3 +35,36 @@ export function daysAgo(iso, today = new Date()) {
   const d = Math.floor((today - new Date(iso)) / DAY);
   return d <= 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`;
 }
+
+// D1 legacy timestamps have no offset and are UTC. Normalize before sorting, filtering or displaying.
+export function editTimestamp(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const iso = value.trim().replace(/^(\d{4}-\d{2}-\d{2}) /, "$1T");
+  const ts = Date.parse(/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso) ? iso
+    : iso.includes("T") ? iso + "Z" : iso);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+export function passesEditedWithin(listing, days, now = Date.now()) {
+  if (!days) return true;
+  const edited = editTimestamp(listing.updated_at);
+  return edited !== null && edited <= now && edited >= now - Number(days) * DAY;
+}
+
+export function compareListings(a, b, order) {
+  if (order) {
+    const left = editTimestamp(a.updated_at), right = editTimestamp(b.updated_at);
+    if (left === null && right !== null) return 1;
+    if (right === null && left !== null) return -1;
+    if (left !== right) return order === "asc" ? left - right : right - left;
+  }
+  return a.id.localeCompare(b.id);
+}
+
+const LISTINGS_PER_PAGE = 25;
+export function listingsPage(rows, requestedIndex) {
+  const last = Math.max(0, Math.ceil(rows.length / LISTINGS_PER_PAGE) - 1);
+  const index = Math.min(last, Math.max(0, requestedIndex));
+  const start = index * LISTINGS_PER_PAGE, end = Math.min(start + LISTINGS_PER_PAGE, rows.length);
+  return { index, start, end, rows: rows.slice(start, end), hasNext: end < rows.length };
+}

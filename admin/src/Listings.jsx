@@ -7,7 +7,7 @@ import { ON_MARKET } from "../../server/listing.js";
 import NewProperty from "./NewProperty.jsx";
 import WithdrawalDialog from './WithdrawalDialog.jsx';
 import Trash from "./Trash.jsx";
-import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo } from "./listing-filters.js";
+import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo, editTimestamp, passesEditedWithin, compareListings, listingsPage } from "./listing-filters.js";
 
 // ADM-04: To confirm is the published listings on the market that nobody has confirmed lately (the server's to_confirm).
 const TABS = [["published", "Published"], ["to_confirm", "To confirm"], ["ready_for_review","Ready for review"], ["draft", "Drafts"], ["archived", "Archived"], ["all", "All"]];
@@ -24,6 +24,10 @@ const BEDS = [["0", "Studio"], ...[1, 2, 3, 4, 5, 6].map(n => [String(n), String
 const agenciesOf = l => l.provenance?.labels ?? [];
 const passesSource = (l, source) => !source || (source.startsWith("agency:") ? agenciesOf(l).includes(source.slice(7))
   : l.provenance?.kind === source);
+const editedLabel = value => {
+  const timestamp = editTimestamp(value);
+  return timestamp === null ? "—" : fmtDate(new Date(timestamp).toISOString());
+};
 const CONFIRMED_BY = { owner: "owner", agency: "agency", other: "other source" };
 
 export default function Listings({ onChange }) {
@@ -33,7 +37,9 @@ export default function Listings({ onChange }) {
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
     [region, setRegion] = useState(""), [avail, setAvail] = useState(""), [parish, setParish] = useState("");
   const [extra, setExtra] = useState(NO_EXTRA), [msg, setMsg] = useState(null);
-  const setX = patch => setExtra(x => ({ ...x, ...patch }));
+  const [edited, setEdited] = useState(""), [editOrder, setEditOrder] = useState(""), [page, setPage] = useState(0);
+  const change = (setter, value) => { setter(value); setPage(0); };
+  const setX = patch => change(setExtra, x => ({ ...x, ...patch }));
   const load = () => api("/admin/listings").then(d => {setRows(d.listings);setWithdrawalTracking(d.withdrawal_tracking===true);
     setTracking(d.provenance_tracking === true);}, e => setError(e.message));
   useEffect(() => { load(); }, []);
@@ -62,16 +68,18 @@ export default function Listings({ onChange }) {
   if (error) return <p role="alert" className="err">{error}</p>;
   if (!rows) return <p>Loading listings…</p>;
   const needle = q.trim().toLowerCase();
+  const now = Date.now();
   const shown = rows.filter(l => inTab(l, tab) && (!use || l.use === use)
     && (!region || regionOf(l.country) === region) && (!avail || l.availability === avail)
     && (!parish || (parish === UNKNOWN ? l.parish == null : l.parish === parish))
-    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)) && passesExtra(l, extra) && passesSource(l, source))
-    .sort((a, b) => a.id.localeCompare(b.id));
+    && (!needle || `${l.id} ${l.title} ${l.location ?? ""}`.toLowerCase().includes(needle)) && passesExtra(l, extra) && passesSource(l, source)
+    && passesEditedWithin(l, edited, now)).sort((a, b) => compareListings(a, b, editOrder));
+  const visible = listingsPage(shown, page);
   // Position of each starred listing in the home page's Featured section: published ones with a public photo, in star order.
   const featNo = Object.fromEntries((rows || []).filter(l => stateOf(l) === "published" && l.has_public_photo && l.featured_rank != null)
     .sort((a, b) => a.featured_rank - b.featured_rank).map((l, i) => [l.id, i + 1]));
-  const filtered = needle || use || region || avail || parish || source || Object.entries(extra).some(([k, v]) => v !== NO_EXTRA[k]);
-  const clear = () => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); setSource(""); setExtra(NO_EXTRA); };
+  const filtered = needle || use || region || avail || parish || source || edited || Object.entries(extra).some(([k, v]) => v !== NO_EXTRA[k]);
+  const clear = () => { setQ(""); setUse(""); setRegion(""); setAvail(""); setParish(""); setSource(""); setExtra(NO_EXTRA); setEdited(""); setPage(0); };
   const agencies = [...new Set(rows.flatMap(agenciesOf))].sort((a, b) => a.localeCompare(b));
 
   return <section className="listings-screen" aria-labelledby="t-props">
@@ -80,20 +88,20 @@ export default function Listings({ onChange }) {
         <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div></div>
     {creating && <NewProperty rows={rows} onClose={() => { setCreating(false); load(); }} />}
     <div className="seg" role="group" aria-label="Status">{TABS.map(([k, t]) =>
-      <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{t}<span className="count">{counts[k]}</span></button>)}</div>
+      <button key={k} type="button" aria-pressed={tab === k} onClick={() => { if (tab !== k) change(setTab, k); }}>{t}<span className="count">{counts[k]}</span></button>)}</div>
     <div className="filters">
-      <label>Search<input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Title, HE-R001 or location" /></label>
-      <label>Use<select value={use} onChange={e => setUse(e.target.value)}><option value="">All</option>
+      <label>Search<input type="search" value={q} onChange={e => change(setQ, e.target.value)} placeholder="Title, HE-R001 or location" /></label>
+      <label>Use<select value={use} onChange={e => change(setUse, e.target.value)}><option value="">All</option>
         {Object.entries(USE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Operation<select value={extra.op} onChange={e => setX({ op: e.target.value })}><option value="">All</option>
         {Object.entries(OPERATION_FILTER).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Region<select value={region} onChange={e => setRegion(e.target.value)}><option value="">All</option>
+      <label>Region<select value={region} onChange={e => change(setRegion, e.target.value)}><option value="">All</option>
         {Object.entries(REGIONS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Availability<select value={avail} onChange={e => setAvail(e.target.value)}><option value="">All</option>
+      <label>Availability<select value={avail} onChange={e => change(setAvail, e.target.value)}><option value="">All</option>
         {Object.entries(AVAILABILITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label>Parish<select value={parish} onChange={e => setParish(e.target.value)}><option value="">Any</option>
+      <label>Parish<select value={parish} onChange={e => change(setParish, e.target.value)}><option value="">Any</option>
         {OPTIONS.parishes.map(([k, v]) => <option key={k} value={k}>{v}</option>)}<option value={UNKNOWN}>Unknown</option></select></label>
-      {tracking && <label>Source<select value={source} onChange={e => setSource(e.target.value)}><option value="">All</option>
+      {tracking && <label>Source<select value={source} onChange={e => change(setSource, e.target.value)}><option value="">All</option>
         <option value="hampton">Hampton</option><option value="co_listed">Co-listed</option>
         {agencies.map(a => <option key={a} value={`agency:${a}`}>Co-listed · {a}</option>)}</select></label>}
       <fieldset className="range"><legend>Bedrooms</legend><div>
@@ -104,17 +112,34 @@ export default function Listings({ onChange }) {
       <fieldset className="range"><legend>Price £ <span className="muted">(rent per month)</span></legend><div>
         <label>Min<input type="number" min="0" step="1" inputMode="numeric" value={extra.min} onChange={e => setX({ min: e.target.value })} /></label>
         <label>Max<input type="number" min="0" step="1" inputMode="numeric" value={extra.max} onChange={e => setX({ max: e.target.value })} /></label></div></fieldset>
+      <label><span id="listings-edited-filter-label">Last edited</span><select aria-labelledby="listings-edited-filter-label" value={edited} onChange={e => change(setEdited, e.target.value)}>
+        <option value="">Any time</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option>
+      </select></label>
+      <label className="listings-sort-mobile"><span id="listings-edited-mobile-label">Sort by last edited</span><select aria-labelledby="listings-edited-mobile-label" value={editOrder} onChange={e => change(setEditOrder, e.target.value)}>
+        <option value="">Listing reference</option><option value="desc">Newest first</option><option value="asc">Oldest first</option>
+      </select></label>
       <label className="check"><input type="checkbox" checked={extra.recent} onChange={e => setX({ recent: e.target.checked })} />
         {tracking ? "Price or availability changed in the last 7 days" : "Changed in the last 7 days"}</label>
     </div>
-    <p className="muted" aria-live="polite">{shown.length} {shown.length === 1 ? "listing" : "listings"}</p>
+    <div className="listings-pagination">
+      <p className="muted" aria-live="polite">{shown.length
+        ? `Showing ${visible.start + 1}–${visible.end} of ${shown.length} ${shown.length === 1 ? "listing" : "listings"}`
+        : "0 listings"}</p>
+      {shown.length > 0 && <nav aria-label="Listings pages" className="inline">
+        <button type="button" className="btn ghost sm" disabled={visible.index === 0} aria-label="Previous page" onClick={() => setPage(visible.index - 1)}><span aria-hidden="true">←</span></button>
+        <button type="button" className="btn ghost sm" disabled={!visible.hasNext} aria-label="Next page" onClick={() => setPage(visible.index + 1)}><span aria-hidden="true">→</span></button>
+      </nav>}
+    </div>
     {msg && <p role={msg.ok ? "status" : "alert"} className={msg.ok ? "ok" : "err"}>{msg.text}</p>}
     {shown.length ? <table className="list listings">
       <thead><tr><th scope="col"><span className="sr">Photo</span></th><th scope="col">Listing</th><th scope="col">Location</th>
         <th scope="col">Parish</th>{tracking && <th scope="col">Source</th>}<th scope="col">Price</th><th scope="col">Availability</th>
-        <th scope="col">Checked</th><th scope="col">Matched</th><th scope="col">Interested</th><th scope="col">Visibility</th><th scope="col">Last edited</th>
+        <th scope="col">Checked</th><th scope="col">Matched</th><th scope="col">Interested</th><th scope="col">Visibility</th><th scope="col" aria-sort={editOrder === "asc" ? "ascending" : editOrder === "desc" ? "descending" : "none"}>
+          <button type="button" className="listings-edited-sort" onClick={() => change(setEditOrder, editOrder === "desc" ? "asc" : "desc")}>
+            Last edited <span aria-hidden="true">{editOrder === "desc" ? "↓" : editOrder === "asc" ? "↑" : "↕"}</span>
+          </button></th>
         <th scope="col"><span className="sr">Actions</span></th></tr></thead>
-      <tbody>{shown.map(l => <tr key={l.id}>
+      <tbody>{visible.rows.map(l => <tr key={l.id}>
         <td>{l.cover_id ? <img className="thumb" src={adminMediaUrl(l.cover_id, { thumb: true })} alt="" loading="lazy" /> : <span className="thumb" />}</td>
         <td><div className="title-cell"><button type="button" className="star" aria-pressed={l.featured_rank != null} disabled={stateOf(l) === "archived"}
           title={l.featured_rank != null ? "In the Featured section of the home page. Click to remove." : "Click to show in the Featured section of the home page."}
@@ -139,7 +164,7 @@ export default function Listings({ onChange }) {
             onClick={e => act(e, l, l.published ? "unpublish" : "publish", l.published ? "hidden from the website." : "now visible on the website (may take a minute).")}>
             <span className="knob" aria-hidden="true" />{stateOf(l) === "published" ? "Visible" : "Hidden"}</button>}
           {stateOf(l) === "published" && !l.has_public_photo && <div className="muted" title="Not shown on the website until it has a visible photo">no photo · not visible</div>}</td>
-        <td className="muted">{fmtDate(l.updated_at)}</td>
+        <td className="muted" data-label="Last edited">{editedLabel(l.updated_at)}</td>
         <td><details className="more row-menu"><summary aria-label={`Actions for ${l.title}`}>…</summary><div className="menu">
           <a href={`#/p/${l.id}`}>Edit</a>
           {stateOf(l) === "published" && l.has_public_photo ? <a href={`/p/${l.id}`} target="_blank" rel="noopener noreferrer">View on the website</a> : null}
