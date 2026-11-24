@@ -1734,7 +1734,8 @@
         "Decisión: el ciclo de imports se rompe en server/email.js, que carga routes/notifications.js solo al preparar el resumen; ningún módulo de server/ falla ya al importarse primero (antes fallaban consultations, consultation-email y routes/matches) · fuente: coordinador.",
         "No comprobado: envío real, DNS y cuenta de correo; la aplicación de 0080 en producción; el reloj real de Cloudflare (probado con server/jobs.js sobre SQLite); el plan de consultas de D1 con datos reales; el import diferido en el Worker real (los dos paquetes se construyen en local).",
         "15-nov-2026: publicada apagada; 0080 (cinco ADD COLUMN, aditiva) aplicada en producción; npm test 2663/2663; tests/age05-send.e2e.cjs pasa a 1280 y 390; dos revisiones independientes: la primera halló dos graves (el interruptor no frenaba lo encolado; consultas atascadas en cola), la segunda los dio por cerrados y halló que apagar solo en la web no frenaba: el interruptor queda nombrado en los dos wrangler.toml con una prueba que exige que coincidan, y el panel ya no afirma que no saldrá. Tubería de las demás plantillas idéntica en 36 combinaciones. Pasa a la cola de Luis (skill §2).",
-        "17-nov-2026: estado corregido a parcial: el código está en main y 0080 aplicada; solo falta lo externo (AUT-17 y encender AGE05_SEND_READY, de Luis). «Pendiente» bloqueaba en la ruta a AGE-09, que solo necesita el envío manual ya activo."
+        "17-nov-2026: estado corregido a parcial: el código está en main y 0080 aplicada; solo falta lo externo (AUT-17 y encender AGE05_SEND_READY, de Luis). «Pendiente» bloqueaba en la ruta a AGE-09, que solo necesita el envío manual ya activo.",
+        "24-nov-2026: Luis pidió en la sesión encender AGE05_SEND_READY; puesto a \"1\" en wrangler.toml y jobs/wrangler.toml a la vez (0080 ya aplicada). Con «Confirmar disponibilidad» apagado, Hermes deja cada consulta aprobada en Borradores del Gmail de Hampton."
       ],
       "modulo": "M06",
       "deps": [
@@ -1770,14 +1771,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis: conectar el Gmail de Hampton en Hermes (AUT-17) y decidir encender AGE05_SEND_READY en wrangler.toml y jobs/wrangler.toml a la vez, que deja salir consultas a agencias con aprobación individual.",
+      "externalBlocker": "Luis: la prueba real (preparar y aprobar una consulta en una coincidencia aprobada de Hunt; comprobar el borrador en Gmail y que la app registra el acuse sin duplicar con dos pulsaciones).",
       "resources": [
         "consultations-contract",
         "email-pipeline",
         "outbound-policy"
       ],
       "nextStep": "Cuando el canal Hermes-Gmail de AUT-17 opere y Luis encienda AGE05_SEND_READY, enviar una consulta ficticia de prueba y cerrar.",
-      "actualizado": "2026-11-21"
+      "actualizado": "2026-11-24"
     },
     {
       "id": "AGE-06",
@@ -11940,7 +11941,8 @@
         "24-nov-2026: node --test tests/server/age-15-advertiser-sync.test.mjs tests/server/advertisers.test.mjs tests/server/jobs.test.mjs → 21/21. npm test 3555/3564: los 9 fallos eran el número de tareas fijo en las pruebas (251 → 252 por el alta de AGE-15), corregido → 39/39. npm run build y check:release OK.",
         "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación).",
         "24-nov-2026 09:00 UTC, lectura de producción: advertisers 1-5 creados por «AGE-15 sync» con su correo genérico (Hunt 160 fichas, Red 42, Slomans 40, Prestige 14, Columbia 2); app_settings.advertiser_sync day 2026-11-24 con los ids 1-5. SELECT sobre matches: 2 coincidencias shortlisted en fichas de Hunt, ahora con destinatario.",
-        "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade."
+        "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade.",
+        "24-nov-2026: AGE05_SEND_READY encendido a petición de Luis (los dos wrangler.toml)."
       ],
       "modulo": "M06",
       "deps": [
@@ -11966,7 +11968,7 @@
       ],
       "nextStep": "Luis enciende AGE05_SEND_READY y prepara una consulta en una coincidencia aprobada de Hunt; comprobar el borrador en Gmail.",
       "actualizado": "2026-11-24",
-      "externalBlocker": "Luis: encender AGE05_SEND_READY (fila AGE-05 de COLA-LUIS) y preparar la primera consulta real en una coincidencia aprobada de una ficha de agencia; su borrador en el Gmail de Hampton cierra AGE-15."
+      "externalBlocker": "Luis: preparar y aprobar la primera consulta real en una coincidencia aprobada de una ficha de Hunt (AGE05_SEND_READY encendido el 24-nov) y comprobar su borrador en el Gmail de Hampton."
     }
   ]
 }

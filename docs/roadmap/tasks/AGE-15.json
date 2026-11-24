@@ -18,7 +18,8 @@
     "24-nov-2026: node --test tests/server/age-15-advertiser-sync.test.mjs tests/server/advertisers.test.mjs tests/server/jobs.test.mjs → 21/21. npm test 3555/3564: los 9 fallos eran el número de tareas fijo en las pruebas (251 → 252 por el alta de AGE-15), corregido → 39/39. npm run build y check:release OK.",
     "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación).",
     "24-nov-2026 09:00 UTC, lectura de producción: advertisers 1-5 creados por «AGE-15 sync» con su correo genérico (Hunt 160 fichas, Red 42, Slomans 40, Prestige 14, Columbia 2); app_settings.advertiser_sync day 2026-11-24 con los ids 1-5. SELECT sobre matches: 2 coincidencias shortlisted en fichas de Hunt, ahora con destinatario.",
-    "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade."
+    "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade.",
+    "24-nov-2026: AGE05_SEND_READY encendido a petición de Luis (los dos wrangler.toml)."
   ],
   "modulo": "M06",
   "deps": [
@@ -44,5 +45,5 @@
   ],
   "nextStep": "Luis enciende AGE05_SEND_READY y prepara una consulta en una coincidencia aprobada de Hunt; comprobar el borrador en Gmail.",
   "actualizado": "2026-11-24",
-  "externalBlocker": "Luis: encender AGE05_SEND_READY (fila AGE-05 de COLA-LUIS) y preparar la primera consulta real en una coincidencia aprobada de una ficha de agencia; su borrador en el Gmail de Hampton cierra AGE-15."
+  "externalBlocker": "Luis: preparar y aprobar la primera consulta real en una coincidencia aprobada de una ficha de Hunt (AGE05_SEND_READY encendido el 24-nov) y comprobar su borrador en el Gmail de Hampton."
 }

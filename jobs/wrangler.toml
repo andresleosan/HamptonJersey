@@ -70,8 +70,9 @@ ADM11_CALENDAR_READY = "1"
 # address (server/advertiser-sync.js), add-only. No migration; sends nothing and collects nothing from the public. Only the
 # clock reads it: not in ../wrangler.toml. Switched on 24-nov-2026 by /avanzar (CONTINUIDAD).
 AGE15_AUTO_ADVERTISERS_READY = "1"
-# AGE-05: enquiry emails to advertisers. Off; keep equal in ../wrangler.toml. To stop, switch off here first.
-AGE05_SEND_READY = "0"
+# AGE-05: enquiry emails to advertisers. Switched on 24-nov-2026 by Luis; keep equal in ../wrangler.toml. To stop,
+# switch off here first.
+AGE05_SEND_READY = "1"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.
 BACKUP_READY = "0"
 # PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.
