@@ -180,7 +180,7 @@ test("Gaudin-shaped: pages under the channel's paths, listings anywhere on its h
 // 24-nov: gaudin.je, keys.je and finderskeepers.je all answer 301 to their www. host; the first night failed on it.
 test("a redirect to the channel's own host with or without www. is followed; to another host it is not", async t => {
   const { app, cfg, call } = await setup(t);
-  app.items = ["rent", "rent2"].map(channel_id => ({ source_ref: "src-gaudin-co", channel_id, hosts: ["gaudin.co"],
+  app.items = ["rent", "rent2", "rent3"].map(channel_id => ({ source_ref: "src-gaudin-co", channel_id, hosts: ["gaudin.co"],
     paths: ["/residential-for-rent"], status: "pending", min_interval_s: 60 }));
   const orig = cfg.fetchFn, to = { host: "www.gaudin.co" };
   cfg.fetchFn = async (url, init) => {
@@ -189,9 +189,12 @@ test("a redirect to the channel's own host with or without www. is followed; to 
     return orig(u.hostname === "www.gaudin.co" ? `https://gaudin.co${u.pathname}` : url, init);
   };
   const home = { ...advert(0), listing_url: "https://www.gaudin.co/property/sea-view-flat/4321", price_text: "£2,100 pcm" };
-  const send = channel_id => call("POST", "/mercado/entregar", { run_id: RUN, source_ref: "src-gaudin-co", channel_id,
-    pages: ["https://gaudin.co/residential-for-rent"], adverts: [home] });
+  const send = (channel_id, page = "https://gaudin.co/residential-for-rent") => call("POST", "/mercado/entregar",
+    { run_id: RUN, source_ref: "src-gaudin-co", channel_id, pages: [page], adverts: [home] });
   assert.deepEqual((await send("rent")).json, { queued: 1, rejected: 0, reasons: {} });
+  // Hermes keeps the address it landed on after the redirect: the www. page is the channel's page.
+  assert.equal((await send("rent3", "https://www.gaudin.co/elsewhere")).status, 400);
+  assert.deepEqual((await send("rent3", "https://www.gaudin.co/residential-for-rent")).json, { queued: 1, rejected: 0, reasons: {} });
   to.host = "evil.test";
   assert.equal((await send("rent2")).json.fail, "unavailable");
 });

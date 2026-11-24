@@ -166,8 +166,12 @@ export async function entregar(cfg, body) {
       return { queued: 0, rejected: 0, reasons: {}, fail: body.fail };
     }
     const pages = body.pages, adverts = body.adverts;
-    if (!Array.isArray(pages) || !pages.length || pages.length > MAX_PAGES || !pages.every(p => typeof p === "string" && inScope(p, item)))
+    // Hermes keeps the address its browser landed on: keys.je/ answers from www.keys.je/, so www. or not is the same host.
+    const wide = { ...item, hosts: item.hosts.flatMap(h => [bare(h), `www.${bare(h)}`]) };
+    if (!Array.isArray(pages) || !pages.length || pages.length > MAX_PAGES || !pages.every(p => typeof p === "string" && inScope(p, wide))) {
+      log(cfg, `${name} refused: pages off the channel's hosts and paths`);
       throw err(400, `pages: 1 to ${MAX_PAGES} https links on the channel's hosts and paths`);
+    }
     if (!Array.isArray(adverts) || adverts.length > MAX_ADVERTS) throw err(400, `adverts: a list of at most ${MAX_ADVERTS}`);
     const unique = [...new Set(pages)], bodies = [];
     for (const p of unique) bodies.push(await fetchPage(cfg, p, item).catch(() => null));
