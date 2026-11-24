@@ -230,7 +230,15 @@ export async function claimForHermes(env, enquiry) {
 }
 // outcome: sent, failed (never sent again), retry (nothing left: queued again, as the clock's rate limits) or unknown.
 const HERMES_CODE = { failed: "E_DELIVERY_FAILED", retry: "E_RATE_LIMIT_EXCEEDED", unknown: null };
-export async function settleForHermes(env, ref, token, outcome, messageId) {
+export async function settleForHermes(env, ref, token, outcome, messageId, threadId) {
+  const r = await settleHermes(env, ref, token, outcome, messageId);
+  // Fase D: an enquiry Gmail took keeps its thread (once), so the carrier reads the reply there (server/hermes-mail.js).
+  if (threadId && outcome === "sent" && (r === "ok" || r === "same"))
+    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template = 'enquiry' AND status = 'accepted'
+      AND message_id = ? AND gmail_thread_id IS NULL`).bind(threadId, ref, messageId).run();
+  return r;
+}
+async function settleHermes(env, ref, token, outcome, messageId) {
   const row = await env.DB.prepare("SELECT * FROM outbound WHERE ref = ?").bind(ref).first();
   if (!row) return "missing";
   if (row.status === "accepted" && outcome === "sent" && row.message_id === messageId) return "same";

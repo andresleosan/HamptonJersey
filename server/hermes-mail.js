@@ -232,18 +232,22 @@ async function outboundResult({ request, env, params: [ref] }) {
   if (typeof b.token !== "string" || b.token.length > 64) fail(400, "Send the claim's token");
   if (!["sent", "failed", "retry", "unknown"].includes(b.outcome)) fail(400, "outcome must be sent, failed, retry or unknown");
   if (b.outcome === "sent" && !GMAIL_ID.test(b.message_id ?? "")) fail(400, "Send Gmail's message_id");
-  const r = await settleForHermes(env, ref, b.token, b.outcome, b.message_id ?? null);
+  if (b.thread_id != null && !GMAIL_ID.test(b.thread_id)) fail(400, "thread_id is not a Gmail id");
+  const r = await settleForHermes(env, ref, b.token, b.outcome, b.message_id ?? null, b.thread_id ?? null);
   return json(SETTLED[r] === 200 ? { ok: true } : { error: r === "settled" ? "This email already has a result" : r === "token"
     ? "This is not the token of this claim" : "Not found" }, SETTLED[r]);
 }
 
-// Fase D: the threads of what went out in the last 30 days (sent, or a draft a person may have sent from Gmail), so the
-// carrier reads only those and never searches the mailbox. ponytail: the newest 50; older ones wait for a quieter day.
-const WATCH_MS = 30 * 86400e3;
+// Fase D: the threads of what went out in the last 30 days (sent, or a draft a person may have sent from Gmail, and the
+// approved enquiries of the queue the carrier sent), so the carrier reads only those and never searches the mailbox.
+// ponytail: the newest 50; older ones wait for a quieter day.
+const WATCH_MS = 30 * 86400e3, OUT_THREAD = "template = 'enquiry' AND status = 'accepted' AND recipient IS NOT NULL AND gmail_thread_id IS NOT NULL";
+// recipient IS NOT NULL: a contact erased (or an agency removed) stops being read, so an erasure never brings replies back.
 async function mailThreads({ env }) {
   if (!mailReady(env)) fail(404, "Not found");
   const { results } = await env.DB.prepare(`SELECT gmail_thread_id AS id, result_at AS after FROM mail_tasks
-    WHERE status IN ('sent', 'drafted') AND gmail_thread_id IS NOT NULL AND result_at >= ? ORDER BY result_at DESC LIMIT 50`)
+    WHERE status IN ('sent', 'drafted') AND gmail_thread_id IS NOT NULL AND result_at >= ?1
+    UNION SELECT gmail_thread_id, claimed_at FROM outbound WHERE ${OUT_THREAD} AND claimed_at >= ?1 ORDER BY after DESC LIMIT 50`)
     .bind(new Date(Date.now() - WATCH_MS).toISOString()).all();
   return json({ threads: results });
 }
@@ -269,9 +273,14 @@ async function mailReplies({ request, env }) {
   const b = await readJson(request, 1024 * 1024) ?? {};
   if (!GMAIL_ID.test(b.thread_id ?? "")) fail(400, "thread_id is not a Gmail id");
   if (!Array.isArray(b.messages) || b.messages.length > 50) fail(400, "Send at most 50 messages");
-  const t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(result_at) AS result_at FROM mail_tasks WHERE gmail_thread_id = ?
-    AND status IN ('sent', 'drafted')`).bind(b.thread_id).first();
-  if (!t?.id) fail(404, "Not a thread of the app's email");
+  let t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(result_at) AS result_at FROM mail_tasks WHERE gmail_thread_id = ?
+    AND status IN ('sent', 'drafted')`).bind(b.thread_id).first(), outId = null;
+  if (!t?.id) { // an approved enquiry of the queue: the reply is linked to its email, as one through Cloudflare is
+    t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(claimed_at) AS result_at FROM outbound WHERE ${OUT_THREAD} AND gmail_thread_id = ?`)
+      .bind(b.thread_id).first();
+    if (!t?.id) fail(404, "Not a thread of the app's email");
+    outId = t.id;
+  }
   const stmts = [], ts = now();
   for (const m of b.messages) {
     if (!GMAIL_ID.test(m?.id ?? "") || Number.isNaN(Date.parse(m.at ?? ""))) continue;
@@ -281,10 +290,10 @@ async function mailReplies({ request, env }) {
     const body = cut(m.text, 1e6) ?? "(No text content)", key = await sha256(`gmail\0${m.id}`);
     stmts.push(env.DB.prepare("INSERT INTO email_inbound_keys VALUES (?, ?) ON CONFLICT (key) DO NOTHING").bind(key, ts),
       env.DB.prepare(`INSERT INTO email_inbound (dedupe_key, sender, header_from, recipient, subject, text, html_only, truncated,
-        attachments, message_id, in_reply_to, references_header, received_at, mail_task_id, reply_kind)
-      SELECT ?, ?, ?, NULL, ?, ?, 0, ?, 0, ?, ?, ?, ?, ?, ? WHERE changes() = 1`)
+        attachments, message_id, in_reply_to, references_header, received_at, mail_task_id, reply_kind, outbound_id)
+      SELECT ?, ?, ?, NULL, ?, ?, 0, ?, 0, ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1`)
       .bind(key, sender, sender, cut(m.subject, 500) ?? "(No subject)", body.slice(0, 50000), body.length > 50000 ? 1 : 0,
-        cut(m.message_id, 512), cut(m.in_reply_to, 512), cut(m.references, 2048), at, t.id, replyKind(m)));
+        cut(m.message_id, 512), cut(m.in_reply_to, 512), cut(m.references, 2048), at, outId ? null : t.id, replyKind(m), outId));
   }
   const out = stmts.length ? await env.DB.batch(stmts) : [];
   return json({ stored: out.filter((_, i) => i % 2).reduce((n, r) => n + r.meta.changes, 0) });

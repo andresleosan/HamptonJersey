@@ -54,7 +54,7 @@ async function queue(cfg) {
     const f = join(cfg.estado, `o-${email.ref}.json`), claim = { ref: email.ref, token: email.token, to: { email: email.to }, mode: "send" };
     keep(f, { ...claim, sending: true });
     const r = await gmail(cfg, claim, email.subject, email.text);
-    claim.result = { outcome: r.outcome, ...(r.message_id && { message_id: r.message_id }) };
+    claim.result = { outcome: r.outcome, ...(r.message_id && { message_id: r.message_id }), ...(r.thread_id && { thread_id: r.thread_id }) };
     keep(f, claim);
     await door(cfg, `outbound/${email.ref}/result`, { token: email.token, ...claim.result });
     rmSync(f);

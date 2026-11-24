@@ -135,7 +135,7 @@ test("the app's approved queue goes first, verbatim and always sent, before any 
   assert.ok(raw.includes("<team@example.test>"));
   assert.ok(raw.includes(Buffer.from("Counts").toString("base64")));
   const r = JSON.parse(w.calls.find(c => /outbound\/a{32}\/result$/.test(c.url)).body);
-  assert.deepEqual([r.outcome, r.message_id], ["sent", "m5"]);
+  assert.deepEqual([r.outcome, r.message_id, r.thread_id], ["sent", "m5", "t5"], "the thread goes back too, so its replies can be read");
   assert.equal(out.task.id, 7);
 });
 
