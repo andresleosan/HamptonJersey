@@ -8952,6 +8952,34 @@
       "acceptance": [
         "Revisar la lista cuando BUS-08 esté cerrada; decidir canal por canal."
       ]
+    },
+    {
+      "id": "AGE-15",
+      "parentTaskId": "AGE-15",
+      "title": "Alta automática de la agencia de cada ficha para poder preparar consultas sin trabajo manual",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "advertiser-directory",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AGE-15.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AGE-15/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Cada ficha importada de una agencia conocida tiene su anunciante con correo genérico sin alta manual; la consulta se puede preparar y su borrador llega al Gmail de Hampton."
+      ]
     }
   ]
 }

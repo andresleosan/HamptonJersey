@@ -7,7 +7,7 @@
     "sha": "36c4c2b746b3421b37fb5d59826772c6814c096f",
     "checkedAt": "2026-11-08",
     "path": "docs/roadmap/checklist-hampton-app.html",
-    "itemCount": 251
+    "itemCount": 252
   },
   "liveCoordination": false,
   "policy": "Reparto histórico del antiguo coordinador, no reserva ni exclusión vigente. El candado protege solo la copia de cada taller: acordar un turno único antes de editar recursos compartidos, integrar o publicar. Verificar dependencias técnicas y exigir revisión y sí para el SHA final.",
@@ -32,13 +32,13 @@
       "name": "Lista 2",
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
-      "count": 62,
-      "openCount": 26,
+      "count": 63,
+      "openCount": 27,
       "states": {
         "replanteado": 8,
         "hecho": 28,
         "parcial": 14,
-        "pendiente": 8,
+        "pendiente": 9,
         "bloqueado": 4
       }
     },
@@ -11918,6 +11918,46 @@
         "data-processing-policy"
       ],
       "nextStep": "Tras el piloto de Hermes (BUS-09): reclasificar el grupo D con su lectura; los grupos A y B solo con permiso por escrito (Luis o Hampton).",
+      "actualizado": "2026-11-24"
+    },
+    {
+      "id": "AGE-15",
+      "seccion": "Agencias y portal del aplicante",
+      "titulo": "Alta automática de la agencia de cada ficha para poder preparar consultas sin trabajo manual",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "",
+      "falta": "Todo: lista revisada de agencias con correo genérico, sincronización diaria apagada por interruptor, pruebas, encender y comprobar en producción (plan docs/roadmap/work/AGE-15/plan.md).",
+      "bloqueo": "",
+      "evidencia": [
+        "24-nov-2026: decisión de Luis, opción A (alta automática en vez de manual).",
+        "Lectura de producción 24-nov: advertisers 0, listing_market_links 0; media.provider nombra la agencia de las fichas importadas (Hunt 162, Red 43, Slomans 40, Prestige 14, Columbia 6)."
+      ],
+      "modulo": "M06",
+      "deps": [
+        "AGE-04"
+      ],
+      "criterio_aceptacion": "Cada ficha importada de una agencia conocida tiene su anunciante con correo genérico sin alta manual; la consulta se puede preparar y su borrador llega al Gmail de Hampton.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AGE-04",
+          "scope": "component:advertiser-directory",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El directorio de anunciantes ya existe; esta tarea lo rellena."
+        }
+      ],
+      "resources": [
+        "advertiser-directory",
+        "jobs-clock"
+      ],
+      "nextStep": "Construir la lista revisada de agencias y la sincronización según el plan.",
       "actualizado": "2026-11-24"
     }
   ]

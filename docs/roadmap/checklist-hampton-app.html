@@ -7463,6 +7463,28 @@ document.addEventListener('DOMContentLoaded', () => {
     "24-nov: BUS-08 cerrada; decisión: el grupo D espera a la lectura de Hermes (BUS-09), porque esas webs cargan sus términos con JavaScript. Fuente: plan-directorio-hermes.md y opción más simple y reversible (skill §4.5)."
    ],
    "actualizado": "2026-11-24"
+  },
+  {
+   "id": "AGE-15",
+   "seccion": "Agencias y portal del aplicante",
+   "titulo": "Alta automática de la agencia de cada ficha para poder preparar consultas sin trabajo manual",
+   "origen": "plan",
+   "fase": "F2",
+   "estado": "pendiente",
+   "responsable": "desarrollo",
+   "hecho": "",
+   "falta": "Todo: lista revisada de agencias con correo genérico, sincronización diaria apagada por interruptor, pruebas, encender y comprobar en producción (plan docs/roadmap/work/AGE-15/plan.md).",
+   "bloqueo": "",
+   "evidencia": [
+    "24-nov-2026: decisión de Luis, opción A (alta automática en vez de manual).",
+    "Lectura de producción 24-nov: advertisers 0, listing_market_links 0; media.provider nombra la agencia de las fichas importadas (Hunt 162, Red 43, Slomans 40, Prestige 14, Columbia 6)."
+   ],
+   "modulo": "M06",
+   "deps": [
+    "AGE-04"
+   ],
+   "criterio_aceptacion": "Cada ficha importada de una agencia conocida tiene su anunciante con correo genérico sin alta manual; la consulta se puede preparar y su borrador llega al Gmail de Hampton.",
+   "actualizado": "2026-11-24"
   }
  ],
  "reconciliacion": {
