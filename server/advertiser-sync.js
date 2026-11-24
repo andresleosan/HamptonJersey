@@ -26,10 +26,10 @@ export async function advertiserSyncPass(env, ts, today = jerseyToday(new Date(t
   const row = await env.DB.prepare('SELECT value FROM app_settings WHERE key = ?').bind(KEY).first();
   const state = row ? JSON.parse(row.value) : { agencies: {} };
   if (state.day === today) return;
-  // The import's range only (HE-R028 to HE-R285, migration 0009, as BUS-07): never one of Hampton's own listings.
+  // Photos the import of 8 Oct uploaded (HE-R028 to HE-R285, HE-C018 to HE-C021, HE-I002, HE-I003): Hampton's own
+  // listings carry origin 'hampton' or external references, never these.
   const photos = (await env.DB.prepare(`SELECT DISTINCT m.provider, m.listing_id FROM media m JOIN listings l ON l.id = m.listing_id
-    WHERE m.origin = 'upload' AND m.created_by = 'import' AND m.provider IS NOT NULL
-      AND l.id GLOB 'HE-R[0-9][0-9][0-9]' AND substr(l.id, 5) BETWEEN '028' AND '285' ORDER BY m.listing_id`).all()).results;
+    WHERE m.origin = 'upload' AND m.created_by = 'import' AND m.provider IS NOT NULL ORDER BY m.listing_id`).all()).results;
   const t = now();
   // The state is written in the same transaction as each advertiser it records, so a pass cut short never creates an
   // agency twice nor puts back a listing a person removed. when: SQL that must hold for the state to be written.

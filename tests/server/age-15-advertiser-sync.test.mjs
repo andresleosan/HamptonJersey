@@ -21,7 +21,7 @@ function world() {
   seedListing(env, { id: 'HE-R201' }); photo(env, 'HE-R201', 'Unknown Agency'); // not in the reviewed list
   seedListing(env, { id: 'HE-R001' }); photo(env, 'HE-R001', 'Slomans Estate Agents', { origin: 'external', public: 0 }); // Hampton's
   photo(env, 'HE-R001', 'Hampton Estates', { origin: 'hampton' });
-  seedListing(env, { id: 'HE-R005' }); photo(env, 'HE-R005', 'Hunt Estates'); // Hampton's own, outside the import range
+  seedListing(env, { id: 'HE-I002' }); photo(env, 'HE-I002', 'Hunt Estates'); // imported too, outside HE-R
   return env;
 }
 
@@ -41,7 +41,7 @@ test('one pass creates each agency with its listings and generic contact; nothin
   const [hunt, red, ...rest] = rows(env);
   assert.equal(rest.length, 0);
   assert.equal(hunt.name, 'Hunt Estates'); assert.equal(hunt.kind, 'agency');
-  assert.equal(hunt.details.listing_ids.length, 105); assert.equal(hunt.details.listing_ids[0], 'HE-R028');
+  assert.equal(hunt.details.listing_ids.length, 106); assert.equal(hunt.details.listing_ids[0], 'HE-I002');
   assert.deepEqual(hunt.details.contacts, [{ name: 'General enquiries', email: 'enquiries@huntestates.com', phones: [] }]);
   assert.deepEqual(red.details.listing_ids, ['HE-R200']);
   assert.deepEqual(Object.keys(hunt.details).sort(), ['channels', 'commission', 'contacts', 'listing_ids', 'photo_permission', 'source_ids']);

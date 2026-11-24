@@ -20836,9 +20836,9 @@
       "origen": "plan",
       "fase": "F2",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Sincronización diaria solo-añadir (server/advertiser-sync.js) en el reloj tras AGE15_AUTO_ADVERTISERS_READY, encendido en jobs/wrangler.toml: las 5 agencias de la importación (Hunt, Red, Slomans, Prestige, Columbia) entran en Advertisers con su correo genérico y sus fichas. El directorio admite hasta 1000 fichas por anunciante y comprueba las fichas en una sola consulta.",
-      "falta": "Comprobar en producción, tras la primera pasada del reloj, que Advertisers tiene las 5 agencias con su correo. Después, la primera consulta real con AGE05_SEND_READY (decisión de Luis, fila AGE-05 de COLA-LUIS) que deje su borrador en el Gmail de Hampton.",
+      "responsable": "Luis",
+      "hecho": "En producción desde el 24-nov (e64d0180): cada día el reloj añade a Advertisers las agencias de la importación con su correo genérico y sus fichas (solo añade; respeta lo que el equipo edite o quite). Primera pasada 09:00 UTC: Hunt 160, Red 42, Slomans 40, Prestige 14, Columbia 2. Las 6 fichas importadas fuera de HE-R (HE-C018 a HE-C021, HE-I002, HE-I003) entran en la pasada del 25-nov (arreglo del filtro en el commit siguiente). Hay 2 coincidencias aprobadas en fichas de Hunt que ya tienen destinatario.",
+      "falta": "Solo de Luis: la primera consulta real con AGE05_SEND_READY encendido y su borrador en el Gmail de Hampton. Desarrollo, al pasar: comprobar el 25-nov que Hunt llega a 162 y Columbia a 6.",
       "bloqueo": "",
       "evidencia": [
         "24-nov-2026: decisión de Luis, opción A (alta automática en vez de manual).",
@@ -20847,7 +20847,9 @@
         "24-nov-2026: correos genéricos leídos en la web de cada agencia (URL y fecha en AGENCIES de server/advertiser-sync.js); ninguno de persona.",
         "Decisiones (fuente: plan y opción más simple y reversible): estado en app_settings.advertiser_sync (agencia → anunciante y fichas ya dadas), sin migración; el contacto genérico solo al crear; una ficha o contacto que una persona quitó no vuelve; un anunciante renombrado no se duplica; uno suprimido (AGE-14) no se toca ni se recrea; solo el rango de la importación HE-R028–HE-R285.",
         "24-nov-2026: node --test tests/server/age-15-advertiser-sync.test.mjs tests/server/advertisers.test.mjs tests/server/jobs.test.mjs → 21/21. npm test 3555/3564: los 9 fallos eran el número de tareas fijo en las pruebas (251 → 252 por el alta de AGE-15), corregido → 39/39. npm run build y check:release OK.",
-        "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación)."
+        "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación).",
+        "24-nov-2026 09:00 UTC, lectura de producción: advertisers 1-5 creados por «AGE-15 sync» con su correo genérico (Hunt 160 fichas, Red 42, Slomans 40, Prestige 14, Columbia 2); app_settings.advertiser_sync day 2026-11-24 con los ids 1-5. SELECT sobre matches: 2 coincidencias shortlisted en fichas de Hunt, ahora con destinatario.",
+        "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade."
       ],
       "modulo": "M06",
       "deps": [
@@ -20871,8 +20873,9 @@
         "advertiser-directory",
         "jobs-clock"
       ],
-      "nextStep": "Leer advertisers y app_settings.advertiser_sync en producción tras el despliegue de hampton-jobs.",
-      "actualizado": "2026-11-24"
+      "nextStep": "Luis enciende AGE05_SEND_READY y prepara una consulta en una coincidencia aprobada de Hunt; comprobar el borrador en Gmail.",
+      "actualizado": "2026-11-24",
+      "externalBlocker": "Luis: encender AGE05_SEND_READY (fila AGE-05 de COLA-LUIS) y preparar la primera consulta real en una coincidencia aprobada de una ficha de agencia; su borrador en el Gmail de Hampton cierra AGE-15."
     }
   ]
 }
