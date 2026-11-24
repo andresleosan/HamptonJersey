@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+24-nov-2026 · **AUT-17, respuestas en la consulta:** cada consulta enviada muestra las respuestas que llegaron por correo (fecha, tipo y referencia HE-IN, el texto sigue en Email) y el botón «Use for the answer» rellena canal, hora y evidencia del formulario de respuesta; qué contestó la agencia lo elige el empleado. Progreso 155 de 216 (sin cambio).
+
 24-nov-2026 · **AUT-17, respuestas a las consultas aprobadas:** cuando el cartero envía una consulta aprobada a una agencia desde Gmail, guarda su hilo; la respuesta de la agencia aparecerá en Settings › Email ligada a su consulta, una sola vez. Para verlo funcionar, Luis reinstala el cartero en el VPS. Progreso 155 de 216 (sin cambio).
 
 24-nov-2026 · **AGE-15, alta automática de agencias (construida y encendida):** cada día el reloj añade a Advertisers las 5 agencias de la importación (Hunt, Red, Slomans, Prestige, Columbia) con el correo genérico de su web y sus fichas, sin alta a mano; solo añade y respeta lo que el equipo edite o quite. Con eso, «Prepare enquiry» ya tiene destinatario en sus fichas. Falta comprobarlo en producción y la primera consulta real (envío de AGE-05, decisión de Luis). Progreso 155 de 216 (sin cambio).

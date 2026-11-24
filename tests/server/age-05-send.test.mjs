@@ -566,3 +566,31 @@ test("the website and the clock carry the same AGE05_SEND_READY, so switching it
   assert.ok(flag("wrangler.toml") !== undefined, "the website names the switch");
   assert.equal(flag("wrangler.toml"), flag("jobs/wrangler.toml"));
 });
+
+// AUT-17 (traído de AGE-06): a reply that came back by email, by Cloudflare or by Hermes's carrier (email_inbound linked to
+// the enquiry's email or to Hermes's task for it), is shown on its enquiry so a person records the answer (AGE-06). It
+// says when and what kind of reply, never its text or who sent it: those stay in Email. It records nothing by itself.
+test("an email reply to the enquiry is shown on it, newest first, without its text; another email's is not", async () => {
+  const env = world({ service: true }), { id } = await approved(env);
+  env.AGE06_RESPONSES_READY = "1"; // replies are shown where an answer can be recorded
+  ok(await post(env, id, "send-email", { revision: 1 }));
+  await tick(env);
+  assert.deepEqual((await shown(env)).replies, [], "nothing yet");
+  const out = row(env, "SELECT id FROM outbound").id;
+  const inbound = (key, at, extra = {}) => run(env, `INSERT INTO email_inbound (dedupe_key, sender, subject, text, html_only, truncated, received_at,
+    outbound_id, mail_task_id, reply_kind) VALUES (?, ?, 'Re', 'Yes, still available.', 0, 0, ?, ?, ?, ?)`, key, DESK, at,
+    extra.outbound ?? null, extra.task ?? null, extra.kind ?? null).lastInsertRowid;
+  const first = inbound("a", "2026-11-24T10:00:00.000Z", { outbound: out, kind: "human" });
+  const bounce = inbound("b", "2026-11-24T11:00:00.000Z", { outbound: out, kind: "bounce" });
+  run(env, `INSERT INTO mail_tasks (kind, source_key, entity_id, listing_id, recipient_hash, status, result_at, gmail_thread_id, created_at, updated_at)
+    VALUES ('availability', ?, ?, ?, 'h', 'sent', ?, 't1', ?, ?)`, `consultation:${id}`, id, HOME, T0, T0, T0);
+  const viaHermes = inbound("c", "2026-11-24T12:00:00.000Z", { task: row(env, "SELECT id FROM mail_tasks").id, kind: "auto" });
+  inbound("d", "2026-11-24T13:00:00.000Z"); // not linked to this enquiry
+  const c = await shown(env);
+  assert.deepEqual(c.replies, [{ id: Number(viaHermes), received_at: "2026-11-24T12:00:00.000Z", kind: "auto" },
+    { id: Number(bounce), received_at: "2026-11-24T11:00:00.000Z", kind: "bounce" }, { id: Number(first), received_at: "2026-11-24T10:00:00.000Z", kind: "human" }]);
+  assert.ok(!JSON.stringify(c.replies).includes("still available"));
+  assert.equal(c.status, "sent", "a reply records nothing by itself");
+  delete env.AGE06_RESPONSES_READY;
+  assert.equal((await shown(env)).replies, undefined, "not without AGE-06");
+});

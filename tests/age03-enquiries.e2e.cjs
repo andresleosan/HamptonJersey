@@ -152,6 +152,27 @@ const {chromium,webkit}=require(process.env.PW||'playwright-core');
    assert.deepEqual(tasks(),[{title:'Send enquiry manually',target_id:lid(1),done:1}],'the task closes with it');
    assert.deepEqual(d1('SELECT COUNT(*) AS n FROM outbound'),[{n:0}]);
    await fits('property');await shot('property-sent');
+   // AUT-17: an email reply to this enquiry's email is listed on it (when and what kind, not its text), and fills the answer.
+   const cid=d1(`SELECT id FROM consultations WHERE listing_id='${lid(1)}'`)[0].id;
+   d1(`INSERT INTO outbound(ref,dedupe_key,template,entity_id,version,recipient_hash,status,approved_by,approved_at,created_at,updated_at)
+    VALUES('${'e'.repeat(28)}${width}','e2e-${width}','enquiry','${cid}',1,'h','accepted','${ADMIN}','2026-11-24T09:00:00.000Z','2026-11-24T09:00:00.000Z','2026-11-24T09:00:00.000Z');
+    INSERT INTO email_inbound(dedupe_key,sender,subject,text,html_only,truncated,received_at,outbound_id,reply_kind)
+    VALUES('e2e-reply-${width}','${desk}','Re','E2E-REPLY-TEXT',0,0,'2026-11-24T10:05:00.000Z',(SELECT id FROM outbound WHERE dedupe_key='e2e-${width}'),'human');`);
+   const rid=d1(`SELECT id FROM email_inbound WHERE dedupe_key='e2e-reply-${width}'`)[0].id;
+   await page.reload();
+   await section.getByText('Email replies',{exact:true}).waitFor();
+   await section.getByText(`HE-IN-${rid}`).waitFor();
+   assert.ok(!(await text(section)).includes('E2E-REPLY-TEXT'),'the reply text stays in Email');
+   const answer=section.getByRole('form',{name:/^Record the answer to enquiry \d+$/});
+   await section.getByRole('button',{name:/^Use the reply of .* for the answer$/}).click();
+   const filled=async(label,v)=>{for(let i=0;i<50&&await answer.getByLabel(label).inputValue()!==v;i++)await page.waitForTimeout(100);
+    assert.equal(await answer.getByLabel(label).inputValue(),v,label);};
+   await filled('How they answered','email');
+   await filled('Evidence reference',`Email HE-IN-${rid}`);
+   assert.equal(await answer.getByLabel('What they answered').inputValue(),'','what they answered is still a person\'s choice');
+   assert.equal(enquiries()[0].status,'sent','nothing recorded by itself');
+   await fits('email replies');await shot('email-replies');
+   d1(`DELETE FROM email_inbound WHERE id=${rid};DELETE FROM outbound WHERE dedupe_key='e2e-${width}';`);
 
    // Both cards say so; resolving Ana's search takes her out of the enquiry and leaves it open for Ben.
    await page.goto(base+`admin/#/applicants/${ana}/matches`);

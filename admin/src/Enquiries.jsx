@@ -22,7 +22,9 @@ export const KIND = { general: "Availability enquiry", clarification: "Clarifica
 const many = n => `${n} approved ${n === 1 ? "match" : "matches"}`;
 const people = n => `${n} ${n === 1 ? "person" : "people"}`;
 // This minute in the browser's own time zone, as a datetime-local input takes it.
-const localNow = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const localAt = iso => { const d = new Date(iso); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const localNow = () => localAt(Date.now());
+const REPLY = { human: "from a person", auto: "automatic reply", bounce: "not delivered" };
 
 const Options = ({ advertisers }) => advertisers.map(a => <option key={a.id} value={a.id}>{a.name}</option>);
 // AGE-05: how a contact is reached, and the contacts of the recipient chosen (to) that can be: the one this enquiry is for.
@@ -54,9 +56,11 @@ function EnquiryText({ id, text, label = "Text to send" }) {
 // onChange(consultation, match): after a change saved here. send (AGE-05): { email_stop } once sending is switched on.
 // AGE-06: record what the advertiser answered to an enquiry that was sent. On a match card (match), it may also keep a
 // note of what was said about that search's own household only.
-function Answer({ c, id, match, onChange }) {
+function Answer({ c, id, match, reply, onChange }) {
   const blank = () => ({ outcome: "", answered_at: localNow(), via: "", answered_by: "", scope: "property", reason: "", evidence_ref: "", note: "" });
   const [f, setF] = useState(blank), [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
+  // AUT-17: a reply received by email fills when, how and where the proof is; what they answered is still a person's choice.
+  useEffect(() => { if (reply) setF(x => ({ ...x, via: "email", answered_at: localAt(reply.received_at), evidence_ref: `Email HE-IN-${reply.id}` })); }, [reply]);
   const operation = useRef(crypto.randomUUID()); // one id for this answer, retries included
   useEffect(() => { operation.current = crypto.randomUUID(); }, [c.status, c.response?.recorded_at]);
   const confirms = f.outcome === "available" || f.outcome === "unavailable";
@@ -128,10 +132,11 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
   const [sent, setSent] = useState(() => ({ sent_at: localNow(), via: "", evidence_ref: "" }));
   const [errors, setErrors] = useState({}), [msg, setMsg] = useState(null), [busy, setBusy] = useState(false);
   const [evidence, setEvidence] = useState(false); // AGE-09: opened by a person, read again after each change
+  const [reply, setReply] = useState(null); // AUT-17: the reply chosen to fill the answer
   const operation = useRef(crypto.randomUUID()); // one id for this record of sending, retries included
   const takeBack = useRef(null); // one id per queued version taken back to manual sending, retries included
   useEffect(() => { setTo(gone ? "" : String(r.id)); setWho(c.contact?.key ?? ""); setStated(!!c.occupants_from_this_match); setErrors({});
-    takeBack.current = crypto.randomUUID(); }, [c.id, c.revision, c.status, gone]);
+    setReply(null); takeBack.current = crypto.randomUUID(); }, [c.id, c.revision, c.status, gone]);
   const run = async (action, done) => {
     if (busy) return;
     setBusy(true); setMsg(null);
@@ -237,7 +242,11 @@ export function EnquiryView({ c, advertisers, match, household, onChange, send }
           <span className="muted">Only after you have sent it. Say where the proof is kept; do not paste the message.</span></div>
       </form>
     </>}
-    {c.can_answer && <Answer c={c} id={id} match={c.joined ? match : null} onChange={d => { setMsg({ ok: true, text: "Answer recorded." }); onChange?.(d); }} />}
+    {c.replies?.length > 0 && <div><p><strong>Email replies</strong> <span className="muted">· read them in <a href="#/email">Email</a>; nothing is recorded until you do</span></p>
+      <ul>{c.replies.map(r => <li key={r.id}>{fmtDate(r.received_at)}{REPLY[r.kind] && ` · ${REPLY[r.kind]}`}<span className="muted"> · HE-IN-{r.id}</span>
+        {c.can_answer && r.kind !== "bounce" && <> <button type="button" className="btn ghost sm" onClick={() => setReply(r)}
+          aria-label={`Use the reply of ${fmtDate(r.received_at)} for the answer`}>Use for the answer</button></>}</li>)}</ul></div>}
+    {c.can_answer && <Answer c={c} id={id} match={c.joined ? match : null} reply={reply} onChange={d => { setMsg({ ok: true, text: "Answer recorded." }); onChange?.(d); }} />}
     {c.can_cancel && <div className="inline"><button type="button" className="btn ghost sm" disabled={busy} onClick={() => confirm("Cancel this "
       + "enquiry? No approved match counts for it now. Its Inbox tasks are closed and nothing is sent.") && run(() => api(`/admin/consultations/${c.id}/cancel`,
       { method: "POST", body: { revision: c.revision } }), "Enquiry cancelled.")}>Cancel enquiry</button>

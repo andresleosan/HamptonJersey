@@ -279,8 +279,16 @@ export function enquiries(gates) {
     const { id, kind, status, revision, listing_id, operation, body: text, occupants, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref } = c;
     // AGE-06: the latest answer recorded, and what may be done now. Never what was said of one household.
     const answers = responsesReady(env) && "response_outcome" in c;
+    // AUT-17: replies that came back by email to this enquiry's email (any version) or to Hermes's task for it, for a person
+    // to record (AGE-06, so only while answers can be recorded). When and what kind only: the text and the sender stay in
+    // Email. ponytail: the newest 10.
+    const replies = answers && (sent_at || c.email_ref) ? (await env.DB.prepare(`SELECT id, received_at, reply_kind AS kind FROM email_inbound
+      WHERE outbound_id IN (SELECT id FROM outbound WHERE template = 'enquiry' AND entity_id = ?1)
+        OR mail_task_id IN (SELECT id FROM mail_tasks WHERE source_key = 'consultation:' || ?1)
+      ORDER BY received_at DESC, id DESC LIMIT 10`).bind(String(id)).all()).results : null;
     return { id, kind, status, revision, listing_id, operation, text, asks_availability: !!c.asks_availability, occupants,
       recipient: to, prepared_by, prepared_at, sent_at, sent_via, sent_by, sent_evidence_ref, matches: ids.length, blocked,
+      ...(replies ? { replies } : {}),
       ...(answers || c.response_outcome ? { response: c.response_outcome ? { outcome: c.response_outcome, at: c.response_at, via: c.response_via,
         from: c.response_from, scope: c.response_scope, evidence_ref: c.response_evidence_ref, by: c.response_by, recorded_at: c.response_recorded_at } : null } : {}),
       ...(answers ? { can_answer: ANSWERABLE.includes(status), can_cancel: CANCELLABLE.includes(status) && !ids.length }
