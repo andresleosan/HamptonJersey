@@ -42,7 +42,9 @@ test("the signature is HMAC-SHA256 of the exact bytes with the app secret", asyn
     `${sign(body)} `, "sha256=" + "a".repeat(63)]) assert.equal(await verifyMetaSignature(body, bad, APP_SECRET), false, String(bad));
 });
 
-test("a valid signed message is stored once, waiting, and answered 200", async () => {
+test("a valid signed message is stored once, waiting, and answered 200", async t => {
+  // The signed event is one hour old at receipt, inside the accepted timestamp window.
+  t.mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-16T10:00:00.000Z") });
   const env = world(), ts = Date.parse("2026-11-16T09:00:00.000Z");
   const r = await post(env, event("m_1", "Is the flat in St Helier still available?", { ts }));
   assert.equal(r.status, 200);
