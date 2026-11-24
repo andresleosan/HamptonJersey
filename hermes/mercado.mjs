@@ -102,7 +102,7 @@ async function fetchPage(cfg, url, item) {
     if (r.status >= 300 && r.status < 400) {
       const next = r.headers.get("location") && new URL(r.headers.get("location"), url).href;
       await r.body?.cancel();
-      if (!next || !inScope(next, { ...item, paths: ["/"] })) return null; // redirects stay on the channel's hosts
+      if (!next || !onHost(next, item)) return null; // redirects stay on the channel's hosts, www. or not (gaudin.je → www.)
       url = next; continue;
     }
     if (!r.ok || !r.body) { await r.body?.cancel(); return null; }

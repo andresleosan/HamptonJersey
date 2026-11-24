@@ -177,6 +177,25 @@ test("Gaudin-shaped: pages under the channel's paths, listings anywhere on its h
   assert.equal(app.commits[0].records[0].listing_url, "https://www.gaudin.co/property/sea-view-flat/4321");
 });
 
+// 24-nov: gaudin.je, keys.je and finderskeepers.je all answer 301 to their www. host; the first night failed on it.
+test("a redirect to the channel's own host with or without www. is followed; to another host it is not", async t => {
+  const { app, cfg, call } = await setup(t);
+  app.items = ["rent", "rent2"].map(channel_id => ({ source_ref: "src-gaudin-co", channel_id, hosts: ["gaudin.co"],
+    paths: ["/residential-for-rent"], status: "pending", min_interval_s: 60 }));
+  const orig = cfg.fetchFn, to = { host: "www.gaudin.co" };
+  cfg.fetchFn = async (url, init) => {
+    const u = new URL(url);
+    if (u.hostname === "gaudin.co") return new Response(null, { status: 301, headers: { location: `https://${to.host}${u.pathname}` } });
+    return orig(u.hostname === "www.gaudin.co" ? `https://gaudin.co${u.pathname}` : url, init);
+  };
+  const home = { ...advert(0), listing_url: "https://www.gaudin.co/property/sea-view-flat/4321", price_text: "£2,100 pcm" };
+  const send = channel_id => call("POST", "/mercado/entregar", { run_id: RUN, source_ref: "src-gaudin-co", channel_id,
+    pages: ["https://gaudin.co/residential-for-rent"], adverts: [home] });
+  assert.deepEqual((await send("rent")).json, { queued: 1, rejected: 0, reasons: {} });
+  to.host = "evil.test";
+  assert.equal((await send("rent2")).json.fail, "unavailable");
+});
+
 test("more than half rejected: the channel is reported as invalid_response, nothing posted", async t => {
   const { app, cfg, deliver } = await setup(t);
   const r = await deliver({ adverts: [advert(1), advert(98), advert(99)] });
