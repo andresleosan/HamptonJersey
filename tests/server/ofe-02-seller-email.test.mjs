@@ -248,7 +248,7 @@ test("a wrong revision is refused with 409 and writes nothing", async () => {
 
 test("migration 0126 only adds a table and its index", () => {
   const sql = readFileSync(new URL("../../migrations/0126_offer_emails.sql", import.meta.url), "utf8").replace(/--.*$/gm, "");
-  assert.ok(sql.split(";").map(s => s.trim()).filter(Boolean).every(s => /^CREATE (TABLE|INDEX) offer_emails/.test(s)));
+  assert.ok(sql.split(";").map(s => s.trim()).filter(Boolean).every(s => /^CREATE (TABLE|INDEX) (IF NOT EXISTS )?offer_emails/.test(s)));
 });
 
 test("the website and the clock carry the same OFE02_SEND_READY, off", () => {
