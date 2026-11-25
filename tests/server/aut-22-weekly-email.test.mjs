@@ -8,6 +8,7 @@ import { configure } from "./email-helpers.mjs";
 import { claimForHermes } from "../../server/email.js";
 import { weeklyInsightsPass } from "../../server/weekly-insights.js";
 import { weeklyInsightsEmailPass } from "../../server/weekly-insights-email.js";
+import worker from "../../server/jobs.js";
 
 const TS = "2026-11-09T08:00:00.000Z", WEEK = "2026-11-02", LATER = "2026-11-10T09:30:00.000Z";
 const NEXT = "2026-11-16T08:10:00.000Z", NEXT_WEEK = "2026-11-09";
@@ -176,6 +177,26 @@ test("the website and the clock carry the same AUT22_WEEKLY_EMAIL_READY, off", (
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT22_WEEKLY_EMAIL_READY = "(.*)"$/m)?.[1];
   assert.equal(flag("wrangler.toml"), "0");
   assert.equal(flag("jobs/wrangler.toml"), "0");
+});
+
+test("the clock's tick makes the week's snapshot and queues its emails only while switched on", async t => {
+  t.mock.method(console, "log", () => {});
+  t.mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-11-09T12:00:00.000Z") });
+  for (const on of [true, false]) {
+    const env = await world({ on, snapshot: false });
+    await worker.scheduled({ cron: "*/10 * * * *", scheduledTime: Date.now() }, env, { waitUntil() {} });
+    assert.equal(all(env, "SELECT COUNT(*) n FROM weekly_insights")[0].n, 1);
+    assert.equal(weekly(env).length, on ? 2 : 0, `switch ${on ? "on" : "off"}`);
+  }
+});
+
+test("an email left unknown is not queued or claimed again", async () => {
+  const env = await world();
+  await weeklyInsightsEmailPass(env, TS);
+  run(env, "UPDATE outbound SET status = 'unknown' WHERE template = 'weekly_insights'");
+  await weeklyInsightsEmailPass(env, LATER);
+  assert.equal(weekly(env).length, 2);
+  assert.equal(await claimForHermes(env), null);
 });
 
 // D1 refuses an expression deeper than 100 (makeDb: 90). With every switch of wrangler.toml on, the claim carries this
