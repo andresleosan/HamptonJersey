@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **PUB-21, crear la casa desde su carpeta de Drive (cerrada):** funciona desde el 16-nov; desde hoy los documentos con nombre de contrato, pasaporte, banco, nómina, referencias o impuestos no se envían a Hermes, y la propuesta dice cuántos se dejaron fuera. Progreso 159 → 160 de 211 (75,83 %).
+
 25-nov-2026 · **BUS-19, fuentes del mercado (cerrada):** Hermes solo puede leer de forma automática las 41 webs sin dudas; las 34 con condiciones en contra, sin revisar o que no son agencias quedan solo para carga manual (decisión de Luis). Progreso 158 → 159 de 211 (75,36 %).
 
 25-nov-2026 · **EST-19, papelera y purga de fotos (cerrada):** encendidas desde el 15 y 16-nov; el primer borrado real llegará cuando una casa lleve seis meses no disponible y se revisará entonces. Progreso 157 → 158 de 211 (74,88 %).

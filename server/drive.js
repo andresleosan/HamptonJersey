@@ -125,14 +125,14 @@ export async function walkFolder(env, id) {
     for (const f of (await children(env, fid)).sort(byName)) {
       const path = prefix + f.name;
       if (f.mimeType === FOLDER) {
-        if (isRecords(f.name)) notRead.push(path);
-        else if (isPrivate(f.name)) hidden++;
+        if (isPrivate(f.name)) hidden++; // first: a private-looking name never reaches Hermes, not even in "Folders not read"
+        else if (isRecords(f.name)) notRead.push(path);
         else if (depth === 0 && isEdited(f.name)) editedFolders.push({ id: f.id, name: f.name, modifiedTime: f.modifiedTime });
         else if (isPhotoFolder(f.name) || depth >= DEPTH) notRead.push(path);
         else await walk(f.id, `${path}/`, depth + 1);
       } else if (media(f.mimeType)) continue;
-      else if (isRecords(f.name)) notRead.push(path);
       else if (isPrivate(f.name)) hidden++;
+      else if (isRecords(f.name)) notRead.push(path);
       else if (f.mimeType.startsWith("application/vnd.google-apps.") && !EXPORT[f.mimeType]) skipped.push(`${path}: can't be read`);
       else if (Number(f.size ?? 0) > MAX_DOC) skipped.push(`${path}: larger than 20 MB`);
       else if (documents.length >= MAX_DOCS) extra++;

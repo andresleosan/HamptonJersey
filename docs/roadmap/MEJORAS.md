@@ -260,3 +260,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-17] Al registrar a mano el envío de un borrador de Hermes, proponer como hora la del borrador · si se registra tarde, la hora de una respuesta anterior queda antes de sent_at y AGE-06 la rechaza · 2026-11-24
 - [AGE-03] tests/age03-enquiries.e2e.cjs falla con AGE05_SEND_READY=1 (encendido el 24-nov): espera la dirección del anunciante y el panel muestra el selector de contacto; actualizar la prueba al modo con envío · 2026-11-24
 - [EST-19] Revisar el primer lote real de la purga de fotos (filas media, objetos en el almacenamiento y evento listing.photos_purged) cuando ocurra · se cerró sin lote real por decisión de Luis · 25-nov-2026
+- [PUB-21] El filtro de Drive solo mira el nombre: un documento privado con un nombre neutro («scan001.pdf») sigue llegando a Hermes, y las fotos de la carpeta «Edited» no pasan por el filtro. Si hace falta más, clasificar por contenido sin IA en la nube · 25-nov-2026

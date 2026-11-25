@@ -6867,7 +6867,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 285,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -18416,11 +18416,11 @@
       "titulo": "Crear la propiedad desde una carpeta de Google Drive",
       "origen": "texto",
       "fase": "—",
-      "estado": "parcial",
+      "estado": "hecho",
       "responsable": "desarrollo",
-      "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. En producción desde el 5-nov-2026 (migración 0020): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave.",
-      "falta": "Luis: crear la cuenta de servicio en Google Cloud, guardar su clave como secreto de Cloudflare (GOOGLE_SERVICE_ACCOUNT) y compartir la carpeta de las casas como lector desde la cuenta de Franco; sin eso la cola responde que Google Drive no está configurado. VPS (espera a PRE-32, el plan de ChatGPT): la instrucción de Hermes y las tres rutas /imports en el custodio. Hasta entonces las casas se quedan en «Waiting for Hermes». Pausada el 14-nov-2026 por decisión de Luis (aplicar el plan maestro): sin PUB21_DRIVE_READY=1 ninguna carpeta va a Hermes; las importaciones ya recibidas se pueden revisar y publicar. Antes de reactivarla: PRE-32 verificada y una barrera por clase de dato, porque hoy solo se filtra por nombre («Records» y fotos). Traído de PUB-01 (15-nov): Properties Queue lee las líneas legales de property.txt (ocupación, licencia, certificado) pero no las guarda ni avisa; pasar legal: legalFields(fields) a createDraft en admin/src/Queue.jsx y mostrar legalFailed. Sin efecto mientras PUB21_DRIVE_READY siga apagado.",
-      "bloqueo": "PRE-32 para que Hermes lea las carpetas",
+      "hecho": "Pedido de Luis del 5-nov-2026, reglas con /grill-me. En producción desde el 5-nov-2026 (migración 0020): «Properties Queue» (botón en Listings, #/queue) recibe el link de la carpeta de una casa en Drive y una nota; la casa espera a Hermes, que pide a la app los documentos de esa carpeta (nunca «Records» ni las carpetas de fotos) y devuelve un property.txt, la descripción nueva, de qué documento sale cada dato y lo que se contradice. Las fotos salen solo de la subcarpeta «Edited»/«Editadas» y el título es el nombre de la carpeta. «Review» crea el borrador con las fotos reducidas y sin GPS; en el editor, «Approve and publish» lo publica si tiene título, venta o alquiler, precio, parroquia, una foto y descripción. Avisa si la carpeta ya se importó; Discard borra el borrador; las filas cerradas se borran a los 90 días. La app lee Drive con una cuenta de servicio de solo lectura y Hermes nunca tiene su clave. 25-nov-2026: cerrada por decisión de Luis («Añadir filtro y cerrar»). La importación desde Drive funciona en producción desde el 16-nov (PUB21_DRIVE_READY=1; 4 casas publicadas así y 5 propuestas esperando revisión en Properties Queue). Desde hoy, los archivos y subcarpetas cuyo nombre suena a documento personal o financiero (contrato, pasaporte, DNI, banco, nómina, referencias, impuestos, facturas; inglés y español) no se envían a Hermes; la propuesta solo dice cuántos se dejaron fuera, nunca sus nombres.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "server/drive.js",
         "server/routes/queue.js",
@@ -18434,12 +18434,13 @@
         "docs/superpowers/specs/2026-11-05-hampton-app-drive-queue-design.md",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: conexión con Drive aplazada.",
         "server/routes/queue.js (driveImportReady), tests/server/queue.test.mjs (13/13), docs/automations/folder_import.md",
-        "16-nov-2026: Luis pidió reactivarla; PUB21_DRIVE_READY=1 en wrangler.toml. VPS comprobado: custodio-cola y lector en marcha (3 propuestas enviadas antes de la pausa), GOOGLE_SERVICE_ACCOUNT presente en Pages."
+        "16-nov-2026: Luis pidió reactivarla; PUB21_DRIVE_READY=1 en wrangler.toml. VPS comprobado: custodio-cola y lector en marcha (3 propuestas enviadas antes de la pausa), GOOGLE_SERVICE_ACCOUNT presente en Pages.",
+        "25-nov-2026: server/drive.js (isPrivate antes de Records: un nombre privado no aparece ni en «Folders not read»); tests/server/drive.test.mjs (nombres ficticios en inglés y español, subcarpeta privada nunca abierta, solo el número en el aviso). node --test drive, queue, automation-cards: 29/29; npm test 3568/3568. Revisión automática de seguridad: orden de los filtros corregido."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
-      "executionEligibility": "deferred_later_phase",
+      "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [
         {
           "id": "PRE-32",
@@ -18456,14 +18457,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis/Franco: acceso de Drive y configuración de servicio; PRE-32 para lectura por Hermes.",
+      "externalBlocker": "",
       "resources": [
         "drive-import",
         "hermes-gateway",
         "listing-editor"
       ],
-      "nextStep": "Completar configuración autorizada de Drive y conexión pendiente de Hermes sin rehacer la cola existente.",
-      "actualizado": "2026-11-16"
+      "nextStep": "El equipo revisa las 5 propuestas que esperan en Properties Queue. Mejoras abiertas en MEJORAS.md.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "PUB-22",

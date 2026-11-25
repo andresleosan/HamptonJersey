@@ -52,12 +52,15 @@ test("walkFolder: personal or financial documents never go to Hermes; only their
   [...out, ...kept].forEach((name, i) => { files[`D_P${String(i).padStart(8, "0")}`] = { name, mimeType: "application/pdf", parent: "F_PRIV000001" }; });
   files.F_CONTRACTS1 = { name: "Contratos", parent: "F_PRIV000001" };
   files.D_INCONTRACT = { name: "Inside.pdf", mimeType: "application/pdf", parent: "F_CONTRACTS1" };
+  // A name that is both a records name and a private one: counted, never named in "Folders not read".
+  files.F_RECPASSPT = { name: "Records passport", parent: "F_PRIV000001" };
   const d = await fakeDrive(t, files);
   const w = await walkFolder(d.env, "F_PRIV000001");
+  assert.ok(!w.skipped.join("|").includes("passport"), w.skipped.join("|"));
   assert.deepEqual(w.documents.map(x => x.name).sort(), [...kept].sort());
   assert.ok(!d.calls.some(c => c.includes("F_CONTRACTS1")), "a private-looking folder is never opened");
   const note = w.skipped.find(s => /personal or financial/.test(s));
-  assert.ok(note?.startsWith(`${out.length + 1} files or folders`), w.skipped.join("|"));
+  assert.ok(note?.startsWith(`${out.length + 2} files or folders`), w.skipped.join("|"));
   for (const name of [...out, "Contratos"]) assert.ok(!w.skipped.join("|").includes(name.replace(/\.\w+$/, "")), name);
 });
 
