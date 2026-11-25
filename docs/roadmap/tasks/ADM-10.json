@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print. Construido el 15-nov (2a1f1ba, apagado tras ADM10_STATEMENTS_READY con la migración aditiva 0090): cerrar un mes terminado guarda la liquidación como revisión congelada (statement_runs, instantánea JSON en peniques con su SHA-256); una corrección posterior no la cambia, el panel avisa «The figures changed» y se cierra la revisión siguiente; «sent» y «paid» al propietario se registran a mano una vez, con fecha y autor, solo en la última revisión, que muestra lo ya pagado en una anterior y la diferencia; descarga CSV en el navegador (fórmulas escapadas); los write-offs de ADM-09 del mes salen aparte, sin comisión y fuera del neto; el GST sin configurar sale como £0.00 «GST not configured»; y el Inbox pide «Close landlord statements» el día 1 hasta cerrar todos los del mes anterior. Nada se envía.",
-  "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. Decisiones de Luis: GST (¿registrada?, ¿tipo?) y PDF (navegador o servidor); envío por correo con AUT-17. El cierre mensual, sent/paid manual, CSV e impresión están encendidos desde el 15-nov-2026 (0090 aplicada, ADM10_STATEMENTS_READY=1 en web y reloj).",
+  "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. Decisiones de Luis: GST (¿registrada?, ¿tipo?) y PDF (navegador o servidor); envío por correo con AUT-17. El cierre mensual, sent/paid manual, CSV e impresión están encendidos desde el 15-nov-2026 (0090 aplicada, ADM10_STATEMENTS_READY=1 en web y reloj). Traído de AUT-17 (25-nov): enviar por correo la liquidación cerrada (statement_runs, última revisión) con revisión humana antes de cada envío (R01), sin cuenta bancaria, y marcar sent_on al confirmarse; hoy «sent» se registra a mano.",
   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
   "evidencia": [
     "admin/src/Statement.jsx:15-81 (vista; con ADM-10 muestra la última revisión cerrada, write-offs aparte y GST «not configured»)",
@@ -49,5 +49,5 @@
     "statement-ui"
   ],
   "nextStep": "Cuando Luis decida GST y PDF (y AUT-17 esté activo), ajustar y cerrar.",
-  "actualizado": "2026-11-21"
+  "actualizado": "2026-11-25"
 }

@@ -261,3 +261,14 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AGE-03] tests/age03-enquiries.e2e.cjs falla con AGE05_SEND_READY=1 (encendido el 24-nov): espera la dirección del anunciante y el panel muestra el selector de contacto; actualizar la prueba al modo con envío · 2026-11-24
 - [EST-19] Revisar el primer lote real de la purga de fotos (filas media, objetos en el almacenamiento y evento listing.photos_purged) cuando ocurra · se cerró sin lote real por decisión de Luis · 25-nov-2026
 - [PUB-21] El filtro de Drive solo mira el nombre: un documento privado con un nombre neutro («scan001.pdf») sigue llegando a Hermes, y las fotos de la carpeta «Edited» no pasan por el filtro. Si hace falta más, clasificar por contenido sin IA en la nube · 25-nov-2026
+- [VIS-10] Aviso automático por correo al inquilino antes de una visita (destinatario, texto y evidencia por caso); hoy se confirma el acceso a mano · el canal de correo vía Hermes ya funciona (AUT-17) · 25-nov-2026
+- [ADM-11] Enviar por correo al inquilino las copias de licencia y EICR y los datos prescritos del depósito, con revisión humana (R01); hoy solo se registra la entrega · canal de correo listo (AUT-17) · 25-nov-2026
+- [VIS-04] Pedir feedback por correo una hora después de una visita Completed, hasta 7 días, sin envío retroactivo ni tras no-show · canal de correo listo (AUT-17) · 25-nov-2026
+- [REG-12] Si se envía acuse del registro, usar el mismo texto que la pantalla (site/apply.js), igual para alta nueva y repetida · canal de correo listo (AUT-17) · 25-nov-2026
+- [PUB-16] Cancelar y avisar por correo a los clientes de las demás visitas de una ficha alquilada o vendida 24 h después del cierre (idempotente, sin revelar comprador) · canal de correo listo (AUT-17) · 25-nov-2026
+- [NOT-09] Responder por correo desde el aviso del Inbox · canal de correo listo (AUT-17) · 25-nov-2026
+- [ADM-09] Enviar por correo los recordatorios +1/+5 y la carta +14 que arrearsDraft ya prepara; enviar no marca el paso ni paga la deuda · canal de correo listo (AUT-17) · 25-nov-2026
+- [ADM-14] Preguntar con botones por la renovación y enviar por correo los borradores al propietario e inquilino · canal de correo listo (AUT-17) · 25-nov-2026
+- [AUT-01] Plantillas de correo editables en Settings › Automations (arquitectura §6.2) · canal de correo listo (AUT-17) · 25-nov-2026
+- [ANA-08] Resumen semanal de Insights por correo a dirección desde weekly_insights, una vez por semana y destinatario, nunca al propietario · canal de correo listo (AUT-17) · 25-nov-2026
+- [ADM-03] Enviar por correo el aviso al propietario del paso +10 de atrasos, con revisión humana (R01) · canal de correo listo (AUT-17) · 25-nov-2026

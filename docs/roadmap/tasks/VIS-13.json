@@ -7,7 +7,7 @@
   "estado": "bloqueado",
   "responsable": "desarrollo",
   "hecho": "",
-  "falta": "Actualización 21-nov (PRE-23): la coordinación por correo con la agencia y, si faltan días y horas, con el cliente la hace Hermes (plan AUT-17, interruptor Coordinar visitas). Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07).",
+  "falta": "Actualización 21-nov (PRE-23): la coordinación por correo con la agencia y, si faltan días y horas, con el cliente la hace Hermes (plan AUT-17, interruptor Coordinar visitas). Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07). Traído de AUT-17 (25-nov, venía de VIS-08): el recordatorio automático escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato de 0071); Viewings ya lo muestra como Reminded.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
@@ -35,5 +35,5 @@
     "jobs-clock"
   ],
   "nextStep": "Construir recordatorios y confirmaciones sobre el reloj existente y activar envíos solo con AUT-17 operativo.",
-  "actualizado": "2026-11-21"
+  "actualizado": "2026-11-25"
 }

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **AUT-17, correo de la app por Hermes (cerrada):** los correos aprobados salen por el Gmail de siempre de Hampton y las respuestas vuelven a la app; los envíos que esperaban este canal pasan a sus tareas (recordatorios de visita, ofertas, reparaciones, liquidaciones). Progreso 162 → 163 de 211 (77,25 %).
+
 25-nov-2026 · **AGE-05 y AGE-15, consultas a agencias por email (cerradas):** la primera consulta aprobada salió sola por el Gmail de Hampton (vía Hermes) y la respuesta volvió a la app enlazada a ella. Por el camino se arregló un fallo que impedía a Hermes recoger cualquier consulta aprobada. Progreso 160 → 162 de 211 (76,78 %).
 
 25-nov-2026 · **PUB-21, crear la casa desde su carpeta de Drive (cerrada):** funciona desde el 16-nov; desde hoy los documentos con nombre de contrato, pasaporte, banco, nómina, referencias o impuestos no se envían a Hermes, y la propuesta dice cuántos se dejaron fuera. Progreso 159 → 160 de 211 (75,83 %).

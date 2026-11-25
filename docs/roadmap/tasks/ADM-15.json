@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Hampton",
   "hecho": "Change rent incluye el Rent assistant: con el RPI de Jersey que guarda el equipo calcula la renta máxima y la primera fecha posible (intervalo y aviso de los plazos guardados). Construido tras ADM15_RENT_REVIEW_READY (apagado, sin migración; exige también ADM20_TENANCY_LAW_READY): el asistente decide por fecha de acuerdo y ámbito (lawApplies/tenancyLaw), ya no por la etiqueta regime; sin fecha o ámbito lo dice y calcula solo como condición; si las reglas de 2025 no cubren el contrato no calcula. El RPI se guarda con su fuente y fecha de publicación, y sin fuente no hay tope. Cada cambio de renta deja en el historial el RPI usado, el tope, la fecha más temprana, la cobertura y el estado de los plazos. Change rent ofrece un borrador de aviso para copiar con los datos del cambio, rotulado «Draft · not a notice letter» e «internal only» mientras los plazos no estén validados o no conste que las reglas aplican: no es una carta y nada se envía.",
-  "falta": "Solo falta lo externo: la plantilla de carta de aviso de revisión de renta validada por un abogado de Jersey (con ella queda un paso pequeño de código: generar la carta desde los datos del borrador). Activada el 15-nov-2026 (ADM15_RENT_REVIEW_READY=1): el asistente decide con la fecha de acuerdo y el ámbito, el RPI exige fuente y fecha, cada cambio guarda el RPI y el tope usados, y Change rent ofrece un borrador de aviso para copiar.",
+  "falta": "Solo falta lo externo: la plantilla de carta de aviso de revisión de renta validada por un abogado de Jersey (con ella queda un paso pequeño de código: generar la carta desde los datos del borrador). Activada el 15-nov-2026 (ADM15_RENT_REVIEW_READY=1): el asistente decide con la fecha de acuerdo y el ámbito, el RPI exige fuente y fecha, cada cambio guarda el RPI y el tope usados, y Change rent ofrece un borrador de aviso para copiar. Traído de AUT-17 (25-nov, venía de ADM-03): enviar por correo el aviso de subida de renta con revisión humana antes de cada envío (R01).",
   "bloqueo": "JFSC/abogado",
   "evidencia": [
     "server/rentals.js (rentAssistant con policy)",
@@ -50,5 +50,5 @@
     "legal-parameters"
   ],
   "nextStep": "Cuando llegue la plantilla validada, generar la carta desde el borrador y cerrar.",
-  "actualizado": "2026-11-15"
+  "actualizado": "2026-11-25"
 }
