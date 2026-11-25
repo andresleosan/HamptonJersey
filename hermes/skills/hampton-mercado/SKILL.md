@@ -79,7 +79,8 @@ header file; never print, copy or open it) and `--noproxy '*'`.
   same object as its link), and for a let the period the site itself states for its lets: `pcm`, `pw` or `pa`
   ("£2,265 pcm"). A sale is the amount alone ("£625,000"); so is a let whose period the site does not state (never
   assume one). Leave out an advert whose feed object has no amount. The custodian checks that the amount and the link
-  are in the same object of the feed, and refuses the whole channel if they are not.
+  are in the same object of the feed (in a price field), and refuses the whole channel if they are not. It passes the
+  period on only when the feed itself gives it.
 - `parish`: one of Grouville, St Brelade, St Clement, St Helier, St John, St Lawrence, St Martin, St Mary, St Ouen,
   St Peter, St Saviour, Trinity, only if the page says it; otherwise `null`.
 - `bedrooms`, `bathrooms`: whole numbers if shown, else `null`. `parking`: `true` only if the page says so, else `null`.

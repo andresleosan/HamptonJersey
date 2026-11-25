@@ -60,7 +60,7 @@ Reglas que protegen el inventario (las de hoy, más la decisión 2):
 | `listing_url` | Sí | Enlace del anuncio, en el dominio y la ruta permitidos. Identifica la casa. |
 | `operation` | Sí | `rent` o `sale`. |
 | `use` | Sí | `residential` o `commercial`. |
-| `price_text` | Si hay precio | El texto tal cual aparece («£1,950 pcm»). La app calcula importe y periodo. Si la página leída es un feed JSON del propio sitio (no trae «£» ni «pcm»): «£», el importe del anuncio y, en un alquiler, el periodo que diga el sitio (`pcm`, `pw` o `pa`); el custodio pasa a la app solo ese texto, rehecho por él («£2,265 pcm», «£625,000»). |
+| `price_text` | Si hay precio | El texto tal cual aparece («£1,950 pcm»). La app calcula importe y periodo. Si la página leída es un feed JSON del propio sitio (no trae «£» ni «pcm»): «£», el importe del anuncio y, en un alquiler, el periodo que diga el sitio (`pcm`, `pw` o `pa`); el custodio pasa a la app solo ese texto, rehecho por él: el importe sale de un campo de precio del mismo objeto (nunca de un id o de los dormitorios) y el periodo solo si el propio feed lo da; si no, el alquiler llega sin cifra mensual («£2,265»). Si el objeto dice «For let» o «For sale» y no coincide con la operación de Hermes, se rechaza. |
 | `parish` | No | Una de las 12 parroquias. Si no lo dice, vacío. |
 | `bedrooms`, `bathrooms` | No | Solo viviendas. |
 | `parking` | No | Solo `true` si lo dice; nunca «no» por omisión. |

@@ -97,8 +97,30 @@ function priced(v) {
   const pence = m ? Number(m[1].replaceAll(",", "")) * 100 + Number((m[2] ?? "").padEnd(2, "0")) : 0;
   return pence > 0 && Number.isSafeInteger(pence) ? { pence, period: m[3]?.toLowerCase() ?? null } : null;
 }
-// An object of a JSON page holds that price: the same pence, and the same period when the feed gives one.
-const holds = (o, want) => Object.values(o).some(v => { const got = priced(v); return got?.pence === want.pence && (!got.period || got.period === want.period); });
+// An object of a JSON page holds that price: the same pence under a price-like key (never an id, a bedroom count or any
+// other number), and the same period when the feed gives one. Returns the feed's own reading, or null.
+const PRICE_KEY = /price|rent|amount/i;
+const holds = (o, want) => {
+  for (const [k, v] of Object.entries(o)) {
+    if (!PRICE_KEY.test(k)) continue;
+    const got = priced(v);
+    if (got?.pence === want.pence && (!got.period || got.period === want.period)) return got;
+  }
+  return null;
+};
+// What the object says about the operation, from its own strings or its children's ("For let", "To let", "For sale");
+// null when it says nothing. A feed that contradicts Hermes rejects the advert.
+const LET = /\b(for\s+(let|rent)|to\s+let)\b/i, SALE = /\bfor\s+sale\b/i;
+function saysOperation(o) {
+  const todo = [o]; let rent = false, sale = false, n = 0;
+  while (todo.length && n++ < 200) {
+    for (const v of Object.values(todo.pop())) {
+      if (v && typeof v === "object") todo.push(v);
+      else if (typeof v === "string") { rent ||= LET.test(v); sale ||= SALE.test(v); }
+    }
+  }
+  return rent === sale ? null : rent ? "rent" : "sale";
+}
 // The only price text that goes on from a JSON page, as the app's door reads it: "£2,265 pcm", "£625,000".
 const priceText = ({ pence, period }) => `£${String(Math.floor(pence / 100)).replace(/\B(?=(\d{3})+$)/g, ",")}`
   + `${pence % 100 ? `.${String(pence % 100).padStart(2, "0")}` : ""}${period ? ` ${period}` : ""}`;
@@ -227,14 +249,18 @@ export async function entregar(cfg, body) {
     // Each kept advert's price must sit in its own card: an occurrence of the price whose nearest advert link (among all
     // delivered) is this advert's, at most 1,500 characters away. A swapped price is closer to the other advert's link.
     // On a JSON page nothing is literal: the advert's amount must be a value of an object that also holds its link, and
-    // what goes on is "£", that amount and the period Hermes read for a let (pcm, pw or pa), never Hermes's own text.
+    // what goes on is "£", that amount and the period only when the feed gives it, never Hermes's own text.
     const links = fetched.map(p => kept.map(o => textSpans(p, o.listing_url)));
     const records = kept.filter((o, n) => {
       const held = fetched.flatMap(p => holders(p, o.listing_url)), want = priced(o.price_text);
       if (!links.some(l => l[n].length) && !held.length) { reject("link_not_on_page"); return false; }
-      if (want && held.some(h => holds(h, want))) {
-        if (want.period && o.operation !== "rent") { reject("invalid"); return false; } // a sale has no period
-        o.price_text = priceText(want);
+      const match = want && held.map(h => [h, holds(h, want)]).find(([, got]) => got);
+      if (match) {
+        const [h, got] = match, op = saysOperation(h);
+        if ((want.period && o.operation !== "rent") || (op && op !== o.operation)) { reject("invalid"); return false; } // a sale has no period
+        // The period goes on only when the feed itself gives it: Hermes's own reading of the period is never passed on,
+        // so a let whose feed has no unit reaches the app as an amount without a monthly figure.
+        o.price_text = priceText({ pence: want.pence, period: o.operation === "rent" ? got.period : null });
         return true;
       }
       const ok = fetched.some((p, i) => !p.objects && at(p.text, o.price_text).some(q => {
