@@ -57,6 +57,13 @@ const FEED = JSON.stringify({ meta: { pagination: { current_page: 1, total_pages
   { id: 13, link: "https://agency.test/to-let/flat-13", pricing: { amount: 1800 }, beds: 1 },
   { id: 14, link: "https://agency.test/to-let/flat-14", price: 1450.5, beds: 3 },
   { id: 15, link: "https://agency.test/to-let/flat-15", price: "£1,950 pw", beds: 2 }] } });
+// The review's attacks (25-nov): numbers under keys that are not the price, a path shared by two objects, two links in
+// one object, and a filter echo that repeats whatever query Hermes asked for.
+const TRICKY = JSON.stringify({ filters: { location: "/to-let/fake", maxPrice: "1200" }, results: [
+  { url: "/to-let/x1", section: "/to-let/lettings", price: 2000, groundRent: 250, previousPrice: 2400, minPrice: 900,
+    parentId: 17, pricePerSqft: 45, similar: "/to-let/x9" },
+  { url: "/to-let/x2", section: "/to-let/lettings", price: 3000 },
+  { url: "/to-let/x3", link: "/to-let/x4", price: 1500 }] });
 const flat = (n, price_text, extra = {}) => ({ listing_url: `https://agency.test/to-let/flat-${n}`, operation: "rent",
   use: "residential", price_text, ...extra });
 const advert = (n, extra = {}) => ({ listing_url: `https://agency.test/to-let/home-${n}`, operation: "rent", use: "residential",
@@ -65,7 +72,9 @@ const advert = (n, extra = {}) => ({ listing_url: `https://agency.test/to-let/ho
 async function setup(t, opts) {
   const clock = { t: 1_000_000 };
   const app = fakeApp(clock, opts);
-  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>", "/to-let/feed.json": FEED,
+  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>", "/to-let/feed.json": FEED, "/to-let/tricky.json": TRICKY,
+    "/to-let/huge.json": JSON.stringify({ results: [{ url: "/to-let/h1", price: 2000,
+      ...Object.fromEntries(Array.from({ length: 600 }, (_, i) => [`k${i}`, i])) }] }),
     "/residential-for-rent": '<a href="/property/sea-view-flat/4321">Sea view</a> &pound;2,100 pcm',
     "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000',
     "/to-let/a": '<nav><a href="/to-let/contact">Contact</a></nav>' + card(1) + '<a href="/to-let/page/2">Next</a>',
@@ -180,6 +189,51 @@ test("a JSON page: the feed's own operation must agree with Hermes's", async t =
   assert.deepEqual(r.json, { queued: 2, rejected: 1, reasons: { invalid: 1 } });
   await pump(cfg);
   assert.deepEqual(app.commits[0].records.map(x => x.listing_url.slice(-7)), ["flat-11", "flat-14"]);
+});
+
+const x = (path, price_text) => ({ listing_url: `https://agency.test/to-let/${path}`, operation: "rent", use: "residential", price_text });
+for (const [name, bad, reason] of [
+  ["a ground rent", x("x1", "£250"), "price_not_on_page"],
+  ["a previous price", x("x1", "£2,400"), "price_not_on_page"],
+  ["a minimum price", x("x1", "£900"), "price_not_on_page"],
+  ["a parent id", x("x1", "£17"), "price_not_on_page"],
+  ["a price per square foot", x("x1", "£45"), "price_not_on_page"],
+  ["a section path two objects share", x("lettings", "£3,000"), "link_not_on_page"],
+  ["a second link in another advert's object", x("x9", "£2,000"), "link_not_on_page"],
+  ["a filter echo", x("fake", "£1,200"), "link_not_on_page"],
+  ["an object holding two delivered adverts", x("x4", "£1,500"), "price_not_on_page"],
+]) test(`a JSON page refuses ${name}`, async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/tricky.json"], adverts: [x("x2", "£3,000"), x("x3", "£1,500"), bad] });
+  assert.equal(r.json.queued, 0);
+  assert.equal(r.json.fail, "invalid_response");
+  assert.equal(r.json.reasons[reason] >= 1, true, JSON.stringify(r.json));
+  await pump(cfg);
+  assert.equal(app.commits.length, 0);
+});
+
+test("a JSON page: the real adverts of the tricky feed still pass", async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/tricky.json"], adverts: [x("x1", "£2,000"), x("x2", "£3,000")] });
+  assert.deepEqual(r.json, { queued: 2, rejected: 0, reasons: {} });
+  await pump(cfg);
+  assert.deepEqual(app.commits[0].records.map(r => r.price_text), ["£2,000", "£3,000"]);
+});
+
+test("a JSON page does not switch off the navigation rule of the HTML pages beside it", async t => {
+  const { deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/a", "https://agency.test/to-let/b", "https://agency.test/to-let/feed.json"],
+    adverts: [advert(1), { ...advert(1), listing_url: "https://agency.test/to-let/contact" }] });
+  assert.equal(r.json.reasons.not_a_listing >= 1, true, JSON.stringify(r.json));
+});
+
+test("a feed with an object too wide to be an advert is not read as a feed: it fails closed", async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/huge.json"], adverts: [x("h1", "£2,000")] });
+  assert.equal(r.json.queued, 0);
+  assert.equal(r.json.fail, "invalid_response");
+  await pump(cfg);
+  assert.equal(app.commits.length, 0);
 });
 
 test("HTML stays literal beside a JSON page: the same amount written another way is not the page's price", async t => {

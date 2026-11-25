@@ -75,17 +75,25 @@ const at = (hay, needle) => {
 // Spans [start, end] of an advert's link on a page: the whole link or its path.
 const linkAt = (hay, url) => [url, new URL(url).pathname].flatMap(n => at(hay, n).map(i => [i, i + n.length]));
 
-// A JSON page, as every object in it under each string it holds directly; null when the page is not JSON.
+// A JSON page, as the advert objects in it under each link they hold; null when the page is not JSON (or too big to be
+// a list of adverts: it then fails closed). An advert object is an element of a list, and its link sits under a
+// link key (url, link, href…): a link in a filter echo, a section or a "similar" box is not that object's own.
+const norm = k => k.replace(/[^a-z]/gi, "").toLowerCase();
+const LINK_KEYS = new Set(["url", "link", "href", "permalink", "uri", "path", "detailurl", "propertyurl", "listingurl", "detailsurl"]);
+const MAX_NODES = 200_000, MAX_KEYS = 500;
 function feed(raw) {
   let json;
   try { json = JSON.parse(raw); } catch { return null; }
   if (!json || typeof json !== "object") return null;
-  const by = new Map(), todo = [json];
+  const by = new Map(), todo = [[json, false]];
+  let nodes = 0;
   while (todo.length) {
-    const o = todo.pop();
-    for (const v of Object.values(o)) {
-      if (v && typeof v === "object") todo.push(v);
-      else if (typeof v === "string" && !Array.isArray(o)) (by.get(v) ?? by.set(v, []).get(v)).push(o);
+    const [o, inList] = todo.pop();
+    const entries = Object.entries(o);
+    if ((nodes += entries.length) > MAX_NODES || (!Array.isArray(o) && entries.length > MAX_KEYS)) return null;
+    for (const [k, v] of entries) {
+      if (v && typeof v === "object") todo.push([v, Array.isArray(o)]);
+      else if (inList && typeof v === "string" && LINK_KEYS.has(norm(k))) (by.get(v) ?? by.set(v, []).get(v)).push(o);
     }
   }
   return by;
@@ -99,10 +107,10 @@ function priced(v) {
 }
 // An object of a JSON page holds that price: the same pence under a price-like key (never an id, a bedroom count or any
 // other number), and the same period when the feed gives one. Returns the feed's own reading, or null.
-const PRICE_KEY = /price|rent|amount/i;
+const PRICE_KEYS = new Set(["price", "rent", "amount", "askingprice", "saleprice", "rentalprice", "displayprice", "pricevalue"]);
 const holds = (o, want) => {
   for (const [k, v] of Object.entries(o)) {
-    if (!PRICE_KEY.test(k)) continue;
+    if (!PRICE_KEYS.has(norm(k))) continue;
     const got = priced(v);
     if (got?.pence === want.pence && (!got.period || got.period === want.period)) return got;
   }
@@ -230,6 +238,7 @@ export async function entregar(cfg, body) {
     // An advert's link on a page: its spans in the text, or on a JSON page the objects that hold it (whole or as a path).
     const textSpans = (p, url) => p.objects ? [] : linkAt(p.text, url);
     const holders = (p, url) => p.objects ? [url, new URL(url).pathname].flatMap(n => p.objects.get(n) ?? []) : [];
+    const texts = fetched.filter(p => !p.objects), feeds = fetched.filter(p => p.objects); // navigation is per kind of page
     const reasons = {}, seen = new Set(), pageKeys = new Set(pages.map(urlKey)), kept = [];
     const reject = r => { reasons[r] = (reasons[r] ?? 0) + 1; };
     for (const a of adverts) {
@@ -243,7 +252,8 @@ export async function entregar(cfg, body) {
       // (the site's navigation).
       if (path === "/" || item.paths.some(p => path === p || path === `${p}/` || path === p.replace(/\/$/, ""))
         || pageKeys.has(key) || /\/(page|p)\/?\d+\/?$/i.test(path)
-        || (fetched.length > 1 && fetched.every(p => textSpans(p, out.listing_url).length || holders(p, out.listing_url).length))) { reject("not_a_listing"); continue; }
+        || (texts.length > 1 && texts.every(p => textSpans(p, out.listing_url).length))
+        || (feeds.length > 1 && feeds.every(p => holders(p, out.listing_url).length))) { reject("not_a_listing"); continue; }
       kept.push(out);
     }
     // Each kept advert's price must sit in its own card: an occurrence of the price whose nearest advert link (among all
@@ -251,8 +261,14 @@ export async function entregar(cfg, body) {
     // On a JSON page nothing is literal: the advert's amount must be a value of an object that also holds its link, and
     // what goes on is "£", that amount and the period only when the feed gives it, never Hermes's own text.
     const links = fetched.map(p => kept.map(o => textSpans(p, o.listing_url)));
+    // On a feed an advert is one object of its own: its link in exactly one object of each page that holds it, and no
+    // object holding the link of two delivered adverts.
+    const owners = new Map();
+    for (const o of kept) for (const p of feeds) for (const h of new Set(holders(p, o.listing_url))) owners.set(h, (owners.get(h) ?? 0) + 1);
     const records = kept.filter((o, n) => {
-      const held = fetched.flatMap(p => holders(p, o.listing_url)), want = priced(o.price_text);
+      const perPage = feeds.map(p => [...new Set(holders(p, o.listing_url))]).filter(h => h.length);
+      if (perPage.some(h => h.length > 1 || owners.get(h[0]) > 1)) { reject("price_not_on_page"); return false; }
+      const held = perPage.flat(), want = priced(o.price_text);
       if (!links.some(l => l[n].length) && !held.length) { reject("link_not_on_page"); return false; }
       const match = want && held.map(h => [h, holds(h, want)]).find(([, got]) => got);
       if (match) {
