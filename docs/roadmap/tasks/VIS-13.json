@@ -4,15 +4,16 @@
   "titulo": "Recordatorios a las 24 h y 2 h con Confirm, Reschedule y Cancel",
   "origen": "plan",
   "fase": "F3-B",
-  "estado": "bloqueado",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Actualización 21-nov (PRE-23): la coordinación por correo con la agencia y, si faltan días y horas, con el cliente la hace Hermes (plan AUT-17, interruptor Coordinar visitas). Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07). Traído de AUT-17 (25-nov, venía de VIS-08): el recordatorio automático escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato de 0071); Viewings ya lo muestra como Reminded.",
+  "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita.",
+  "falta": "Decisiones de Luis: aprobación por correo o el interruptor como aprobación; reservas web sin enlace a búsqueda. Después encender y prueba real con su buzón. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
     "server/jobs.js:1-15",
-    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37"
+    "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37",
+    "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -27,13 +28,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "Luis: decidir aprobación y destinatarios de los recordatorios y dar el sí para encender.",
   "resources": [
     "viewings-contract",
     "viewings-ui",
     "email-pipeline",
     "jobs-clock"
   ],
-  "nextStep": "Construir recordatorios y confirmaciones sobre el reloj existente y activar envíos solo con AUT-17 operativo.",
+  "nextStep": "Con las respuestas de Luis: ajustar si hace falta, prueba con su buzón y encender.",
   "actualizado": "2026-11-25"
 }

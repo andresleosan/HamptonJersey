@@ -4,16 +4,17 @@
   "titulo": "Enviar cada oferta al propietario con un clic",
   "origen": "plan",
   "fase": "F3-B",
-  "estado": "bloqueado",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. El vendedor no recibe nada desde la app: el equipo le traslada la oferta y anota su respuesta en Sales. Falta enviársela desde Sales y guardar su contacto en la ficha (hoy solo se apunta en el expediente, al aceptar); la oferta hecha por el aplicante desde su portal llega con F2.",
+  "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL.",
+  "falta": "Encender OFE02_SEND_READY (envío a propietarios: necesita el sí de Luis) y una prueba real con un vendedor de prueba con su buzón.",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
     "migrations/0001_init.sql:1-23",
-    "migrations/0012_sales.sql:28"
+    "migrations/0012_sales.sql:28",
+    "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes)."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -28,13 +29,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Correo (AUT-17)",
+  "externalBlocker": "Luis: sí para encender el envío de ofertas al propietario (y prueba con su buzón).",
   "resources": [
     "sales-contract",
     "sales-ui",
     "email-pipeline",
     "listings-contract"
   ],
-  "nextStep": "Completar contacto del vendedor y envío de oferta desde Sales cuando el correo esté operativo.",
-  "actualizado": "2026-11-21"
+  "nextStep": "Con el sí de Luis: vendedor de prueba con su buzón, oferta de prueba, aprobar y comprobar envío y respuesta; después encender.",
+  "actualizado": "2026-11-25"
 }

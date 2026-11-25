@@ -52,10 +52,10 @@
       "openCount": 11,
       "states": {
         "hecho": 50,
-        "parcial": 7,
+        "parcial": 9,
         "pendiente": 1,
-        "bloqueado": 3,
-        "descartado": 4
+        "descartado": 4,
+        "bloqueado": 1
       }
     },
     {
@@ -2813,15 +2813,16 @@
       "titulo": "Recordatorios a las 24 h y 2 h con Confirm, Reschedule y Cancel",
       "origen": "plan",
       "fase": "F3-B",
-      "estado": "bloqueado",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Actualización 21-nov (PRE-23): la coordinación por correo con la agencia y, si faltan días y horas, con el cliente la hace Hermes (plan AUT-17, interruptor Coordinar visitas). Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. No se envía nada al aplicante ni se avisa al negociador si a 2 h sigue sin confirmar. Falta el servicio de correo; el reloj que los lanzará a su hora ya existe (AUT-07). Traído de AUT-17 (25-nov, venía de VIS-08): el recordatorio automático escribe reminded_at, reminded_by = automation y reminded_channel = email en viewing_requests (contrato de 0071); Viewings ya lo muestra como Reminded.",
+      "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita.",
+      "falta": "Decisiones de Luis: aprobación por correo o el interruptor como aprobación; reservas web sin enlace a búsqueda. Después encender y prueba real con su buzón. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
         "server/jobs.js:1-15",
-        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37"
+        "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37",
+        "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -2836,14 +2837,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Correo (AUT-17)",
+      "externalBlocker": "Luis: decidir aprobación y destinatarios de los recordatorios y dar el sí para encender.",
       "resources": [
         "viewings-contract",
         "viewings-ui",
         "email-pipeline",
         "jobs-clock"
       ],
-      "nextStep": "Construir recordatorios y confirmaciones sobre el reloj existente y activar envíos solo con AUT-17 operativo.",
+      "nextStep": "Con las respuestas de Luis: ajustar si hace falta, prueba con su buzón y encender.",
       "actualizado": "2026-11-25"
     },
     {
@@ -8074,7 +8075,8 @@
         "17-nov: npm test 3423/3423 + unittest 29 OK, npm run build y check:release sin marcas. Sin navegador aislado ni e2e de la página o del panel (no se ejecutó en este tramo).",
         "17-nov-2026: revisión independiente: grave corregido antes de aplicar (0117 applicant_id ON DELETE CASCADE, para no bloquear la retención ni el borrado de solicitantes); periodos con Object.hasOwn; el enlace nuevo no se pierde si la relectura da 403. Menores en MEJORAS.",
         "17-nov-2026: 0117 aplicada en remoto (sola, desde directorio temporal; marcador en el relevo). Tras desplegar 037557d9 con ADM18_APPLICATION_READY=0: /rental-application sirve la página normal (200), /api/admin/rentals/1/applications 404, portada 200.",
-        "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
+        "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app.",
+        "25-nov-2026 20:07 UTC: 0046 y 0049 quedaron aplicadas en producción sin el sí de Luis: /avanzar ejecutó `wrangler d1 migrations apply` para registrar 0126 y el comando aplicó también estas dos pendientes. Sin datos afectados: sales, tenancies y arrears_steps tenían 0 filas; tenancies.financial_revision ya existía (0045). La suite (3600) corre con ellas. Marcador Time Travel previo: 0000049f-000006e4-0000512e-ed3d7e480dfa291a24173feadba206fb. Pendiente: que Luis confirme dejarlas o revertir."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -8096,7 +8098,7 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Luis/Hampton: criterios de asequibilidad (hoy ###), migraciones 0046 y 0049 (no aditivas), secreto CASE_CHALLENGE_HMAC_KEY, correo AUT-17 y decisión de abrir la solicitud (ADM18_APPLICATION_READY=1).",
+      "externalBlocker": "Luis/Hampton: criterios de asequibilidad (hoy ###), confirmar que se quedan 0046 y 0049 (aplicadas el 25-nov), secreto CASE_CHALLENGE_HMAC_KEY, correo AUT-17 y decisión de abrir la solicitud (ADM18_APPLICATION_READY=1).",
       "resources": [
         "rentals-contract",
         "rentals-ui",
@@ -8104,7 +8106,7 @@
         "applicants-contract"
       ],
       "nextStep": "Aplicar 0117 en producción (aditiva) y, cuando Luis aplique 0046/0049, Hampton apruebe sus criterios y AUT-17 envíe correo, encender ADM18_APPLICATION_READY y recorrer la solicitud real.",
-      "actualizado": "2026-11-21"
+      "actualizado": "2026-11-25"
     },
     {
       "id": "ADM-19",
@@ -10424,16 +10426,17 @@
       "titulo": "Enviar cada oferta al propietario con un clic",
       "origen": "plan",
       "fase": "F3-B",
-      "estado": "bloqueado",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. El vendedor no recibe nada desde la app: el equipo le traslada la oferta y anota su respuesta en Sales. Falta enviársela desde Sales y guardar su contacto en la ficha (hoy solo se apunta en el expediente, al aceptar); la oferta hecha por el aplicante desde su portal llega con F2.",
+      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL.",
+      "falta": "Encender OFE02_SEND_READY (envío a propietarios: necesita el sí de Luis) y una prueba real con un vendedor de prueba con su buzón.",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
         "migrations/0001_init.sql:1-23",
-        "migrations/0012_sales.sql:28"
+        "migrations/0012_sales.sql:28",
+        "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes)."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -10448,15 +10451,15 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Correo (AUT-17)",
+      "externalBlocker": "Luis: sí para encender el envío de ofertas al propietario (y prueba con su buzón).",
       "resources": [
         "sales-contract",
         "sales-ui",
         "email-pipeline",
         "listings-contract"
       ],
-      "nextStep": "Completar contacto del vendedor y envío de oferta desde Sales cuando el correo esté operativo.",
-      "actualizado": "2026-11-21"
+      "nextStep": "Con el sí de Luis: vendedor de prueba con su buzón, oferta de prueba, aprobar y comprobar envío y respuesta; después encender.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "OFE-03",

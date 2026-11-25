@@ -48,3 +48,5 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 | --- | --- | --- |
 
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
+| OFE-02 | 0 | Construido y publicado apagado. Lo tuyo: sí para encender el correo de ofertas al propietario, tras una prueba con tu buzón. |
+| VIS-13 | 0 | Construido y publicado apagado. Lo tuyo: decidir si los recordatorios salen solos con el interruptor y si van también a reservas web sin enlace; después sí para encender, tras una prueba con tu buzón. |
