@@ -3816,7 +3816,7 @@
       "preferredSlot": "hermes",
       "priority": 198,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -14285,10 +14285,10 @@
       "titulo": "Usar solo fuentes del mercado que lo permitan: webs de agencias según sus términos, Properties.je con permiso escrito y Homely.je nunca",
       "origen": "plan",
       "fase": "F1-B",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios.",
-      "falta": "Solo falta la revisión real por canal, que hace Luis o Hampton en el panel: tipo, decisión, evidencia, fecha de revisión y hosts de cada canal que se vaya a usar; los permisos escritos solo afectan a sus fuentes. Activada el 14-nov-2026 junto a BUS-06. Traído de SPR-03 (15-nov): permiso de descarga de fotos por fuente; sin él, las fotos solo enlace de la captura SPR-03 siguen blocked. 20-nov-2026: ruta del canal de ventas de Gaudin corregida a /property-for-sale (versión 3, con historial; encargo de Luis).",
+      "estado": "hecho",
+      "responsable": "desarrollo",
+      "hecho": "Política por canal construida y probada: cada canal tiene decisión versionada (pendiente, permitido, solo manual, denegado, pausado), método, evidencia, fecha de revisión y hosts. La pantalla muestra por canal su tipo de fuente, la nota de la revisión documental (la tarea manual pendiente), el método y las fechas. Quien revisa clasifica la fuente en la misma decisión: solo una fuente general puede abrirse; Homely y JFSC nunca, y Places.je y Properties.je quedan para después; los dominios de Homely, Places.je y Properties.je se rechazan aunque la fuente se clasifique mal. Una restricción afecta solo a su canal. La decisión se aplica al único camino de entrada que existe, la carga manual: se revalida antes de tomar el canal, al tomarlo y al guardar; un canal pendiente, denegado, vencido o con otra versión no admite anuncios. 25-nov-2026: decisión de Luis «Fuera las 34»: las 34 fuentes que también estaban en la lista de canales aplazados del 20-nov (67 canales: 5 prohibidas, 12 que limitan copiar, 7 ilegibles, 10 que no son agencias) pasan a solo manual con versión e historial; quedan 41 fuentes (62 canales) permitidas para lectura automática. Cada canal en uso tiene tipo, decisión, evidencia, fecha de revisión y siguiente acción.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:255-256",
@@ -14310,7 +14310,9 @@
         "Decisión: el tipo de fuente se elige dentro de la revisión del canal y solo «general» puede abrirse. Fuente: restricciones de migrations/0043_market_inventory.sql y plan BUS-19 («cada decisión conserva fuente, canal, método, hosts, frecuencia, fecha y evidencia»).",
         "Decisión: homely.je, places.je y properties.je no pueden abrirse con ninguna revisión en esta fase. Fuente: plan maestro («Places.je/Properties.je conectores posteriores; Homely fuera»).",
         "Decisión: las decisiones se aplican a la carga manual, que es el único camino de entrada; los requisitos de lectura automática pasan a BUS-09 con sus lectores. Fuente: plan maestro («BUS-19 por canal antes de fuente externa») y skill avanzar, sección 3.",
-        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión."
+        "14-nov-2026: publicada en 0e75b51 y 0043 aplicada en producción con MARKET_INVENTORY_READY=1; revisión independiente con un hallazgo grave corregido antes de migrar (un directorio revocado ya no reabre canales; una clase restringida no se levanta en revisión). El recorrido automático (marketInventoryTick) pasa a BUS-08: hoy no hay lector automático que ejecutar. Solo falta la carga y revisión reales, que hace Luis con su sesión.",
+        "25-nov-2026: docs/roadmap/work/BUS-19/decisiones-2026-11-25.sql (generador y ensayo reproducibles en la misma carpeta; filas idénticas a las del panel con reviewSourceAccess en Miniflare). Aplicado en producción a las 06:2x UTC tras el marcador de Time Travel: antes 75 fuentes / 129 canales permitidos / 184 historial; después 41 / 62 / 251, 67 canales revisados el 25-nov. Palladium Group entra entero (también sus 2 canales de honeycombjersey.com).",
+        "25-nov-2026: cerrada por aceptación propia: el criterio («usar solo fuentes que lo permitan») se cumple en producción: 199 canales con su siguiente acción; las permitidas son solo las 41 sin dudas. El permiso de descarga de fotos por fuente (traído de SPR-03) pasa a BUS-24."
       ],
       "modulo": "M01",
       "deps": [],
@@ -14328,12 +14330,12 @@
           "basis": "TP05 contracts, not whole-task completion"
         }
       ],
-      "externalBlocker": "Luis/Hampton: revisar en Automations › Market inventory cada canal que se vaya a usar (tipo, decisión, evidencia, fecha de revisión y hosts); los permisos escritos solo afectan a las fuentes que los exijan.",
+      "externalBlocker": "",
       "resources": [
         "source-access-policy"
       ],
-      "nextStep": "Tras la revisión real de los primeros canales, comprobar que cada fuente indica método o tarea manual y cerrar.",
-      "actualizado": "2026-11-21"
+      "nextStep": "Las fuentes manuales se reabren una a una cuando se revisen o haya permiso por escrito (BUS-24). Regenerar la lista de dominios del proxy de Hermes con scripts/market-hermes-allowlist.mjs antes de ampliar la lectura más allá del piloto.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "BUS-20",
@@ -20820,7 +20822,7 @@
       "estado": "pendiente",
       "responsable": "desarrollo",
       "hecho": "20-nov-2026: lista de 59 dominios en docs/roadmap/work/BUS-24/canales-aplazados.md (prohibidos, con copia limitada, ilegibles y no agencias).",
-      "falta": "Al final: reclasificar los ilegibles, pedir permiso por escrito a los prohibidos y limitados que interesen y construir sus lectores o cargarlos a mano. Hasta entonces el matching usa solo los canales leíbles.",
+      "falta": "Al final: reclasificar los ilegibles, pedir permiso por escrito a los prohibidos y limitados que interesen y construir sus lectores o cargarlos a mano. Hasta entonces el matching usa solo los canales leíbles. Traído de BUS-19 (25-nov): permiso de descarga de fotos por fuente (antes de SPR-03), para cualquier fuente, también las permitidas. 25-nov: las 34 fuentes aplazadas que estaban permitidas ya son solo manual.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/work/BUS-24/canales-aplazados.md",
@@ -20852,7 +20854,7 @@
         "data-processing-policy"
       ],
       "nextStep": "Tras el piloto de Hermes (BUS-09): reclasificar el grupo D con su lectura; los grupos A y B solo con permiso por escrito (Luis o Hampton).",
-      "actualizado": "2026-11-24"
+      "actualizado": "2026-11-25"
     },
     {
       "id": "AGE-15",

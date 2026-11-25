@@ -7,7 +7,7 @@
   "estado": "pendiente",
   "responsable": "desarrollo",
   "hecho": "20-nov-2026: lista de 59 dominios en docs/roadmap/work/BUS-24/canales-aplazados.md (prohibidos, con copia limitada, ilegibles y no agencias).",
-  "falta": "Al final: reclasificar los ilegibles, pedir permiso por escrito a los prohibidos y limitados que interesen y construir sus lectores o cargarlos a mano. Hasta entonces el matching usa solo los canales leíbles.",
+  "falta": "Al final: reclasificar los ilegibles, pedir permiso por escrito a los prohibidos y limitados que interesen y construir sus lectores o cargarlos a mano. Hasta entonces el matching usa solo los canales leíbles. Traído de BUS-19 (25-nov): permiso de descarga de fotos por fuente (antes de SPR-03), para cualquier fuente, también las permitidas. 25-nov: las 34 fuentes aplazadas que estaban permitidas ya son solo manual.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/work/BUS-24/canales-aplazados.md",
@@ -39,5 +39,5 @@
     "data-processing-policy"
   ],
   "nextStep": "Tras el piloto de Hermes (BUS-09): reclasificar el grupo D con su lectura; los grupos A y B solo con permiso por escrito (Luis o Hampton).",
-  "actualizado": "2026-11-24"
+  "actualizado": "2026-11-25"
 }
