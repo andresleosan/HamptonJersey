@@ -5,6 +5,7 @@ import { fields, result } from "../sales.js";
 import { LOCK } from "./applicants.js";
 import { jerseyToday, plusDays, realDate } from "../viewings.js";
 import { readLegal, legalLabel, calendarReady, tenancyLaw, rentReviewReady } from "../legal-terms.js";
+import { rentalEmailsReady, rentalEmailTable } from "../rental-email-check.js";
 
 export const fieldErrors = errors => json({ error: "Please check the highlighted fields", fields: errors }, 400);
 export const asObject = body => (body && typeof body === "object" && !Array.isArray(body) ? body : fail(400, "Invalid format"));
@@ -192,7 +193,9 @@ async function getRental({ env, params: [id] }) {
   const running = calendarReady(env) ? rest[0] : undefined, suppliers = suppliersReady(env) ? rest.at(-1) : null;
   return json({ rental, compliance: checks(env, rental, rows, today, legal.periods, running), repairs, tenancies,
     events: events.map(e => ({ ...e, data: e.data == null ? null : JSON.parse(e.data) })), ...legalLabel(legal),
-    ...(law ? { law } : {}), ...(suppliers ? { suppliers } : {}) });
+    ...(law ? { law } : {}), ...(suppliers ? { suppliers } : {}),
+    // AUT-24: the tenant's documents may be emailed from Checks (server/rental-emails.js).
+    ...(calendarReady(env) && rentalEmailsReady(env) && await rentalEmailTable(env) ? { tenant_emails: true } : {}) });
 }
 
 // R3, R11: the property and its empty checks ("Not recorded") in one batch, for a landlord not archived.

@@ -5,6 +5,7 @@ import { demandRetentionPass } from "./demand-retention.js";
 import { emailPass } from "./email.js";
 import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
 import { offerEmailPass } from "./offer-emails.js";
+import { rentalEmailPass } from "./rental-emails.js";
 import { remindersReady, reminderPass, reminderSettlePass } from "./viewing-reminders.js";
 import { viewingEmailsReady } from "./viewing-email-check.js";
 import { viewingEmailPass, viewingEmailSettlePass } from "./viewing-emails.js";
@@ -111,6 +112,7 @@ const clock = {
     await emailPass(env, now(), now, await enquiryEmailCheck(env));
     await enquiryEmailPass(env);
     await offerEmailPass(env); // OFE-02: what happened to each offer emailed to its seller
+    await rentalEmailPass(env); // AUT-24: what happened to each rental email (also off: what is queued is taken back)
     if (remindersReady(env)) { // VIS-13: a reminder Gmail accepted marks its viewing reminded
       try { await reminderSettlePass(env); }
       catch { console.error('Viewing reminder settle failed'); }

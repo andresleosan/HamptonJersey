@@ -13,6 +13,7 @@ import { EDITABLE as LISTING_FIELDS } from "../listing.js";
 import { ECONOMIC_FIELDS, structuredEconomicsReady } from "../listing-economics.js";
 import { listingBatch, listingClock } from "../listing-events.js";
 import { originReady } from "../tenancy-origins.js";
+import { rentalEmailsReady, rentalEmailTable } from "../rental-email-check.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -205,7 +206,8 @@ export async function detail(env, id) {
     assistant: { ...rentAssistant(tenancy, rpi, today, periods, rentReviewReady(env) ? law : null), rpi },
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
     ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}),
-    ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers, origin) } : {}) };
+    ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers, origin) } : {}),
+    ...(rentalEmailsReady(env) && await rentalEmailTable(env) ? { rental_emails: true } : {}) }; // AUT-24: server/rental-emails.js
 }
 
 // ADM-14: the answers and listing drafts recorded for a tenancy, newest first (through the rental_events_rental index),

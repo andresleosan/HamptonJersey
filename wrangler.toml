@@ -189,6 +189,12 @@ AUT22_WEEKLY_EMAIL_READY = "0"
 # emails sent verbatim through the carrier with no review one by one (the switch is the approval). No migration. Sends
 # messages: only Luis switches it on, in both wrangler.toml at once. Off, the clock takes back what is queued.
 AUT21_VIEWING_EMAILS_READY = "0"
+# AUT-24: the licence copy, the EICR copy and the deposit's prescribed information (ADM-11) and the rent change notice
+# (ADM-15) to the lead tenant, and the arrears notice of step +10 (ADM-03) to the landlord, each prepared and approved by
+# a person (R01), sent through the approved queue by Hermes's carrier; Gmail's acceptance records the delivery. Needs
+# migration 0128. Sends messages: only Luis switches it on, here and in jobs/wrangler.toml at once. Off, the clock takes back
+# what is queued.
+AUT24_TENANT_DOCS_READY = "0"
 # BUS-09: Hermes reads the market's allowed channels of the sources in HERMES_MARKET_SOURCES (comma list, "*": all) through
 # its own door (/api/hermes/market/*, secret HERMES_MARKET_KEY, held by the market custodian on the VPS); the daily sweep
 # leaves those channels to it, also when a code reader exists. No migration. Keep equal in jobs/wrangler.toml.
