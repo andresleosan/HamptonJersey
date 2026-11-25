@@ -3,6 +3,7 @@ import { now, sha256 } from "./http.js";
 import { ALLOWED, MARKETING_TEMPLATE, purposeReady } from "./communication-preferences.js";
 import { NO_NOTICE, noticeClaimSql } from "./retention.js";
 import { offerClaimSql } from "./offer-email-check.js";
+import { reminderClaimSql } from "./viewing-reminders.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -89,13 +90,14 @@ export async function prepareSummary(env, ts) {
 // only "marketing.*" is held, as before.
 // PRE-12: retention_notice, the notice before the retention pass deletes a contact, goes only while noticeClaimSql holds.
 // OFE-02: offer_to_seller, an offer taken to its seller, goes only while offerClaimSql holds (server/offer-email-check.js).
-const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller"];
+// VIS-13: a viewing reminder goes only while reminderClaimSql holds (server/viewing-reminders.js).
+const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h"];
 const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
   OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
       = '${MARKETING_TEMPLATE}' THEN substr(outbound.template,${MARKETING_TEMPLATE.length + 1}) END`, "'email'")}))`
   : `substr(outbound.template,1,${MARKETING_TEMPLATE.length}) <> '${MARKETING_TEMPLATE}'`;
-const AUTHORIZED = (enquiry = "0", marketing = false, notice = "1", offer = "0") => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
+const AUTHORIZED = (enquiry = "0", marketing = false, notice = "1", offer = "0", viewing = "0") => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
   AND json_extract(es.value,'$.enabled') = 1
   AND (outbound.template <> 'team_summary' OR (json_extract(es.value,'$.summary') = 1
     AND json_extract(es.value,'$.revision') = outbound.config_revision
@@ -105,6 +107,7 @@ const AUTHORIZED = (enquiry = "0", marketing = false, notice = "1", offer = "0")
   AND outbound.approved_at IS NOT NULL AND outbound.approved_by IS NOT NULL
   AND outbound.recipient IS NOT NULL AND outbound.text IS NOT NULL AND outbound.subject IS NOT NULL
   AND (outbound.template <> 'offer_to_seller' OR (${offer}))
+  AND (outbound.template NOT IN ('viewing_reminder_24h','viewing_reminder_2h') OR (${viewing}))
   AND (outbound.template <> 'enquiry' OR (${enquiry})) AND ${PROMOTION(marketing)} AND ${notice}`;
 // The one provider call: the queued emails below and ADM-12's sign-in code (case-auth-email.js), from the same sender.
 // Callers check serviceReady and the binding first, and reserve the day's quota in email_attempts before calling.
@@ -137,7 +140,8 @@ async function outboundGate(env, enquiry, day) {
     OR (SELECT COUNT(*) FROM email_attempts na JOIN outbound nr ON nr.id = na.outbound_id
       WHERE na.day = '${day}' AND nr.template = 'retention_notice') < ${NOTICE_DAILY_LIMIT})`;
   const offer = await offerClaimSql(env); // OFE-02: its own check, from env, as the notice's
-  return { notice, claim: AUTHORIZED(enquiry, purposeReady(env), capped, offer), after: AUTHORIZED(enquiry, purposeReady(env), notice, offer) };
+  const viewing = await reminderClaimSql(env);
+  return { notice, claim: AUTHORIZED(enquiry, purposeReady(env), capped, offer, viewing), after: AUTHORIZED(enquiry, purposeReady(env), notice, offer, viewing) };
 }
 async function candidates(env, ts, enquiry, limit) {
   const { claim } = await outboundGate(env, enquiry, emailDay(ts));
@@ -236,10 +240,10 @@ export async function claimForHermes(env, enquiry) {
 const HERMES_CODE = { failed: "E_DELIVERY_FAILED", retry: "E_RATE_LIMIT_EXCEEDED", unknown: null };
 export async function settleForHermes(env, ref, token, outcome, messageId, threadId) {
   const r = await settleHermes(env, ref, token, outcome, messageId);
-  // Fase D: an enquiry (or OFE-02's offer to a seller) Gmail took keeps its thread (once), so the carrier reads the reply
-  // there (server/hermes-mail.js).
+  // Fase D: an enquiry, OFE-02's offer to a seller or a VIS-13 reminder Gmail took keeps its thread (once), so the
+  // carrier reads the reply there (server/hermes-mail.js).
   if (threadId && outcome === "sent" && (r === "ok" || r === "same"))
-    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller') AND status = 'accepted'
+    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller', 'viewing_reminder_24h', 'viewing_reminder_2h') AND status = 'accepted'
       AND message_id = ? AND gmail_thread_id IS NULL`).bind(threadId, ref, messageId).run();
   return r;
 }

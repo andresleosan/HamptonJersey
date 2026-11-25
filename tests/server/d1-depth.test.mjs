@@ -25,10 +25,10 @@ test("the carrier's claim of an enquiry fits D1's depth with the deployed switch
   assert.ok(seen.some(sql => sql.startsWith("UPDATE outbound SET status='sending'")), "the claim was prepared");
 });
 
-// OFE-02: with its switch on as well (and the others as deployed), the claim carries the offer's own check too.
-test("the carrier's claim with OFE-02's check fits D1's depth", async () => {
+// OFE-02 and VIS-13: with both switches on as well (and the others as deployed), the claim carries both checks.
+test("the carrier's claim with OFE-02's and VIS-13's checks fits D1's depth", async () => {
   const db = makeDb(), seen = [];
-  const env = { ...vars, OFE02_SEND_READY: "1", DB: { ...db, prepare: sql => {
+  const env = { ...vars, OFE02_SEND_READY: "1", VIS13_REMINDERS_READY: "1", DB: { ...db, prepare: sql => {
     seen.push(sql);
     const s = db.prepare(sql);
     return /^SELECT id FROM outbound WHERE status='queued'/.test(sql) ? { ...s, bind: (...a) => ({ ...s.bind(...a), all: async () => ({ results: [{ id: 1 }] }) }) } : s;
@@ -36,4 +36,5 @@ test("the carrier's claim with OFE-02's check fits D1's depth", async () => {
   assert.equal(await claimForHermes(env, await enquiryEmailCheck(env)), null);
   const claim = seen.find(sql => sql.startsWith("UPDATE outbound SET status='sending'"));
   assert.ok(claim?.includes("FROM offer_emails oe"), "the claim was prepared with the offer's check");
+  assert.ok(claim?.includes("WHEN 'viewing_reminder_24h' THEN"), "the claim carries the reminder check");
 });

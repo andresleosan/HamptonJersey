@@ -23,7 +23,7 @@ const GONE = "This link is not available. Please contact Hampton Estates.";
 const gone = () => fail(404, GONE);
 const COOKIE = "__Host-hp", SESSION_MS = 7 * 86400e3, MAX_HOMES = 10, TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const OFFERED = "l.archived_at IS NULL AND l.availability IN ('for_sale','to_let','lease')";
-const VALID = "g.sent_at IS NOT NULL AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)";
+export const VALID = "g.sent_at IS NOT NULL AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at > ?)";
 
 const enc = new TextEncoder();
 const b64u = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -42,7 +42,7 @@ async function granted(env, request) {
   return env.DB.prepare(`SELECT g.id, g.applicant_id FROM presentation_grants g WHERE g.id = ? AND ${VALID}`).bind(Number(m[1]), now()).first();
 }
 // Each client route: 404 while off, before the migration, or without a link in force.
-const client = (handler, session = true) => async ctx => {
+export const client = (handler, session = true) => async ctx => {
   if (!ready(ctx.env)) gone();
   try {
     const grant = session ? await granted(ctx.env, ctx.request) : null;

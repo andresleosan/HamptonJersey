@@ -52,6 +52,7 @@ import missingPaymentRoutes from "./routes/missing-payments.js";
 import { missingPaymentsReady } from "./missing-payments.js";
 import legalRoutes, { legalTermsReady } from "./legal-terms.js";
 import presentationRoutes from "./presentation-access.js";
+import viewingClientRoutes from "./routes/viewing-client-actions.js";
 import trashRoutes from "./property-photo-purge.js";
 import chatContactRoutes, { chatContactReady } from "./chat-contact.js";
 import chatApplicantRoutes, { chatApplicantReady } from "./chat-applicant.js";
@@ -89,7 +90,7 @@ const SERVICE_ACCESS_MESSAGES = {
 };
 
 // [method, path regex, handler, requiresAdmin]
-const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...staffMediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...trashRoutes];
+const ROUTES = [...publicRoutes, ...ownerRoutes, ...sessionRoutes, ...listingRoutes, ...mediaRoutes, ...staffMediaRoutes, ...inboxRoutes, ...userRoutes, ...tourRoutes, ...notificationRoutes, ...notificationTaskRoutes, ...applicantRoutes, ...applicantTabRoutes, ...matchRoutes, ...negotiatorRoutes, ...insightRoutes, ...saleRoutes, ...rentalRoutes, ...rentRoutes, ...statementRoutes, ...accountingRoutes, ...reportRoutes, ...interestRoutes, ...hermesRoutes, ...automationRoutes, ...queueRoutes, ...chatRoutes, ...chatAdminRoutes, ...emailRoutes, ...advertiserRoutes, ...demandRoutes, ...presentationRoutes, ...viewingClientRoutes, ...trashRoutes];
 
 // PRE-14: the website's public reads, proven to only read (tests/server/backup-writers.test.mjs), run outside the gate:
 // a failed permit write cannot fail them and they keep answering during the copy (spec TP-01, allowlist of proven reads).

@@ -52,6 +52,10 @@ EMAIL_SERVICE_READY = "false"
 # hermesTransport): the clock then prepares the team summary and the retention notices without Cloudflare's binding.
 # Sends messages: only Luis switches it on, at the same time as in the other wrangler.toml.
 HERMES_MAIL_READY = "1"
+# VIS-13: the client's reminders 24 h and 2 h before a confirmed viewing linked to their search (VIS-17), one approved-queue
+# email each, sent verbatim through the carrier with no review one by one (the switch is the approval), and Confirm /
+# another time / Cancel on AGE-12's private page. Sends messages: only Luis switches it on, in both wrangler.toml at once.
+VIS13_REMINDERS_READY = "0"
 # BUS-09: the sweep leaves the allowed channels of HERMES_MARKET_SOURCES ("*": all) to Hermes's market door. Keep equal
 # in ../wrangler.toml.
 HERMES_MARKET_READY = "1"

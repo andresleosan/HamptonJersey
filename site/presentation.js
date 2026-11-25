@@ -80,6 +80,49 @@ function render(options) {
   })));
 }
 
+// VIS-13: the client's viewings and their answer (each a POST with the time shown; reading changes nothing). Absent while
+// the reminders are switched off (the server answers 404) or when there is no viewing.
+const ACTIONS = [["confirm", "I'll be there"], ["reschedule", "Ask for another time"], ["cancel", "Cancel this viewing"]];
+const SAID = { confirm: "Thank you. You confirmed you will attend.", reschedule: "Thank you. We will contact you to agree another time; "
+  + "until then this viewing stays as it is.", cancel: "This viewing is cancelled." };
+const day = d => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+function renderViewings(section, viewings, said) {
+  section.replaceChildren(...[el("h2", { id: "viewings-h", textContent: "Your viewings" }), said && el("p", { role: "status", textContent: said }),
+    viewings.length ? el("ul", { className: "homes" }, ...viewings.map(v => {
+      const alert = el("p", { className: "err", role: "alert" });
+      const act = async (action, button) => {
+        if (action === "cancel" && !confirm("Cancel this viewing?")) return;
+        button.disabled = true; alert.textContent = "";
+        try {
+          const r = await fetch(`/api/presentation/viewings/${v.id}/${action}`, { method: "POST", headers: { "content-type": "application/json" },
+            cache: "no-store", body: JSON.stringify({ date: v.date, time: v.time }) });
+          const out = await r.json().catch(() => ({}));
+          if (r.ok) { renderViewings(section, out.viewings, SAID[action]); section.querySelector("[role=status]")?.focus(); return; }
+          alert.textContent = out.error || "Your answer could not be sent. Please try again.";
+        } catch { alert.textContent = "We could not confirm that your answer was sent. Please try again."; }
+        button.disabled = false;
+      };
+      const shown = ACTIONS.filter(([a]) => !(a === "confirm" && (v.status !== "confirmed" || v.confirmed)) && !(a === "reschedule" && v.reschedule_requested));
+      return el("li", { className: "home" }, el("h3", { textContent: v.title || "Viewing" }),
+        el("p", { className: "facts", textContent: [v.location, `${day(v.date)} at ${v.time}`, v.kind].filter(Boolean).join(" · ") }),
+        el("p", { textContent: v.status === "confirmed" ? (v.confirmed ? "Confirmed. You said you will attend." : "Confirmed.") : "Waiting for confirmation." }),
+        v.reschedule_requested && el("p", { textContent: "You asked for another time: we will contact you." }),
+        el("div", { className: "opts" }, ...shown.map(([a, text]) => { const b = el("button", { className: "btn", type: "button", textContent: text });
+          b.addEventListener("click", () => act(a, b)); return b; })), alert);
+    })) : el("p", { textContent: "You have no upcoming viewings." })].filter(Boolean));
+  section.querySelector("[role=status]")?.setAttribute("tabindex", "-1");
+}
+async function viewings() {
+  const r = await fetch("/api/presentation/viewings", { cache: "no-store" });
+  if (!r.ok) return;
+  const { viewings: list } = await r.json();
+  if (!list.length) return;
+  const section = el("section", { className: "viewings" });
+  section.setAttribute("aria-labelledby", "viewings-h");
+  app.append(section);
+  renderViewings(section, list);
+}
+
 (async () => {
   try {
     if (token) {
@@ -90,5 +133,6 @@ function render(options) {
     const r = await fetch("/api/presentation/options", { cache: "no-store" });
     if (!r.ok) return status(GONE);
     render((await r.json()).options);
+    await viewings().catch(() => {});
   } catch { status("We could not load your selection. Please check your connection and try again."); }
 })();
