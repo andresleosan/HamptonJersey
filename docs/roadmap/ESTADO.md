@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **PRE-04, medición de antes (cerrada):** no existe medición anterior a la app (Luis); desde ahora se compara solo con lo que cuenta la app. **Fase 2:** notas de voz, servidor privado de modelos locales, automatizaciones con datos sensibles en local, folletos por parroquia y Places.je salen del total por decisión de Luis. Progreso 156 de 216 → 157 de 211 (74,41 %).
+
 25-nov-2026 · **PRE-22, comisiones entre agencias (cerrada):** por decisión de Luis del 10-nov se tratan en persona, fuera de la app; la app no las registra ni las exige, y ninguna consulta las menciona. No cambia nada para el equipo. Progreso 155 → 156 de 216 (72,22 %).
 
 25-nov-2026 · **MSG-01 / PRE-08, entrada de Facebook encendida:** la app ya responde a la comprobación de Meta (clave de verificación creada, decisión de Luis) y el aviso de privacidad explica los mensajes de Facebook; no entra ningún mensaje hasta que Luis cree la app de Meta, conecte la página y cargue sus secretos. Responder desde el panel se enciende tras su mensaje de prueba. Progreso 155 de 216 (sin cambio).

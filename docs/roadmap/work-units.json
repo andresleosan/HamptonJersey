@@ -2134,7 +2134,7 @@
       "preferredSlot": "vscode",
       "priority": 156,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -2465,7 +2465,7 @@
       "preferredSlot": "hermes",
       "priority": 165,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -2530,7 +2530,7 @@
       "preferredSlot": "hermes",
       "priority": 167,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -6826,7 +6826,7 @@
       "preferredSlot": "codex-desktop",
       "priority": 284,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -7934,7 +7934,7 @@
       "preferredSlot": "hermes",
       "priority": 317,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -8018,7 +8018,7 @@
       "preferredSlot": "vscode",
       "priority": 320,
       "kind": "decision",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [

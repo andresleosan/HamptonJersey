@@ -4,23 +4,25 @@
   "titulo": "Medir cómo trabaja hoy el equipo para poder comparar después",
   "origen": "plan",
   "fase": "—",
-  "estado": "bloqueado",
+  "estado": "hecho",
   "responsable": "Hampton",
-  "hecho": "Insights ya mide Team response times desde que se usa la app.",
-  "falta": "No consta la medición de antes: cuánto tardaba la primera lista que recibe un aplicante y cuántas horas por semana se buscaban casas a mano. Con F1-A ya en producción, hay que reconstruirla con el equipo.",
-  "bloqueo": "Dato de Hampton",
+  "hecho": "Ausencia declarada (25-nov-2026, Luis en nombre de Hampton): no existe medición de antes de la app. No se reconstruye de memoria ni se rellena con ceros; desde ahora la comparación usa solo lo que cuenta la app (Insights), sin presentarlo como medición anterior.",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:600",
-    "admin/src/Insights.jsx:115-125"
+    "admin/src/Insights.jsx:115-125",
+    "25-nov-2026: decisión de Luis «No existen: usar la app». Registro: docs/roadmap/work/PRE-04/verification-plan.md. Condición de cierre del plan («valores/fuente o ausencia declarada, revisión Hampton y comparabilidad explícita») cumplida con la ausencia declarada."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
   "executionEligibility": "needs_scope_and_evidence_review",
   "dependencies": [],
-  "externalBlocker": "Hampton: Dato de Hampton",
+  "externalBlocker": "",
   "resources": [
     "baseline-metrics"
   ],
-  "nextStep": "Recoger con Hampton la medición del proceso anterior para comparar resultados posteriores."
+  "nextStep": "Si Hampton aporta cifras de antes, añadirlas al registro marcadas como recuerdo.",
+  "actualizado": "2026-11-25"
 }

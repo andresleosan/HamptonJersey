@@ -2155,18 +2155,19 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Nota de voz del negociador tras la visita, transcrita en el VPS y resumida",
    "origen": "plan",
    "fase": "F3-B",
-   "estado": "pendiente",
+   "estado": "descartado",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
-   "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
+   "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: No hay subida de audio, tabla jobs ni proceso en el VPS con faster-whisper. ESTADO la agrupa en F3-B con correo y calendario, pero no depende de ellos: necesita el carril privado del VPS (§2). Con Hermes (AUT-13), la transcripción seguiría en local y el resumen lo haría Hermes, solo con un plan Business y su memoria apagada (pregunta 16), porque una nota de voz puede llevar datos personales. Hoy Hermes no llega a Whisper, porque su salida no alcanza los servicios del VPS (AUT-08).",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:107",
     "docs/roadmap/ESTADO.md:11",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: notas de voz y transcripción con modelos locales, posteriores."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: notas de voz y transcripción con modelos locales, posteriores.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "VIS-16",
@@ -2370,20 +2371,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Automatizaciones con datos sensibles (C3) solo con modelos locales",
    "origen": "texto",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "descartado",
    "responsable": "Luis",
    "hecho": "La regla se mantiene para C3 (documentos, ingresos, referencias, atrasos, datos bancarios) y Luis eligió Ollama en el VPS, al que solo llega Cloudflare por un túnel privado (A2); el plan deja los datos personales básicos (C2) por API con acuerdo de tratamiento y sin nombre ni teléfono.",
-   "falta": "No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08). Con Hermes (P-18), los datos C3 nunca pasarán por él: siguen este camino de A2 (§6.6).",
-   "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
+   "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: No hay ninguna automatización con IA sobre datos C3 ni conexión con un modelo local: F5-A trata atrasos y extractos sin IA, lo que la regla permite. En el Docker del VPS no hay contenedor de Ollama (docker ps -a, 28-oct; fuera de Docker no se pudo comprobar); llega con el carril privado (AUT-08). Con Hermes (P-18), los datos C3 nunca pasarán por él: siguen este camino de A2 (§6.6).",
+   "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:462-463",
     "docs/superpowers/specs/2026-10-24-hampton-app-f5a-design.md:48",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:36",
     "docker ps -a (28-oct-2026): sin contenedor de Ollama",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: modelos locales, posteriores."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: modelos locales, posteriores.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "AUT-07",
@@ -2412,11 +2414,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Carril privado del VPS para modelos locales y notas de voz, sin abrir puertos",
    "origen": "plan",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "descartado",
    "responsable": "Luis",
    "hecho": "Luis eligió el mecanismo (A2): Cloudflare Tunnel privado (Workers VPC o Access con token de servicio) hacia Ollama en el VPS, sin abrir puertos; Whisper ya corre en el VPS solo en 127.0.0.1:9300.",
-   "falta": "No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B) y notas de voz (F3-B). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
-   "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
+   "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: No existe: ni tabla jobs, ni túnel o binding en wrangler.toml, ni cloudflared u Ollama en el Docker del VPS (docker ps -a, 28-oct), ni código que llame a un modelo local. Lo monta Luis y servirá a datos C3 (F5-B) y notas de voz (F3-B). Hermes (P-18) no es este carril: no alcanza los servicios del VPS y nunca recibe datos C3; pedirá a la app el trabajo de IA con datos públicos por su propia puerta (AUT-13, §6.6).",
+   "bloqueo": "",
    "evidencia": [
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:28",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:68",
@@ -2426,9 +2428,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "docker ps (28-oct-2026): infra-whisper-1 en 127.0.0.1:9300",
     "docker ps -a (28-oct-2026): sin cloudflared ni Ollama",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: servidores y modelos locales, posteriores."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: servidores y modelos locales, posteriores.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
    ],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "AUT-09",
@@ -5964,17 +5967,18 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Folleto por parroquia con código QR, repartido sin lista de direcciones",
    "origen": "plan",
    "fase": "—",
-   "estado": "pendiente",
+   "estado": "descartado",
    "responsable": "desarrollo",
    "hecho": "",
-   "falta": "Luis aplazó la preparación, impresión y reparto de folletos parroquiales; no se construyen por ahora. Si se retoman por una decisión posterior, revisar entonces el alcance y las dependencias. La página de demanda PUB-19 es independiente y ANA-10 cubre solo el QR del póster de cada propiedad. Traído de ANA-10 (15-nov): si se retoma, reutilizar propertyQrSvg (server/property-qr-svg.js) y la marca ?src=qr con listing_qr_opens; no crear un segundo contador ni la redirección /r/ que ANA-10 retiró.",
-   "bloqueo": "Aplazado por decisión de Luis (10-nov-2026).",
+   "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: Luis aplazó la preparación, impresión y reparto de folletos parroquiales; no se construyen por ahora. Si se retoman por una decisión posterior, revisar entonces el alcance y las dependencias. La página de demanda PUB-19 es independiente y ANA-10 cubre solo el QR del póster de cada propiedad. Traído de ANA-10 (15-nov): si se retoma, reutilizar propertyQrSvg (server/property-qr-svg.js) y la marca ?src=qr con listing_qr_opens; no crear un segundo contador ni la redirección /r/ que ANA-10 retiró.",
+   "bloqueo": "",
    "evidencia": [
     "docs/superpowers/plans/2026-11-10-pub-20-folleto-qr.md",
     "docs/superpowers/plans/2026-11-10-ana-10-qr-agregado.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: folletos de reparto aplazados."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: folletos de reparto aplazados.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
    ],
-   "actualizado": "2026-11-15"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "PUB-21",
@@ -6677,20 +6681,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Acceso a Places.je como conector opcional del inventario",
    "origen": "plan",
    "fase": "F1-B",
-   "estado": "pendiente",
+   "estado": "descartado",
    "responsable": "Luis",
    "hecho": "",
-   "falta": "M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
-   "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
+   "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:590",
     "docs/roadmap/ESTADO.md:9",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: Places.je es un conector posterior."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: Places.je es un conector posterior.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
    ],
    "modulo": "M01",
    "deps": [],
-   "actualizado": "2026-11-14"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "PRE-02",
@@ -6740,15 +6745,17 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Medir cómo trabaja hoy el equipo para poder comparar después",
    "origen": "plan",
    "fase": "—",
-   "estado": "bloqueado",
+   "estado": "hecho",
    "responsable": "Hampton",
-   "hecho": "Insights ya mide Team response times desde que se usa la app.",
-   "falta": "No consta la medición de antes: cuánto tardaba la primera lista que recibe un aplicante y cuántas horas por semana se buscaban casas a mano. Con F1-A ya en producción, hay que reconstruirla con el equipo.",
-   "bloqueo": "Dato de Hampton",
+   "hecho": "Ausencia declarada (25-nov-2026, Luis en nombre de Hampton): no existe medición de antes de la app. No se reconstruye de memoria ni se rellena con ceros; desde ahora la comparación usa solo lo que cuenta la app (Insights), sin presentarlo como medición anterior.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:600",
-    "admin/src/Insights.jsx:115-125"
-   ]
+    "admin/src/Insights.jsx:115-125",
+    "25-nov-2026: decisión de Luis «No existen: usar la app». Registro: docs/roadmap/work/PRE-04/verification-plan.md. Condición de cierre del plan («valores/fuente o ausencia declarada, revisión Hampton y comparabilidad explícita») cumplida con la ausencia declarada."
+   ],
+   "actualizado": "2026-11-25"
   },
   {
    "id": "PRE-05",

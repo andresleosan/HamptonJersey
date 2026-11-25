@@ -4,28 +4,29 @@
   "titulo": "Acceso a Places.je como conector opcional del inventario",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "pendiente",
+  "estado": "descartado",
   "responsable": "Luis",
   "hecho": "",
-  "falta": "M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
-  "bloqueo": "Aplazada a una fase posterior por el plan maestro (10-nov-2026).",
+  "falta": "Fuera de esta fase por decisión de Luis del 25-nov-2026 (fase 2): no se construye ni cuenta en el total. Se recupera con una decisión nueva. Alcance anterior, solo como historia: M01 · Reconciliación 7-nov: Conservar la solicitud de acceso a Places.je como gestión opcional para ese conector; comprobar si hay credenciales y vía operativa cuando se aborde. El dato histórico del 401 no se vuelve a afirmar como comprobación de hoy. El directorio, otras fuentes accesibles y el inventario BUS-06 pueden avanzar sin esa clave.",
+  "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:590",
     "docs/roadmap/ESTADO.md:9",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
-    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: Places.je es un conector posterior."
+    "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): fase posterior: Places.je es un conector posterior.",
+    "25-nov-2026: Luis eligió «Sacarlas del total» para las cinco aplazadas sin nada construido (VIS-15, AUT-06, AUT-08, PUB-20, PRE-01). La regla de que los datos sensibles (C3) no van a Hermes, ChatGPT ni Telegram sigue vigente."
   ],
   "modulo": "M01",
   "deps": [],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
   "assignmentRole": "seguimiento; no sustituye al responsable externo",
-  "executionEligibility": "deferred_later_phase",
+  "executionEligibility": "historical",
   "dependencies": [],
-  "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+  "externalBlocker": "",
   "resources": [
     "source-access:places"
   ],
-  "nextStep": "Luis verifica acceso y vía operativa de Places.je como conector opcional sin bloquear otras fuentes.",
-  "actualizado": "2026-11-14"
+  "nextStep": "Conservar como historia; no construir sin una decisión nueva de Luis.",
+  "actualizado": "2026-11-25"
 }
