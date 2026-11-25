@@ -41,6 +41,26 @@ test("walkFolder: at most 30 documents of up to 20 MB", async t => {
   assert.ok(w.skipped.some(s => /huge\.pdf.*larger than 20 MB/.test(s)), w.skipped.join("|"));
 });
 
+test("walkFolder: personal or financial documents never go to Hermes; only their count is reported", async t => {
+  const files = { F_PRIV000001: { name: "Private" } };
+  const out = ["Tenancy Agreement.pdf", "Contrato de arrendamiento.pdf", "passport_scan2.pdf", "Pasaporte.pdf", "DNI.pdf",
+    "Photo ID.pdf", "Driving-Licence.pdf", "Carné de conducir.pdf", "BankStatement.pdf", "Extracto bancario.pdf",
+    "Nómina octubre.pdf", "Nóminas.pdf", "Payslips 2026.pdf", "Salario.docx", "References.docx", "Referencias.docx",
+    "Tax return.pdf", "Impuestos 2025.pdf", "Utility bill.pdf", "Factura luz.pdf", "Lease.pdf", "Identity check.pdf"];
+  const kept = ["Floor plan.pdf", "EPC.pdf", "Description.docx", "property.txt", "Leasehold summary.pdf", "Contractor notes.docx",
+    "Riverbank view.docx", "Preferences.docx", "Details.docx"];
+  [...out, ...kept].forEach((name, i) => { files[`D_P${String(i).padStart(8, "0")}`] = { name, mimeType: "application/pdf", parent: "F_PRIV000001" }; });
+  files.F_CONTRACTS1 = { name: "Contratos", parent: "F_PRIV000001" };
+  files.D_INCONTRACT = { name: "Inside.pdf", mimeType: "application/pdf", parent: "F_CONTRACTS1" };
+  const d = await fakeDrive(t, files);
+  const w = await walkFolder(d.env, "F_PRIV000001");
+  assert.deepEqual(w.documents.map(x => x.name).sort(), [...kept].sort());
+  assert.ok(!d.calls.some(c => c.includes("F_CONTRACTS1")), "a private-looking folder is never opened");
+  const note = w.skipped.find(s => /personal or financial/.test(s));
+  assert.ok(note?.startsWith(`${out.length + 1} files or folders`), w.skipped.join("|"));
+  for (const name of [...out, "Contratos"]) assert.ok(!w.skipped.join("|").includes(name.replace(/\.\w+$/, "")), name);
+});
+
 test("photosIn: the folder's own photos by name, HEIC marked", async t => {
   const d = await fakeDrive(t, HOUSE);
   const p = await photosIn(d.env, "F_EDITED0001");

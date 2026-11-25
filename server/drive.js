@@ -24,6 +24,23 @@ export function folderIdFrom(text) {
 export const isRecords = name => /(^|[^a-z])records?([^a-z]|$)/i.test(name);
 // D5: «Edited», «Edited Photos», «Fotos editadas»; never «Unedited», «Not edited» or «No editadas» (bugs review).
 export const isEdited = name => /(^|[^a-z])(edited|editadas)([^a-z]|$)/i.test(name) && !/(^|[^a-z])(not|no|sin)[\s_-]+edit/i.test(name);
+// PUB-21 (Luis, 25-nov-2026): files and folders whose name looks like a personal or financial document are never sent to
+// Hermes: contracts and leases (parties, signatures, rent), identity papers, bank and pay records, references, tax and
+// bills. By whole word, English and Spanish, ignoring case and accents («Nómina», «BankStatement», «passport_2»). Doubtful
+// words («id», «statement», «tax») are in on purpose: a document wrongly left out only costs a rename, which the team sees
+// in the count; one wrongly sent can't be taken back. Words that are property facts stay out: «Leasehold», «Contractor»,
+// «Floor plan», «EPC», «Description». Only the name is checked: a passport saved as «scan001.pdf» still goes through.
+const PRIVATE = new RegExp(` (${[
+  "contracts?", "contratos?", "leases?", "arrendamientos?", "agreements?",
+  "passports?", "pasaportes?", "id", "identity", "identidad", "dni", "nie", "nif",
+  "driving licen[cs]es?", "drivers?( s)? licen[cs]es?", "carnet", "carne", "permiso de conducir",
+  "banks?", "bancos?", "bancari[oa]s?", "statements?", "extractos?", "estados? de cuenta",
+  "payslips?", "pay slips?", "nominas?", "salary", "salaries", "salarios?",
+  "references?", "referencias?", "tax", "taxes", "impuestos?",
+  "utility bills?", "invoices?", "facturas?", "recibos?",
+].join("|")}) `);
+const isPrivate = name => PRIVATE.test(` ${String(name).normalize("NFD").replace(/\p{M}/gu, "")
+  .replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z]+/g, " ")} `);
 const isPhotoFolder = name => isEdited(name) || /photo|foto|picture|image/i.test(name); // D8: not read for documents
 
 let cached = null; // { secret, url, token, until }: one token for about an hour per key
@@ -98,21 +115,24 @@ const EXPORT = { "application/vnd.google-apps.document": "text/plain", "applicat
   "application/vnd.google-apps.presentation": "text/plain" };
 const media = m => /^(image|video|audio)\//.test(m);
 
-// D7, D8, C12: every document of the folder and its subfolders, except Records and photo folders. Edited folders are
-// kept apart for the photos (D5); depth is capped so a folder that contains itself through a shortcut can't loop.
+// D7, D8, C12: every document of the folder and its subfolders, except Records, photo folders and private-looking names
+// (only counted, never named: the warnings go to Hermes too). Edited folders are kept apart for the photos (D5); depth is
+// capped so a folder that contains itself through a shortcut can't loop.
 export async function walkFolder(env, id) {
   const documents = [], editedFolders = [], skipped = [], notRead = [];
-  let extra = 0;
+  let extra = 0, hidden = 0;
   const walk = async (fid, prefix, depth) => {
     for (const f of (await children(env, fid)).sort(byName)) {
       const path = prefix + f.name;
       if (f.mimeType === FOLDER) {
         if (isRecords(f.name)) notRead.push(path);
+        else if (isPrivate(f.name)) hidden++;
         else if (depth === 0 && isEdited(f.name)) editedFolders.push({ id: f.id, name: f.name, modifiedTime: f.modifiedTime });
         else if (isPhotoFolder(f.name) || depth >= DEPTH) notRead.push(path);
         else await walk(f.id, `${path}/`, depth + 1);
       } else if (media(f.mimeType)) continue;
       else if (isRecords(f.name)) notRead.push(path);
+      else if (isPrivate(f.name)) hidden++;
       else if (f.mimeType.startsWith("application/vnd.google-apps.") && !EXPORT[f.mimeType]) skipped.push(`${path}: can't be read`);
       else if (Number(f.size ?? 0) > MAX_DOC) skipped.push(`${path}: larger than 20 MB`);
       else if (documents.length >= MAX_DOCS) extra++;
@@ -122,6 +142,8 @@ export async function walkFolder(env, id) {
   await walk(id, "", 0);
   if (extra) skipped.push(`${extra} more ${extra === 1 ? "document wasn't" : "documents weren't"} read (more than 30 documents)`);
   if (notRead.length) skipped.push(`Folders not read: ${notRead.join(", ")}`);
+  if (hidden) skipped.push(`${hidden} ${hidden === 1 ? "file or folder" : "files or folders"} not sent to Hermes: the name looks like `
+    + "a personal or financial document (contract, ID, bank, pay, references, tax, bills)");
   return { documents, editedFolders, skipped };
 }
 

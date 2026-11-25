@@ -17,7 +17,7 @@ Inventario hecho el 14-nov-2026 leyendo `server/jobs.js`, `jobs/wrangler.toml`, 
 | [`email_inbound`](email_inbound.md) | apagada | AUT-17 | Recepción de respuestas por correo |
 | [`team_channel_notices`](team_channel_notices.md) | activa | AUT-14 | Avisos y resumen de las 08:00 en el canal de Telegram, sin IA |
 | [`listing_text`](listing_text.md) | apagada | AUT-13 | Borrador de texto de ficha por Hermes |
-| [`folder_import`](folder_import.md) | apagada | PUB-21 | Propuesta de ficha desde una carpeta de Drive por Hermes |
+| [`folder_import`](folder_import.md) | activa | PUB-21 | Propuesta de ficha desde una carpeta de Drive por Hermes |
 | [`market_ambiguity_v1`](market_ambiguity_v1.md) | prevista | BUS-09 | Propuesta de IA ante ambigüedad del mercado |
 | [`hampton_intent_v1`](hampton_intent_v1.md) | prevista | MSG-04 | Propuesta de IA de intención de chat |
 | [`search_review_21d`](search_review_21d.md) | prevista | BUS-17 | Revisión interna a los 21 días sin opción completa |
