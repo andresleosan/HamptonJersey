@@ -58,6 +58,7 @@ test("24-hour reminders are real durations across both clock changes, one per vi
     assert.equal(o.entity_id, String(id));
     assert.equal(o.version, Number(slot.date.replaceAll("-", "") + slot.time.replace(":", "")));
     assert.equal(o.approved_by, "automation");
+    for (const s of ["4321", "dog", "Fixture Viewer", "Fixture Client"]) assert.ok(!(o.subject + o.text).includes(s), s); // the queued text itself
     assert.match(o.recipient, /^vis13-\d+@example\.test$/); // the linked search's contact, not the booking's address
   }
 });
@@ -97,6 +98,13 @@ test("a queued reminder whose viewing started, moved or was cancelled is never c
   assert.equal(await claimForHermes(env, "0"), null);
   await reminderPass(env);
   assert.equal(outbound(env)[0].status, "cancelled");
+  // Cancelled by the team while its reminder waits: the same.
+  const other = viewing(env, at(Date.now() + 90 * 60e3), client(env));
+  await reminderPass(env);
+  run(env, "UPDATE viewing_requests SET status = 'cancelled' WHERE id = ?", other);
+  assert.equal(await claimForHermes(env, "0"), null);
+  await reminderPass(env);
+  assert.deepEqual(outbound(env).map(o => o.status), ["cancelled", "cancelled"]);
 });
 
 test("a rescheduled viewing supersedes its old reminder and gets new ones; without a linked search nothing is queued", async () => {
@@ -140,8 +148,14 @@ test("paused, nothing is claimed and the reminder waits; switched off, nothing i
   viewing(env2, at(Date.now() + H), client(env2));
   await reminderPass(env2);
   assert.equal(outbound(env2).length, 0);
-  assert.equal((await call(off, "GET", "/presentation/viewings")).status, 404);
-  assert.ok(id);
+  // The client's routes, with a session in force: 404 off, answered on.
+  const { cookie } = await session(env, rows(env, "SELECT applicant_id FROM viewing_proposals WHERE viewing_id = ?", id)[0].applicant_id);
+  const slot = rows(env, "SELECT date, time FROM viewing_requests WHERE id = ?", id)[0];
+  assert.equal((await as(off, cookie, "GET", "/presentation/viewings")).status, 404);
+  assert.equal((await as(off, cookie, "POST", `/presentation/viewings/${id}/confirm`, slot)).status, 404);
+  assert.equal(rows(env, "SELECT COUNT(*) n FROM events WHERE type = 'viewing.client_confirmed'")[0].n, 0);
+  assert.equal((await as(env, cookie, "GET", "/presentation/viewings")).status, 200);
+  assert.equal((await as(env, cookie, "POST", `/presentation/viewings/${id}/confirm`, slot)).status, 200);
 });
 
 test("accepted by Gmail: the viewing is reminded by automation by email, its thread is kept, and nothing is sent again", async () => {

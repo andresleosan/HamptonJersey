@@ -102,7 +102,9 @@ export async function reminderPass(env, t = Date.now()) {
 export async function reminderSettlePass(env) {
   if (!(await migrated(env))) return;
   const { results } = await env.DB.prepare(`SELECT entity_id, version, claimed_at, template FROM outbound WHERE template IN ${IN}
-    AND status = 'accepted' AND claimed_at >= ? ORDER BY id LIMIT 50`).bind(new Date(Date.now() - WATCH).toISOString()).all();
+    AND status = 'accepted' AND claimed_at >= ? AND EXISTS (SELECT 1 FROM viewing_requests v WHERE v.id = CAST(outbound.entity_id AS INTEGER)
+      AND v.status = 'confirmed' AND ${SLOT} = outbound.version AND (v.reminded_at IS NULL OR v.reminded_at < outbound.claimed_at))
+    ORDER BY id LIMIT 50`).bind(new Date(Date.now() - WATCH).toISOString()).all();
   for (const o of results) await env.DB.batch([
     env.DB.prepare(`UPDATE viewing_requests AS v SET reminded_at = ?, reminded_by = 'automation', reminded_channel = 'email'
       WHERE v.id = ? AND v.status = 'confirmed' AND ${SLOT} = ? AND (v.reminded_at IS NULL OR v.reminded_at < ?)`)
