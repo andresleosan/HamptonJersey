@@ -11,7 +11,7 @@ Desde el 16-nov-2026 las migraciones 0107 (REG-15), 0108 (ANA-04), 0109 (MSG-01)
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
 | AUT-17 | 48 | 25-nov: prueba real hecha (consulta enviada por Gmail y respuesta de vuelta en la app). Nada pendiente tuyo para el correo. |
-| PUB-10 | 1 | Construida y apagada; migración 0118 aplicada el 17-nov. Para abrir «Book a valuation»: plazo de conservación de las solicitudes que dé Hampton, y tu decisión: crear la fila app_settings.owner_enquiries {enabled, privacy_version} y poner OWNER_REQUESTS_READY a "1". |
+| PUB-10 | 1 | Encendida el 25-nov (12 meses). Lo tuyo: enviar una solicitud de prueba en www.hamptonestatesjersey.com/#/owners. |
 | MSG-02 | 1 | El chat de la web (fase 1) está en main y funciona. Falta: confirmar en Cloudflare la regla WAF de /api/chat* y /api/stats (ANA-09, PRE-34), terminar el avisador del VPS (Hermes) sin datos personales en el aviso, la revisión jurídica del aviso del chat y AUT-17 para contestar por correo a quien cerró la página. |
 | PUB-19 | 0 | Página «N personas buscan casa en tu parroquia» construida y apagada. Falta tu autorización de divulgación tras una revisión de privacidad (con el abogado, PRE-33) y PUB-10 operativo para el enlace a valoración; después, desarrollo revisa esquema, retención y coste D1 antes de migrar y encender. |
 | ADM-18 | 3 | Construida y apagada; migración 0117 aplicada el 17-nov. Para abrir la solicitud del inquilino: criterios de asequibilidad de Hampton (ADM18_AFFORDABILITY_POLICY; mientras, todo va a revisión humana), revisar y aplicar 0046 y 0049, el secreto CASE_CHALLENGE_HMAC_KEY, el correo (AUT-17) y tu decisión de poner ADM18_APPLICATION_READY a "1". |
@@ -50,3 +50,6 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
 | OFE-02 | 0 | Construido y publicado apagado. Lo tuyo: sí para encender el correo de ofertas al propietario, tras una prueba con tu buzón. |
 | VIS-13 | 0 | Construido y publicado apagado. Lo tuyo: decidir si los recordatorios salen solos con el interruptor y si van también a reservas web sin enlace; después sí para encender, tras una prueba con tu buzón. |
+| AUT-21 | 0 | Construido y apagado: feedback tras la visita y aviso al cancelar visitas cuando la casa se alquila o vende. Lo tuyo: prueba con tu buzón y sí para encender. |
+| AUT-22 | 0 | Construido y apagado: resumen semanal por correo. Lo tuyo: elegir destinatarios en Email settings, prueba y sí para encender. |
+

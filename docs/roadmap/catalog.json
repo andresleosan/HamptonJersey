@@ -18036,7 +18036,7 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada.",
-      "falta": "0118 ya aplicada (17-nov). Para encender: plazo de conservación de Hampton (el borrado es manual, no se inventa vencimiento); y que Luis cree la fila owner_enquiries {enabled, privacy_version del aviso} y ponga OWNER_REQUESTS_READY=\"1\". Con ese plazo, la pasada de retención de owner_requests va en PRE-12 (la búsqueda y el borrado desde solicitudes de privacidad ya están, 17-nov).",
+      "falta": "Prueba real: Luis envía una solicitud en #/owners; comprobar que llega al panel con su tarea y borrarla.",
       "bloqueo": "Dato de Hampton",
       "evidencia": [
         "site/index.html:543",
@@ -18057,7 +18057,8 @@
         "Decisión: evento 'collection' con id owner-request:<id> y tarea sin target_kind, precedente backups:* (server/notification-query.js:32); evita reconstruir tablas con datos (CONTINUIDAD, migración aditiva).",
         "Decisión: supresión manual por Staff y conciliación por mismo correo o teléfono; el plan prohíbe inventar vencimiento (plan PUB-10, última casilla).",
         "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves.",
-        "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app."
+        "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app.",
+        "25-nov-2026: decisión de Luis: 12 meses desde la última actividad y encender. Pasada de retención de owner_requests (ce9d0f72), aviso de privacidad con la sección y su plazo (fecha 25-nov), fila owner_enquiries privacy_version 2026-11-25 creada en producción (marcador previo 0000049f-0000081c-0000512e-d52a3e68caba16d27258af8ae8082dee) y OWNER_REQUESTS_READY=1 (602c4f3e). /api/owner-requests/availability responde available:true. Falta la prueba real de Luis en #/owners."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
@@ -18079,13 +18080,13 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis/Hampton: plazo de conservación de las solicitudes y decisión de encender (fila owner_enquiries y OWNER_REQUESTS_READY).",
+      "externalBlocker": "Luis: enviar la solicitud de prueba en www.hamptonestatesjersey.com/#/owners.",
       "resources": [
         "public-site",
         "owner-contact"
       ],
       "nextStep": "Incluir owner_requests en solicitudes de privacidad y retención (PRE-12); después Luis: aviso para propietarios con datos reales de registro, plazo de conservación y encender OWNER_REQUESTS_READY con la fila app_settings.owner_enquiries.",
-      "actualizado": "2026-11-20"
+      "actualizado": "2026-11-25"
     },
     {
       "id": "PUB-11",
@@ -21039,13 +21040,14 @@
       "titulo": "Correos de visita: feedback tras la visita y aviso de cancelación cuando la casa se alquila o vende",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6).",
+      "falta": "Prueba real con el buzón de Luis y su sí para encender. Residual: tras un alquiler, si el equipo aún no registró la tenencia, el nuevo inquilino no está identificado y su otra visita se cancelaría (registrar la tenencia en las 24 h).",
       "bloqueo": "",
       "evidencia": [
-        "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos."
+        "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos.",
+        "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido."
       ],
       "modulo": "M04",
       "deps": [
@@ -21069,8 +21071,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Construir apagado según el criterio.",
-      "actualizado": "2026-11-25"
+      "nextStep": "Prueba con el buzón de Luis; después encender en los dos wrangler.",
+      "actualizado": "2026-11-25",
+      "externalBlocker": "Luis: prueba con su buzón y sí para encender."
     },
     {
       "id": "AUT-22",
@@ -21078,13 +21081,14 @@
       "titulo": "Resumen semanal de Insights por correo a dirección",
       "origen": "plan",
       "fase": "F2",
-      "estado": "pendiente",
+      "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "",
-      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "hecho": "25-nov-2026: construido y publicado apagado (AUT22_WEEKLY_EMAIL_READY=0, sin migración). Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios del resumen diario del equipo, con su revisión de configuración; nunca a un propietario; sin recalcular.",
+      "falta": "Prueba real con el buzón de Luis y su sí para encender. Necesita el resumen diario del equipo encendido en Email settings con destinatarios.",
       "bloqueo": "",
       "evidencia": [
-        "Traído de MEJORAS (ANA-08) el 25-nov-2026; decisión de Luis."
+        "Traído de MEJORAS (ANA-08) el 25-nov-2026; decisión de Luis.",
+        "25-nov-2026: commits c3e5be62, e01101bd, d8c519af. 14 pruebas focales; npm test 3638/3638."
       ],
       "modulo": "M09",
       "deps": [
@@ -21108,8 +21112,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Construir apagado según el criterio.",
-      "actualizado": "2026-11-25"
+      "nextStep": "Prueba con el buzón de Luis; después encender en los dos wrangler.",
+      "actualizado": "2026-11-25",
+      "externalBlocker": "Luis: elegir destinatarios en Email settings, prueba y sí para encender."
     },
     {
       "id": "AUT-23",

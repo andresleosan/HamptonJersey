@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **AUT-21 y AUT-22 (construidas, apagadas) y PUB-10 (encendida):** correos de feedback tras la visita, aviso al cancelar visitas cuando la casa se alquila o vende y resumen semanal por correo, listos para probar; el formulario «Sell or let» ya recibe solicitudes (se borran a los 12 meses). Total de tareas 211 → 215. Progreso 163 de 215.
+
 25-nov-2026 · **OFE-02 y VIS-13 (construidas, apagadas):** correo de la oferta al propietario desde Sales con aprobación por versión, y recordatorios de visita 24 h y 2 h con Confirm, Reschedule y Cancel en la página privada del cliente. Esperan el sí de Luis para encender. Progreso sin cambio: 163 de 211.
 
 25-nov-2026 · **AUT-17, correo de la app por Hermes (cerrada):** los correos aprobados salen por el Gmail de siempre de Hampton y las respuestas vuelven a la app; los envíos que esperaban este canal pasan a sus tareas (recordatorios de visita, ofertas, reparaciones, liquidaciones). Progreso 162 → 163 de 211 (77,25 %).

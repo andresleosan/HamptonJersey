@@ -4,13 +4,14 @@
   "titulo": "Correos de visita: feedback tras la visita y aviso de cancelación cuando la casa se alquila o vende",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+  "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6).",
+  "falta": "Prueba real con el buzón de Luis y su sí para encender. Residual: tras un alquiler, si el equipo aún no registró la tenencia, el nuevo inquilino no está identificado y su otra visita se cancelaría (registrar la tenencia en las 24 h).",
   "bloqueo": "",
   "evidencia": [
-    "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos."
+    "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos.",
+    "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido."
   ],
   "modulo": "M04",
   "deps": [
@@ -34,6 +35,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Construir apagado según el criterio.",
-  "actualizado": "2026-11-25"
+  "nextStep": "Prueba con el buzón de Luis; después encender en los dos wrangler.",
+  "actualizado": "2026-11-25",
+  "externalBlocker": "Luis: prueba con su buzón y sí para encender."
 }

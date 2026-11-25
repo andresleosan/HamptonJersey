@@ -270,3 +270,8 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [VIS-13] Con VIS13_REMINDERS_READY distinto en los dos wrangler, lo encolado se reclama pero no se marca · encender y apagar siempre los dos a la vez; revisión 25-nov · 25-nov-2026
 - [OFE-02] «It was not sent» sigue disponible si un acuse tardío dejó el correo como enviado; y needs_review no abre tarea (AGE-05 sí) · AGE-05 tiene el mismo caso; revisión 25-nov · 25-nov-2026
 - [OFE-02] El texto propuesto copia offers.conditions tal cual (texto del equipo que podría nombrar al comprador) · el equipo lo ve y el diálogo avisa; revisión 25-nov · 25-nov-2026
+- [AUT-21] Visitas sin correo usable vuelven a leerse en cada tick (LIMIT 50); con muchas, las nuevas no se alcanzan · volumen actual bajo; revisión 25-nov · 25-nov-2026
+- [AUT-21] Una visita ya en curso (END >= ahora) puede cancelarse como las futuras · criterio igual al de PUB-16; revisión 25-nov · 25-nov-2026
+- [AUT-21] Un aviso aceptado que luego rebota no reabre tarea (igual en VIS-13) · el cliente no se entera; revisión 25-nov · 25-nov-2026
+- [AUT-22] Guardar Email settings a mitad de semana cancela el correo de esa semana y no se reencola; encender a mitad de semana envía la semana anterior · revisión 25-nov · 25-nov-2026
+- [PRE-13] El aviso de privacidad no nombra al proveedor del VPS por donde pasa el cartero de Hermes (Optimyze sí) · revisar con el paquete del abogado; revisión 25-nov · 25-nov-2026
