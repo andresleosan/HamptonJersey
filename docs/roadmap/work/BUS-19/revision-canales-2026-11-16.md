@@ -21,3 +21,5 @@ Límites: la lectura de términos fue automática por palabras clave sobre las p
 Aplicación: `decisiones-2026-11-16.sql` (UPDATE versión 1→2 + fila de historial por canal, idempotente), probada sobre el esquema 0043 en memoria. Detalle por canal: `decisiones-2026-11-16.json`.
 
 **Actualización**: los 38 canales denegados se eliminaron de producción y de estos archivos (`eliminar-denegados-2026-11-16.sql`). Si se vuelve a aceptar el directorio de 237 canales, reaparecerían como pendientes: filtrarlos antes.
+
+**Actualización 25-nov-2026**: las cifras de «allowed · http» de la tabla ya no valen. Por decisión de Luis, las 34 fuentes permitidas que estaban en `BUS-24/canales-aplazados.md` (67 canales) pasan a `manual_only` con `decisiones-2026-11-25.sql`. Ese SQL se genera con `generar-aplazados-2026-11-25.mjs` y se ensaya con `ensayo-aplazados-2026-11-25.mjs`. Después quedan 41 fuentes y 62 canales permitidos.

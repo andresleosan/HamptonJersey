@@ -1,0 +1,4612 @@
+{
+ "leido": "2026-11-25",
+ "sources": [
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-00abf9c11ad90080",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "aplacecalledyours.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.aplacecalledyours.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-86219d005d18e0f2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "aplacecalledyours.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.aplacecalledyours.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-accommodation-centre-jersey",
+   "channel_id": "bus19-review-e036c1e614ead95d",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-67715ea293c6c272",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.apm.je"
+   ],
+   "allowed_redirect_hosts": [
+    "apm.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-68fd6dc5dc55bb84",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "apm.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.apm.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-9e90cd272e78a4a4",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.apm.je"
+   ],
+   "allowed_redirect_hosts": [
+    "apm.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-alexander-carmine-estates",
+   "channel_id": "bus19-review-916437844cbaf5e6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "alexandercarmine.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.alexandercarmine.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-3573cfd755b57d9b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "andiumhomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.andiumhomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-b5c76d9a830dddbc",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.andiumhomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "andiumhomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-13c19775489b17b3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "atelierproperty.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.atelierproperty.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-aa1170ca8509df09",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "atelierproperty.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.atelierproperty.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-aw-properties",
+   "channel_id": "bus19-review-f505ff6f9bd55138",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "awproperties.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.awproperties.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-bck-lettings",
+   "channel_id": "bus19-review-ddfd381d349166b6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-benest-estates",
+   "channel_id": "bus19-review-f7a1728c9a765ee6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-bricks-mortar-jersey",
+   "channel_id": "bus19-review-97eef5f60b34cb6d",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "bricksandmortarjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.bricksandmortarjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-3276139713dd8361",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.bridle.je"
+   ],
+   "allowed_redirect_hosts": [
+    "bridle.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-aeb18d039861bccd",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.bridle.je"
+   ],
+   "allowed_redirect_hosts": [
+    "bridle.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-fc684b545946dafc",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "bridle.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.bridle.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-254ab1b437fd3984",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "broadlandsjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.broadlandsjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-5138def769c0453c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "broadlandsjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.broadlandsjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-broadlands-commercial",
+   "channel_id": "bus19-review-edcbd75d85794698",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-bull-co",
+   "channel_id": "bus19-review-40431feaeb394e72",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "bullandcompany.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.bullandcompany.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-359dbfed2b62094a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "businesshub.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.businesshub.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-61855fd977237b32",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "businesshub.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.businesshub.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-buy-sell-jersey",
+   "channel_id": "bus19-review-3238cce3da6dba2f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-430004f704bf4516",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "cpc.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.cpc.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-db8310a0488d2b22",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "cpc.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.cpc.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-castletree-homes",
+   "channel_id": "bus19-review-1edf4ba5eb5e87b3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "castletreehomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.castletreehomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-2841f43006bbe490",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "catterson-wood.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.catterson-wood.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-b595216310d38957",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "catterson-wood.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.catterson-wood.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-dc580c4be3cbae2e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "catterson-wood.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.catterson-wood.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-cbre-jersey",
+   "channel_id": "bus19-review-6884fa6ff9acb34f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-choice-properties",
+   "channel_id": "bus19-review-fb408838fbcfcd05",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-c75dc67b098bc9c9",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "csps.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.csps.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-f4a62393734cdf27",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "csps.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.csps.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-columbia-estates",
+   "channel_id": "bus19-review-ad8b5271da2a0af7",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "columbiaestates.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.columbiaestates.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-87bc144113eb721b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-8fc9dfa2348c3ccf",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-465d139c2b313d10",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.countrylife.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "countrylife.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-8943d7d2a11278d6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "countrylife.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.countrylife.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-943b03f39a589b83",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.ctjhousingtrust.org.je"
+   ],
+   "allowed_redirect_hosts": [
+    "ctjhousingtrust.org.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-fcb830dd42b130d3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "ctjhousingtrust.org.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.ctjhousingtrust.org.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-0851d0ed5735a146",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "d2re.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.d2re.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-109627a60ca3a946",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "d2re.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.d2re.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-010b6421bcb48ab9",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "dandararentals.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.dandararentals.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-7dba2b39c91cd0b8",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "dandararentals.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.dandararentals.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-0dfe61a0cfd2c4ad",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-db2075f3fd556bcc",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-de-vere-estate-agents",
+   "channel_id": "bus19-review-7a373b1d97369099",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-4d032711597edc99",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "dicasahomes.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.dicasahomes.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-ec4e245806eae442",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.dicasahomes.com"
+   ],
+   "allowed_redirect_hosts": [
+    "dicasahomes.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-059bff35b8f60740",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.digital.je"
+   ],
+   "allowed_redirect_hosts": [
+    "digital.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-a4abe889f4570b4c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "digital.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.digital.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-dusted-jersey",
+   "channel_id": "bus19-review-8bf23caf9ceb6048",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "dusted.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.dusted.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-facebook-marketplace-jersey",
+   "channel_id": "bus19-review-726dbff59a0009fe",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-falcon-consultants",
+   "channel_id": "bus19-review-abf4dec08812da29",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-falles-properties",
+   "channel_id": "bus19-review-bb9fe0d1a37b7cdd",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "fallesproperties.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.fallesproperties.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-finders-keepers",
+   "channel_id": "bus19-review-80c56218cd849626",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "finderskeepers.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.finderskeepers.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-fine-country-jersey",
+   "channel_id": "bus19-review-2b3d7ab2a9bf9d46",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "fineandcountry.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.fineandcountry.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-flatfee-je",
+   "channel_id": "bus19-review-e33e5f01c4392ed5",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "flatfee.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.flatfee.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-69ad1ac0dc87e89c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-decbe2b460cbb289",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-1571ffe57d7cfee0",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "gaudin.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.gaudin.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-bee6eff620bf6d44",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 3,
+   "allowed_hosts": [
+    "gaudin.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.gaudin.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-gaudin-co-facebook",
+   "channel_id": "bus19-review-109be9684a2c3810",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-2f4a122021f8b307",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "grangedevelopments.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.grangedevelopments.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-d57fa98d06b18d7e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.grangedevelopments.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "grangedevelopments.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-5914a94bfc9fbbc9",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hardinggreen.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hardinggreen.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-b98ce5efa37538b8",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hardinggreen.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hardinggreen.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-08df9856d20e8286",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hearthstones.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hearthstones.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-99797e80631757f9",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hearthstones.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hearthstones.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hector-mac-homes",
+   "channel_id": "bus19-review-1ca68a0f68bf2a3a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hectormac.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hectormac.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-1944af7a0f7a994b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hiizzy.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hiizzy.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-b399ac707f7f342f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "hiizzy.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.hiizzy.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-168ac661da65e7f7",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "homesearch.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.homesearch.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-7cc91e6b79668b15",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "homesearch.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.homesearch.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-7c1a22d67e367d94",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "huelinhomes.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.huelinhomes.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-d44ad6baa68a1706",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.huelinhomes.com"
+   ],
+   "allowed_redirect_hosts": [
+    "huelinhomes.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-ebe5e8c1433f4fcc",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.huelinhomes.com"
+   ],
+   "allowed_redirect_hosts": [
+    "huelinhomes.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-hunt-estates",
+   "channel_id": "bus19-review-2bb4bd0cb21deb65",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "huntestates.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.huntestates.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-indigo-estates",
+   "channel_id": "bus19-review-aaa6ff9f5faf120c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "indigo.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.indigo.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-isle-sell-it",
+   "channel_id": "bus19-review-06fb71f57a3acd43",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-1b0c1a372738ce67",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-802c06c8a1bc5213",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-319d1f04f3c79235",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jers3y.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jers3y.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-a20baca37e96c708",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jers3y.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jers3y.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jers3y-rooms",
+   "channel_id": "bus19-review-d2ff2e84e7eeee2a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jers3y.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jers3y.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-anything-for-sale",
+   "channel_id": "bus19-review-041b079d569065c7",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jersey-c-i-rooms-for-rent-and-other-accommodation",
+   "channel_id": "bus19-review-4d0e1d877239465e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-7b55d8a256cd44b6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-9f143b7819e9095d",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-efddf1fdd1bcb48e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-699f92c4f50a9894",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-87af92bdc8d109f5",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-cd531f7969509c10",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-0695063cc07ce186",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jerseyhomestrust.org.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jerseyhomestrust.org.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-c9db1381250cd67e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.jerseyhomestrust.org.je"
+   ],
+   "allowed_redirect_hosts": [
+    "jerseyhomestrust.org.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-7732eb04b481cf51",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.jerseyinsight.com"
+   ],
+   "allowed_redirect_hosts": [
+    "jerseyinsight.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-b62b4b1240b1a2b3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jerseyinsight.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jerseyinsight.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-e4582a3e65d3a979",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.jerseyinsight.com"
+   ],
+   "allowed_redirect_hosts": [
+    "jerseyinsight.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-property-app-raven",
+   "channel_id": "bus19-review-e24bffc19a0d9506",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-jersey-property-for-rent",
+   "channel_id": "bus19-review-52ecac16c5ce61a5",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jersey-property-rentals",
+   "channel_id": "bus19-review-590ca276132d8243",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jersey-rentals",
+   "channel_id": "bus19-review-866e6f3b9f48ef8a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jersey-stuff-for-sale",
+   "channel_id": "bus19-review-01a53ca595b761b3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-jlp-management",
+   "channel_id": "bus19-review-05beb111e68c9499",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "jlp.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.jlp.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-8105e8e3c982fe05",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "keys.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.keys.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-cc87c42d6eaf517a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.keys.je"
+   ],
+   "allowed_redirect_hosts": [
+    "keys.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-68481174aea6f2ca",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "kingsmanoffices.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.kingsmanoffices.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-96f7ecef3c9c481b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.kingsmanoffices.com"
+   ],
+   "allowed_redirect_hosts": [
+    "kingsmanoffices.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-knight-frank-jersey",
+   "channel_id": "bus19-review-3190556942f66d72",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-gallais-real-estates",
+   "channel_id": "bus19-review-f18f034b1df3b511",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "legallais.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.legallais.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-maistre-estates",
+   "channel_id": "bus19-review-e8ede2ed43c76804",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "estates.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.estates.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-masurier",
+   "channel_id": "bus19-review-9970d113cfd5c663",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "lemasurier.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.lemasurier.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-0781d488e3bb88aa",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.lerestates.com"
+   ],
+   "allowed_redirect_hosts": [
+    "lerestates.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-213d842965f16f8d",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "lerestates.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.lerestates.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-62cd5fbbf69e4019",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.lerestates.com"
+   ],
+   "allowed_redirect_hosts": [
+    "lerestates.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-8e68ca9deb0522db",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-d014e549991c6fb2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-da88b33be9f307e2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-livingroom-estate-agents",
+   "channel_id": "bus19-review-05c963bae89aad1c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-3912aaa2d7044c44",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-5b2f8008e2af7500",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-38611203c040622e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "lyonsestates.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.lyonsestates.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-d6331af4785d0c2a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "lyonsestates.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.lyonsestates.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1417a9acb978e455",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "maillardandco.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.maillardandco.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1b27421b42f5128b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "maillardandco.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.maillardandco.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-1eddb5a1c2797fa6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-41b9c137b75d66b1",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-marks-estate-agents",
+   "channel_id": "bus19-review-f44349a2db2f4bd8",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-52013b7d345d3a81",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "melrosehomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.melrosehomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-ea8be83bea8b8b66",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.melrosehomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "melrosehomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-moore-properties",
+   "channel_id": "bus19-review-fed5cc428cb0726a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-mulberry-property-management",
+   "channel_id": "bus19-review-baf0c82738cd09c0",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "mulberry.co.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.mulberry.co.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-nd-estates",
+   "channel_id": "bus19-review-d4b84add91c6018c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "unclassified",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 1,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 60
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-5eb86307d09617ab",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 3,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-92eb3dff8339fdec",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 3,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-b1fd2499a1732b8e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 3,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-200fd7d57f599d86",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "palladiumgroupci.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.palladiumgroupci.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-59b1aa9062ceefa2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "honeycombjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.honeycombjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-b44a3167caf12b3f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "honeycombjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.honeycombjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-pinnacle-estates",
+   "channel_id": "bus19-review-723550b18e31beae",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "pinnacle.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.pinnacle.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-5e2c05496dd56f80",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "places",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-9e32c8fe1bead5df",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "places",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-c3eb1028928505c0",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "places",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-5357de7144a0c833",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "polygon-servicedoffices.co"
+   ],
+   "allowed_redirect_hosts": [
+    "www.polygon-servicedoffices.co"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-8d427b952848df1c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.polygon-servicedoffices.co"
+   ],
+   "allowed_redirect_hosts": [
+    "polygon-servicedoffices.co"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f0ed97a34935440a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "prestige.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.prestige.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f70da01038515399",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.prestige.je"
+   ],
+   "allowed_redirect_hosts": [
+    "prestige.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-primelocation-jersey-channel-isles",
+   "channel_id": "bus19-review-76e4e3f8e77d3c9b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-properstar",
+   "channel_id": "bus19-review-e462999c858f267a",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-0254c182544e4981",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "properties",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-082cdb3d1e84ad03",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "properties",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-9cc69077957e9db1",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "properties",
+   "access_status": "pending",
+   "method": null,
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": null,
+   "retention_ref": null,
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-78891c6e6b69e152",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "propertyladder.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.propertyladder.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-815755c8a205f5d0",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "propertyladder.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.propertyladder.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-property-store-jersey-psj",
+   "channel_id": "bus19-review-d2be17b26c489608",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "psj.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.psj.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-0cd782ecf407d35e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "propertyskipper.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.propertyskipper.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-9b09bd64bac8e8c9",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "propertyskipper.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.propertyskipper.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-dfa5ed173b8d0f6b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "propertyskipper.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.propertyskipper.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-1adba8fa190e0638",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-d6da79716fcced73",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-e2bb1c04a4599978",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-20dccd297e7e51d4",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "queree.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.queree.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-64f7fbb65376439e",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "queree.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.queree.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-c1e771d39c19e643",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "queree.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.queree.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-r-a-d-property-management",
+   "channel_id": "bus19-review-fe9bab319f325e25",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "radmanagement.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.radmanagement.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-63e92ef34fca8cbb",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.redproperties.je"
+   ],
+   "allowed_redirect_hosts": [
+    "redproperties.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-a2f63fb82dd638c2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "redproperties.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.redproperties.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-c40ae7fcedca0091",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.redproperties.je"
+   ],
+   "allowed_redirect_hosts": [
+    "redproperties.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-4baacd0ef49f6683",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "regus.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.regus.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-b281666e35bdc326",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.regus.com"
+   ],
+   "allowed_redirect_hosts": [
+    "regus.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-0f9419738d30b523",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "reside.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.reside.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-201e738ec1ad0402",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "reside.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.reside.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-20533e68c6941b82",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "reside.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.reside.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-82d6f88c77c53e68",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-8fae7260c424a8bd",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-f2e1830227d76040",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-738a7ed0f8cc43c2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "rockproperty.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.rockproperty.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-eb85e29b9594897c",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "rockproperty.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.rockproperty.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-rolland-estates",
+   "channel_id": "bus19-review-48095ebd0cebf393",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "rollandestates.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.rollandestates.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-sarre-co",
+   "channel_id": "bus19-review-aa528a1925eacac2",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "sarreandco.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.sarreandco.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-savills-jersey",
+   "channel_id": "bus19-review-9078f47b3d3973d4",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "savills.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.savills.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-260b60b147f6368f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "www.selectpropertyjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "selectpropertyjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-80075b4d8c7fd1ca",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "selectpropertyjersey.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.selectpropertyjersey.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-slomans",
+   "channel_id": "bus19-review-389d36a0bcc9de2b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "slomans.co.uk"
+   ],
+   "allowed_redirect_hosts": [
+    "www.slomans.co.uk"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-solo-solo-property-solutions",
+   "channel_id": "bus19-review-6710e5cf11bb9ce6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "solo.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.solo.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-spareroom-jersey",
+   "channel_id": "bus19-review-bf8b88ce4f90cb27",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-spiffy",
+   "channel_id": "bus19-review-146f90295d7d64f7",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "spiffy.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.spiffy.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-c94505a561d55f13",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-d087de2be9c890cf",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-thompson-lettings",
+   "channel_id": "bus19-review-24b4776e03a6472f",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "thompsonlettings.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.thompsonlettings.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-3ddb13ea8700c668",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-53c9ffdd1bd060da",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-94b7b236de1350f6",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-watson-homes",
+   "channel_id": "bus19-review-d84779bad13d65b3",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "watsonhomes.je"
+   ],
+   "allowed_redirect_hosts": [
+    "www.watsonhomes.je"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-wezoo-jersey",
+   "channel_id": "bus19-review-7ae30c24817eb80d",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "allowed",
+   "method": "http",
+   "policy_version": 2,
+   "allowed_hosts": [
+    "wezoo.com"
+   ],
+   "allowed_redirect_hosts": [
+    "www.wezoo.com"
+   ],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-2e110c9b9e4b134b",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-bbfc39055f161064",
+   "directory_revision": "bus23-20392de75aef6836df67048f653d9e04842842ea845524453ffe80da4ba77385",
+   "source_kind": "external",
+   "source_class": "general",
+   "access_status": "manual_only",
+   "method": "manual",
+   "policy_version": 2,
+   "allowed_hosts": [],
+   "allowed_redirect_hosts": [],
+   "review_due_at": "2027-05-16T00:00:00.000Z",
+   "retention_ref": "BUS-19/retencion-mercado-v1",
+   "min_interval_s": 300
+  }
+ ],
+ "history": [
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-00abf9c11ad90080",
+   "decision_version": 2,
+   "operation_id": "9bcb8b51-a65c-4466-bd20-6f8d0b168036"
+  },
+  {
+   "source_ref": "src-a-place-called-yours-jersey",
+   "channel_id": "bus19-review-86219d005d18e0f2",
+   "decision_version": 2,
+   "operation_id": "840415bf-bc73-47de-923f-a5449b30e59e"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-67715ea293c6c272",
+   "decision_version": 2,
+   "operation_id": "4e4a5349-2d67-4a96-810b-1d1bb90c6026"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-68fd6dc5dc55bb84",
+   "decision_version": 2,
+   "operation_id": "ef2aa309-3f59-4f16-a761-0fc8ec0b679a"
+  },
+  {
+   "source_ref": "src-advanced-property-management",
+   "channel_id": "bus19-review-9e90cd272e78a4a4",
+   "decision_version": 2,
+   "operation_id": "48402444-1200-482d-9a0a-314985cb3553"
+  },
+  {
+   "source_ref": "src-alexander-carmine-estates",
+   "channel_id": "bus19-review-916437844cbaf5e6",
+   "decision_version": 2,
+   "operation_id": "691b3b35-5418-48bb-97dd-cb3771743171"
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-3573cfd755b57d9b",
+   "decision_version": 2,
+   "operation_id": "2a7961dd-3f95-4b48-9896-a30b18a738b8"
+  },
+  {
+   "source_ref": "src-andium-homes",
+   "channel_id": "bus19-review-b5c76d9a830dddbc",
+   "decision_version": 2,
+   "operation_id": "44509302-dab1-48b6-b81b-ba1a348f3739"
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-13c19775489b17b3",
+   "decision_version": 2,
+   "operation_id": "d2d61d0d-b3bd-43cd-92d1-faffe9e277e4"
+  },
+  {
+   "source_ref": "src-atelier-property",
+   "channel_id": "bus19-review-aa1170ca8509df09",
+   "decision_version": 2,
+   "operation_id": "7324def8-8fd7-4cc3-b122-6d75200ee005"
+  },
+  {
+   "source_ref": "src-aw-properties",
+   "channel_id": "bus19-review-f505ff6f9bd55138",
+   "decision_version": 2,
+   "operation_id": "2f9558d9-544e-43e4-a94a-c5b38f8f34d7"
+  },
+  {
+   "source_ref": "src-bricks-mortar-jersey",
+   "channel_id": "bus19-review-97eef5f60b34cb6d",
+   "decision_version": 2,
+   "operation_id": "ef433128-95fe-4740-9e06-45576dcdbeb2"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-3276139713dd8361",
+   "decision_version": 2,
+   "operation_id": "47b69073-3891-404e-a350-a4d2883fc50b"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-aeb18d039861bccd",
+   "decision_version": 2,
+   "operation_id": "6d6d901d-8c93-4295-ab82-c3d8d32dcbb2"
+  },
+  {
+   "source_ref": "src-bridle-estates",
+   "channel_id": "bus19-review-fc684b545946dafc",
+   "decision_version": 2,
+   "operation_id": "f6df64c9-0241-44d4-a09b-863f0228d4bb"
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-254ab1b437fd3984",
+   "decision_version": 2,
+   "operation_id": "6690b162-8f0f-4caf-9a7e-1676ecf7d31e"
+  },
+  {
+   "source_ref": "src-broadlands",
+   "channel_id": "bus19-review-5138def769c0453c",
+   "decision_version": 2,
+   "operation_id": "d48e9aa5-0e92-4749-9c14-5f0808d83434"
+  },
+  {
+   "source_ref": "src-broadlands-commercial",
+   "channel_id": "bus19-review-edcbd75d85794698",
+   "decision_version": 2,
+   "operation_id": "b0caaa9a-2665-4feb-bbc3-ff451086ad15"
+  },
+  {
+   "source_ref": "src-bull-co",
+   "channel_id": "bus19-review-40431feaeb394e72",
+   "decision_version": 2,
+   "operation_id": "6504a4a3-6422-4719-9166-a5cdb09a751a"
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-359dbfed2b62094a",
+   "decision_version": 2,
+   "operation_id": "8cf9519d-8fe0-469f-9e0b-8996c2ebc8a1"
+  },
+  {
+   "source_ref": "src-businesshub-jersey",
+   "channel_id": "bus19-review-61855fd977237b32",
+   "decision_version": 2,
+   "operation_id": "f47febe4-5bed-42eb-9faf-9d1702bfac09"
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-430004f704bf4516",
+   "decision_version": 2,
+   "operation_id": "5c5bdbe2-c158-49df-afd1-e99a2b88f8dd"
+  },
+  {
+   "source_ref": "src-carter-property-consultancy",
+   "channel_id": "bus19-review-db8310a0488d2b22",
+   "decision_version": 2,
+   "operation_id": "779f5b9e-2104-4b04-8901-667ffd686037"
+  },
+  {
+   "source_ref": "src-castletree-homes",
+   "channel_id": "bus19-review-1edf4ba5eb5e87b3",
+   "decision_version": 2,
+   "operation_id": "17c3fd75-aa4f-4b9f-b665-d1893595e9fc"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-2841f43006bbe490",
+   "decision_version": 2,
+   "operation_id": "c91b92f1-c88d-4ee1-9058-0c5522065315"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-b595216310d38957",
+   "decision_version": 2,
+   "operation_id": "5ef0374a-3582-4fdb-a694-46cdb226d104"
+  },
+  {
+   "source_ref": "src-catterson-wood",
+   "channel_id": "bus19-review-dc580c4be3cbae2e",
+   "decision_version": 2,
+   "operation_id": "0f176358-98e4-4015-ab46-7a713e08bfbe"
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-c75dc67b098bc9c9",
+   "decision_version": 2,
+   "operation_id": "f0d3a755-adc5-4f44-9c88-81eb1fe3878e"
+  },
+  {
+   "source_ref": "src-clyde-smith-property-services",
+   "channel_id": "bus19-review-f4a62393734cdf27",
+   "decision_version": 2,
+   "operation_id": "0124af9f-2ce2-41f1-b345-c8cdb8c8f4cd"
+  },
+  {
+   "source_ref": "src-columbia-estates",
+   "channel_id": "bus19-review-ad8b5271da2a0af7",
+   "decision_version": 2,
+   "operation_id": "6e6b3d0e-4ac1-438b-a338-89a7aab36543"
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-87bc144113eb721b",
+   "decision_version": 2,
+   "operation_id": "9dc347a2-df58-45a2-8e26-73609abee0b2"
+  },
+  {
+   "source_ref": "src-connections",
+   "channel_id": "bus19-review-8fc9dfa2348c3ccf",
+   "decision_version": 2,
+   "operation_id": "60433d81-690a-4016-9d55-2b577039405b"
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-465d139c2b313d10",
+   "decision_version": 2,
+   "operation_id": "3ff8d758-2186-4492-aa80-8166e1d6a20c"
+  },
+  {
+   "source_ref": "src-country-life-property",
+   "channel_id": "bus19-review-8943d7d2a11278d6",
+   "decision_version": 2,
+   "operation_id": "e38c618c-49ea-4ee2-a4ab-83fcd0ecb664"
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-943b03f39a589b83",
+   "decision_version": 2,
+   "operation_id": "c39906b6-3bc0-4b8e-82b7-48a6f1172c02"
+  },
+  {
+   "source_ref": "src-ctj-housing-trust",
+   "channel_id": "bus19-review-fcb830dd42b130d3",
+   "decision_version": 2,
+   "operation_id": "f71ff031-ef25-4793-87e1-df675b20ac7b"
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-0851d0ed5735a146",
+   "decision_version": 2,
+   "operation_id": "ab3a5993-fff4-4981-9a5c-02af4ff866ae"
+  },
+  {
+   "source_ref": "src-d2-real-estate",
+   "channel_id": "bus19-review-109627a60ca3a946",
+   "decision_version": 2,
+   "operation_id": "8c2314d6-d652-495a-91b6-41fee8c88a19"
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-010b6421bcb48ab9",
+   "decision_version": 2,
+   "operation_id": "c907794c-28dc-454d-8884-737b6916ed2a"
+  },
+  {
+   "source_ref": "src-dandara-rentals",
+   "channel_id": "bus19-review-7dba2b39c91cd0b8",
+   "decision_version": 2,
+   "operation_id": "2a519ae7-1e89-4c51-9928-483d2f25d088"
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-0dfe61a0cfd2c4ad",
+   "decision_version": 2,
+   "operation_id": "7cbcdee3-e6bf-4000-b408-24af447d33a3"
+  },
+  {
+   "source_ref": "src-dandara-sales",
+   "channel_id": "bus19-review-db2075f3fd556bcc",
+   "decision_version": 2,
+   "operation_id": "a1774bda-45ad-471f-bfbe-c52537fbf1c4"
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-4d032711597edc99",
+   "decision_version": 2,
+   "operation_id": "4d794369-66b9-486e-a6d9-07f692f3c3dd"
+  },
+  {
+   "source_ref": "src-dicasa-homes",
+   "channel_id": "bus19-review-ec4e245806eae442",
+   "decision_version": 2,
+   "operation_id": "2898086b-3236-4002-b2c8-bc869922327b"
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-059bff35b8f60740",
+   "decision_version": 2,
+   "operation_id": "c181bb55-62df-4e3a-b24b-ea85f3967f25"
+  },
+  {
+   "source_ref": "src-digital-jersey",
+   "channel_id": "bus19-review-a4abe889f4570b4c",
+   "decision_version": 2,
+   "operation_id": "811b8144-7090-427b-a5ae-c90c78f1a5a4"
+  },
+  {
+   "source_ref": "src-dusted-jersey",
+   "channel_id": "bus19-review-8bf23caf9ceb6048",
+   "decision_version": 2,
+   "operation_id": "ddf9ce0b-1ff5-4a81-b420-14c9bdbdc2d0"
+  },
+  {
+   "source_ref": "src-falcon-consultants",
+   "channel_id": "bus19-review-abf4dec08812da29",
+   "decision_version": 2,
+   "operation_id": "80bc58e8-39ab-4d10-ae48-99d28378597d"
+  },
+  {
+   "source_ref": "src-falles-properties",
+   "channel_id": "bus19-review-bb9fe0d1a37b7cdd",
+   "decision_version": 2,
+   "operation_id": "3bac6b57-14dd-4a6c-b452-8e8016e3f823"
+  },
+  {
+   "source_ref": "src-finders-keepers",
+   "channel_id": "bus19-review-80c56218cd849626",
+   "decision_version": 2,
+   "operation_id": "b473521d-d10a-4541-8f0f-6dce7506aa42"
+  },
+  {
+   "source_ref": "src-fine-country-jersey",
+   "channel_id": "bus19-review-2b3d7ab2a9bf9d46",
+   "decision_version": 2,
+   "operation_id": "07fbe742-a0c8-4225-9238-355e06854008"
+  },
+  {
+   "source_ref": "src-flatfee-je",
+   "channel_id": "bus19-review-e33e5f01c4392ed5",
+   "decision_version": 2,
+   "operation_id": "2f75523b-4eb0-48a7-8775-4afa1aa685e2"
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-69ad1ac0dc87e89c",
+   "decision_version": 2,
+   "operation_id": "e73df372-cbaf-4851-aef1-64075bfbf8bb"
+  },
+  {
+   "source_ref": "src-forty-eight",
+   "channel_id": "bus19-review-decbe2b460cbb289",
+   "decision_version": 2,
+   "operation_id": "eae65ca5-b84e-49f6-979b-b26d1a6088cc"
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-1571ffe57d7cfee0",
+   "decision_version": 2,
+   "operation_id": "35ddffe5-ce2b-4373-b6b2-33eb67c3d1c2"
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-bee6eff620bf6d44",
+   "decision_version": 2,
+   "operation_id": "603b24c7-f5eb-4155-b2bd-729d071f020a"
+  },
+  {
+   "source_ref": "src-gaudin-co",
+   "channel_id": "bus19-review-bee6eff620bf6d44",
+   "decision_version": 3,
+   "operation_id": "d4f1125b-df72-4b31-b52f-3b1848a360c4"
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-2f4a122021f8b307",
+   "decision_version": 2,
+   "operation_id": "11209902-eb6d-4e18-92f2-e7fa95f2cfd6"
+  },
+  {
+   "source_ref": "src-grange-developments",
+   "channel_id": "bus19-review-d57fa98d06b18d7e",
+   "decision_version": 2,
+   "operation_id": "050aae71-2266-4da5-b169-16e4dd8d72e2"
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-5914a94bfc9fbbc9",
+   "decision_version": 2,
+   "operation_id": "4037586b-02fe-4564-8929-88a168e2bd16"
+  },
+  {
+   "source_ref": "src-harding-green",
+   "channel_id": "bus19-review-b98ce5efa37538b8",
+   "decision_version": 2,
+   "operation_id": "703b4af2-065d-4423-8d65-07fcaf4f5cb7"
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-08df9856d20e8286",
+   "decision_version": 2,
+   "operation_id": "c797c9ef-49af-4df5-8b15-66c9cf871df9"
+  },
+  {
+   "source_ref": "src-hearthstones",
+   "channel_id": "bus19-review-99797e80631757f9",
+   "decision_version": 2,
+   "operation_id": "61c99b79-5943-4936-881c-ad25515745a8"
+  },
+  {
+   "source_ref": "src-hector-mac-homes",
+   "channel_id": "bus19-review-1ca68a0f68bf2a3a",
+   "decision_version": 2,
+   "operation_id": "f3bdec9d-ba95-491b-8049-da771502ae83"
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-1944af7a0f7a994b",
+   "decision_version": 2,
+   "operation_id": "1047cd09-1af0-4cef-8ddf-a24cc6d0157d"
+  },
+  {
+   "source_ref": "src-hiizzy",
+   "channel_id": "bus19-review-b399ac707f7f342f",
+   "decision_version": 2,
+   "operation_id": "84740dfb-ef9e-44b9-a68f-aa38643d9006"
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-168ac661da65e7f7",
+   "decision_version": 2,
+   "operation_id": "e7d81b8e-1031-4cdf-9285-e357240b1f2d"
+  },
+  {
+   "source_ref": "src-homesearch-jersey",
+   "channel_id": "bus19-review-7cc91e6b79668b15",
+   "decision_version": 2,
+   "operation_id": "198980dc-afe0-474d-98f2-d8947234e60e"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-7c1a22d67e367d94",
+   "decision_version": 2,
+   "operation_id": "ec94c2bf-74f1-4db1-a30c-7545665246b3"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-d44ad6baa68a1706",
+   "decision_version": 2,
+   "operation_id": "8e782f7a-e603-4174-aa79-4d9fca646b3e"
+  },
+  {
+   "source_ref": "src-huelin-homes",
+   "channel_id": "bus19-review-ebe5e8c1433f4fcc",
+   "decision_version": 2,
+   "operation_id": "d1b7401a-da39-4b77-bf6d-d51a699a5cfe"
+  },
+  {
+   "source_ref": "src-hunt-estates",
+   "channel_id": "bus19-review-2bb4bd0cb21deb65",
+   "decision_version": 2,
+   "operation_id": "5c8b7049-6245-4c2a-8256-f06792fdf687"
+  },
+  {
+   "source_ref": "src-indigo-estates",
+   "channel_id": "bus19-review-aaa6ff9f5faf120c",
+   "decision_version": 2,
+   "operation_id": "39143cea-f505-48da-ae5c-d4d7cba40ab9"
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-1b0c1a372738ce67",
+   "decision_version": 2,
+   "operation_id": "9e35d275-ffe7-4b3e-bd31-cc008ea1199b"
+  },
+  {
+   "source_ref": "src-jamesedition-jersey",
+   "channel_id": "bus19-review-802c06c8a1bc5213",
+   "decision_version": 2,
+   "operation_id": "263be2d5-cdc2-4bbc-ba80-7c4905a01c72"
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-319d1f04f3c79235",
+   "decision_version": 2,
+   "operation_id": "d577e646-5e4c-4a7b-8da4-709b16acf7cb"
+  },
+  {
+   "source_ref": "src-jers3y-homes",
+   "channel_id": "bus19-review-a20baca37e96c708",
+   "decision_version": 2,
+   "operation_id": "f6e5e182-5e87-4770-b618-4e751a5af93d"
+  },
+  {
+   "source_ref": "src-jers3y-rooms",
+   "channel_id": "bus19-review-d2ff2e84e7eeee2a",
+   "decision_version": 2,
+   "operation_id": "55948f7e-0574-4825-bfb5-d560ad31f7ab"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-7b55d8a256cd44b6",
+   "decision_version": 2,
+   "operation_id": "aa5e0cf9-1199-447d-bb14-911cd2a250aa"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-9f143b7819e9095d",
+   "decision_version": 2,
+   "operation_id": "004d8c22-6383-439c-bc19-c71da000f654"
+  },
+  {
+   "source_ref": "src-jersey-development-company",
+   "channel_id": "bus19-review-efddf1fdd1bcb48e",
+   "decision_version": 2,
+   "operation_id": "1774490e-b1de-4f9c-912b-57db16304f3d"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-699f92c4f50a9894",
+   "decision_version": 2,
+   "operation_id": "15b8f8e5-a08f-491c-8e6e-b2576d0ae31c"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-87af92bdc8d109f5",
+   "decision_version": 2,
+   "operation_id": "33765195-2f2f-4b2d-98e3-914fe6c27cf6"
+  },
+  {
+   "source_ref": "src-jersey-evening-post-property",
+   "channel_id": "bus19-review-cd531f7969509c10",
+   "decision_version": 2,
+   "operation_id": "9a95421e-868a-4063-a0fc-abe77cac9364"
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-0695063cc07ce186",
+   "decision_version": 2,
+   "operation_id": "ea136166-3fca-4fa1-a2b1-68fbeecf4124"
+  },
+  {
+   "source_ref": "src-jersey-homes-trust",
+   "channel_id": "bus19-review-c9db1381250cd67e",
+   "decision_version": 2,
+   "operation_id": "d957ba5a-b912-4c95-ade4-5a7888e861dc"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-7732eb04b481cf51",
+   "decision_version": 2,
+   "operation_id": "bc3bd733-86c5-49f5-b83a-9927eae16eec"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-b62b4b1240b1a2b3",
+   "decision_version": 2,
+   "operation_id": "c970aa43-8680-4aa6-8292-8751c09ea781"
+  },
+  {
+   "source_ref": "src-jersey-insight-classifieds",
+   "channel_id": "bus19-review-e4582a3e65d3a979",
+   "decision_version": 2,
+   "operation_id": "f5f820aa-5090-4664-9947-2028849a1cd6"
+  },
+  {
+   "source_ref": "src-jersey-property-app-raven",
+   "channel_id": "bus19-review-e24bffc19a0d9506",
+   "decision_version": 2,
+   "operation_id": "b5e365e8-46e7-454c-8ee0-60038756318b"
+  },
+  {
+   "source_ref": "src-jlp-management",
+   "channel_id": "bus19-review-05beb111e68c9499",
+   "decision_version": 2,
+   "operation_id": "ae7c4a6d-5f5d-4350-804f-5d8536f35d67"
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-8105e8e3c982fe05",
+   "decision_version": 2,
+   "operation_id": "e632d218-4a9c-4e3d-9130-20b65a677839"
+  },
+  {
+   "source_ref": "src-keys-properties",
+   "channel_id": "bus19-review-cc87c42d6eaf517a",
+   "decision_version": 2,
+   "operation_id": "4770ae18-c2e9-4c16-8511-39ab3943913a"
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-68481174aea6f2ca",
+   "decision_version": 2,
+   "operation_id": "89850b40-46e6-4b86-aa25-a839e44f5de1"
+  },
+  {
+   "source_ref": "src-kingsman-offices",
+   "channel_id": "bus19-review-96f7ecef3c9c481b",
+   "decision_version": 2,
+   "operation_id": "67242cfd-116e-4b6f-ab79-a8d3e64e3186"
+  },
+  {
+   "source_ref": "src-knight-frank-jersey",
+   "channel_id": "bus19-review-3190556942f66d72",
+   "decision_version": 2,
+   "operation_id": "b3e4e209-21cc-4571-b806-0c1097473a6f"
+  },
+  {
+   "source_ref": "src-le-gallais-real-estates",
+   "channel_id": "bus19-review-f18f034b1df3b511",
+   "decision_version": 2,
+   "operation_id": "bda3c3de-fb3c-4d59-82fa-20b294c3ab8f"
+  },
+  {
+   "source_ref": "src-le-maistre-estates",
+   "channel_id": "bus19-review-e8ede2ed43c76804",
+   "decision_version": 2,
+   "operation_id": "61896e51-6400-4507-91ff-d20dfb771f46"
+  },
+  {
+   "source_ref": "src-le-masurier",
+   "channel_id": "bus19-review-9970d113cfd5c663",
+   "decision_version": 2,
+   "operation_id": "d22b5388-a7e3-46e8-99d6-3dccf222ffb3"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-0781d488e3bb88aa",
+   "decision_version": 2,
+   "operation_id": "483d7db4-98c8-4bfb-97f6-c3cebed714f1"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-213d842965f16f8d",
+   "decision_version": 2,
+   "operation_id": "e2589920-8f42-4ae8-96d6-09353604fde4"
+  },
+  {
+   "source_ref": "src-le-rossignol-estates",
+   "channel_id": "bus19-review-62cd5fbbf69e4019",
+   "decision_version": 2,
+   "operation_id": "ad1df4fa-a403-44ae-b4b5-fc676f65d520"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-8e68ca9deb0522db",
+   "decision_version": 2,
+   "operation_id": "016b29ac-421f-47a4-9ee6-7d73a2db5787"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-d014e549991c6fb2",
+   "decision_version": 2,
+   "operation_id": "ccae3068-0452-40e4-8d53-6a89876ab5cf"
+  },
+  {
+   "source_ref": "src-les-vaux-housing-trust",
+   "channel_id": "bus19-review-da88b33be9f307e2",
+   "decision_version": 2,
+   "operation_id": "31755fe6-ee72-4a8a-9fcb-ae263000228b"
+  },
+  {
+   "source_ref": "src-livingroom-estate-agents",
+   "channel_id": "bus19-review-05c963bae89aad1c",
+   "decision_version": 2,
+   "operation_id": "07e362f4-e8e5-45fa-9f95-4d7ba4bbd1dd"
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-3912aaa2d7044c44",
+   "decision_version": 2,
+   "operation_id": "62a59dfb-9704-4561-92e6-6c214444be38"
+  },
+  {
+   "source_ref": "src-loopnet-jersey",
+   "channel_id": "bus19-review-5b2f8008e2af7500",
+   "decision_version": 2,
+   "operation_id": "ecd38e59-b2d0-45e5-b451-d4a67fa76d4d"
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-38611203c040622e",
+   "decision_version": 2,
+   "operation_id": "c83a372d-954c-41bd-a204-ba8a57b5d6dd"
+  },
+  {
+   "source_ref": "src-lyons-estates",
+   "channel_id": "bus19-review-d6331af4785d0c2a",
+   "decision_version": 2,
+   "operation_id": "a41f1ed7-52a4-4708-9c4e-159182a10d07"
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1417a9acb978e455",
+   "decision_version": 2,
+   "operation_id": "2e613b02-d611-424e-9bc2-2a88e7302a69"
+  },
+  {
+   "source_ref": "src-maillard-co",
+   "channel_id": "bus19-review-1b27421b42f5128b",
+   "decision_version": 2,
+   "operation_id": "29935be4-284f-4531-859d-ac3be62ca1c2"
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-1eddb5a1c2797fa6",
+   "decision_version": 2,
+   "operation_id": "ad6b32bc-742b-4428-a4e5-809df1d495fb"
+  },
+  {
+   "source_ref": "src-mansion-global-jersey",
+   "channel_id": "bus19-review-41b9c137b75d66b1",
+   "decision_version": 2,
+   "operation_id": "44fb261d-6471-4e0c-883d-dbc88c4d03da"
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-52013b7d345d3a81",
+   "decision_version": 2,
+   "operation_id": "f457a8aa-5432-471b-bb22-54680181b646"
+  },
+  {
+   "source_ref": "src-melrose-homes",
+   "channel_id": "bus19-review-ea8be83bea8b8b66",
+   "decision_version": 2,
+   "operation_id": "071220d8-f481-44ab-a5b4-41b7441aea81"
+  },
+  {
+   "source_ref": "src-mulberry-property-management",
+   "channel_id": "bus19-review-baf0c82738cd09c0",
+   "decision_version": 2,
+   "operation_id": "56b18d80-54d8-4aea-9c18-4ea8f5f855a2"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-5eb86307d09617ab",
+   "decision_version": 2,
+   "operation_id": "ef78a5b6-a132-47d1-8e20-5423ef9a702b"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-5eb86307d09617ab",
+   "decision_version": 3,
+   "operation_id": "4dce7120-7730-4faa-adf2-10f000209095"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-92eb3dff8339fdec",
+   "decision_version": 2,
+   "operation_id": "e4d0a662-5ab1-4426-9cc4-0bd74f9291cc"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-92eb3dff8339fdec",
+   "decision_version": 3,
+   "operation_id": "a56d6b31-915b-45fa-9e42-d69e0f236a88"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-b1fd2499a1732b8e",
+   "decision_version": 2,
+   "operation_id": "f856511b-5dfd-47f9-b97a-083c91176fcc"
+  },
+  {
+   "source_ref": "src-onthemarket-jersey",
+   "channel_id": "bus19-review-b1fd2499a1732b8e",
+   "decision_version": 3,
+   "operation_id": "043fb96a-1b58-4979-9f3a-ce1cf2c30db7"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-200fd7d57f599d86",
+   "decision_version": 2,
+   "operation_id": "dc209880-5957-461c-8093-c49ca7b326f2"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-59b1aa9062ceefa2",
+   "decision_version": 2,
+   "operation_id": "e449656d-6be4-471f-a854-b347d19c28fd"
+  },
+  {
+   "source_ref": "src-palladium-group",
+   "channel_id": "bus19-review-b44a3167caf12b3f",
+   "decision_version": 2,
+   "operation_id": "8aaa5560-5374-4c74-a865-5ba55419658f"
+  },
+  {
+   "source_ref": "src-pinnacle-estates",
+   "channel_id": "bus19-review-723550b18e31beae",
+   "decision_version": 2,
+   "operation_id": "262c1bae-983d-40fe-996b-b55cd0a7fe90"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-5e2c05496dd56f80",
+   "decision_version": 2,
+   "operation_id": "1a0109d4-ad1e-4cc6-93bb-5c6092a1b41e"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-9e32c8fe1bead5df",
+   "decision_version": 2,
+   "operation_id": "3fc8aa9b-6bf6-44c5-a7bd-e9a23a454964"
+  },
+  {
+   "source_ref": "src-places-je",
+   "channel_id": "bus19-review-c3eb1028928505c0",
+   "decision_version": 2,
+   "operation_id": "dbced610-17ca-4ad8-87e0-ee953d1b42e0"
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-5357de7144a0c833",
+   "decision_version": 2,
+   "operation_id": "b863c424-759a-47c1-a3ee-770799a541a5"
+  },
+  {
+   "source_ref": "src-polygon-serviced-offices",
+   "channel_id": "bus19-review-8d427b952848df1c",
+   "decision_version": 2,
+   "operation_id": "b832013a-4d4e-464f-8f20-d5604c809049"
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f0ed97a34935440a",
+   "decision_version": 2,
+   "operation_id": "570f0454-d8f0-456a-af74-cf7946c85975"
+  },
+  {
+   "source_ref": "src-prestige-properties",
+   "channel_id": "bus19-review-f70da01038515399",
+   "decision_version": 2,
+   "operation_id": "c75ae5c9-a305-4a7b-9e91-a9275d2af0c1"
+  },
+  {
+   "source_ref": "src-primelocation-jersey-channel-isles",
+   "channel_id": "bus19-review-76e4e3f8e77d3c9b",
+   "decision_version": 2,
+   "operation_id": "b5514cd9-54ef-4044-912e-2fe01d3f26c3"
+  },
+  {
+   "source_ref": "src-properstar",
+   "channel_id": "bus19-review-e462999c858f267a",
+   "decision_version": 2,
+   "operation_id": "0689d71b-29cf-43c3-a8d4-a635251f72a3"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-0254c182544e4981",
+   "decision_version": 2,
+   "operation_id": "175e8f64-a1ad-4004-83f3-a56d2564edd7"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-082cdb3d1e84ad03",
+   "decision_version": 2,
+   "operation_id": "8d9e2528-63f1-4551-95c9-63dab66ef4e9"
+  },
+  {
+   "source_ref": "src-properties-je",
+   "channel_id": "bus19-review-9cc69077957e9db1",
+   "decision_version": 2,
+   "operation_id": "cc9cb487-50d4-4e0a-ad9d-f4264674d3f1"
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-78891c6e6b69e152",
+   "decision_version": 2,
+   "operation_id": "2e93bbd1-94b6-4708-b758-66e31a02231b"
+  },
+  {
+   "source_ref": "src-property-ladder-jersey",
+   "channel_id": "bus19-review-815755c8a205f5d0",
+   "decision_version": 2,
+   "operation_id": "8ab01090-89f6-46b2-986b-09e9bc7d2bd9"
+  },
+  {
+   "source_ref": "src-property-store-jersey-psj",
+   "channel_id": "bus19-review-d2be17b26c489608",
+   "decision_version": 2,
+   "operation_id": "1cf4a3b3-934b-4f03-bcbd-88dfb0e1a0d0"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-0cd782ecf407d35e",
+   "decision_version": 2,
+   "operation_id": "d5dc3e73-307f-42a5-b175-8abb6683ae4f"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-9b09bd64bac8e8c9",
+   "decision_version": 2,
+   "operation_id": "25a97451-0d7d-41d4-8595-6c4b2bfe4054"
+  },
+  {
+   "source_ref": "src-propertyskipper-jersey",
+   "channel_id": "bus19-review-dfa5ed173b8d0f6b",
+   "decision_version": 2,
+   "operation_id": "86fdf3c0-5c60-48ef-9b9f-219c8ce30971"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-1adba8fa190e0638",
+   "decision_version": 2,
+   "operation_id": "5ee101a4-ab3a-4bd5-b9bc-40d3f7bf99ec"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-d6da79716fcced73",
+   "decision_version": 2,
+   "operation_id": "27890f5f-7b23-4ce3-a553-72bf0126741a"
+  },
+  {
+   "source_ref": "src-quemard-estates",
+   "channel_id": "bus19-review-e2bb1c04a4599978",
+   "decision_version": 2,
+   "operation_id": "c7394c51-9a40-4a0d-b89e-7e271da6ebc7"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-20dccd297e7e51d4",
+   "decision_version": 2,
+   "operation_id": "cd50bc15-7a58-4cbf-8a21-3ae447bfc2db"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-64f7fbb65376439e",
+   "decision_version": 2,
+   "operation_id": "3756d2a9-95cf-409d-ae34-e21d636e028e"
+  },
+  {
+   "source_ref": "src-queree-property-consultants",
+   "channel_id": "bus19-review-c1e771d39c19e643",
+   "decision_version": 2,
+   "operation_id": "6cacc05f-bbd9-4269-9ca2-9cbe41d78ee5"
+  },
+  {
+   "source_ref": "src-r-a-d-property-management",
+   "channel_id": "bus19-review-fe9bab319f325e25",
+   "decision_version": 2,
+   "operation_id": "89b60186-26bf-45ba-844e-6d18fb42c4e4"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-63e92ef34fca8cbb",
+   "decision_version": 2,
+   "operation_id": "2756debb-d7f1-47a6-b833-2711d3bd070f"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-a2f63fb82dd638c2",
+   "decision_version": 2,
+   "operation_id": "4681aa90-a105-4782-8324-e9e4f3bb80ea"
+  },
+  {
+   "source_ref": "src-red-properties",
+   "channel_id": "bus19-review-c40ae7fcedca0091",
+   "decision_version": 2,
+   "operation_id": "02439374-2c2d-4cad-916a-993013504a0d"
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-4baacd0ef49f6683",
+   "decision_version": 2,
+   "operation_id": "bab4e6b2-9cca-4905-935b-5e49f34f49f1"
+  },
+  {
+   "source_ref": "src-regus-jersey",
+   "channel_id": "bus19-review-b281666e35bdc326",
+   "decision_version": 2,
+   "operation_id": "c273fcbc-6f1b-4316-881c-0a3e178b6d35"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-0f9419738d30b523",
+   "decision_version": 2,
+   "operation_id": "06fe2bff-df04-4508-8731-0b4830af9564"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-201e738ec1ad0402",
+   "decision_version": 2,
+   "operation_id": "a2934680-d190-44dd-bf5b-fde76d980ee9"
+  },
+  {
+   "source_ref": "src-reside",
+   "channel_id": "bus19-review-20533e68c6941b82",
+   "decision_version": 2,
+   "operation_id": "474f7dd3-8487-4eab-9d08-4f9e8ff6fa44"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-82d6f88c77c53e68",
+   "decision_version": 2,
+   "operation_id": "829904fc-dcca-442a-9927-dda5c0ef89db"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-8fae7260c424a8bd",
+   "decision_version": 2,
+   "operation_id": "c988536e-e06d-4085-add8-ab9c5dbd135e"
+  },
+  {
+   "source_ref": "src-rightmove-jersey",
+   "channel_id": "bus19-review-f2e1830227d76040",
+   "decision_version": 2,
+   "operation_id": "ebbaae37-6bcb-48ea-8ca4-9c1616f0ece7"
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-738a7ed0f8cc43c2",
+   "decision_version": 2,
+   "operation_id": "2884d6c3-2585-4086-b762-92a24515932a"
+  },
+  {
+   "source_ref": "src-rockproperty",
+   "channel_id": "bus19-review-eb85e29b9594897c",
+   "decision_version": 2,
+   "operation_id": "e2fe0f72-1360-4370-895f-442cf2bf8745"
+  },
+  {
+   "source_ref": "src-rolland-estates",
+   "channel_id": "bus19-review-48095ebd0cebf393",
+   "decision_version": 2,
+   "operation_id": "98c43557-511e-44a6-b40d-e9ef562d484f"
+  },
+  {
+   "source_ref": "src-sarre-co",
+   "channel_id": "bus19-review-aa528a1925eacac2",
+   "decision_version": 2,
+   "operation_id": "0e6d71a7-166f-41a0-9b56-b5ea12e86b9c"
+  },
+  {
+   "source_ref": "src-savills-jersey",
+   "channel_id": "bus19-review-9078f47b3d3973d4",
+   "decision_version": 2,
+   "operation_id": "2d1555a9-1c6d-4fd1-b3e9-93cf16b57a57"
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-260b60b147f6368f",
+   "decision_version": 2,
+   "operation_id": "2048b148-9c09-41d3-9b69-26963f102cf9"
+  },
+  {
+   "source_ref": "src-select-property-management-lettings",
+   "channel_id": "bus19-review-80075b4d8c7fd1ca",
+   "decision_version": 2,
+   "operation_id": "a706a30c-e33d-4125-8e66-c60a2207a0db"
+  },
+  {
+   "source_ref": "src-slomans",
+   "channel_id": "bus19-review-389d36a0bcc9de2b",
+   "decision_version": 2,
+   "operation_id": "5fe04311-b7d6-40fb-9be9-cc67944e4316"
+  },
+  {
+   "source_ref": "src-solo-solo-property-solutions",
+   "channel_id": "bus19-review-6710e5cf11bb9ce6",
+   "decision_version": 2,
+   "operation_id": "4c186970-c5bc-4369-afed-af926f551522"
+  },
+  {
+   "source_ref": "src-spareroom-jersey",
+   "channel_id": "bus19-review-bf8b88ce4f90cb27",
+   "decision_version": 2,
+   "operation_id": "42a59372-e301-4351-bb78-0cb0e06dedf8"
+  },
+  {
+   "source_ref": "src-spiffy",
+   "channel_id": "bus19-review-146f90295d7d64f7",
+   "decision_version": 2,
+   "operation_id": "27c50440-a3fc-4afa-9912-2446681025d2"
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-c94505a561d55f13",
+   "decision_version": 2,
+   "operation_id": "1a1d4266-6072-4900-98f5-f806d8c07948"
+  },
+  {
+   "source_ref": "src-the-instant-group-jersey",
+   "channel_id": "bus19-review-d087de2be9c890cf",
+   "decision_version": 2,
+   "operation_id": "ec1c521e-9b3c-463c-b2b3-6d1861104d99"
+  },
+  {
+   "source_ref": "src-thompson-lettings",
+   "channel_id": "bus19-review-24b4776e03a6472f",
+   "decision_version": 2,
+   "operation_id": "145923b0-4e05-45c9-8461-2baaba8329b4"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-3ddb13ea8700c668",
+   "decision_version": 2,
+   "operation_id": "07aa47c0-02ad-4742-a2f6-bdd021d03251"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-53c9ffdd1bd060da",
+   "decision_version": 2,
+   "operation_id": "bc890971-f5f3-45be-83fb-c2630b137a9c"
+  },
+  {
+   "source_ref": "src-troys-estate-agents",
+   "channel_id": "bus19-review-94b7b236de1350f6",
+   "decision_version": 2,
+   "operation_id": "16608409-8d1e-4f65-931a-67e10a9dd3d7"
+  },
+  {
+   "source_ref": "src-watson-homes",
+   "channel_id": "bus19-review-d84779bad13d65b3",
+   "decision_version": 2,
+   "operation_id": "88b3121f-59a7-4d13-a907-8faa03249c23"
+  },
+  {
+   "source_ref": "src-wezoo-jersey",
+   "channel_id": "bus19-review-7ae30c24817eb80d",
+   "decision_version": 2,
+   "operation_id": "83609515-21f5-4159-9e55-35ea75a77a6c"
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-2e110c9b9e4b134b",
+   "decision_version": 2,
+   "operation_id": "58ab7b24-ceb3-4cfc-a948-558dba3e15d9"
+  },
+  {
+   "source_ref": "src-zoopla-jersey",
+   "channel_id": "bus19-review-bbfc39055f161064",
+   "decision_version": 2,
+   "operation_id": "2b133691-3b4f-4938-8e2e-64e1960f46bb"
+  }
+ ]
+}

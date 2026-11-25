@@ -77,3 +77,7 @@ Agregadores, portales restringidos y webs que no listan vivienda. Places.je y Pr
 - regus.com
 - wezoo.com
 
+
+## Actualización 25-nov-2026 (BUS-19, «Fuera las 34»)
+
+Hasta esta fecha la app seguía teniendo como permitidas para lectura automática 34 fuentes de esta lista (67 canales: grupo A 5, B 12, D 7, E 10). Luis decidió pasarlas todas a «solo manual»: `BUS-19/decisiones-2026-11-25.sql` (detalle en su `.json`). Tras aplicarlo quedan 41 fuentes permitidas. Los demás dominios de la lista no tenían ninguna fuente permitida. Dos canales de Palladium Group (honeycombjersey.com) no están en la lista y salen con su fuente. Para reclasificar una de estas fuentes después, se hace una revisión nueva por canal en el panel.
