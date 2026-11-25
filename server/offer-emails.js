@@ -54,7 +54,8 @@ function shape(o, e, list) {
     : o.updated_at !== e.offer_updated_at ? "The offer changed since this email was prepared. Save it again to update it before sending."
     : !seller ? "This seller is no longer an owner of this listing in the Advertisers directory. Choose the seller again."
     : !contact ? "The contact chosen is no longer in the directory as it was. Choose a contact again." : null;
-  return { revision: e.revision, status: e.status, advertiser_id: e.advertiser_id, seller: seller ? { id: seller.id, name: seller.name } : null,
+  // stale: written from the offer as it no longer is; the panel then starts from the proposed text (review 25-nov).
+  return { revision: e.revision, status: e.status, advertiser_id: e.advertiser_id, stale: o.updated_at !== e.offer_updated_at, seller: seller ? { id: seller.id, name: seller.name } : null,
     contact, text: e.body, amount: e.amount, prepared_by: e.prepared_by, prepared_at: e.prepared_at,
     approval: e.approved_revision === e.revision ? { by: e.approved_by, at: e.approved_at } : null, sent_at: e.sent_at, blocked };
 }
@@ -66,7 +67,7 @@ async function view(env, id) {
 async function context({ env, params: [id] }) {
   await gate(env);
   const { o, list, email } = await view(env, id);
-  return json({ offer: { id: o.id, listing_id: o.listing_id, listing_title: o.title, status: o.status, amount: o.amount,
+  return json({ offer: { id: o.id, listing_id: o.listing_id, listing_title: o.title, status: o.status, amount: o.amount, updated_at: o.updated_at,
     counter_amount: o.counter_amount, conditions: o.conditions, open: isOpen(o) }, sellers: list, email,
   proposed_text: offerText({ listing: { ...o, id: o.listing_id }, offer: o }), email_stop: await emailStop(env) });
 }
@@ -80,6 +81,10 @@ async function save({ request, env, admin, params: [id] }) {
     || (b.text != null && typeof b.text !== "string")) fail(400, "Invalid format");
   const { o, e, list } = await view(env, id);
   if (!isOpen(o)) fail(409, NOT_OPEN);
+  // A text is kept only with the offer version it was written from (offer_updated_at, as GET gave it): one written before
+  // the offer changed would go out with the old amount under the new offer's record (review 25-nov).
+  if (b.text != null && b.offer_updated_at !== o.updated_at)
+    fail(409, "The offer changed while this email was open. Its text now follows the offer as it is: check it and save again.");
   if ((e?.revision ?? 0) !== b.revision) fail(409, CHANGED);
   if (e && !["draft", "sent", "queued"].includes(e.status)) fail(409, "Check what happened to the last email before preparing another.");
   const seller = list.find(s => s.id === b.advertiser_id) ?? fail(400, "Choose the seller among the owners of this listing.");

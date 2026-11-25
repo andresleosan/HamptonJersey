@@ -13,11 +13,11 @@ export default function SellerEmail({ offer: o, onClose, onDone }) {
   const [d, setD] = useState(null), [err, setErr] = useState(null), [busy, setBusy] = useState(false);
   const [f, setF] = useState({ advertiser_id: "", contact_key: "", text: "" });
   const fill = x => setF({ advertiser_id: String(x.email?.advertiser_id ?? x.sellers[0]?.id ?? ""), contact_key: x.email?.contact?.key ?? "",
-    text: x.email?.text ?? x.proposed_text });
+    text: x.email && !x.email.stale ? x.email.text : x.proposed_text }); // an offer that changed starts from its proposed text
   const load = () => api(`/admin/offers/${o.id}/seller-email`).then(x => { setD(x); fill(x); }, x => setErr(x.message));
   useEffect(() => { load(); }, []);
   const e = d?.email, rev = e?.revision ?? 0, seller = d?.sellers.find(s => String(s.id) === f.advertiser_id);
-  const dirty = !e || f.advertiser_id !== String(e.advertiser_id) || f.contact_key !== (e.contact?.key ?? "") || f.text.trim() !== e.text;
+  const dirty = !e || e.stale || f.advertiser_id !== String(e.advertiser_id) || f.contact_key !== (e.contact?.key ?? "") || f.text.trim() !== e.text;
   const act = async run => {
     if (busy) return;
     setBusy(true); setErr(null);
@@ -26,7 +26,8 @@ export default function SellerEmail({ offer: o, onClose, onDone }) {
   };
   const url = `/admin/offers/${o.id}/seller-email`;
   const save = ev => { ev.preventDefault(); act(async () => {
-    const r = await api(url, { method: "PUT", body: { revision: rev, advertiser_id: Number(f.advertiser_id), contact_key: f.contact_key, text: f.text } });
+    const r = await api(url, { method: "PUT", body: { revision: rev, advertiser_id: Number(f.advertiser_id), contact_key: f.contact_key, text: f.text,
+      offer_updated_at: d.offer.updated_at } });
     setD(x => ({ ...x, email: r.email }));
   }); };
   const approve = () => act(async () => {

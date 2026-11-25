@@ -168,7 +168,8 @@ test("a change to the offer, the contact or the text takes the approval away", a
   assert.deepEqual([e.status, e.revision, e.approval], ["draft", 4, null]);
   assert.equal(outbound(env).at(-1).status, "cancelled");
   // The text alone changes: the same.
-  e = ok(await save(env, id, { revision: 4, advertiser_id: seller, contact_key: keyOf(ctx, seller, OTHER), text: "Hello,\n\nAn offer.\n\nHampton Estates" })).email;
+  e = ok(await save(env, id, { revision: 4, advertiser_id: seller, contact_key: keyOf(ctx, seller, OTHER), text: "Hello,\n\nAn offer.\n\nHampton Estates",
+    offer_updated_at: (await context(env, id)).offer.updated_at })).email;
   assert.deepEqual([e.revision, e.approval, e.text], [5, null, "Hello,\n\nAn offer.\n\nHampton Estates"]);
   ok(await approve(env, id, 5));
   // The seller's directory entry changes after it was queued (another address): not claimed.
@@ -254,4 +255,22 @@ test("the website and the clock carry the same OFE02_SEND_READY, off", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^OFE02_SEND_READY = "(.*)"$/m)?.[1];
   assert.equal(flag("wrangler.toml"), "0");
   assert.equal(flag("jobs/wrangler.toml"), "0");
+});
+
+// Review 25-nov: a text written from an offer as it no longer is never goes out with the new offer's record. A text is
+// saved only with the offer version it was written from; the panel then gets the proposed text from the offer as it is.
+test("a text written before the offer changed is refused, and the proposed text follows the offer as it is now", async () => {
+  const env = world(), seller = await owner(env), id = await offerOn(env), ctx = await context(env, id);
+  const old = ctx.proposed_text, seen = ctx.offer.updated_at;
+  assert.ok(old.includes("750,000"));
+  ok(await save(env, id, { revision: 0, advertiser_id: seller, contact_key: keyOf(ctx, seller, SELLER), text: old, offer_updated_at: seen }));
+  ok(await req(env, "PUT", `/admin/offers/${id}`, { amount: 800000 }));
+  const edited = old + "\n";
+  for (const body of [{ text: edited, offer_updated_at: seen }, { text: edited }])
+    assert.equal((await save(env, id, { revision: 1, advertiser_id: seller, contact_key: keyOf(ctx, seller, SELLER), ...body })).status, 409);
+  const now = await context(env, id);
+  assert.ok(now.proposed_text.includes("800,000") && now.email.stale);
+  const e = ok(await save(env, id, { revision: 1, advertiser_id: seller, contact_key: keyOf(ctx, seller, SELLER), text: now.proposed_text,
+    offer_updated_at: now.offer.updated_at })).email;
+  assert.ok(e.text.includes("800,000") && !e.blocked && !e.stale);
 });

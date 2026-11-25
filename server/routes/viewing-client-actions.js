@@ -11,8 +11,8 @@ import { afterViewingChange } from "../viewing-calendar.js";
 import { client, VALID } from "../presentation-access.js";
 import { remindersReady, migrated, local, START, SLOT } from "../viewing-reminders.js";
 
-const LINKED = `(SELECT p.applicant_id FROM viewing_proposals p WHERE p.viewing_id = v.id AND p.applicant_id IS NOT NULL
-  ORDER BY p.revision DESC LIMIT 1)`;
+// The newest proposal decides (as CLIENT in viewing-reminders.js): a later "Not linked" one leaves the viewing to nobody.
+const LINKED = `(SELECT p.applicant_id FROM viewing_proposals p WHERE p.viewing_id = v.id ORDER BY p.revision DESC LIMIT 1)`;
 // ?1 viewing, ?2 grant, ?3 now (ISO), ?4 date and ?5 time the client saw, ?6 Jersey now.
 const MINE = `v.id = ?1 AND EXISTS (SELECT 1 FROM presentation_grants g WHERE g.id = ?2 AND ${VALID.replaceAll("?", "?3")}
   AND g.applicant_id = ${LINKED}) AND v.date = ?4 AND v.time = ?5 AND ${START} > ?6`;

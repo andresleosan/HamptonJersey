@@ -24,9 +24,10 @@ export const START = "v.date || ' ' || v.time";
 // The time a reminder is for, as outbound.version: 2026-11-26 14:30 is 202611261430.
 export const SLOT = "CAST(replace(v.date, '-', '') || replace(v.time, ':', '') AS INTEGER)";
 const slotOf = v => Number(v.date.replaceAll("-", "") + v.time.replace(":", ""));
-// The search a person linked to viewing v (the latest proposal that names one), with its contact.
+// The search a person linked to viewing v, with its contact: the newest proposal decides, as the panel reads it, so a
+// later "Not linked" one (or a deleted search, whose proposals lose it) leaves the viewing with no client.
 const CLIENT = `JOIN applicants a ON a.id = (SELECT p.applicant_id FROM viewing_proposals p WHERE p.viewing_id = v.id
-    AND p.applicant_id IS NOT NULL ORDER BY p.revision DESC LIMIT 1) JOIN contacts c ON c.id = a.contact_id`;
+    ORDER BY p.revision DESC LIMIT 1) JOIN contacts c ON c.id = a.contact_id`;
 
 export async function migrated(env) {
   try { await env.DB.prepare("SELECT v.reminded_at, p.applicant_id FROM viewing_requests v, viewing_proposals p LIMIT 0").all(); return true; }

@@ -285,3 +285,22 @@ test("Cancel ends only the client's own place in an open viewing; a revoked link
   assert.equal((await as(env, s2.cookie, "POST", `/presentation/viewings/${v2}/cancel`, slot)).status, 404);
   assert.equal(rows(env, "SELECT status FROM viewing_requests WHERE id = ?", v2)[0].status, "confirmed");
 });
+
+// Review 25-nov: the newest proposal decides, as the panel reads it. A later "Not linked" proposal (or a search deleted, whose
+// proposals lose their applicant) unlinks the viewing: no reminder to the search an older proposal named, and its private
+// link can no longer see or answer the viewing.
+test("a newer proposal that is not linked unlinks the viewing: no reminder and no answer from the search an older one named", async () => {
+  const env = world(), start = Date.parse("2026-12-10T14:00:00Z"), wrong = client(env), id = viewing(env, at(start), wrong);
+  run(env, `INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id, date, time, end_time, from_status, from_date,
+    from_time, required, state, created_at, created_by, closed_at, closed_by) SELECT viewing_id, 2, NULL, negotiator_id, date, time, end_time,
+    from_status, from_date, from_time, required, state, created_at, created_by, closed_at, closed_by FROM viewing_proposals WHERE viewing_id = ?`, id);
+  await reminderPass(env, start - 2 * H);
+  assert.equal(outbound(env).length, 0);
+  const soon = viewing(env, at(Date.now() + 5 * H), wrong);
+  run(env, `INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id, date, time, end_time, from_status, from_date,
+    from_time, required, state, created_at, created_by, closed_at, closed_by) SELECT viewing_id, 2, NULL, negotiator_id, date, time, end_time,
+    from_status, from_date, from_time, required, state, created_at, created_by, closed_at, closed_by FROM viewing_proposals WHERE viewing_id = ?`, soon);
+  const { cookie } = await session(env, wrong);
+  assert.deepEqual((await as(env, cookie, "GET", "/presentation/viewings")).data.viewings, []);
+  assert.equal((await as(env, cookie, "POST", `/presentation/viewings/${soon}/cancel`, at(Date.now() + 5 * H))).status, 404);
+});
