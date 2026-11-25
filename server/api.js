@@ -20,6 +20,7 @@ import matchRoutes from "./routes/matches.js";
 import negotiatorRoutes from "./routes/negotiators.js";
 import insightRoutes from "./routes/insights.js";
 import saleRoutes from "./routes/sales.js";
+import offerEmailRoutes from "./offer-emails.js";
 import rentalRoutes from "./routes/rentals.js";
 import rentRoutes, { arrearsReady, writeoffRoutes, renewalReady, renewalRoutes } from "./routes/rent.js";
 import statementRoutes, { closingRoutes, statementsReady } from "./statements.js";
@@ -200,6 +201,7 @@ async function route(request, env, segments, waitUntil) {
     routes = [...routes, ...(calendarReady(env) ? calendarRoutes : calendarOffRoutes)]; // VIS-12: needs migration 0105
     // AGE-14: advertiser personal-data removal needs migration 0057 and its flag.
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
+    routes = [...routes, ...offerEmailRoutes]; // OFE-02: 404 while OFE02_SEND_READY is off or before migration 0126
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;

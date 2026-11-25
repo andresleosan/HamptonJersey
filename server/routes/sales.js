@@ -10,6 +10,7 @@ import { jerseyToday } from "../viewings.js";
 import { jerseyDayStart } from "../insights.js";
 import { ENUMS } from "../listing.js";
 import { listingEventStatements, listingClock } from "../listing-events.js";
+import { offerSendReady, offerTable } from "../offer-email-check.js";
 
 const OPEN = ["pending", "countered"];
 const NOT_OPEN = "This offer is no longer open";
@@ -272,6 +273,8 @@ async function list({ env }) {
     totals: { open_offers: offers.length, in_progress: sales.length, fees_in_progress: netFees(sales),
       fees_completed_year: netFees(closed.filter(s => s.status === "completed" && s.closed_at >= yearStart)) },
     offers: offers.map(o => ({ ...o, waiting: !!o.waiting, backup: !!o.backup })), sales, closed,
+    // OFE-02: an open offer can be emailed to its seller (server/offer-emails.js).
+    ...(offerSendReady(env) && await offerTable(env) ? { seller_email: true } : {}),
   });
 }
 

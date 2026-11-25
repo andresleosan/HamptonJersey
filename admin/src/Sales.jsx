@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate, fmtDay, show } from "./format.js";
 import { jerseyToday } from "../../server/viewings.js";
+import SellerEmail from "./SellerEmail.jsx";
 
 // Spec §4 Sales: the open offers by listing, the sales in progress (overdue first) and those closed in the last 12
 // months, with Hampton's fees on the way and those completed this year.
@@ -141,6 +142,7 @@ export default function Sales({ buyer, requestedOffer, onChange }) {
                         <button type="button" onClick={open("edit", o)}>Edit</button>
                         <button type="button" onClick={open("reject", o)}>Reject</button>
                         <button type="button" onClick={open("withdraw", o)}>Withdraw</button>
+                        {data.seller_email && <button type="button" onClick={open("seller", o)}>Email to seller</button>}
                       </div></details></span></td>
                   </tr>)}</tbody>
                 </table></div></div>;
@@ -187,7 +189,8 @@ export default function Sales({ buyer, requestedOffer, onChange }) {
       </section>
     </>}
     {dialog?.action === "record" && <RecordOffer buyerId={dialog.buyer} onClose={() => setDialog(null)} onDone={done} />}
-    {dialog && dialog.action !== "record" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} onRefused={load} />}
+    {dialog?.action === "seller" && <SellerEmail offer={dialog.offer} onClose={() => setDialog(null)} onDone={done} />}
+    {dialog && dialog.action !== "record" && dialog.action !== "seller" && <OfferDialog {...dialog} onClose={() => setDialog(null)} onDone={done} onAccepted={onChange} onRefused={load} />}
   </section>;
 }
 

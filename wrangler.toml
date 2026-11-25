@@ -59,6 +59,10 @@ ADM15_RENT_REVIEW_READY = "1"
 # AGE-05: enquiry emails to advertisers, each approved by a person. Switched on 24-nov-2026 by Luis; keep equal in
 # jobs/wrangler.toml (a test checks it). To stop, switch off in jobs/wrangler.toml too: the clock sends what is queued.
 AGE05_SEND_READY = "1"
+# OFE-02: from Sales, an open offer emailed to its seller (an owner in the Advertisers directory), each email approved
+# by a team member and sent through the approved queue (migration 0126). Sends messages: only Luis switches it on, here
+# and in jobs/wrangler.toml at the same time (a test checks it). Off, the clock takes back what is queued.
+OFE02_SEND_READY = "0"
 # PUB-10: the public «Sell or let» form receives owners' requests (migration 0118). Also needs the app_settings row
 # owner_enquiries = {"enabled":true,"privacy_version":...} of the published owners' notice (PRE-09, JOIC of PRE-03).
 # Collects personal data from the public: only Luis switches it on.

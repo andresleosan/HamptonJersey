@@ -4,6 +4,7 @@ import { retentionNoticePass } from "./retention-notices.js";
 import { demandRetentionPass } from "./demand-retention.js";
 import { emailPass } from "./email.js";
 import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
+import { offerEmailPass } from "./offer-emails.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
 import { notificationsPass } from "./notification-reconcile.js";
@@ -92,6 +93,7 @@ const clock = {
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.
     await emailPass(env, now(), now, await enquiryEmailCheck(env));
     await enquiryEmailPass(env);
+    await offerEmailPass(env); // OFE-02: what happened to each offer emailed to its seller
   },
 };
 

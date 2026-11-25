@@ -242,7 +242,8 @@ async function outboundResult({ request, env, params: [ref] }) {
 // Fase D: the threads of what went out in the last 30 days (sent, or a draft a person may have sent from Gmail, and the
 // approved enquiries of the queue the carrier sent), so the carrier reads only those and never searches the mailbox.
 // ponytail: the newest 50; older ones wait for a quieter day.
-const WATCH_MS = 30 * 86400e3, OUT_THREAD = "template = 'enquiry' AND status = 'accepted' AND recipient IS NOT NULL AND gmail_thread_id IS NOT NULL";
+// OFE-02: an offer taken to its seller is read too, so the seller's reply comes back linked to its email.
+const WATCH_MS = 30 * 86400e3, OUT_THREAD = "template IN ('enquiry', 'offer_to_seller') AND status = 'accepted' AND recipient IS NOT NULL AND gmail_thread_id IS NOT NULL";
 // recipient IS NOT NULL: a contact erased (or an agency removed) stops being read, so an erasure never brings replies back.
 async function mailThreads({ env }) {
   if (!mailReady(env)) fail(404, "Not found");

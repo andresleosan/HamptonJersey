@@ -119,13 +119,13 @@ const callClosed = (env, c, actor) => env.DB.prepare(`UPDATE notifications SET r
   .bind(now(), actor, "A useful answer was recorded or the enquiry was cancelled, so no call is needed.", c.listing_id, c.id, callKey(c));
 // A contact is referred to by a digest of its name and email, never by a copy: one that is renamed, given another
 // address or removed no longer answers to it, and the enquiry waits for a person to choose again.
-const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
+export const contactKey = c => sha256(JSON.stringify([c.name, c.email].map(v => String(v ?? "").trim().toLowerCase())));
 // Each contact that can be reached (an email or a phone) with its reference; the others are shown but cannot be chosen.
-const keyed = contacts => Promise.all(contacts.map(async c => (emailAddress(c.email) || c.phones?.length ? { ...c, key: await contactKey(c) } : c)));
+export const keyed = contacts => Promise.all(contacts.map(async c => (emailAddress(c.email) || c.phones?.length ? { ...c, key: await contactKey(c) } : c)));
 // Why the app cannot send an email now, in words for the panel; null when it can. queued: said of an email that waits
 // in the queue, which a person can take back. The sender is the clock's (server/email.js emailPass writes email_worker
 // on each tick), which has its own switch: one that is off, or has not run for half an hour, sends nothing.
-async function emailStop(env, queued = false) {
+export async function emailStop(env, queued = false) {
   const then = queued ? "it waits, or return it to manual sending and send it yourself." : BY_HAND;
   if (!outboundReady(env)) return `Email from the app is not switched on yet, so nothing is sent from here: ${then}`;
   if (!(await readEmailSettings(env)).enabled) return `Email sending is switched off in Email settings, so nothing is sent from here: ${then}`;

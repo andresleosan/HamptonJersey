@@ -73,6 +73,9 @@ AGE15_AUTO_ADVERTISERS_READY = "1"
 # AGE-05: enquiry emails to advertisers. Switched on 24-nov-2026 by Luis; keep equal in ../wrangler.toml. To stop,
 # switch off here first.
 AGE05_SEND_READY = "1"
+# OFE-02: offers emailed to their sellers from Sales (migration 0126). Keep equal in ../wrangler.toml. Off, no offer
+# email is claimed and the clock takes back what is queued.
+OFE02_SEND_READY = "0"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.
 BACKUP_READY = "0"
 # PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.

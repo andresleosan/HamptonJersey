@@ -24,3 +24,16 @@ test("the carrier's claim of an enquiry fits D1's depth with the deployed switch
   assert.equal(await claimForHermes(env, await enquiryEmailCheck(env)), null);
   assert.ok(seen.some(sql => sql.startsWith("UPDATE outbound SET status='sending'")), "the claim was prepared");
 });
+
+// OFE-02: with its switch on as well (and the others as deployed), the claim carries the offer's own check too.
+test("the carrier's claim with OFE-02's check fits D1's depth", async () => {
+  const db = makeDb(), seen = [];
+  const env = { ...vars, OFE02_SEND_READY: "1", DB: { ...db, prepare: sql => {
+    seen.push(sql);
+    const s = db.prepare(sql);
+    return /^SELECT id FROM outbound WHERE status='queued'/.test(sql) ? { ...s, bind: (...a) => ({ ...s.bind(...a), all: async () => ({ results: [{ id: 1 }] }) }) } : s;
+  } } };
+  assert.equal(await claimForHermes(env, await enquiryEmailCheck(env)), null);
+  const claim = seen.find(sql => sql.startsWith("UPDATE outbound SET status='sending'"));
+  assert.ok(claim?.includes("FROM offer_emails oe"), "the claim was prepared with the offer's check");
+});
