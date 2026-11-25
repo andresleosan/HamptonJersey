@@ -11,7 +11,8 @@
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
-    "site/apply.js:330-335"
+    "site/apply.js:330-335",
+    "25-nov-2026: decisión de Luis «Sí, sin nombres»: desde hoy el modelo de Hermes solo recibe la casa, las franjas y, si se marca, el tamaño del hogar; ningún nombre de cliente, contacto, agencia ni propietario (instalado en la app y en el cartero). El acuerdo con el proveedor de IA sigue pendiente para lo que el cliente escriba en texto libre."
   ],
   "assignedSlot": "codex-desktop",
   "allocationStatus": "proposed",
@@ -31,5 +32,5 @@
     "data-processing-agreements"
   ],
   "nextStep": "Luis coordina titularidad y acuerdos de tratamiento aplicables con los participantes y el abogado.",
-  "actualizado": "2026-11-21"
+  "actualizado": "2026-11-25"
 }

@@ -2697,9 +2697,11 @@ document.addEventListener('DOMContentLoaded', () => {
     "24-nov-2026: prueba de Gmail desde el contenedor del cartero (por squid): borrador a la propia cuenta de Hampton creado 200 (etiqueta DRAFT), leído 200, borrado 204, después 404. Recorrido completo pendiente de la primera consulta real: en producción advertisers está vacío (0) y listing_market_links también (0), así que ninguna ficha tiene agencia a la que escribir; solo 2 coincidencias shortlisted (solicitante 3, HE-R172 y HE-R173) y 5 en found.",
     "24-nov: hilo de la cola aprobada. Decisión: solo plantilla enquiry (plan línea 95; resumen y avisos internos no se vigilan). Pruebas: aut-17-hermes-outbound/mail/correo 42/42; npm test 3566/3566; build y check:release OK. Revisión independiente: nada grave; arreglado que un contacto borrado siguiera vigilándose (recipient IS NOT NULL). 0125 aplicada en remoto sola (pragma_table_info confirma gmail_thread_id).",
     "24-nov: respuestas en la consulta. tests/server/age-05-send (22/22, nueva: lista solo las respuestas de su correo o de su tarea de Hermes, sin texto, nada se registra sola; sin AGE-06 no aparecen); e2e tests/age03-enquiries.e2e.cjs con el paso nuevo pasa a 1280 y 390 con AGE05_SEND_READY=0 (con 1 falla antes, en main limpio también: fallo anterior, ver MEJORAS). Revisión independiente: nada grave; arreglados la respuesta elegida que pasaba a otra consulta y el botón en rebotes.",
-    "24-nov: responsable Luis. El transporte (fases A-D) está construido y encendido; los envíos «Traído de» de otras tareas se construyen cuando el canal esté probado con un envío real (plan maestro: ANA-08 y VIS-13/OFE-02 piden AUT-17 activado). Fuente: skill sección 2 (lo único que falta es de Luis) y plan de ANA-08."
+    "24-nov: responsable Luis. El transporte (fases A-D) está construido y encendido; los envíos «Traído de» de otras tareas se construyen cuando el canal esté probado con un envío real (plan maestro: ANA-08 y VIS-13/OFE-02 piden AUT-17 activado). Fuente: skill sección 2 (lo único que falta es de Luis) y plan de ANA-08.",
+    "25-nov-2026: decisión de Luis (PRE-13): la IA de Hermes no ve ningún nombre; el cartero pone «Hello \u003cnombre>,» al enviar o al dejar el borrador (marcador {{greeting}}), y a la app vuelve el texto con el marcador, nunca el nombre. Commits bb8ff91c y 17f33684; npm test 3571/3571.",
+    "25-nov-2026 (con el sí de Luis a las instalaciones): cartero reinstalado dos veces hoy, 05:11 UTC (hilo de Gmail de la cola aprobada) y 06:41 UTC (sin nombres para el modelo; copias correo.mjs.~1~ y ~2~); skill hampton-correo = main (copia anterior en /root/hermes/skills-copias). Envío de correo activado por Luis en el panel a las 05:54 UTC (resumen diario apagado). Prueba real en curso: consulta 1 (HE-R286) a la agencia de prueba «PRUEBA Luis (no usar)», que llega al correo de Luis."
    ],
-   "actualizado": "2026-11-24"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "AUT-18",
@@ -7039,9 +7041,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:493",
-    "site/apply.js:330-335"
+    "site/apply.js:330-335",
+    "25-nov-2026: decisión de Luis «Sí, sin nombres»: desde hoy el modelo de Hermes solo recibe la casa, las franjas y, si se marca, el tamaño del hogar; ningún nombre de cliente, contacto, agencia ni propietario (instalado en la app y en el cartero). El acuerdo con el proveedor de IA sigue pendiente para lo que el cliente escriba en texto libre."
    ],
-   "actualizado": "2026-11-21"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "PRE-14",
