@@ -50,5 +50,6 @@ test("the carrier's claim with every switch on fits D1's depth", async () => {
   } } };
   assert.equal(await claimForHermes(env, await enquiryEmailCheck(env)), null);
   const claim = seen.find(sql => sql.startsWith("UPDATE outbound SET status='sending'"));
-  for (const t of ["enquiry", "offer_to_seller", "viewing_reminder_24h", "retention_notice"]) assert.ok(claim.includes(`'${t}'`), t);
+  for (const t of ["enquiry", "offer_to_seller", "viewing_reminder_24h", "retention_notice", "viewing_feedback", "viewing_cancelled_closed"]) assert.ok(claim.includes(`'${t}'`), t);
+  assert.ok(claim.includes("e.type = 'viewing.cancelled'"), "the claim carries AUT-21's check");
 });

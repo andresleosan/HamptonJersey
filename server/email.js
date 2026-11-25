@@ -5,6 +5,7 @@ import { NO_NOTICE, noticeClaimSql } from "./retention.js";
 import { offerClaimSql } from "./offer-email-check.js";
 import { REMINDERS, reminderClaimSql } from "./viewing-reminders.js";
 import { weeklyClaimSql } from "./weekly-insights-email-check.js";
+import { VIEWING_EMAILS, viewingEmailClaimSql } from "./viewing-email-check.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -92,7 +93,7 @@ export async function prepareSummary(env, ts) {
 // PRE-12: retention_notice, the notice before the retention pass deletes a contact, goes only while noticeClaimSql holds.
 // OFE-02: offer_to_seller, an offer taken to its seller, goes only while offerClaimSql holds (server/offer-email-check.js).
 // VIS-13: a viewing reminder goes only while reminderClaimSql holds (server/viewing-reminders.js).
-const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h", "weekly_insights"];
+const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h", "weekly_insights", "viewing_feedback", "viewing_cancelled_closed"];
 const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
   OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
@@ -149,6 +150,7 @@ async function outboundGate(env, enquiry, day) {
     [["offer_to_seller"], await offerClaimSql(env)], // OFE-02
     [REMINDERS, await reminderClaimSql(env)], // VIS-13
     [["weekly_insights"], await weeklyClaimSql(env)], // AUT-22
+    [VIEWING_EMAILS, await viewingEmailClaimSql(env)], // AUT-21
   ];
   return { notice, claim: AUTHORIZED(checks, purposeReady(env), capped), after: AUTHORIZED(checks, purposeReady(env), notice) };
 }
@@ -252,7 +254,7 @@ export async function settleForHermes(env, ref, token, outcome, messageId, threa
   // Fase D: an enquiry, OFE-02's offer to a seller or a VIS-13 reminder Gmail took keeps its thread (once), so the
   // carrier reads the reply there (server/hermes-mail.js).
   if (threadId && outcome === "sent" && (r === "ok" || r === "same"))
-    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller', 'viewing_reminder_24h', 'viewing_reminder_2h') AND status = 'accepted'
+    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller', 'viewing_reminder_24h', 'viewing_reminder_2h', 'viewing_feedback', 'viewing_cancelled_closed') AND status = 'accepted'
       AND message_id = ? AND gmail_thread_id IS NULL`).bind(threadId, ref, messageId).run();
   return r;
 }
