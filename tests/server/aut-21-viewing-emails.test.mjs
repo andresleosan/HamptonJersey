@@ -172,7 +172,10 @@ test("24 hours after a sale, the other viewings to come are cancelled with one n
     assert.ok(o.text.includes("sold") && o.text.includes("Fixture Cottage") && o.text.includes(HOME), o.text);
     for (const s of ["Bought Person", "buyer@example.test", "500,000", "500000", "4321", "dog", "Fixture Viewer"]) assert.ok(!(o.subject + o.text).includes(s), s);
   }
-  // The PUB-16 task of a cancelled one is done; the buyer's viewing keeps it for a person.
+  // The PUB-16 task of a cancelled one stays until its notice left (review 25-nov); the buyer's viewing keeps it.
+  assert.deepEqual(openTasks(env, a), ["Property sold, cancel the viewing: Fixture Viewer"]);
+  run(env, "UPDATE outbound SET status = 'accepted', claimed_at = ? WHERE entity_id = ?", iso(Date.now()), String(a));
+  await viewingEmailSettlePass(env);
   assert.deepEqual(openTasks(env, a), []);
   assert.deepEqual(openTasks(env, own), ["Property sold, cancel the viewing: Fixture Viewer"]);
   assert.equal(rows(env, "SELECT COUNT(*) n FROM events WHERE type = 'viewing.cancelled' AND actor = 'automation'")[0].n, 2);
@@ -305,4 +308,48 @@ test("the website and the clock carry the same AUT21_VIEWING_EMAILS_READY, off",
   const flag = f => readFileSync(new URL(`../../${f}`, import.meta.url), "utf8").match(/^AUT21_VIEWING_EMAILS_READY = "(\d)"/m)?.[1];
   assert.equal(flag("wrangler.toml"), "0");
   assert.equal(flag("jobs/wrangler.toml"), "0");
+});
+
+// Review 25-nov: three ways a cancelled viewing's client could be failed.
+test("the cancel ends an open VIS-17 proposal even though the clock carries no VIS-17 switch", async () => {
+  const env = world(); sold(env); since(env, Date.now() - 2 * D);
+  const id = viewing(env, later()), slot = later();
+  run(env, `INSERT INTO viewing_proposals (viewing_id, revision, applicant_id, negotiator_id, date, time, end_time, from_status, from_date,
+    from_time, required, state, created_at, created_by) VALUES (?, 1, NULL, 1, ?, ?, ?, 'requested', ?, ?, '["client"]', 'open', ?, 'admin@example.test')`,
+    id, slot.date, slot.time, addMinutes(slot.time, 30), slot.date, slot.time, T0);
+  assert.equal(env.VIS17_MULTIPART_READY, undefined);
+  await tick(env);
+  assert.equal(status(env, id), "cancelled");
+  assert.notEqual(rows(env, "SELECT state FROM viewing_proposals WHERE viewing_id = ?", id)[0].state, "open");
+});
+
+test("a notice not sent before the viewing starts is not claimed after it, and a person is told", async () => {
+  const env = world(); sold(env); since(env, Date.now() - 2 * D);
+  const id = viewing(env, at(Date.now() + 2 * H));
+  await tick(env);
+  assert.equal(status(env, id), "cancelled");
+  const after = Date.now() + 3 * H;
+  assert.equal(await viewingEmailClaimSql(env, after).then(sql => rows(env, `SELECT ${sql.replaceAll("outbound.", "o.")} AS ok
+    FROM outbound o WHERE o.entity_id = ?`, String(id))[0].ok), 0);
+  await viewingEmailSettlePass(env, after);
+  assert.equal(outbound(env)[0].status, "cancelled");
+  assert.deepEqual(openTasks(env, id), [`Viewing cancelled (property let or sold), the client was not emailed: Fixture Viewer`]);
+});
+
+test("after a let, the incoming tenant's own viewing (named by the tenancy) is not cancelled", async () => {
+  const env = world({ listing: { operation: "rent", availability: "let_agreed", published: 0 } });
+  since(env, Date.now() - 2 * D);
+  const opened = iso(Date.now() - 25 * H), due = iso(Date.parse(opened) + D);
+  const e = Number(run(env, "INSERT INTO events (at, actor, entity_type, entity_id, type) VALUES (?, 'admin@example.test', 'listing', ?, 'listing.let')", opened, HOME).lastInsertRowid);
+  run(env, `INSERT INTO rental_closure_windows (closure_id, listing_id, close_event_id, state, opened_at, due_at, previous_availability,
+    previous_published, previous_viewings_enabled, applied_updated_at, withdrawn_at) VALUES ('c2', ?, ?, 'withdrawn', ?, ?, 'to_let', 1, 1, ?, ?)`,
+    HOME, e, opened, due, opened, due);
+  env.DB.raw.exec("PRAGMA foreign_keys=OFF");
+  const c = Number(run(env, "INSERT INTO contacts (name, email, last_activity_at, created_at, updated_at) VALUES ('New Tenant', 'tenant@example.test', ?, ?, ?)", T0, T0, T0).lastInsertRowid);
+  const ap = Number(run(env, "INSERT INTO applicants (contact_id, operation, stage, source, created_at, updated_at) VALUES (?, 'rent', 'searching', 'phone', ?, ?)", c, T0, T0).lastInsertRowid);
+  run(env, `INSERT INTO tenancy_origins (tenancy_id, operation_id, rental_id, listing_id, applicant_id, listing_updated_at, applicant_updated_at,
+    created_at, created_by) VALUES (1, 'op-fixture-1', 1, ?, ?, ?, ?, ?, 'admin@example.test')`, HOME, ap, T0, T0, T0);
+  const mine = viewing(env, later(), { email: "Tenant@Example.test" }), other = viewing(env, later());
+  await tick(env);
+  assert.deepEqual([status(env, mine), status(env, other)], ["confirmed", "cancelled"]);
 });

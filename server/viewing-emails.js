@@ -21,7 +21,7 @@ import { resolveNotices } from "./events.js";
 import { jerseyNow } from "./viewings.js";
 import { local } from "./viewing-reminders.js";
 import { rentalClosureEnabled } from "./rental-closure.js";
-import { coordinationOn, closeOpenProposal } from "./viewing-coordination.js";
+import { closeOpenProposal } from "./viewing-coordination.js";
 import { afterViewingChange } from "./calendar-sync.js";
 import { viewingEmailsReady, viewingEmailClaimSql, closureTable, FEEDBACK, CLOSED_NOTICE, VIEWING_EMAILS, END }
   from "./viewing-email-check.js";
@@ -104,16 +104,25 @@ const BUYER = `EXISTS (SELECT 1 FROM sales s WHERE s.listing_id = v.listing_id A
     (SELECT p.applicant_id FROM viewing_proposals p WHERE p.viewing_id = v.id ORDER BY p.revision DESC LIMIT 1)
   OR EXISTS (SELECT 1 FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE a.id = s.applicant_id
     AND lower(trim(c.email)) = lower(trim(v.email)))))`;
+// Review 25-nov: the same for a let once its tenancy names the tenant (tenancy_origins): their own viewing is not one of
+// the others. Before the team enters the tenancy nothing names them: see AUT-21's falta.
+const TENANT = `EXISTS (SELECT 1 FROM tenancy_origins t WHERE t.listing_id = v.listing_id AND (t.applicant_id =
+    (SELECT p.applicant_id FROM viewing_proposals p WHERE p.viewing_id = v.id ORDER BY p.revision DESC LIMIT 1)
+  OR EXISTS (SELECT 1 FROM applicants a JOIN contacts c ON c.id = a.contact_id WHERE a.id = t.applicant_id
+    AND lower(trim(c.email)) = lower(trim(v.email)))))`;
 
 async function closedPass(env, t, since) {
   if (await emailStop(env)) return; // sending stopped: nothing is cancelled, PUB-16's tasks stay with the team
-  const ts = iso(t), clock = jerseyNow(new Date(t)), coordination = await coordinationOn(env);
+  const ts = iso(t), clock = jerseyNow(new Date(t));
+  // Review 25-nov: an open VIS-17 proposal ends with its viewing whatever this worker's switches say (the clock carries no
+  // VIS17_MULTIPART_READY; the door that lets Hermes write about proposals runs on the website, where it is on).
+  const coordination = !!(await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'viewing_proposals'").first());
   const { results } = await env.DB.prepare(`WITH ${CLOSED}
     SELECT v.id, v.name, v.date, v.time, v.updated_at, v.listing_id, v.email, COALESCE(l.title, v.listing_title_snapshot) AS title,
       l.location, l.country, MIN(c.what) AS what
     FROM closed c JOIN viewing_requests v ON v.listing_id = c.listing_id AND v.date >= ?3 AND v.created_at < c.at
       LEFT JOIN listings l ON l.id = v.listing_id
-    WHERE v.status IN ('requested', 'confirmed') AND ${END} >= ?4 AND v.email IS NOT NULL AND NOT ${BUYER}
+    WHERE v.status IN ('requested', 'confirmed') AND ${END} >= ?4 AND v.email IS NOT NULL AND NOT ${BUYER} AND NOT ${TENANT}
       AND NOT EXISTS (SELECT 1 FROM outbound o WHERE o.template = '${CLOSED_NOTICE}' AND o.entity_id = CAST(v.id AS TEXT))
     GROUP BY v.id ORDER BY v.id LIMIT 50`).bind(iso(Date.parse(since) - D), iso(t - D), clock.date, `${clock.date} ${clock.time}`).all();
   for (const v of results) {
@@ -130,12 +139,8 @@ async function closedPass(env, t, since) {
       env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, 'automation', 'viewing', ?, 'viewing.cancelled',
         json_object('by', 'automation', 'reason', 'property_closed') WHERE changes() = 1`).bind(ts, id),
       resolveNotices(env, { entity_type: "viewing", entity_id: id, category: "viewing" }, "automation", { ifLogged: true }),
-      // PUB-16's task «Property let/sold, cancel the viewing» is done by this cancel.
-      env.DB.prepare(`UPDATE notifications SET resolved_at = COALESCE(resolved_at, ?1), resolved_by = COALESCE(resolved_by, 'automation'),
-        closed_by_source = 1, task_actor = 'automation', task_action = 'source_resolved' WHERE resolved_at IS NULL
-        AND event_id IN (SELECT id FROM events WHERE entity_type = 'viewing' AND entity_id = ?2 AND type = 'viewing.property_closed')
-        AND EXISTS (SELECT 1 FROM events WHERE entity_type = 'viewing' AND entity_id = ?2 AND type = 'viewing.cancelled'
-          AND actor = 'automation' AND at = ?1)`).bind(ts, id),
+      // PUB-16's task «Property let/sold, cancel the viewing» stays open until the client was told (review 25-nov):
+      // the settle pass closes it once Gmail took the notice, or replaces it with a task when the notice did not leave.
       ...(coordination ? [closeOpenProposal(env, { id: v.id, state: "cancelled", ts, admin: "automation" })] : []),
     ]);
     if (cancel.meta.changes) { // VIS-12: its Google event, if any, is cancelled
@@ -161,6 +166,13 @@ export async function viewingEmailSettlePass(env, t = Date.now()) {
         AND EXISTS (SELECT 1 FROM viewing_requests v WHERE v.id = CAST(o.entity_id AS INTEGER))
         AND NOT EXISTS (SELECT 1 FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = o.entity_id AND e.type = ?)
       ORDER BY o.id LIMIT 50`).bind(type, template, from, type).run();
+  // PUB-16's task of a viewing this pass cancelled: done once its notice was taken by Gmail, or once it did not leave
+  // (the task below then says so).
+  await env.DB.prepare(`UPDATE notifications SET resolved_at = ?1, resolved_by = 'automation', closed_by_source = 1,
+      task_actor = 'automation', task_action = 'source_resolved' WHERE resolved_at IS NULL
+    AND event_id IN (SELECT e.id FROM events e JOIN outbound o ON o.template = '${CLOSED_NOTICE}' AND o.entity_id = e.entity_id
+      AND o.status IN ('accepted', 'failed', 'cancelled', 'unknown') AND o.created_at >= ?2
+      WHERE e.entity_type = 'viewing' AND e.type = 'viewing.property_closed')`).bind(ts, from).run();
   const { results } = await env.DB.prepare(`SELECT o.entity_id, o.status, v.name FROM outbound o
       JOIN viewing_requests v ON v.id = CAST(o.entity_id AS INTEGER)
     WHERE o.template = '${CLOSED_NOTICE}' AND o.status IN ('failed', 'cancelled', 'unknown') AND o.created_at >= ?

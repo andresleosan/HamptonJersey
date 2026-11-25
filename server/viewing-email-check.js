@@ -4,7 +4,8 @@
 // viewing_feedback: the viewing is still completed with no answer recorded, at the time queued, to the address it was
 //   booked with, and its end is less than 7 days ago.
 // viewing_cancelled_closed: the viewing is still cancelled by this pass (its event at the time queued), to the address it
-//   was booked with, queued less than a day ago, and its property is still let (window withdrawn) or sold.
+//   was booked with, queued less than a day ago, before the viewing's start (review 25-nov: after it, a person tells the
+//   client), and its property is still let (window withdrawn) or sold.
 // "0" (none is claimed) while switched off, before migration 0087 (rental_closure_windows) or if the schema cannot be read.
 import { local, SLOT } from "./viewing-reminders.js";
 
@@ -25,6 +26,7 @@ export async function viewingEmailClaimSql(env, t = Date.now()) {
     AND lower(trim(v.email)) = outbound.recipient AND CASE outbound.template
       WHEN '${FEEDBACK}' THEN v.status = 'completed' AND v.outcome IS NULL AND ${END} > '${local(t - 7 * D)}'
       ELSE v.status = 'cancelled' AND outbound.created_at > '${new Date(t - NOTICE_HOURS * 3600e3).toISOString()}'
+        AND v.date || ' ' || v.time > '${local(t)}'
         AND EXISTS (SELECT 1 FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = outbound.entity_id
           AND e.type = 'viewing.cancelled' AND e.actor = 'automation' AND e.at = outbound.created_at)
         AND (EXISTS (SELECT 1 FROM rental_closure_windows w WHERE w.listing_id = v.listing_id AND w.state = 'withdrawn')
