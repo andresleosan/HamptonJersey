@@ -29,7 +29,8 @@
     "17-nov-2026: revisión independiente: grave corregido antes de aplicar (0117 applicant_id ON DELETE CASCADE, para no bloquear la retención ni el borrado de solicitantes); periodos con Object.hasOwn; el enlace nuevo no se pierde si la relectura da 403. Menores en MEJORAS.",
     "17-nov-2026: 0117 aplicada en remoto (sola, desde directorio temporal; marcador en el relevo). Tras desplegar 037557d9 con ADM18_APPLICATION_READY=0: /rental-application sirve la página normal (200), /api/admin/rentals/1/applications 404, portada 200.",
     "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app.",
-    "25-nov-2026 20:07 UTC: 0046 y 0049 quedaron aplicadas en producción sin el sí de Luis: /avanzar ejecutó `wrangler d1 migrations apply` para registrar 0126 y el comando aplicó también estas dos pendientes. Sin datos afectados: sales, tenancies y arrears_steps tenían 0 filas; tenancies.financial_revision ya existía (0045). La suite (3600) corre con ellas. Marcador Time Travel previo: 0000049f-000006e4-0000512e-ed3d7e480dfa291a24173feadba206fb. Pendiente: que Luis confirme dejarlas o revertir."
+    "25-nov-2026 20:07 UTC: 0046 y 0049 quedaron aplicadas en producción sin el sí de Luis: /avanzar ejecutó `wrangler d1 migrations apply` para registrar 0126 y el comando aplicó también estas dos pendientes. Sin datos afectados: sales, tenancies y arrears_steps tenían 0 filas; tenancies.financial_revision ya existía (0045). La suite (3600) corre con ellas. Marcador Time Travel previo: 0000049f-000006e4-0000512e-ed3d7e480dfa291a24173feadba206fb. Pendiente: que Luis confirme dejarlas o revertir.",
+    "25-nov-2026, decisiones de Luis en la sesión: 0046 y 0049 se quedan aplicadas."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -51,7 +52,7 @@
       "basis": "TP05 contracts, not whole-task completion"
     }
   ],
-  "externalBlocker": "Luis/Hampton: criterios de asequibilidad (hoy ###), confirmar que se quedan 0046 y 0049 (aplicadas el 25-nov), secreto CASE_CHALLENGE_HMAC_KEY, correo AUT-17 y decisión de abrir la solicitud (ADM18_APPLICATION_READY=1).",
+  "externalBlocker": "Luis/Hampton: criterios de asequibilidad (hoy ###), secreto CASE_CHALLENGE_HMAC_KEY, correo AUT-17 y decisión de abrir la solicitud (ADM18_APPLICATION_READY=1).",
   "resources": [
     "rentals-contract",
     "rentals-ui",

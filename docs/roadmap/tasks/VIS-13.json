@@ -7,13 +7,14 @@
   "estado": "parcial",
   "responsable": "desarrollo",
   "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita.",
-  "falta": "Decisiones de Luis: aprobación por correo o el interruptor como aprobación; reservas web sin enlace a búsqueda. Después encender y prueba real con su buzón. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
+  "falta": "Prueba real con el buzón de Luis (cliente de prueba enlazado a una visita de prueba; el cartero solo envía 07:00-20:00 Jersey) y su sí para dejar encendido VIS13_REMINDERS_READY. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
   "bloqueo": "Correo (AUT-17)",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
     "server/jobs.js:1-15",
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37",
-    "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK."
+    "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK.",
+    "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -28,7 +29,7 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis: decidir aprobación y destinatarios de los recordatorios y dar el sí para encender.",
+  "externalBlocker": "Luis: comprobar en su buzón el recordatorio de prueba (26-nov desde las 07:00 Jersey) y dar el sí para dejarlo encendido.",
   "resources": [
     "viewings-contract",
     "viewings-ui",

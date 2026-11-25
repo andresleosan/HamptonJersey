@@ -2115,13 +2115,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "desarrollo",
    "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita.",
-   "falta": "Decisiones de Luis: aprobación por correo o el interruptor como aprobación; reservas web sin enlace a búsqueda. Después encender y prueba real con su buzón. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
+   "falta": "Prueba real con el buzón de Luis (cliente de prueba enlazado a una visita de prueba; el cartero solo envía 07:00-20:00 Jersey) y su sí para dejar encendido VIS13_REMINDERS_READY. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
    "bloqueo": "Correo (AUT-17)",
    "evidencia": [
     "jobs/wrangler.toml:1-24",
     "server/jobs.js:1-15",
     "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37",
-    "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK."
+    "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK.",
+    "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados."
    ],
    "actualizado": "2026-11-25"
   },
@@ -5188,7 +5189,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "17-nov-2026: revisión independiente: grave corregido antes de aplicar (0117 applicant_id ON DELETE CASCADE, para no bloquear la retención ni el borrado de solicitantes); periodos con Object.hasOwn; el enlace nuevo no se pierde si la relectura da 403. Menores en MEJORAS.",
     "17-nov-2026: 0117 aplicada en remoto (sola, desde directorio temporal; marcador en el relevo). Tras desplegar 037557d9 con ADM18_APPLICATION_READY=0: /rental-application sirve la página normal (200), /api/admin/rentals/1/applications 404, portada 200.",
     "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app.",
-    "25-nov-2026 20:07 UTC: 0046 y 0049 quedaron aplicadas en producción sin el sí de Luis: /avanzar ejecutó `wrangler d1 migrations apply` para registrar 0126 y el comando aplicó también estas dos pendientes. Sin datos afectados: sales, tenancies y arrears_steps tenían 0 filas; tenancies.financial_revision ya existía (0045). La suite (3600) corre con ellas. Marcador Time Travel previo: 0000049f-000006e4-0000512e-ed3d7e480dfa291a24173feadba206fb. Pendiente: que Luis confirme dejarlas o revertir."
+    "25-nov-2026 20:07 UTC: 0046 y 0049 quedaron aplicadas en producción sin el sí de Luis: /avanzar ejecutó `wrangler d1 migrations apply` para registrar 0126 y el comando aplicó también estas dos pendientes. Sin datos afectados: sales, tenancies y arrears_steps tenían 0 filas; tenancies.financial_revision ya existía (0045). La suite (3600) corre con ellas. Marcador Time Travel previo: 0000049f-000006e4-0000512e-ed3d7e480dfa291a24173feadba206fb. Pendiente: que Luis confirme dejarlas o revertir.",
+    "25-nov-2026, decisiones de Luis en la sesión: 0046 y 0049 se quedan aplicadas."
    ],
    "actualizado": "2026-11-25"
   },
@@ -6554,7 +6556,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
     "migrations/0001_init.sql:1-23",
     "migrations/0012_sales.sql:28",
-    "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes)."
+    "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes).",
+    "25-nov-2026, decisiones de Luis en la sesión: primera prueba real con su buzón (vendedor de prueba individual con su correo) antes de dejar encendido OFE02_SEND_READY. En producción hoy: 0 ofertas abiertas."
    ],
    "actualizado": "2026-11-25"
   },
