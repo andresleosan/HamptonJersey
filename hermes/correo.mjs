@@ -1,9 +1,10 @@
 // AUT-17, fase C (plan docs/roadmap/work/AUT-17/plan-correo-hermes.md): Hampton's mail carrier, the part of Hermes's
 // email that is not the model. It runs on the VPS in its own container, outside Hermes's, and alone holds the mail
 // door's key (HERMES_MAIL_KEY), the Google token and the claims. Hermes reaches it on a private network with two calls:
-//   POST /siguiente               claims one email and answers only what the model writes from (no address, no token);
-//   POST /entregar {id, subject, body}  checks once with the app, puts the address the app chose, leaves a Gmail draft
-//                                 or sends it, and reports the result.
+//   POST /siguiente               claims one email and answers only what the model writes from (no address, no name,
+//                                 no token);
+//   POST /entregar {id, subject, body}  checks once with the app, puts the address the app chose and the greeting (the
+//                                 only place the name goes), leaves a Gmail draft or sends it, and reports the result.
 // A claim is marked "sending" before Gmail is called and its outcome kept before it is reported: a carrier stopped
 // mid-send reports unknown and never calls Gmail twice, and a lost report is sent again on the next /siguiente.
 // Node, no dependencies.
@@ -117,7 +118,19 @@ export async function siguiente(cfg) {
   if (!task) return { task: null, reason };
   keep(claimFile(cfg.estado, task.id), { id: task.id, token: task.token, to: task.to, mode: task.mode });
   const { token, to, ...forModel } = task;
-  return { task: { ...forModel, to: { name: to.name } } };
+  return { task: forModel };
+}
+
+// Luis, 25-nov-2026: the model that writes sees no name; the carrier greets. The model starts the text with the line
+// {{greeting}} (any case, inner spaces and a comma after it are taken too); the carrier puts "Hello <name>," there, or
+// "Hello," with no name, and puts it first when the model left it out. The app gets the text back with the marker, so
+// the name never returns to it. A name keeps letters, spaces and . ' - only, at most 80 (as the app's plainName).
+const MARK = /\{\{\s*greeting\s*\}\},?/gi, GREETING = "{{greeting}}";
+const marked = body => body.search(MARK) >= 0 ? body : `${GREETING}\n\n${body}`;
+function greet(body, name) {
+  const n = typeof name === "string" ? name.normalize("NFC").replace(/[^\p{L}\p{M} .'-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 80).trim() : "";
+  const hello = /\p{L}/u.test(n) ? `Hello ${n},` : "Hello,";
+  return marked(body).replace(MARK, () => hello);
 }
 
 // Headers are base64 encoded-words and the address is the app's, so nothing the model writes adds a header or a recipient.
@@ -169,7 +182,7 @@ export async function entregar(cfg, written) {
   if (busy.has(id) || claim.sending || claim.result) throw Object.assign(new Error("Already delivered or being delivered"), { status: 409 });
   busy.add(id);
   try {
-    const subject = typeof written.subject === "string" ? written.subject.replace(/\s+/g, " ").trim() : "";
+    const subject = typeof written.subject === "string" ? written.subject.replace(MARK, " ").replace(/\s+/g, " ").trim() : "";
     const body = typeof written.body === "string" ? written.body.trim() : "";
     if (!subject || subject.length > 200 || !body || body.length > 10000) {
       claim.result = { outcome: "failed", error: "bad_text" };
@@ -177,8 +190,8 @@ export async function entregar(cfg, written) {
       const check = await door(cfg, `${id}/check`, { token: claim.token });
       if (!check.ok) { rmSync(f); return { skipped: check.reason }; }
       keep(f, { ...claim, sending: true }); // from here, a stop reports unknown, never a second call
-      const g = await gmail(cfg, claim, subject, body);
-      claim.result = { ...g, outcome: g.outcome === "retry" ? "failed" : g.outcome, subject, body };
+      const g = await gmail(cfg, claim, subject, greet(body, claim.to.name));
+      claim.result = { ...g, outcome: g.outcome === "retry" ? "failed" : g.outcome, subject, body: marked(body) }; // no name
     }
     keep(f, claim);
     const { task } = await door(cfg, `${id}/result`, { token: claim.token, ...claim.result });

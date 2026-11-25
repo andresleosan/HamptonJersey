@@ -692,7 +692,7 @@ export function enquiries(gates) {
   // AUT-17 (Hermes mail, server/hermes-mail.js). An enquiry waiting to be sent by hand, as Hermes may write it: to the
   // contact a person chose (AGE-05), or with none chosen the chosen recipient's first contact with an email. null: blocked, or no
   // email to write to. Decision (plan AUT-17, simplest reversible): the recipient is the one a person chose; the switch of
-  // the type is the approval.
+  // the type is the approval. facts are what the model sees: no name (Luis, 25-nov-2026); name is for the carrier's greeting.
   async function hermesFacts(env, c) {
     const d = await detail(env, c);
     if (d.blocked || d.recipient.removed || d.recipient.unlinked) return null;
@@ -700,7 +700,7 @@ export function enquiries(gates) {
     const p = c.contact_key ? (await keyed(contacts)).find(x => x.key === c.contact_key) : contacts.find(x => emailAddress(x.email));
     if (!emailAddress(p?.email)) return null; // a contact chosen without an email (phone only) stays by hand
     const l = await env.DB.prepare("SELECT title, location, country FROM listings WHERE id = ?").bind(c.listing_id).first();
-    return { to: emailAddress(p.email), name: p.name || d.recipient.name, facts: { advertiser: d.recipient.name,
+    return { to: emailAddress(p.email), name: p.name || d.recipient.name, facts: {
       property: { reference: c.listing_id, title: l.title, place: l.location || l.country || null, offered: OFFER[c.operation] },
       household: c.occupants ?? null, base_text: c.body } };
   }

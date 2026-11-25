@@ -29,12 +29,51 @@ function world({ task = TASK, check = { ok: true }, gmail = () => ({ status: 200
 const written = { id: 7, subject: "Enquiry\r\nBcc: x@evil.test", body: "Hello", to: "other@evil.test" };
 const results = calls => calls.filter(c => c.url.endsWith("/result")).map(c => JSON.parse(c.body).outcome);
 
-test("the model sees neither the address nor the token; the app is asked with the mail key", async () => {
+test("the model sees neither the address, the name nor the token; the app is asked with the mail key", async () => {
   const { cfg, calls } = world(), out = await siguiente(cfg);
   assert.equal(JSON.stringify(out).includes(TASK.token), false);
   assert.equal(JSON.stringify(out).includes("desk@"), false);
-  assert.deepEqual(out.task.to, { name: "Agency Desk" });
+  assert.equal("to" in out.task, false);
+  assert.equal(JSON.stringify(out).includes("Agency Desk"), false, "Luis, 25-nov-2026: the model sees no name");
   assert.equal(calls.find(c => c.url.endsWith("/mail/next")).auth, `Bearer ${"k".repeat(40)}`);
+});
+
+// The greeting: the model writes {{greeting}}, the carrier puts the name it holds when it delivers. The app gets the
+// text back with the marker, never the name.
+const delivered = async (name, body) => {
+  const { cfg, calls } = world({ task: { ...TASK, to: { ...TASK.to, name } } });
+  await siguiente(cfg);
+  await entregar(cfg, { id: 7, subject: "Enquiry {{greeting}}", body });
+  const raw = Buffer.from(JSON.parse(calls.find(c => c.url.endsWith("/drafts")).body).message.raw, "base64url").toString();
+  const [headers, text] = raw.split("\r\n\r\n");
+  return { headers: headers.split("\r\n"), text: Buffer.from(text.replace(/\r\n/g, ""), "base64").toString("utf8"),
+    reported: JSON.parse(calls.find(c => c.url.endsWith("/result")).body) };
+};
+
+test("the carrier fills the greeting with the recipient's name, or Hello, without one; the app never gets the name", async () => {
+  const named = await delivered("Agency Desk", "{{greeting}}\n\nIs it still available?");
+  assert.equal(named.text, "Hello Agency Desk,\n\nIs it still available?");
+  assert.equal(named.reported.body, "{{greeting}}\n\nIs it still available?");
+  assert.equal(JSON.stringify(named.reported).includes("Agency Desk"), false);
+  assert.equal(named.headers.find(h => h.startsWith("Subject:")), `Subject: =?UTF-8?B?${Buffer.from("Enquiry").toString("base64")}?=`,
+    "no marker left in the subject");
+  for (const name of [null, "", "  ", "<>@!"]) assert.equal((await delivered(name, "{{greeting}}\n\nHi")).text, "Hello,\n\nHi", String(name));
+  assert.equal((await delivered("Ana", "{{ Greeting }},\n\nHi")).text, "Hello Ana,\n\nHi", "case, spaces and its comma");
+});
+
+test("a text without the marker gets the greeting first", async () => {
+  const d = await delivered("Agency Desk", "Is it still available?");
+  assert.equal(d.text, "Hello Agency Desk,\n\nIs it still available?");
+  assert.equal(d.reported.body, "{{greeting}}\n\nIs it still available?");
+});
+
+test("an odd name or one with line breaks does not break the email", async () => {
+  const d = await delivered("Jane\r\nBcc: evil@x.test $& $' {{greeting}}\u0000", "{{greeting}}\n\nHi");
+  assert.equal(d.text, "Hello Jane Bcc evil x.test ' greeting,\n\nHi", "one line, letters and . ' - only, no $ pattern, no marker");
+  assert.equal(d.headers.length, 5, "To, Subject and three fixed headers only");
+  assert.equal(d.headers.some(h => h.includes("evil")), false);
+  assert.equal(JSON.stringify(d.reported).includes("Jane"), false);
+  assert.equal((await delivered("x".repeat(500), "{{greeting}}")).text, `Hello ${"x".repeat(80)},`, "at most 80 characters");
 });
 
 test("a draft goes to the address the app chose, whatever the model wrote, with no added headers", async () => {
