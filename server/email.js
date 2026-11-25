@@ -4,6 +4,7 @@ import { ALLOWED, MARKETING_TEMPLATE, purposeReady } from "./communication-prefe
 import { NO_NOTICE, noticeClaimSql } from "./retention.js";
 import { offerClaimSql } from "./offer-email-check.js";
 import { REMINDERS, reminderClaimSql } from "./viewing-reminders.js";
+import { weeklyClaimSql } from "./weekly-insights-email-check.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -91,7 +92,7 @@ export async function prepareSummary(env, ts) {
 // PRE-12: retention_notice, the notice before the retention pass deletes a contact, goes only while noticeClaimSql holds.
 // OFE-02: offer_to_seller, an offer taken to its seller, goes only while offerClaimSql holds (server/offer-email-check.js).
 // VIS-13: a viewing reminder goes only while reminderClaimSql holds (server/viewing-reminders.js).
-const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h"];
+const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h", "weekly_insights"];
 const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
   OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
@@ -147,6 +148,7 @@ async function outboundGate(env, enquiry, day) {
     [["enquiry"], enquiry ?? "0"], // AGE-05: none given, none claimed
     [["offer_to_seller"], await offerClaimSql(env)], // OFE-02
     [REMINDERS, await reminderClaimSql(env)], // VIS-13
+    [["weekly_insights"], await weeklyClaimSql(env)], // AUT-22
   ];
   return { notice, claim: AUTHORIZED(checks, purposeReady(env), capped), after: AUTHORIZED(checks, purposeReady(env), notice) };
 }

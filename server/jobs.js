@@ -8,6 +8,8 @@ import { offerEmailPass } from "./offer-emails.js";
 import { remindersReady, reminderPass, reminderSettlePass } from "./viewing-reminders.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
+import { weeklyEmailReady } from './weekly-insights-email-check.js';
+import { weeklyInsightsEmailPass } from './weekly-insights-email.js';
 import { notificationsPass } from "./notification-reconcile.js";
 import { enquiries } from "./consultations.js";
 import { ENQUIRY_GATES } from "./routes/matches.js";
@@ -56,6 +58,10 @@ const clock = {
     catch { console.error('Enquiry call pass failed'); }
     try { await weeklyInsightsPass(env, now()); }
     catch { console.error('Weekly Insights pass failed'); }
+    if (weeklyEmailReady(env)) { // AUT-22: that saved week by email to the team summary's recipients, sent below
+      try { await weeklyInsightsEmailPass(env, now()); }
+      catch { console.error('Weekly Insights email pass failed'); }
+    }
     if (followupReady(env)) { // OFE-06: the weekly internal sale review, off until the team sets day and time.
       try { await saleFollowupPass(env, now()); }
       catch { console.error('Sale follow-up pass failed'); }
