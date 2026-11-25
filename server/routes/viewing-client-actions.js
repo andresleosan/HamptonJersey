@@ -40,6 +40,8 @@ const TASK = { reschedule: name => `Client asks for another viewing time: ${name
 async function answer({ request, env, grant, params: [id, action], waitUntil }) {
   const b = (await readJson(request, 256)) ?? {};
   if (!/^\d{4}-\d\d-\d\d$/.test(b.date ?? "") || !/^\d\d:\d\d$/.test(b.time ?? "")) fail(400, "Reload the page and try again.");
+  // Only a viewing of this client's own search is touched at all (and each write asks again, inside the statement).
+  if (!(await mine(env, grant)).some(x => x.id === Number(id))) fail(404, "This viewing is not available. Please contact Hampton Estates.");
   const v = await env.DB.prepare("SELECT id, name FROM viewing_requests WHERE id = ?").bind(Number(id)).first();
   const ts = now(), args = [Number(id), grant.id, ts, b.date, b.time, local(Date.now()), ts];
   const ref = { entity_type: "viewing", entity_id: String(Number(id)) };
@@ -65,7 +67,8 @@ async function answer({ request, env, grant, params: [id, action], waitUntil }) 
         WHERE ${MINE} AND v.status IN ('requested', 'confirmed')`).bind(...args),
       ...logEvent(env, { actor: "client", ...ref, type: "viewing.cancelled", data: { by: "client" } },
         { category: "task", title: TASK.cancel(v.name).slice(0, 200), action_required: true }, { ifInserted: true }),
-      resolveNotices(env, { ...ref, category: "viewing" }, "client", { ifEvent: "viewing.cancelled" }),
+      // Only if this request's cancel was written: the statement just before is its task, inserted only with its event.
+      resolveNotices(env, { ...ref, category: "viewing" }, "client", { ifLogged: true }),
       ...(coordination ? [closeOpenProposal(env, { id: Number(id), state: "cancelled", ts, admin: "client" })] : []),
     ]);
     if (done.meta.changes) afterViewingChange(env, waitUntil, Number(id)); // VIS-12: its Google event, if any

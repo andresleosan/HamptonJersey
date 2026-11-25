@@ -99,8 +99,10 @@ const clock = {
     await emailPass(env, now(), now, await enquiryEmailCheck(env));
     await enquiryEmailPass(env);
     await offerEmailPass(env); // OFE-02: what happened to each offer emailed to its seller
-    try { await reminderSettlePass(env); } // VIS-13: a reminder Gmail accepted marks its viewing reminded
-    catch { console.error('Viewing reminder settle failed'); }
+    if (remindersReady(env)) { // VIS-13: a reminder Gmail accepted marks its viewing reminded
+      try { await reminderSettlePass(env); }
+      catch { console.error('Viewing reminder settle failed'); }
+    }
   },
 };
 

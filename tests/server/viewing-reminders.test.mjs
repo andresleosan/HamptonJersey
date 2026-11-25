@@ -205,9 +205,17 @@ test("GET lists the client's own viewings and changes nothing; answers are POST 
   assert.ok(!JSON.stringify(r.data).includes("4321"));
   assert.equal((await as(env, cookie, "GET", `/presentation/viewings/${mine}/confirm`)).status, 404); // a prefetch
   assert.equal(rows(env, "SELECT COUNT(*) n FROM events")[0].n, before);
-  // Another client's viewing, as if they knew its id: refused, nothing written.
-  assert.equal((await as(env, cookie, "POST", `/presentation/viewings/${theirs}/cancel`, slot)).status, 404);
+  // Another client's viewing, as if they knew its id (one with an open request notice and a cancel in its history):
+  // refused, nothing written, its notices left open.
+  const ev = Number(run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type) VALUES (?, 'admin@example.test', 'viewing', ?,
+    'viewing.cancelled')`, T0, String(theirs)).lastInsertRowid);
+  run(env, "INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (?, 'viewing', 'Viewing request', 1, ?)", ev, T0);
+  const events = rows(env, "SELECT COUNT(*) n FROM events")[0].n;
+  for (const action of ["cancel", "confirm", "reschedule"])
+    assert.equal((await as(env, cookie, "POST", `/presentation/viewings/${theirs}/${action}`, slot)).status, 404);
   assert.equal(rows(env, "SELECT status FROM viewing_requests WHERE id = ?", theirs)[0].status, "confirmed");
+  assert.equal(rows(env, "SELECT resolved_at FROM notifications WHERE event_id = ?", ev)[0].resolved_at, null);
+  assert.equal(rows(env, "SELECT COUNT(*) n FROM events")[0].n, events);
   // A cross-site POST is refused before any route.
   assert.equal((await call(env, "POST", `/presentation/viewings/${mine}/confirm`, { body: slot, cookie, origin: "https://evil.test" })).status, 403);
 });
@@ -243,9 +251,15 @@ test("Cancel ends only the client's own place in an open viewing; a revoked link
     VALUES (?, 1, ?, ?, ?, 4, ?, 'admin@example.test')`, HOME, slot.date, slot.time, addMinutes(slot.time, 30), T0).lastInsertRowid);
   for (const v of [mine, theirs]) run(env, "INSERT INTO viewing_group_places (viewing_id, group_id, created_at, created_by) VALUES (?, ?, ?, 'admin@example.test')", v, g, T0);
   const { cookie } = await session(env, me);
+  const notice = viewingId => run(env, "INSERT INTO notifications (event_id, category, title, action_required, created_at) VALUES (?, 'viewing', 'Viewing request', 1, ?)",
+    Number(run(env, "INSERT INTO events (at, actor, entity_type, entity_id, type) VALUES (?, 'site', 'viewing', ?, 'viewing.requested')", T0, String(viewingId)).lastInsertRowid), T0);
+  notice(mine); notice(theirs);
   const r = await as(env, cookie, "POST", `/presentation/viewings/${mine}/cancel`, slot);
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.data.viewings, []);
+  // The cancelled viewing's request notice is done; the other place's stays open.
+  assert.deepEqual(rows(env, `SELECT e.entity_id, n.resolved_at IS NOT NULL AS done FROM notifications n JOIN events e ON e.id = n.event_id
+    WHERE n.title = 'Viewing request' ORDER BY e.entity_id`).map(x => [Number(x.entity_id), x.done]), [[mine, 1], [theirs, 0]]);
   assert.deepEqual(rows(env, "SELECT id, status FROM viewing_requests ORDER BY id").map(v => v.status), ["cancelled", "confirmed"]);
   assert.equal(rows(env, "SELECT status FROM viewing_groups WHERE id = ?", g)[0].status, "open");
   assert.equal(rows(env, "SELECT updated_by FROM viewing_requests WHERE id = ?", mine)[0].updated_by, "client");

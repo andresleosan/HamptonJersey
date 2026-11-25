@@ -288,8 +288,9 @@ test('a co-listed listing is enquired about only through AGE-03', () => {
   // REG-15 queues email only to a website visitor who saved a search, never to an advertiser (it reads no contacts of one).
   // PRE-12's retention notice goes only to an applicant contact's own address, never to an advertiser.
   // OFE-02 emails an offer to the listing's seller: an individual or entity advertiser, never an agency (offer-emails.js).
+  // VIS-13's viewing reminder goes only to the linked search's contact, never to an advertiser.
   assert.deepEqual(code.filter(([, s]) => /INSERT INTO outbound/i.test(s)).map(([f]) => f).sort(),
-    ['server/consultations.js', 'server/email.js', 'server/offer-emails.js', 'server/retention-notices.js', 'server/saved-searches.js']);
+    ['server/consultations.js', 'server/email.js', 'server/offer-emails.js', 'server/retention-notices.js', 'server/saved-searches.js', 'server/viewing-reminders.js']);
   assert.deepEqual(code.filter(([, s]) => /advertisers/.test(s) && /\.contacts\b|\$\.contacts/.test(s)).map(([f]) => f).sort(),
     // AUT-17 (Luis, 21-nov-2026): Hermes writes the enquiry and the viewing proposal to the advertiser from Gmail.
     // OFE-02: the seller's contact, only of individual or entity advertisers.
