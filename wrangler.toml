@@ -65,8 +65,8 @@ AGE05_SEND_READY = "1"
 OFE02_SEND_READY = "0"
 # PUB-10: the public «Sell or let» form receives owners' requests (migration 0118). Also needs the app_settings row
 # owner_enquiries = {"enabled":true,"privacy_version":...} of the published owners' notice (PRE-09, JOIC of PRE-03).
-# Collects personal data from the public: only Luis switches it on.
-OWNER_REQUESTS_READY = "0"
+# Collects personal data from the public: switched on 25-nov-2026 by decision of Luis (12 months retention, notice 2026-11-25).
+OWNER_REQUESTS_READY = "1"
 # ANA-05: per-search milestones in Insights from offers, sales and search state (no migration).
 SEARCH_MILESTONES_READY = "1"
 # BUS-07 / SPR-07: listing source, web sighting vs confirmation, and a reviewed market-home link (migration 0081, applied 15-nov-2026).
