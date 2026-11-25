@@ -4,13 +4,14 @@
   "titulo": "Correos de atrasos y renovación con revisión humana",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+  "hecho": "26-nov-2026: construido y publicado apagado (AUT23_RENTAL_EMAILS_READY=0, migración 0127 rental_step_emails aplicada). Recordatorios de atraso +1/+5 y carta +14 al inquilino principal, y mensajes de renovación al propietario y al inquilino, preparados desde los borradores de ADM-09/ADM-14, editables y aprobados por versión exacta (R01). Sale por la cola aprobada vía Hermes; enviar nunca marca el paso ni toca pagos. Sin datos bancarios.",
+  "falta": "Probar con datos de prueba (hoy no hay contratos en producción) y el sí de Luis para encender.",
   "bloqueo": "",
   "evidencia": [
-    "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba."
+    "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba.",
+    "26-nov-2026: integrado (commit AUT-23 + 1d38c593 reparación de la fusión, 690b4ab3). Revisión independiente sin fallos importantes propios. npm test 3660/3660. 0127 aplicada (marcador previo 000004a0-00000138-0000512e-9404b7274c540ecaeabe767cb4a9bb2c)."
   ],
   "modulo": "M07",
   "deps": [
@@ -34,6 +35,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Construir apagado según el criterio.",
-  "actualizado": "2026-11-25"
+  "nextStep": "Contrato de prueba con el buzón de Luis; recorrer atraso y renovación; encender.",
+  "actualizado": "2026-11-26",
+  "externalBlocker": "Luis: sí para la prueba con datos de alquiler de prueba y para encender."
 }

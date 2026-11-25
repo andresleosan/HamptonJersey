@@ -7588,20 +7588,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Correos de atrasos y renovación con revisión humana",
    "origen": "plan",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+   "hecho": "26-nov-2026: construido y publicado apagado (AUT23_RENTAL_EMAILS_READY=0, migración 0127 rental_step_emails aplicada). Recordatorios de atraso +1/+5 y carta +14 al inquilino principal, y mensajes de renovación al propietario y al inquilino, preparados desde los borradores de ADM-09/ADM-14, editables y aprobados por versión exacta (R01). Sale por la cola aprobada vía Hermes; enviar nunca marca el paso ni toca pagos. Sin datos bancarios.",
+   "falta": "Probar con datos de prueba (hoy no hay contratos en producción) y el sí de Luis para encender.",
    "bloqueo": "",
    "evidencia": [
-    "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba."
+    "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba.",
+    "26-nov-2026: integrado (commit AUT-23 + 1d38c593 reparación de la fusión, 690b4ab3). Revisión independiente sin fallos importantes propios. npm test 3660/3660. 0127 aplicada (marcador previo 000004a0-00000138-0000512e-9404b7274c540ecaeabe767cb4a9bb2c)."
    ],
    "modulo": "M07",
    "deps": [
     "AUT-17"
    ],
    "criterio_aceptacion": "Los recordatorios de atraso +1/+5 y la carta +14 que arrearsDraft ya prepara, y las preguntas de renovación al propietario y al inquilino (ADM-14), salen por correo tras la aprobación de una persona de cada envío (R01); enviar no marca el paso ni paga la deuda.",
-   "actualizado": "2026-11-25"
+   "actualizado": "2026-11-26"
   },
   {
    "id": "AUT-24",
@@ -7609,20 +7610,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Documentos al inquilino por correo con revisión humana",
    "origen": "plan",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "parcial",
    "responsable": "desarrollo",
-   "hecho": "",
-   "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+   "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos.",
+   "falta": "Antes de encender: que un correo con resultado incierto siga alcanzable desde la ficha aunque la tenencia termine o el aviso deje de aplicar (revisión 26-nov; nunca se reenvía). Probar con datos de prueba y el sí de Luis.",
    "bloqueo": "",
    "evidencia": [
-    "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis."
+    "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis.",
+    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada."
    ],
    "modulo": "M07",
    "deps": [
     "AUT-17"
    ],
    "criterio_aceptacion": "Las copias de licencia y EICR y los datos prescritos del depósito (ADM-11), el aviso de subida de renta (ADM-15) y el aviso al propietario del paso +10 de atrasos (ADM-03) salen por correo tras la aprobación de una persona (R01), y su entrega queda registrada con el acuse de Gmail.",
-   "actualizado": "2026-11-25"
+   "actualizado": "2026-11-26"
   }
  ],
  "reconciliacion": {

@@ -275,3 +275,6 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-21] Un aviso aceptado que luego rebota no reabre tarea (igual en VIS-13) · el cliente no se entera; revisión 25-nov · 25-nov-2026
 - [AUT-22] Guardar Email settings a mitad de semana cancela el correo de esa semana y no se reencola; encender a mitad de semana envía la semana anterior · revisión 25-nov · 25-nov-2026
 - [PRE-13] El aviso de privacidad no nombra al proveedor del VPS por donde pasa el cartero de Hermes (Optimyze sí) · revisar con el paquete del abogado; revisión 25-nov · 25-nov-2026
+- [AUT-24] El aviso de cambio de renta no vuelve a comprobar en el reclamo que la fecha efectiva no pasó (ventana máx. 24 h) · revisión 26-nov · 26-nov-2026
+- [AUT-23] La carta +14 lista «Tell the landlord» entre los contactos con el inquilino (texto heredado de ADM-09; AUT-24 marca ese paso) · revisión 26-nov · 26-nov-2026
+- [AUT-24] La comprobación de datos bancarios no busca palabras clave como AUT-23 y la de «terminada» usa fecha UTC · revisión 26-nov · 26-nov-2026

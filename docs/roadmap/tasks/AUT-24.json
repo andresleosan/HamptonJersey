@@ -4,13 +4,14 @@
   "titulo": "Documentos al inquilino por correo con revisión humana",
   "origen": "plan",
   "fase": "F2",
-  "estado": "pendiente",
+  "estado": "parcial",
   "responsable": "desarrollo",
-  "hecho": "",
-  "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+  "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos.",
+  "falta": "Antes de encender: que un correo con resultado incierto siga alcanzable desde la ficha aunque la tenencia termine o el aviso deje de aplicar (revisión 26-nov; nunca se reenvía). Probar con datos de prueba y el sí de Luis.",
   "bloqueo": "",
   "evidencia": [
-    "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis."
+    "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis.",
+    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada."
   ],
   "modulo": "M07",
   "deps": [
@@ -34,6 +35,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Construir apagado según el criterio.",
-  "actualizado": "2026-11-25"
+  "nextStep": "Arreglar el acceso a los inciertos; contrato de prueba con el buzón de Luis; encender.",
+  "actualizado": "2026-11-26",
+  "externalBlocker": ""
 }
