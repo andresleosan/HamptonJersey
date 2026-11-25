@@ -25,6 +25,12 @@ Solo añade: `CREATE TABLE`, `CREATE INDEX`, `CREATE VIEW`, `CREATE TRIGGER`, `A
 
 Pasos obligatorios: archivo publicado en `main` y leído entero, ensayo en D1 local, marcador de Time Travel guardado antes, aplicar solo los archivos revisados y en orden, comprobar después con `migrations list`. Un resultado incierto se investiga antes de repetir.
 
+## Preguntar a Luis (desde el 25-nov-2026)
+
+Luis pidió: «lo que necesite de mis decisiones, analiza qué es lo más recomendado con lo que venimos construyendo y lo que no puedas decidir me haces preguntas con lo recomendado; debemos avanzar lo más rápido posible». Desde entonces `/avanzar` sí le pregunta, en rondas cortas (cuatro como mucho), en español sencillo, con la opción recomendada primero y diciendo qué pasa con cada respuesta. Lo que los planes ya resuelven se decide sin preguntar. Cada respuesta autoriza solo esa cosa: no saca nada de la lista «No autorizado» de forma permanente.
+
+Síes del 25-nov-2026: instalar yo mismo en el VPS, con copia de la versión anterior y sin tocar llaves ni otros servicios, el verificador del mercado, el cartero del correo y el avisador de Telegram; entrada de mensajes de Facebook y, tras su mensaje de prueba, responder desde el panel; borrador de Hermes para Facebook (una persona aprueba cada respuesta).
+
 ## No autorizado: va a la cola de Luis
 
 - Migraciones no aditivas y restauraciones de datos.
