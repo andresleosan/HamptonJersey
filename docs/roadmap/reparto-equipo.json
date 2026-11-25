@@ -7,7 +7,7 @@
     "sha": "36c4c2b746b3421b37fb5d59826772c6814c096f",
     "checkedAt": "2026-11-08",
     "path": "docs/roadmap/checklist-hampton-app.html",
-    "itemCount": 252
+    "itemCount": 256
   },
   "liveCoordination": false,
   "policy": "Reparto histórico del antiguo coordinador, no reserva ni exclusión vigente. El candado protege solo la copia de cada taller: acordar un turno único antes de editar recursos compartidos, integrar o publicar. Verificar dependencias técnicas y exigir revisión y sí para el SHA final.",
@@ -32,13 +32,13 @@
       "name": "Lista 2",
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
-      "count": 63,
-      "openCount": 19,
+      "count": 67,
+      "openCount": 23,
       "states": {
         "replanteado": 8,
         "hecho": 33,
         "parcial": 11,
-        "pendiente": 4,
+        "pendiente": 8,
         "descartado": 3,
         "bloqueado": 4
       }
@@ -12012,6 +12012,162 @@
       "nextStep": "Ninguno.",
       "actualizado": "2026-11-25",
       "externalBlocker": "Luis: preparar y aprobar la primera consulta real en una coincidencia aprobada de una ficha de Hunt (AGE05_SEND_READY encendido el 24-nov) y comprobar su borrador en el Gmail de Hampton."
+    },
+    {
+      "id": "AUT-21",
+      "seccion": "Visitas",
+      "titulo": "Correos de visita: feedback tras la visita y aviso de cancelación cuando la casa se alquila o vende",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "",
+      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "bloqueo": "",
+      "evidencia": [
+        "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos."
+      ],
+      "modulo": "M04",
+      "deps": [
+        "AUT-17"
+      ],
+      "criterio_aceptacion": "Una hora después de una visita marcada Completed, el cliente recibe una petición de feedback (hasta 7 días, sin envío retroactivo a visitas anteriores al encendido ni tras no-show); 24 h después de cerrar una ficha alquilada o vendida, las demás visitas se cancelan y su cliente recibe aviso (idempotente por visita, sin revelar quién la adquirió, nunca cancelar sin avisar). Sale por el Gmail de Hampton vía Hermes.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AUT-17",
+          "scope": "component:email-transport",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+        }
+      ],
+      "resources": [
+        "email-transport",
+        "jobs-clock"
+      ],
+      "nextStep": "Construir apagado según el criterio.",
+      "actualizado": "2026-11-25"
+    },
+    {
+      "id": "AUT-22",
+      "seccion": "Insights",
+      "titulo": "Resumen semanal de Insights por correo a dirección",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "",
+      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "bloqueo": "",
+      "evidencia": [
+        "Traído de MEJORAS (ANA-08) el 25-nov-2026; decisión de Luis."
+      ],
+      "modulo": "M09",
+      "deps": [
+        "AUT-17"
+      ],
+      "criterio_aceptacion": "Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios elegidos en Automations (los del resumen del equipo, con su revisión de configuración); nunca al propietario; sin recalcular ni duplicar.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AUT-17",
+          "scope": "component:email-transport",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+        }
+      ],
+      "resources": [
+        "email-transport",
+        "jobs-clock"
+      ],
+      "nextStep": "Construir apagado según el criterio.",
+      "actualizado": "2026-11-25"
+    },
+    {
+      "id": "AUT-23",
+      "seccion": "Alquileres",
+      "titulo": "Correos de atrasos y renovación con revisión humana",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "",
+      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "bloqueo": "",
+      "evidencia": [
+        "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba."
+      ],
+      "modulo": "M07",
+      "deps": [
+        "AUT-17"
+      ],
+      "criterio_aceptacion": "Los recordatorios de atraso +1/+5 y la carta +14 que arrearsDraft ya prepara, y las preguntas de renovación al propietario y al inquilino (ADM-14), salen por correo tras la aprobación de una persona de cada envío (R01); enviar no marca el paso ni paga la deuda.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AUT-17",
+          "scope": "component:email-transport",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+        }
+      ],
+      "resources": [
+        "email-transport",
+        "jobs-clock"
+      ],
+      "nextStep": "Construir apagado según el criterio.",
+      "actualizado": "2026-11-25"
+    },
+    {
+      "id": "AUT-24",
+      "seccion": "Alquileres",
+      "titulo": "Documentos al inquilino por correo con revisión humana",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "pendiente",
+      "responsable": "desarrollo",
+      "hecho": "",
+      "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+      "bloqueo": "",
+      "evidencia": [
+        "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis."
+      ],
+      "modulo": "M07",
+      "deps": [
+        "AUT-17"
+      ],
+      "criterio_aceptacion": "Las copias de licencia y EICR y los datos prescritos del depósito (ADM-11), el aviso de subida de renta (ADM-15) y el aviso al propietario del paso +10 de atrasos (ADM-03) salen por correo tras la aprobación de una persona (R01), y su entrega queda registrada con el acuse de Gmail.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AUT-17",
+          "scope": "component:email-transport",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+        }
+      ],
+      "resources": [
+        "email-transport",
+        "jobs-clock"
+      ],
+      "nextStep": "Construir apagado según el criterio.",
+      "actualizado": "2026-11-25"
     }
   ]
 }

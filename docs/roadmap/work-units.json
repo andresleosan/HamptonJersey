@@ -8980,6 +8980,118 @@
       "acceptance": [
         "Cada ficha importada de una agencia conocida tiene su anunciante con correo genérico sin alta manual; la consulta se puede preparar y su borrador llega al Gmail de Hampton."
       ]
+    },
+    {
+      "id": "AUT-21",
+      "parentTaskId": "AUT-21",
+      "title": "Correos de visita: feedback tras la visita y aviso de cancelación cuando la casa se alquila o vende",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-21.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-21/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Una hora después de una visita marcada Completed, el cliente recibe una petición de feedback (hasta 7 días, sin envío retroactivo a visitas anteriores al encendido ni tras no-show); 24 h después de cerrar una ficha alquilada o vendida, las demás visitas se cancelan y su cliente recibe aviso (idempotente por visita, sin revelar quién la adquirió, nunca cancelar sin avisar). Sale por el Gmail de Hampton vía Hermes."
+      ]
+    },
+    {
+      "id": "AUT-22",
+      "parentTaskId": "AUT-22",
+      "title": "Resumen semanal de Insights por correo a dirección",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-22.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-22/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios elegidos en Automations (los del resumen del equipo, con su revisión de configuración); nunca al propietario; sin recalcular ni duplicar."
+      ]
+    },
+    {
+      "id": "AUT-23",
+      "parentTaskId": "AUT-23",
+      "title": "Correos de atrasos y renovación con revisión humana",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-23.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-23/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Los recordatorios de atraso +1/+5 y la carta +14 que arrearsDraft ya prepara, y las preguntas de renovación al propietario y al inquilino (ADM-14), salen por correo tras la aprobación de una persona de cada envío (R01); enviar no marca el paso ni paga la deuda."
+      ]
+    },
+    {
+      "id": "AUT-24",
+      "parentTaskId": "AUT-24",
+      "title": "Documentos al inquilino por correo con revisión humana",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-24.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-24/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Las copias de licencia y EICR y los datos prescritos del depósito (ADM-11), el aviso de subida de renta (ADM-15) y el aviso al propietario del paso +10 de atrasos (ADM-03) salen por correo tras la aprobación de una persona (R01), y su entrega queda registrada con el acuse de Gmail."
+      ]
     }
   ]
 }

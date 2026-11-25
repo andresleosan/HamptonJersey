@@ -1,0 +1,39 @@
+{
+  "id": "AUT-23",
+  "seccion": "Alquileres",
+  "titulo": "Correos de atrasos y renovación con revisión humana",
+  "origen": "plan",
+  "fase": "F2",
+  "estado": "pendiente",
+  "responsable": "desarrollo",
+  "hecho": "",
+  "falta": "Todo: construir apagado sobre la cola aprobada (outbound) que entrega el cartero de Hermes, pruebas, prueba real con el buzón de Luis y su sí para encender.",
+  "bloqueo": "",
+  "evidencia": [
+    "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba."
+  ],
+  "modulo": "M07",
+  "deps": [
+    "AUT-17"
+  ],
+  "criterio_aceptacion": "Los recordatorios de atraso +1/+5 y la carta +14 que arrearsDraft ya prepara, y las preguntas de renovación al propietario y al inquilino (ADM-14), salen por correo tras la aprobación de una persona de cada envío (R01); enviar no marca el paso ni paga la deuda.",
+  "assignedSlot": "hermes",
+  "allocationStatus": "proposed",
+  "assignmentRole": "seguimiento; no sustituye al responsable externo",
+  "executionEligibility": "ready",
+  "dependencies": [
+    {
+      "id": "AUT-17",
+      "scope": "component:email-transport",
+      "requires": "integrated",
+      "basis": "explicit",
+      "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+    }
+  ],
+  "resources": [
+    "email-transport",
+    "jobs-clock"
+  ],
+  "nextStep": "Construir apagado según el criterio.",
+  "actualizado": "2026-11-25"
+}
