@@ -216,6 +216,16 @@ export async function runRetention(env, ts) {
   // Before migration 0098 there is no table and nothing to delete.
   await env.DB.prepare(`DELETE FROM chat_applicant_saves WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-${KEEP_DAYS} days')`)
     .bind(ts).run().catch(e => { if (!/no such table: chat_applicant_saves/.test(String(e?.message))) throw e; });
+  // PUB-10 (Luis, 25-nov-2026): a «Sell or let» request 12 months after its last activity (sent, or its status last
+  // changed), deleted as the panel's Delete does: an owner.erased event without data, the receipt in cascade, its Inbox
+  // task by trigger. Before migration 0118 there is no table and nothing to delete.
+  const OLD_OWNERS = `SELECT id FROM owner_requests WHERE updated_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?1, '-12 months')
+    ORDER BY updated_at, id LIMIT ${RETENTION_CAP}`;
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?1, 'system', 'collection',
+      'owner-request:' || id, 'owner.erased', '{}' FROM (${OLD_OWNERS})`).bind(ts),
+    env.DB.prepare(`DELETE FROM owner_requests WHERE id IN (${OLD_OWNERS})`).bind(ts),
+  ]).catch(e => { if (!/no such table: owner_requests/.test(String(e?.message))) throw e; });
   // MSG-01: Facebook conversations 30 days after their last message, like the website's chats; their messages in
   // cascade. Also after the switch is turned off again, so nothing stays for ever; before migration 0109 there is no
   // table and nothing to delete.

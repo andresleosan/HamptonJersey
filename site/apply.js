@@ -498,6 +498,7 @@ function wizard(body, options, { esc, tsKey, tsReady }) {
 export function renderPrivacy(root) {
   root.innerHTML = `<section class="block"><div class="wrap legal">
     <h1>Privacy notice</h1>
+    <p class="muted">Last updated 25 November 2026.</p>
     <p>This notice explains how Hampton Estates uses the personal details you give us, for example when you register
       your search or ask for a viewing, and the rights you have under the Data Protection (Jersey) Law 2018.</p>
 
@@ -519,6 +520,8 @@ export function renderPrivacy(root) {
         replies, the property you were looking at and when you last had the chat open.</li>
       <li>If you write to our Facebook page: your messages and our replies, the times, and the identifier Facebook
         gives us for your account.</li>
+      <li>If you ask us to sell, let or value your property: your name, telephone number and email address, the
+        property's address, whether you want to sell or let it and whether you asked for a valuation.</li>
     </ul>
 
     <h2>Why we use it</h2>
@@ -526,6 +529,7 @@ export function renderPrivacy(root) {
       <li>To look for properties or businesses that match your search and tell you about them.</li>
       <li>To arrange viewings and keep a record of what we have discussed with you.</li>
       <li>To answer the messages you send us through the chat on our website or our Facebook page.</li>
+      <li>To contact you about selling or letting your property and, if you ask for one, to arrange a valuation.</li>
       <li>To show on a property's page how many people are interested in it: a number only, from 2 people, never your
         name or details.</li>
       <li>To send you news about homes and the Jersey market, only if you ticked the box for it.</li>
@@ -539,7 +543,8 @@ export function renderPrivacy(root) {
 
     <h2>Who else handles it</h2>
     <p>We do not sell your details. Our website and records are hosted by Cloudflare, which also runs the anti-spam
-      check on our forms. Our systems are built and maintained for us by Optimyze. Both act
+      check on our forms. The emails our app sends and the replies to them go through Hampton Estates' Gmail account,
+      provided by Google. Our systems are built and maintained for us by Optimyze. They all act
       only on our instructions. When a provider handles data outside Jersey, the law requires suitable safeguards, and
       we only use providers that give them. We pass your details to a landlord, a seller or their agent only when you
       ask us to arrange a viewing or make an offer.</p>
@@ -563,6 +568,8 @@ export function renderPrivacy(root) {
       If you make an offer that leads to an agreed sale, we keep the sale
       record and your details for 5 years after it completes or falls through, as anti-money-laundering record-keeping
       rules require.</p>
+    <p>A request to sell, let or value your property is deleted 12 months after its last activity: when you sent it or
+      when our team last updated it.</p>
 
     <h2>Web chat</h2>
     <p>A person from Hampton Estates reads and answers every message; the chat does not reply automatically. We use what
@@ -581,8 +588,10 @@ export function renderPrivacy(root) {
       systems does not delete it from Facebook: it stays in your Messenger and in our page's inbox there.</p>
 
     <h2>Email sent to the app</h2>
-    <p>When you reply to an email from our app, Hampton Estates can read your reply in its staff panel. Cloudflare
-      sends and receives these emails on our instructions. Email content is removed after 30 days; delivery and receipt
+    <p>When you reply to an email from our app, Hampton Estates can read your reply in its staff panel. These emails
+      are sent and received through Hampton Estates' Gmail account (Google), on our instructions, and a copy stays in
+      that account as with any email we exchange with you. A few, such as sign-in codes and replies to our app's own
+      reply address, go through Cloudflare. In our app, email content is removed after 30 days; delivery and receipt
       records are removed after 90 days. Attachments are not saved. A minimal fingerprint of a received message is kept
       for up to 90 days so deleting a message does not let a duplicate delivery restore it. If you ask us to stop sending
       to your address, we keep a fingerprint of the address to respect that preference until you ask us to remove it.
