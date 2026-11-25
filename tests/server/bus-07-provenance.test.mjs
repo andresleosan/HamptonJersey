@@ -289,12 +289,14 @@ test('a co-listed listing is enquired about only through AGE-03', () => {
   // PRE-12's retention notice goes only to an applicant contact's own address, never to an advertiser.
   // OFE-02 emails an offer to the listing's seller: an individual or entity advertiser, never an agency (offer-emails.js).
   // VIS-13's viewing reminder goes only to the linked search's contact, never to an advertiser.
+  // AUT-22's weekly Insights email goes only to the team summary's recipients, never to an owner or an advertiser.
   assert.deepEqual(code.filter(([, s]) => /INSERT INTO outbound/i.test(s)).map(([f]) => f).sort(),
-    ['server/consultations.js', 'server/email.js', 'server/offer-emails.js', 'server/retention-notices.js', 'server/saved-searches.js', 'server/viewing-reminders.js']);
+    ['server/consultations.js', 'server/email.js', 'server/offer-emails.js', 'server/retention-notices.js', 'server/saved-searches.js', 'server/viewing-reminders.js', 'server/weekly-insights-email.js']);
   assert.deepEqual(code.filter(([, s]) => /advertisers/.test(s) && /\.contacts\b|\$\.contacts/.test(s)).map(([f]) => f).sort(),
     // AUT-17 (Luis, 21-nov-2026): Hermes writes the enquiry and the viewing proposal to the advertiser from Gmail.
     // OFE-02: the seller's contact, only of individual or entity advertisers.
-    ['server/advertiser-privacy.js', 'server/consultations.js', 'server/hermes-mail.js', 'server/offer-email-check.js', 'server/offer-emails.js', 'server/routes/advertisers.js']);
+    // AUT-22: an owner's contact is read only to keep it out of the weekly email's recipients.
+    ['server/advertiser-privacy.js', 'server/consultations.js', 'server/hermes-mail.js', 'server/offer-email-check.js', 'server/offer-emails.js', 'server/routes/advertisers.js', 'server/weekly-insights-email-check.js']);
   // email.js queues only the team summary, to the team's own recipients.
   const email = readFileSync(new URL('../../server/email.js', import.meta.url), 'utf8');
   assert.equal(/advertiser/i.test(email), false);
