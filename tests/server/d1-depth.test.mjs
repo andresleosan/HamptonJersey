@@ -38,3 +38,17 @@ test("the carrier's claim with OFE-02's and VIS-13's checks fits D1's depth", as
   assert.ok(claim?.includes("FROM offer_emails oe"), "the claim was prepared with the offer's check");
   assert.ok(claim?.includes("WHEN 'viewing_reminder_24h' THEN"), "the claim carries the reminder check");
 });
+
+// The worst case: every switch of wrangler.toml on (retention notices, purposes, every template's check), so a new
+// template's check is measured with all the others in the claim (one CASE by template since 25-nov).
+test("the carrier's claim with every switch on fits D1's depth", async () => {
+  const db = makeDb(), seen = [], all = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, /_READY$/.test(k) ? "1" : v]));
+  const env = { ...all, DB: { ...db, prepare: sql => {
+    seen.push(sql);
+    const s = db.prepare(sql);
+    return /^SELECT id FROM outbound WHERE status='queued'/.test(sql) ? { ...s, bind: (...a) => ({ ...s.bind(...a), all: async () => ({ results: [{ id: 1 }] }) }) } : s;
+  } } };
+  assert.equal(await claimForHermes(env, await enquiryEmailCheck(env)), null);
+  const claim = seen.find(sql => sql.startsWith("UPDATE outbound SET status='sending'"));
+  for (const t of ["enquiry", "offer_to_seller", "viewing_reminder_24h", "retention_notice"]) assert.ok(claim.includes(`'${t}'`), t);
+});

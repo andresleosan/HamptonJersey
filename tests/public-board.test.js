@@ -8,9 +8,9 @@ import worker from '../coordination/src/public-worker.mjs';
 const require=createRequire(import.meta.url),ui=require('../docs/roadmap/tablero-publico.js');
 const catalog=JSON.parse(readFileSync(new URL('../docs/roadmap/catalog.json',import.meta.url)));
 function fixture(){return {protocolVersion:1,revision:1,serverTime:'2026-11-08T00:00:00Z',catalogSha:'a'.repeat(40),slots:structuredClone(catalog.slots),tasks:structuredClone(catalog.tasks),units:structuredClone(catalog.units),claims:[],evidence:[],blockers:[],release:null,privateValue:'PRIVATE_SENTINEL'};}
-test('public projection is an explicit minimal allowlist for all252tasks, with stable numbered lists',()=>{
+test('public projection is an explicit minimal allowlist for all256tasks, with stable numbered lists',()=>{
  const b=fixture();b.slots.reverse();const p=publicBoard(b);
- assert.equal(p.tasks.length,252);assert.deepEqual(p.lists.map(l=>l.name),['Lista 1','Lista 2','Lista 3','Lista 4']);
+ assert.equal(p.tasks.length,256);assert.deepEqual(p.lists.map(l=>l.name),['Lista 1','Lista 2','Lista 3','Lista 4']);
  assert.deepEqual(Object.keys(p).sort(),['lists','revision','schemaVersion','tasks','updatedAt']);
  assert.deepEqual(Object.keys(p.tasks[0]).sort(),['activity','code','details','list','state','title']);
  assert.deepEqual(Object.keys(p.tasks[0].details).sort(),['dependencies','done','nextStep','pending']);
@@ -41,7 +41,7 @@ test('public handler permits read only and fetches only the canonical catalogue'
   for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS'])for(const path of ['/','/v1/board','/v1/claims','/v1/catalog'])assert.equal((await worker.fetch(new Request('https://public.example'+path,{method}),env)).status,405);
   for(const path of ['/v1/claims','/v1/catalog','/.env','/anything'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,404);
   assert.equal(calls,0);assert.equal(assets,0);
-  const r=await worker.fetch(new Request('https://public.example/v1/board'),env);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);assert.ok(!r.headers.get('Content-Security-Policy').includes('unsafe-inline'));assert.equal((await r.json()).tasks.length,252);assert.equal(calls,1);
+  const r=await worker.fetch(new Request('https://public.example/v1/board'),env);assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);assert.ok(!r.headers.get('Content-Security-Policy').includes('unsafe-inline'));assert.equal((await r.json()).tasks.length,256);assert.equal(calls,1);
   assert.equal((await worker.fetch(new Request('https://public.example/'),env)).status,200);assert.equal(assets,1);
   for(const path of ['/paquetes.json','/tablero-publico.css'])assert.equal((await worker.fetch(new Request('https://public.example'+path),env)).status,200);
   assert.equal(assets,3);
@@ -107,7 +107,7 @@ test('package manifest covers every catalogue task once, including deferred work
  const manifest=JSON.parse(readFileSync(new URL('../docs/roadmap/paquetes.json',import.meta.url)));
  ui.validatePackages(manifest);
  const codes=manifest.packages.flatMap(p=>p.stages.flatMap(s=>s.tasks));
- assert.equal(codes.length,252);assert.equal(new Set(codes).size,252);
+ assert.equal(codes.length,256);assert.equal(new Set(codes).size,256);
  assert.deepEqual([...codes].sort(),catalog.tasks.map(t=>t.id).sort());
  for(const code of codes){const r=ui.taskAdvice(code,manifest);assert.ok(['Hermes','VPS','VS Code'].includes(r.environment));assert.ok(['Baja','Media','Alta'].includes(r.difficulty));assert.ok(r.reason&&r.needs);}
  assert.match(manifest.engines.hermesPrimary,/Sol.*Codex/);assert.match(manifest.engines.hermesFallback,/DeepSeek v4.*max.*OpenCode/);
@@ -177,7 +177,7 @@ test('failed package metadata retains live lists and progress, and manual refres
  const dom=new JSDOM(readFileSync(new URL('../docs/roadmap/tablero-publico.html',import.meta.url),'utf8'),{url:'https://public.example/',pretendToBeVisual:true}),w=dom.window;let fail=true;
  w.fetch=async url=>{if(url==='/paquetes.json'&&fail)throw Error('offline');return {ok:true,json:async()=>url==='/paquetes.json'?manifest:publicBoard(fixture())};};
  const app=ui.mount(w.document,w);await new Promise(resolve=>setImmediate(resolve));
- try{assert.equal(w.document.getElementById('view').value,'lists');assert.match(w.document.getElementById('package-status').textContent,/No se pudo/);assert.equal(w.document.querySelectorAll('.task').length,252);
+ try{assert.equal(w.document.getElementById('view').value,'lists');assert.match(w.document.getElementById('package-status').textContent,/No se pudo/);assert.equal(w.document.querySelectorAll('.task').length,256);
  fail=false;await app.refresh();await new Promise(resolve=>setImmediate(resolve));assert.equal(w.document.querySelectorAll('.package').length,23);assert.equal(w.document.getElementById('package-status').textContent,'');
  }finally{app.stop();w.close();}
 });
@@ -187,7 +187,7 @@ test('local package planner preserves explicit task scope, filters lists and rej
  const {execFileSync,spawnSync}=await import('node:child_process');
  const script=new URL('../scripts/plan-packages.mjs',import.meta.url);
  const run=(...args)=>JSON.parse(execFileSync(process.execPath,[script.pathname,...args],{encoding:'utf8'}));
- assert.deepEqual(run('--check'),{packages:23,tasks:252,coverage:'exact'});
+ assert.deepEqual(run('--check'),{packages:23,tasks:256,coverage:'exact'});
  const task=run('--task','BUS-14');assert.equal(task.scope,'explicit_task');assert.equal(task.reserved,false);assert.equal(task.buildAuthorized,false);assert.equal(task.packages.length,1);assert.equal(task.packages[0].id,'PAQ-03');
  const list=run('--list','4');assert.ok(list.packages.every(p=>p.stages.some(s=>s.tasks.some(t=>t.list===4))));
  for(const args of [['--package','PAQ-99'],['--task','BUS-999'],['--list','5'],['--package','PAQ-01','--task','BUS-14'],['--claim','NOT-11']])assert.equal(spawnSync(process.execPath,[script.pathname,...args],{encoding:'utf8'}).status,1);

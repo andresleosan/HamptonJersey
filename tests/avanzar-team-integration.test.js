@@ -15,7 +15,7 @@ function reserve(state,slot,extra={}){
     sessionId:`session-${slot}`,checkoutId:`checkout-${slot}`,hostId:'test-host',mode:'build',baseSha:'a'.repeat(40),...extra
   },{},1000).claim;
 }
-test('the real 252-point allocation can reserve compatible build work after review and dependency gates for all four slots',()=>{
+test('the real 256-point allocation can reserve compatible build work after review and dependency gates for all four slots',()=>{
   const state=reviewedFixture(),claims=[];
   for(const slot of ['vps','hermes','vscode','codex-desktop'])claims.push(reserve(state,slot));
   assert.equal(new Set(claims.map(c=>c.unitId)).size,4);
@@ -24,8 +24,8 @@ test('the real 252-point allocation can reserve compatible build work after revi
       `Conflicting catalogue reservations: ${claims[i].unitId}, ${claims[j].unitId}`);
   }
   const view=stateApi.board(state,1000);
-  assert.equal(view.tasks.length,252);assert.equal(view.claims.length,4);
-  assert.equal(view.units.length,252);
+  assert.equal(view.tasks.length,256);assert.equal(view.claims.length,4);
+  assert.equal(view.units.length,256);
 });
 test('Hermes second phone cannot create a second active worker or reuse another slot',()=>{
   const state=reviewedFixture();reserve(state,'hermes');

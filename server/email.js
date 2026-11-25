@@ -3,7 +3,7 @@ import { now, sha256 } from "./http.js";
 import { ALLOWED, MARKETING_TEMPLATE, purposeReady } from "./communication-preferences.js";
 import { NO_NOTICE, noticeClaimSql } from "./retention.js";
 import { offerClaimSql } from "./offer-email-check.js";
-import { reminderClaimSql } from "./viewing-reminders.js";
+import { REMINDERS, reminderClaimSql } from "./viewing-reminders.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -97,7 +97,11 @@ const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTION
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
       = '${MARKETING_TEMPLATE}' THEN substr(outbound.template,${MARKETING_TEMPLATE.length + 1}) END`, "'email'")}))`
   : `substr(outbound.template,1,${MARKETING_TEMPLATE.length}) <> '${MARKETING_TEMPLATE}'`;
-const AUTHORIZED = (enquiry = "0", marketing = false, notice = "1", offer = "0", viewing = "0") => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
+// checks: [templates, SQL] per template with its own claim-time check, as outboundGate builds them (one CASE, so the
+// claim is as deep as its deepest check, not their sum: D1 refuses an expression deeper than 100). Any other template: 1.
+const BY_TEMPLATE = checks => `CASE outbound.template ${checks.flatMap(([templates, sql]) => templates.map(t => `WHEN '${t}' THEN (${sql})`))
+  .join(" ")} ELSE 1 END`;
+const AUTHORIZED = (checks, marketing = false, notice = "1") => `EXISTS (SELECT 1 FROM app_settings es WHERE es.key = 'email'
   AND json_extract(es.value,'$.enabled') = 1
   AND (outbound.template <> 'team_summary' OR (json_extract(es.value,'$.summary') = 1
     AND json_extract(es.value,'$.revision') = outbound.config_revision
@@ -106,9 +110,7 @@ const AUTHORIZED = (enquiry = "0", marketing = false, notice = "1", offer = "0",
   AND NOT EXISTS (SELECT 1 FROM email_suppressions WHERE address_hash = outbound.recipient_hash)
   AND outbound.approved_at IS NOT NULL AND outbound.approved_by IS NOT NULL
   AND outbound.recipient IS NOT NULL AND outbound.text IS NOT NULL AND outbound.subject IS NOT NULL
-  AND (outbound.template <> 'offer_to_seller' OR (${offer}))
-  AND (outbound.template NOT IN ('viewing_reminder_24h','viewing_reminder_2h') OR (${viewing}))
-  AND (outbound.template <> 'enquiry' OR (${enquiry})) AND ${PROMOTION(marketing)} AND ${notice}`;
+  AND ${PROMOTION(marketing)} AND ${notice} AND ${BY_TEMPLATE(checks)}`;
 // The one provider call: the queued emails below and ADM-12's sign-in code (case-auth-email.js), from the same sender.
 // Callers check serviceReady and the binding first, and reserve the day's quota in email_attempts before calling.
 export const sendNow = (env, to, subject, text) => env.EMAIL.send({ from: { email: EMAIL_FROM, name: "Hampton Estates" }, to,
@@ -139,9 +141,14 @@ async function outboundGate(env, enquiry, day) {
   const capped = notice === NO_NOTICE ? notice : `${notice} AND (outbound.template <> 'retention_notice'
     OR (SELECT COUNT(*) FROM email_attempts na JOIN outbound nr ON nr.id = na.outbound_id
       WHERE na.day = '${day}' AND nr.template = 'retention_notice') < ${NOTICE_DAILY_LIMIT})`;
-  const offer = await offerClaimSql(env); // OFE-02: its own check, from env, as the notice's
-  const viewing = await reminderClaimSql(env);
-  return { notice, claim: AUTHORIZED(enquiry, purposeReady(env), capped, offer, viewing), after: AUTHORIZED(enquiry, purposeReady(env), notice, offer, viewing) };
+  // Each template with its own claim-time check, read from env (switch off or before its migration: "0", never claimed).
+  // A new one adds its line here and its name to TRANSACTIONAL.
+  const checks = [
+    [["enquiry"], enquiry ?? "0"], // AGE-05: none given, none claimed
+    [["offer_to_seller"], await offerClaimSql(env)], // OFE-02
+    [REMINDERS, await reminderClaimSql(env)], // VIS-13
+  ];
+  return { notice, claim: AUTHORIZED(checks, purposeReady(env), capped), after: AUTHORIZED(checks, purposeReady(env), notice) };
 }
 async function candidates(env, ts, enquiry, limit) {
   const { claim } = await outboundGate(env, enquiry, emailDay(ts));
