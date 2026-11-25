@@ -3141,14 +3141,16 @@ document.addEventListener('DOMContentLoaded', () => {
     "24-nov: Luis copió hermes/mercado.mjs (74e7164d) a /root/hampton-hermes/mercado/ (copia anterior mercado.mjs.~1~) y reinició hampton-mercado: cmp idéntico, log «Market custodian on 172.16.47.20:8789».",
     "24-nov: Keys raíz y Finders Keepers quedaron pending en la pasada del 24 (market_source_runs) y el custodio no registró nada de ellos: iban antes que Gaudin en la lista (paging_key) y sus webs redirigen a www. (keys.je/ → www.keys.je/default.aspx; finderskeepers.je/ → www.finderskeepers.je/), así que Hermes entregó páginas www. y el custodio contestaba 400 sin registrarlo. Arreglo: las páginas valen en el host con o sin www. (paths igual de estrictos) y el rechazo queda en el registro. Prueba que fallaba antes (400) y ahora pasa: node --test tests/hermes-mercado.test.mjs 21/21. HTML simple 24-nov: Finders Keepers 3 anuncios en / y /property/; Keys 0 en /default.aspx.",
     "24-nov: Luis instaló el segundo arreglo (b7468513): cmp idéntico con main, copia anterior mercado.mjs.~2~, hampton-mercado reiniciado («Market custodian on 172.16.47.20:8789»).",
-    "24-nov ~07:00 UTC: ensayo local de entregar() (hermes/mercado.mjs, sin red, fetchFn con el feed de Finders Keepers páginas 1 y 2 guardado esa mañana): 23 anuncios de parseFindersKeepers con las 2 páginas JSON como pages: precio como en la tarjeta («£2,265 pcm») 22 price_not_on_page; precio como número del feed («2265») 23 price_not_on_page; canal invalid_response en los dos casos. Un cambio solo de la skill no basta. Decisión (fuente 5, lo más simple y reversible): no se cambia la verificación antes de la noche; se juzga con el resultado del 25-nov comparando cuentas con la línea base, no solo líneas done."
+    "24-nov ~07:00 UTC: ensayo local de entregar() (hermes/mercado.mjs, sin red, fetchFn con el feed de Finders Keepers páginas 1 y 2 guardado esa mañana): 23 anuncios de parseFindersKeepers con las 2 páginas JSON como pages: precio como en la tarjeta («£2,265 pcm») 22 price_not_on_page; precio como número del feed («2265») 23 price_not_on_page; canal invalid_response en los dos casos. Un cambio solo de la skill no basta. Decisión (fuente 5, lo más simple y reversible): no se cambia la verificación antes de la noche; se juzga con el resultado del 25-nov comparando cuentas con la línea base, no solo líneas done.",
+    "25-nov-2026: el custodio verifica también páginas JSON (el feed del propio sitio, caso Finders Keepers): un anuncio vale si es un elemento de una lista con su enlace en un campo de enlace (url, link…) y su importe en un campo de precio (price, rent, amount…), un objeto por anuncio; el periodo solo pasa si lo da el feed (si no, el alquiler llega sin cifra mensual); un feed que diga «For let»/«For sale» contra la operación de Hermes rechaza el anuncio; feeds desmesurados fallan cerrados. Dos revisiones de seguridad (automática e independiente) con sus hallazgos corregidos. node --test tests/hermes-mercado.test.mjs y bus-09/bus-08: 131/131; npm test 3567/3567. Commits 323dff62..de171119.",
+    "25-nov-2026 ~06:40 UTC: instalado en el VPS con el sí de Luis del 25-nov: /root/hampton-hermes/mercado/mercado.mjs = main (copia anterior mercado.mjs.~3~), hampton-mercado reiniciado («Market custodian on 172.16.47.20:8789»); skill hampton-mercado = main (copia anterior fuera de la carpeta de skills). La noche del 24 al 25 Hermes no entregó nada (0 líneas del custodio)."
    ],
    "modulo": "M02",
    "deps": [
     "BUS-06"
    ],
    "criterio_aceptacion": "Una renta anual se compara mensualmente conservando su importe y periodo originales; ausencia de mascotas sigue desconocida.",
-   "actualizado": "2026-11-24"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "BUS-10",
