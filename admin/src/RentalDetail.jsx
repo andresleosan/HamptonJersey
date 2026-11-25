@@ -15,6 +15,7 @@ import { TenancyContact } from "./TenancyContact.jsx";
 import { RepairLinks } from "./RepairLinks.jsx";
 import { APP_STATUS, RentalApplications } from "./RentalApplication.jsx";
 import { Suppliers } from "./Suppliers.jsx";
+import RentalEmail from "./RentalEmail.jsx";
 import { Estimated } from "./LegalTerms.jsx";
 import { OPTIONS } from "../../server/applicants.js";
 import { ARREARS_STEPS, COMPLIANCE, CALENDAR, LEGAL, lawApplies, regimeOf } from "../../server/rentals.js";
@@ -34,7 +35,9 @@ const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.t
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
   edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
   unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers, writeOff: WriteOff, reverseWriteOff: ReverseWriteOff,
-  answer: RenewalAnswer };
+  answer: RenewalAnswer, email: RentalEmail };
+// AUT-24 (data.tenant_emails, d.rental_emails: its switch): what can be emailed from here, prepared and approved in RentalEmail.
+const TENANT_DOCS = ["licence_copy", "eicr_copy", "deposit_info"];
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -164,7 +167,9 @@ export default function RentalDetail({ id, selection='', onChange }) {
             <span>{c.label}<span className="muted cell-note">{checkDates(c)}
               {c.note && ` · ${c.note}`}</span></span>
             <span className="ctl">{checkState({ ...c, due_on: c.expires_on })}
-              <button type="button" className="btn ghost sm" onClick={() => open("check", { item: c, legal: data.legal }, "checks")}>Update<span className="sr"> {c.label}</span></button></span>
+              <button type="button" className="btn ghost sm" onClick={() => open("check", { item: c, legal: data.legal }, "checks")}>Update<span className="sr"> {c.label}</span></button>
+              {data.tenant_emails && TENANT_DOCS.includes(c.kind) && !c.done_on && <button type="button" className="btn ghost sm"
+                onClick={() => open("email", { url: `/admin/rentals/${id}/emails/${c.kind}`, title: c.label }, "checks")}>Email the tenant<span className="sr">: {c.label}</span></button>}</span>
           </li>)}</ul>
           {r.has_gas === 0 && <p className="muted">No gas supply, so no gas safety check.</p>}
         </section>
@@ -307,7 +312,9 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         {" "}{fmtDay(d.earliest_move_out)}. <Estimated legal={d.legal} /></p>}
     <dl className="kv">
       <div><dt>Rent</dt><dd className="rent">{rentLine(t, d.current_rent)}
-        <span className="muted cell-note">Due on day {t.due_day} of each month</span></dd></div>
+        <span className="muted cell-note">Due on day {t.due_day} of each month</span>
+        {d.rental_emails && !ended && t.last_rent_change_on > today && <button type="button" className="linkish" onClick={act("email",
+          { url: `/admin/tenancies/${t.id}/emails/rent_notice`, title: "Rent change notice to the tenant" })}>Email the rent change notice</button>}</dd></div>
       <div><dt>Deposit</dt><dd>{t.deposit != null ? money(t.deposit) : "—"}{t.deposit_ref && <span className="muted cell-note">{t.deposit_ref}</span>}</dd></div>
       {full && <div><dt>Collecting from</dt><dd>{t.collect_from ? fmtDay(t.collect_from) : "—"}
         {t.collect_from && !ended && <> <button type="button" className="linkish" onClick={act("edit", collecting(t))}>Change<span className="sr"> the date rent is collected from</span></button></>}</dd></div>}
@@ -323,7 +330,10 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         {a.next_step && <p className="ctl">Next step: <strong>{a.next_step.label}</strong>
           <button type="button" className="btn sm" onClick={() => open("step", { row: { tenancy_id: t.id, oldest_unpaid_on: a.oldest_unpaid_on,
             next_step: a.next_step, tenant_name: t.tenant_name, address: t.address, payment_ref: t.payment_ref, balance: d.balance, days_late: a.days_late } })}>
-            Mark done<span className="sr">: {a.next_step.label}</span></button></p>}</>}</div>
+            Mark done<span className="sr">: {a.next_step.label}</span></button></p>}
+        {d.rental_emails && a.days_late >= 10 && !a.done.some(s => s.step === "landlord") && <p className="ctl"><button type="button"
+          className="btn ghost sm" onClick={act("email", { url: `/admin/tenancies/${t.id}/emails/landlord_arrears`,
+            title: "Arrears notice to the landlord" })}>Email the landlord</button></p>}</>}</div>
     </div>}
     {/* ADM-09 (d.writeoffs: its switch): the step's text to send by hand, and the write-offs with their reversal. */}
     {draft && <NoticeDraft text={draft} id={`arrears-draft-${id}`} title={`${a.next_step.label} draft`} label="Text to send"
@@ -417,6 +427,9 @@ const CHECK = Object.fromEntries([...COMPLIANCE, ...CALENDAR].map(([k, label]) =
 const checkDates = (c, done = "Done", due = "Due by") => (c.done_on
   ? `${done} ${fmtDay(c.done_on)}${c.expires_on ? `, expires ${fmtDay(c.expires_on)}` : ""}`
   : c.expires_on ? `${due} ${fmtDay(c.expires_on)}` : "Not recorded yet");
+const EMAIL_OF = { licence_copy: "Licence copy email to the tenant", eicr_copy: "EICR copy email to the tenant",
+  deposit_info: "Deposit information email to the tenant", rent_notice: "Rent change notice email to the tenant",
+  landlord_arrears: "Arrears email to the landlord" };
 const EVENT = {
   "rental.created": () => "Property added",
   "rental.updated": d => `Details changed: ${keys(d.after)}${d.collect_from ? `; rent collected from ${fmtDay(d.collect_from)}` : ""}${
@@ -424,6 +437,11 @@ const EVENT = {
   "rental.archived": () => "Property archived",
   "rental.restored": () => "Property restored",
   "compliance.updated": d => `${CHECK[d.kind]} ${checkDates(d.after, "done", "due by")}`,
+  "rental_email.prepared": d => `${EMAIL_OF[d.kind]} prepared (version ${d.revision})`,
+  "rental_email.queued": d => `${EMAIL_OF[d.kind]} approved and queued (version ${d.revision})`,
+  "rental_email.sent": d => `${EMAIL_OF[d.kind]} sent from Hampton's Gmail${d.by === "person" ? " (confirmed by a person)" : ""}, HE-OUT-${d.email_ref}`,
+  "rental_email.unknown": d => `${EMAIL_OF[d.kind]}: not known whether it was sent`,
+  "rental_email.not_sent": d => `${EMAIL_OF[d.kind]} not sent${d.reason ? ` (${d.reason.replaceAll("_", " ")})` : ""}`,
   "repair.created": d => `Repair reported${d.inspection_id ? " from an inspection" : ""}: ${d.title}`,
   "repair.reported": (d, { repairs }) => `Repair reported by the tenant through their link: ${repairs.find(p => p.id === d.repair_id)?.title ?? ""}`,
   "repair.updated": (d, { repairs }) => `Repair ${repairs.find(p => p.id === d.repair_id)?.title ?? ""} updated: ${d.after.status
