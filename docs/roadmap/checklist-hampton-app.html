@@ -7222,18 +7222,21 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Acuerdos de comisión como gestión humana independiente",
    "origen": "plan",
    "fase": "F2",
-   "estado": "pendiente",
+   "estado": "hecho",
    "responsable": "Hampton",
-   "hecho": "",
-   "falta": "M06 · Reconciliación 7-nov: Registrar cuando el equipo los aporte los acuerdos y condiciones comerciales tratados personalmente, separados de permisos de imágenes (AGE-10). No se presupone un porcentaje ni se necesita un acuerdo de reparto para construir el directorio, hacer la consulta inicial o coordinar la visita. No incluir comisión en la consulta automática.",
+   "hecho": "Decisión de Luis (plan del 10-nov-2026): los acuerdos de comisión entre agencias se tratan en persona, fuera de la aplicación. La app no los registra, no los exige para el directorio, la consulta inicial, las fotos ni la visita, y ninguna consulta menciona comisiones. La nota libre «Commission discussion» de Advertisers ya existía y se queda como apunte del equipo, no como registro de acuerdos.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:697",
     "docs/superpowers/specs/2026-10-23-hampton-app-f0-design.md:30",
-    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md"
+    "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
+    "25-nov-2026: cerrada por aceptación propia. Fuente: docs/superpowers/plans/2026-11-10-tp05-pre-22-manual-management.md («La decisión de Luis es gestionarlos en persona sin aplicación… No construir registros de acuerdos, tarifas, facturas, saldos, rutas o formularios»), que sustituye al «falta» del 7-nov; el plan maestro del 10-nov deja las comisiones entre agencias fuera de la aplicación (OFE-08).",
+    "25-nov-2026: comprobado en el código que la consulta a la agencia no incluye comisión (sin «commission» en server/consultations.js, server/hermes-mail.js ni hermes/skills/hampton-correo/SKILL.md) y que el único campo es la nota libre de Advertisers (admin/src/Advertisers.jsx:115)."
    ],
    "modulo": "M06",
-   "deps": []
+   "deps": [],
+   "actualizado": "2026-11-25"
   },
   {
    "id": "PRE-23",
