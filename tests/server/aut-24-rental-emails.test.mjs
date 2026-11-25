@@ -264,6 +264,12 @@ test("the landlord is told at step +10, and the step is marked done only once Gm
   await queued(env, p);
   assert.equal(outbound(env)[0].template, "landlord_arrears_notice");
   assert.equal(n(env, "SELECT COUNT(*) n FROM arrears_steps"), 0, "queued is not done");
+  // Review 26-nov: a text is good for its own day only (more rent falls due with no new row): a day later, not claimed.
+  const ver = row(env, "SELECT source_version v FROM rental_emails").v;
+  run(env, `UPDATE rental_emails SET source_version = replace(source_version, '"' || date('now') || '"', '"' || date('now', '-1 day') || '"')`);
+  assert.notEqual(row(env, "SELECT source_version v FROM rental_emails").v, ver, "the day is part of the source");
+  assert.equal(await nextEmail(env), null, "written on another day");
+  run(env, "UPDATE rental_emails SET source_version = ?", ver);
   // A payment meanwhile changes what is owed: not claimed.
   run(env, "INSERT INTO payments (tenancy_id, received_on, amount, kind, source, created_at) VALUES (?, ?, 10000, 'rent', 'manual', ?)", t, T, TS());
   assert.equal(await nextEmail(env), null, "what is owed changed");

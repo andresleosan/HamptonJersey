@@ -1,4 +1,4 @@
--- AUT-23 (AUT23_RENTAL_STEP_EMAILS_READY): a rental email a person prepares from an existing draft and approves, one row per
+-- AUT-23 (AUT23_RENTAL_EMAILS_READY): a rental email a person prepares from an existing draft and approves, one row per
 -- tenancy, kind and source: the arrears reminders +1 and +5 and the formal letter +14 of ADM-09 (kind rent_arrears,
 -- source_key '<charge_due_on>/<step>') and ADM-14's renewal question to the landlord or message to the tenant (kinds
 -- renewal_landlord and renewal_tenant, source_key the term's end_on). kind is also the outbound template. Each change

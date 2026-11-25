@@ -26,7 +26,8 @@ export const sourceSql = (kind, key) => `json_array(t.updated_at, r.updated_at, 
   WHEN 'deposit_info' THEN ${item("deposit_info")}
   WHEN 'rent_notice' THEN (SELECT json_array(rc.id, rc.rent, rc.effective_on, rc.created_at) FROM rent_changes rc
     WHERE rc.tenancy_id = t.id AND rc.id = CAST(${key} AS INTEGER))
-  WHEN 'landlord_arrears' THEN json_array(${key}, t.financial_revision, l.id, l.updated_at,
+  WHEN 'landlord_arrears' THEN json_array(${key}, t.financial_revision, l.id, l.updated_at, date('now'), -- review 26-nov: the
+    -- amount owed grows as rent falls due with no new row (charges exist ahead), so a text is good for its own day only
     (SELECT 1 FROM arrears_steps x WHERE x.tenancy_id = t.id AND x.charge_due_on = ${key} AND x.step = 'landlord')) END)`;
 export const JOINS = "JOIN rentals r ON r.id = t.rental_id JOIN landlords l ON l.id = r.landlord_id";
 // The party's address, as emailAddress keeps it.
