@@ -219,7 +219,6 @@ export function enquiries(gates) {
       JOIN advertisers ad ON ad.id = consultations.advertiser_id
     WHERE consultations.email_ref = outbound.ref AND consultations.status = 'queued' AND consultations.revision = outbound.version AND outbound.created_at > ${QUEUE_LIMIT}
       AND consultations.approved_revision = consultations.revision AND EXISTS (SELECT 1 FROM admins WHERE email = consultations.approved_by)
-      AND ${counts("1")} AND (consultations.occupants_match_id IS NULL OR ${counts("cm.match_id = consultations.occupants_match_id")})
       ${notConfirmedUnavailable(EST15_ON, "consultations.listing_id", "consultations.operation")}
       AND ad.suppressed_at IS NULL AND ${ofProperty("ad", "consultations.listing_id")}
       AND EXISTS (SELECT 1 FROM json_each(ad.details, '$.contacts') j WHERE lower(trim(json_extract(j.value, '$.email'))) = outbound.recipient)
@@ -230,7 +229,8 @@ export function enquiries(gates) {
       AND NOT EXISTS (SELECT 1 FROM consultation_matches qm JOIN matches qx ON qx.id = qm.match_id JOIN events e ON e.entity_type = 'applicant'
         AND e.entity_id = CAST(qx.applicant_id AS TEXT) AND json_extract(e.data, '$.listing_id') = qx.listing_id
         WHERE qm.consultation_id = consultations.id AND consultations.kind = 'clarification' AND e.type = 'match.clarification'
-          AND e.at > outbound.created_at))`;
+          AND e.at > outbound.created_at)
+      AND (${counts("1")} AND (consultations.occupants_match_id IS NULL OR ${counts("cm.match_id = consultations.occupants_match_id")})))`;
   // The household of a match that still counts for this enquiry, as it is now. undefined: the match does not count.
   const caseOf = (env, c, matchId) => env.DB.prepare(`SELECT CASE WHEN a.search_category <> 'commercial' THEN COALESCE(a.household_total,
     a.household_adults + a.household_children) END AS occupants FROM ${LINKS} WHERE cm.consultation_id = ? AND cm.match_id = ? AND ${live}`)

@@ -7,7 +7,9 @@ export const T0 = "2026-10-07T10:00:00.000Z";
 
 // skip: migration numbers left out, like a database where they are not applied yet.
 export function makeDb({ through = Infinity, skip = [] } = {}) {
-  const db = new DatabaseSync(":memory:");
+  // D1 refuses an expression deeper than 100 ("Expression tree is too large") and counts a level more than node:sqlite
+  // (a query that needs 100 here failed there, 25-nov-2026): 90 keeps a margin, so a too deep query fails here first.
+  const db = new DatabaseSync(":memory:", { limits: { exprDepth: 90 } });
   db.exec("PRAGMA foreign_keys = ON;");
   for (const f of readdirSync(MIG).filter(f => f.endsWith(".sql") && Number(f.slice(0, 4)) <= through
     && !skip.includes(Number(f.slice(0, 4)))).sort()) db.exec(readFileSync(new URL(f, MIG), "utf8"));

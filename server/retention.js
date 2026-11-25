@@ -187,7 +187,9 @@ export async function runRetention(env, ts) {
   const q = sql => env.DB.prepare(sql).bind(ts, jerseyToday(new Date(ts)));
   const notices = hasNotices ? (retentionNoticesReady(env) ? (hasReviews ? "reviewed" : "given") : "kept") : null;
   const tenants = tenancyLinkReady(env) && !!(await linkTable(env)); // PRE-12 (D4): one look for 0113, only switched on
-  const CONTACTS = contactsDue(privacyHolds(env), notices, tenants), SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
+  // The set behind its own SELECT: D1 refuses an expression deeper than 100, and SQLite counts the set's whole depth again
+  // at each IN that reads it, but not through a FROM (25-nov-2026: 99 and growing with the notices switched on; 70 so).
+  const CONTACTS = `SELECT id FROM (${contactsDue(privacyHolds(env), notices, tenants)})`, SEARCHES = `SELECT id FROM applicants WHERE contact_id IN (${CONTACTS})`;
   const CONTACT_EVENTS = `${eventsOf("contact", CONTACTS)} UNION ALL ${eventsOf("applicant", SEARCHES)}`;
   const r = await env.DB.batch([
     // As the applicant's Delete (§3.4): notices closed and nameless, events without data (NULL, never '': the Inbox runs
