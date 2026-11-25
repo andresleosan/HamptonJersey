@@ -6,6 +6,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { makeServer, pump } from "../hermes/mercado.mjs";
+import { parsePrice } from "../server/market-hermes.js";
 
 const KEY = "k".repeat(40), CALLER = "c".repeat(40), RUN = "run-1";
 const listen = handler => new Promise(ok => { const s = createServer(handler).listen(0, "127.0.0.1", () => ok(s)); });
@@ -48,13 +49,23 @@ function fakeApp(clock, opts = {}) {
 }
 
 const card = (n, price = `£${1000 + n} pcm`) => `<li><a href="https://agency.test/to-let/home-${n}">Home ${n}</a> ${price.replace("£", "&pound;")}</li>`;
+// A synthetic feed in the shape of the ones list pages load with JavaScript: adverts as objects, deep in the document,
+// with the link whole or as a path and the amount as a number or a string, never "£" or "pcm".
+const FEED = JSON.stringify({ meta: { pagination: { current_page: 1, total_pages: 1 } }, data: { results: [
+  { id: 11, link: "https://agency.test/to-let/flat-11", price: 2265, beds: 2, type: { title: "For let" } },
+  { id: 12, link: "/to-let/flat-12", price: "625,000.00", beds: 4, type: { title: "For sale" } },
+  { id: 13, link: "https://agency.test/to-let/flat-13", pricing: { amount: 1800 }, beds: 1 },
+  { id: 14, link: "https://agency.test/to-let/flat-14", price: 1450.5, beds: 3 },
+  { id: 15, link: "https://agency.test/to-let/flat-15", price: "£1,950 pw", beds: 2 }] } });
+const flat = (n, price_text, extra = {}) => ({ listing_url: `https://agency.test/to-let/flat-${n}`, operation: "rent",
+  use: "residential", price_text, ...extra });
 const advert = (n, extra = {}) => ({ listing_url: `https://agency.test/to-let/home-${n}`, operation: "rent", use: "residential",
   price_text: `£${1000 + n} pcm`, parish: "St Helier", bedrooms: 2, bathrooms: 1, parking: true, area_sqft: null, title: `Home ${n}`, ...extra });
 
 async function setup(t, opts) {
   const clock = { t: 1_000_000 };
   const app = fakeApp(clock, opts);
-  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>",
+  const pages = { "/to-let": `<ul>${Array.from({ length: 30 }, (_, i) => card(i)).join("\n")}</ul>`, "/to-let/empty": "<p>No homes</p>", "/to-let/feed.json": FEED,
     "/residential-for-rent": '<a href="/property/sea-view-flat/4321">Sea view</a> &pound;2,100 pcm',
     "/to-let/sales": '<a href="https://agency.test/to-let">All</a> <a href="https://agency.test/to-let/big">Big</a> &pound;625,000',
     "/to-let/a": '<nav><a href="/to-let/contact">Contact</a></nav>' + card(1) + '<a href="/to-let/page/2">Next</a>',
@@ -120,6 +131,58 @@ test("swapped prices are rejected: each price must be in its own advert's card",
   const { deliver } = await setup(t);
   const r = await deliver({ adverts: [advert(1, { price_text: "£1002 pcm" }), advert(2, { price_text: "£1001 pcm" }), advert(3)] });
   assert.deepEqual(r.json, { queued: 0, rejected: 2, reasons: { price_not_on_page: 2 }, fail: "invalid_response" });
+});
+
+// A JSON page (a site's own feed): the link and the amount in one object, whatever the depth.
+test("a JSON page: adverts pass with their link and amount in the same object, amount as a number or a string", async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/feed.json?page=1"], adverts: [flat(11, "£2,265 pcm"),
+    flat(12, "£625,000", { operation: "sale" }), flat(14, "1450.5pcm"), flat(15, "£1,950 pw")] });
+  assert.deepEqual(r.json, { queued: 4, rejected: 0, reasons: {} });
+  await pump(cfg);
+  // What reaches the door: "£", the verified amount and the let's period, which the door reads as a monthly rent or a price.
+  const sent = app.commits[0].records;
+  assert.deepEqual(sent.map(x => x.price_text), ["£2,265 pcm", "£625,000", "£1,450.50 pcm", "£1,950 pw"]);
+  assert.deepEqual(parsePrice(sent[0].price_text, "rent").map(x => [x.kind, x.amount_minor, x.period]), [["rent", 226500, "month"]]);
+  assert.deepEqual(parsePrice(sent[1].price_text, "sale").map(x => [x.kind, x.amount_minor, x.period]), [["sale_price", 62500000, "sale"]]);
+});
+
+for (const [name, bad, reason] of [
+  ["the amount of another object", flat(11, "£1,450.50 pcm"), "price_not_on_page"],
+  ["an amount in a child of the link's object", flat(13, "1800"), "price_not_on_page"],
+  ["a number of the object that is not the claimed amount", flat(11, "£2,266 pcm"), "price_not_on_page"],
+  ["a period the feed contradicts", flat(15, "£1,950 pcm"), "price_not_on_page"],
+  ["a price that is not an amount", flat(11, "POA"), "price_not_on_page"],
+  ["a link that is not in it", flat(99, "£2,265 pcm"), "link_not_on_page"],
+]) test(`a JSON page: ${name} fails the whole delivery`, async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/feed.json"], adverts: [flat(12, "£625,000", { operation: "sale" }),
+    flat(14, "£1,450.50 pcm"), bad] });
+  assert.deepEqual(r.json, { queued: 0, rejected: 1, reasons: { [reason]: 1 }, fail: "invalid_response" });
+  await pump(cfg);
+  assert.equal(app.commits.length, 0);
+});
+
+test("a JSON page: a sale with a period is dropped, a let without one keeps only its amount", async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const r = await deliver({ pages: ["https://agency.test/to-let/feed.json"], adverts: [flat(11, "2265"),
+    flat(12, "£625,000 pcm", { operation: "sale" }), flat(14, "£1,450.50 pcm")] });
+  assert.deepEqual(r.json, { queued: 2, rejected: 1, reasons: { invalid: 1 } });
+  await pump(cfg);
+  assert.deepEqual(app.commits[0].records.map(x => x.price_text), ["£2,265", "£1,450.50 pcm"]);
+});
+
+test("HTML stays literal beside a JSON page: the same amount written another way is not the page's price", async t => {
+  const { app, cfg, deliver } = await setup(t);
+  const pages = ["https://agency.test/to-let", "https://agency.test/to-let/feed.json"];
+  const r = await deliver({ pages, adverts: [advert(1), advert(2), flat(11, "£2,265 pcm")] });
+  assert.deepEqual(r.json, { queued: 3, rejected: 0, reasons: {} }); // each advert on its own page; the other does not hold it
+  await pump(cfg);
+  assert.deepEqual(app.commits[0].records.map(x => x.price_text), ["£1001 pcm", "£1002 pcm", "£2,265 pcm"]);
+  const { app: app2, deliver: again } = await setup(t);
+  const bad = await again({ pages, adverts: [advert(1), advert(2), advert(3, { price_text: "£1,003 pcm" })] });
+  assert.deepEqual(bad.json, { queued: 0, rejected: 1, reasons: { price_not_on_page: 1 }, fail: "invalid_response" });
+  assert.equal(app2.commits.length, 0);
 });
 
 test("a null price, a query or a fragment is dropped per advert; the index and a repeat do not count", async t => {

@@ -5,7 +5,8 @@
 //   POST /mercado/entregar  a whole channel: {run_id, source_ref, channel_id, pages:[urls read], adverts:[…≤400]}
 //                           or {run_id, source_ref, channel_id, fail:"<reason>"}.
 // Every advert is checked against the live pages without AI: kept only if its link (or path) and its price text appear
-// literally in a page the custodian fetched itself. The verified channel waits in a durable queue (ESTADO_DIR) and a loop
+// literally in a page the custodian fetched itself or, when that page is JSON (a site's own feed), if its link and its
+// amount are values of the same object. The verified channel waits in a durable queue (ESTADO_DIR) and a loop
 // drip-feeds it to the app in slices of ≤10, one claim per slice, honouring 409 retry_after_s and min_interval_s. A slice
 // is kept with its lease before it is posted: after a stop it is posted again identically (the app replays it by page
 // key), never as a new slice. Logs carry ids, counts and reason codes only. Node 24, no dependencies.
@@ -74,6 +75,34 @@ const at = (hay, needle) => {
 // Spans [start, end] of an advert's link on a page: the whole link or its path.
 const linkAt = (hay, url) => [url, new URL(url).pathname].flatMap(n => at(hay, n).map(i => [i, i + n.length]));
 
+// A JSON page, as every object in it under each string it holds directly; null when the page is not JSON.
+function feed(raw) {
+  let json;
+  try { json = JSON.parse(raw); } catch { return null; }
+  if (!json || typeof json !== "object") return null;
+  const by = new Map(), todo = [json];
+  while (todo.length) {
+    const o = todo.pop();
+    for (const v of Object.values(o)) {
+      if (v && typeof v === "object") todo.push(v);
+      else if (typeof v === "string" && !Array.isArray(o)) (by.get(v) ?? by.set(v, []).get(v)).push(o);
+    }
+  }
+  return by;
+}
+// A feed has no "£" or "pcm": there a price is an amount, 2265 or "£2,265.50 pcm", read as pence and period.
+const PRICE = /^£? ?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(?: ?(pcm|pw|pa))?$/i;
+function priced(v) {
+  const m = (typeof v === "number" || typeof v === "string") && PRICE.exec(String(v).trim());
+  const pence = m ? Number(m[1].replaceAll(",", "")) * 100 + Number((m[2] ?? "").padEnd(2, "0")) : 0;
+  return pence > 0 && Number.isSafeInteger(pence) ? { pence, period: m[3]?.toLowerCase() ?? null } : null;
+}
+// An object of a JSON page holds that price: the same pence, and the same period when the feed gives one.
+const holds = (o, want) => Object.values(o).some(v => { const got = priced(v); return got?.pence === want.pence && (!got.period || got.period === want.period); });
+// The only price text that goes on from a JSON page, as the app's door reads it: "£2,265 pcm", "£625,000".
+const priceText = ({ pence, period }) => `£${String(Math.floor(pence / 100)).replace(/\B(?=(\d{3})+$)/g, ",")}`
+  + `${pence % 100 ? `.${String(pence % 100).padStart(2, "0")}` : ""}${period ? ` ${period}` : ""}`;
+
 // Never a private, loopback, link-local or shared (CGNAT) address, checked on every hop before it is fetched.
 const PRIVATE = /^(0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|22[4-9]\.|2[3-5]\d\.)/;
 export const publicAddress = a => isIP(a) === 4 ? !PRIVATE.test(a)
@@ -108,7 +137,7 @@ async function fetchPage(cfg, url, item) {
     if (!r.ok || !r.body) { await r.body?.cancel(); return null; }
     const chunks = []; let size = 0;
     for await (const c of r.body) { if ((size += c.length) > MAX_PAGE) break; chunks.push(c); }
-    return plain(Buffer.concat(chunks).toString("utf8"));
+    return Buffer.concat(chunks).toString("utf8");
   }
   return null;
 }
@@ -175,7 +204,10 @@ export async function entregar(cfg, body) {
     if (!Array.isArray(adverts) || adverts.length > MAX_ADVERTS) throw err(400, `adverts: a list of at most ${MAX_ADVERTS}`);
     const unique = [...new Set(pages)], bodies = [];
     for (const p of unique) bodies.push(await fetchPage(cfg, p, item).catch(() => null));
-    const fetched = bodies.filter(b => b !== null);
+    const fetched = bodies.filter(b => b !== null).map(b => { const objects = feed(b); return objects ? { objects } : { text: plain(b) }; });
+    // An advert's link on a page: its spans in the text, or on a JSON page the objects that hold it (whole or as a path).
+    const textSpans = (p, url) => p.objects ? [] : linkAt(p.text, url);
+    const holders = (p, url) => p.objects ? [url, new URL(url).pathname].flatMap(n => p.objects.get(n) ?? []) : [];
     const reasons = {}, seen = new Set(), pageKeys = new Set(pages.map(urlKey)), kept = [];
     const reject = r => { reasons[r] = (reasons[r] ?? 0) + 1; };
     for (const a of adverts) {
@@ -189,15 +221,23 @@ export async function entregar(cfg, body) {
       // (the site's navigation).
       if (path === "/" || item.paths.some(p => path === p || path === `${p}/` || path === p.replace(/\/$/, ""))
         || pageKeys.has(key) || /\/(page|p)\/?\d+\/?$/i.test(path)
-        || (fetched.length > 1 && fetched.every(b => linkAt(b, out.listing_url).length))) { reject("not_a_listing"); continue; }
+        || (fetched.length > 1 && fetched.every(p => textSpans(p, out.listing_url).length || holders(p, out.listing_url).length))) { reject("not_a_listing"); continue; }
       kept.push(out);
     }
     // Each kept advert's price must sit in its own card: an occurrence of the price whose nearest advert link (among all
     // delivered) is this advert's, at most 1,500 characters away. A swapped price is closer to the other advert's link.
-    const links = fetched.map(b => kept.map(o => linkAt(b, o.listing_url)));
+    // On a JSON page nothing is literal: the advert's amount must be a value of an object that also holds its link, and
+    // what goes on is "£", that amount and the period Hermes read for a let (pcm, pw or pa), never Hermes's own text.
+    const links = fetched.map(p => kept.map(o => textSpans(p, o.listing_url)));
     const records = kept.filter((o, n) => {
-      if (!links.some(l => l[n].length)) { reject("link_not_on_page"); return false; }
-      const ok = fetched.some((b, i) => at(b, o.price_text).some(q => {
+      const held = fetched.flatMap(p => holders(p, o.listing_url)), want = priced(o.price_text);
+      if (!links.some(l => l[n].length) && !held.length) { reject("link_not_on_page"); return false; }
+      if (want && held.some(h => holds(h, want))) {
+        if (want.period && o.operation !== "rent") { reject("invalid"); return false; } // a sale has no period
+        o.price_text = priceText(want);
+        return true;
+      }
+      const ok = fetched.some((p, i) => !p.objects && at(p.text, o.price_text).some(q => {
         let best = Infinity, owner = -1;
         links[i].forEach((spans, m) => spans.forEach(([a, z]) => {
           const d = q >= z ? q - z : Math.max(0, a - q); // gap between the price and that link

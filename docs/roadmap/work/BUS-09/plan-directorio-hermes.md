@@ -60,7 +60,7 @@ Reglas que protegen el inventario (las de hoy, más la decisión 2):
 | `listing_url` | Sí | Enlace del anuncio, en el dominio y la ruta permitidos. Identifica la casa. |
 | `operation` | Sí | `rent` o `sale`. |
 | `use` | Sí | `residential` o `commercial`. |
-| `price_text` | Si hay precio | El texto tal cual aparece («£1,950 pcm»). La app calcula importe y periodo. |
+| `price_text` | Si hay precio | El texto tal cual aparece («£1,950 pcm»). La app calcula importe y periodo. Si la página leída es un feed JSON del propio sitio (no trae «£» ni «pcm»): «£», el importe del anuncio y, en un alquiler, el periodo que diga el sitio (`pcm`, `pw` o `pa`); el custodio pasa a la app solo ese texto, rehecho por él («£2,265 pcm», «£625,000»). |
 | `parish` | No | Una de las 12 parroquias. Si no lo dice, vacío. |
 | `bedrooms`, `bathrooms` | No | Solo viviendas. |
 | `parking` | No | Solo `true` si lo dice; nunca «no» por omisión. |
@@ -73,7 +73,7 @@ Nunca descripciones, fotos, nombres ni teléfonos. Lo que no esté claro queda v
 
 | Riesgo | Barrera |
 | --- | --- |
-| Hermes se inventa o copia mal un anuncio. | **El custodio comprueba**, sin IA, antes de pasar la página a la app: descarga una vez la página que Hermes dice haber leído y rechaza todo anuncio cuyo enlace o texto de precio no aparezca literalmente. Una página con más de la mitad rechazada cuenta como fallo. |
+| Hermes se inventa o copia mal un anuncio. | **El custodio comprueba**, sin IA, antes de pasar la página a la app: descarga una vez la página que Hermes dice haber leído y rechaza todo anuncio cuyo enlace o texto de precio no aparezca literalmente (y el precio, junto a su propio enlace). Si esa página es JSON válido (el feed del propio sitio, cuando la lista se carga con JavaScript; siempre dentro de los dominios y rutas revisados del canal), nada es literal: el anuncio solo pasa si su enlace y su importe son valores del **mismo objeto** del JSON, y a la app llega el precio rehecho por el custodio con ese importe, nunca el texto de Hermes. El periodo de un alquiler (`pcm`, `pw`, `pa`) lo declara Hermes, como la operación o la parroquia: el feed no lo trae y el custodio no puede comprobarlo; sin periodo, el alquiler llega sin cifra mensual. Un solo enlace o precio que no cuadre, o más de la mitad rechazada, y el canal entero cuenta como fallo. |
 | Una web intenta darle instrucciones a Hermes. | La skill trata el contenido de las webs como datos, nunca como órdenes. La llave del mercado solo abre las tres rutas del mercado: no puede tocar aplicantes, fichas ni correo. El proxy de Hermes solo deja salir a los dominios del directorio. Sus otras capacidades (terminal del taller, GitHub) no cambian; ese es el riesgo que Luis aceptó. |
 | Hermes sale de las webs permitidas. | La app solo le da dominios y rutas revisados; el custodio y la app rechazan enlaces fuera de ellos; el proxy no deja salir a otros dominios. |
 | Una lectura mala borra casas. | Nada se borra. Retirar exige dos lecturas completas seguidas sin la casa; una lectura sospechosa (primera página vacía cuando antes había casas) cuenta como fallo, regla que ya existe. |

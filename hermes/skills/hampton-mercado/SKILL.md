@@ -39,6 +39,12 @@ header file; never print, copy or open it) and `--noproxy '*'`.
    a. Open the listing page `https://<first host><first path>`. Follow "next page" links only while they stay inside the
       item's hosts and paths; at most 19 pages. If the list has 20 pages or more, do not read it: deliver
       `fail` = `invalid_response` (d). Keep the exact address of every page you used.
+      **A list loaded by JavaScript.** If the listing page shows only a few of its adverts, or none, because a script
+      loads them, read the site's own JSON feed instead: the address that page itself loads its adverts from (for
+      example `https://<host>/property.json?…`). The feed, and each of its next pages, must be `https://` on the
+      item's hosts and under the item's paths like any other page; a feed anywhere else is not yours to open (deliver
+      what the listing page shows or, if that is nothing, `fail` = `invalid_response`). Put in `pages` only the feed
+      addresses, exactly as you opened them, query included (not the listing page). Never guess a feed address.
    b. For every property advert on those pages write one Advert (below). Copy, do not interpret. One advert whose
       link is not on the pages, or whose price belongs to another advert, makes the custodian refuse the whole channel:
       leave out any advert you are not sure of rather than guess.
@@ -69,6 +75,11 @@ header file; never print, copy or open it) and `--noproxy '*'`.
   land for business).
 - `price_text` (required): the price **verbatim** as written in that advert's own card on the list page ("£1,950 pcm",
   "£625,000", "POA"). An advert with no price text at all is left out.
+  **From a JSON feed** nothing is verbatim: write `£` and the amount of that advert's own price field (the one in the
+  same object as its link), and for a let the period the site itself states for its lets: `pcm`, `pw` or `pa`
+  ("£2,265 pcm"). A sale is the amount alone ("£625,000"); so is a let whose period the site does not state (never
+  assume one). Leave out an advert whose feed object has no amount. The custodian checks that the amount and the link
+  are in the same object of the feed, and refuses the whole channel if they are not.
 - `parish`: one of Grouville, St Brelade, St Clement, St Helier, St John, St Lawrence, St Martin, St Mary, St Ouen,
   St Peter, St Saviour, Trinity, only if the page says it; otherwise `null`.
 - `bedrooms`, `bathrooms`: whole numbers if shown, else `null`. `parking`: `true` only if the page says so, else `null`.
