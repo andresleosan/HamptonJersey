@@ -122,6 +122,10 @@ test("approving queues one email to the lead tenant, once; Gmail's acceptance re
   const given = check(env, r, "licence_copy");
   assert.equal(given.done_on, T);
   assert.ok(given.note.includes(o.ref), "the email is the evidence");
+  // ADM-11's check is closed: in date, nothing further due, out of Rentals' To do.
+  const item = ok(await req(env, "GET", `/admin/rentals/${r}`)).compliance.find(c => c.kind === "licence_copy");
+  assert.deepEqual([item.status, item.expires_on, item.done_on], ["ok", null, T]);
+  assert.ok(!ok(await req(env, "GET", "/admin/rentals")).todo.compliance.some(c => c.rental_id === r && c.kind === "licence_copy"));
   assert.equal(n(env, "SELECT COUNT(*) n FROM rental_events WHERE type = 'rental_email.sent'"), 1, "recorded once");
   assert.equal(mail(env, "licence_copy").status, "sent");
   assert.equal(row(env, "SELECT gmail_thread_id FROM outbound WHERE ref = ?", o.ref).gmail_thread_id, "t-1", "the reply is read in its thread");
@@ -151,6 +155,11 @@ test("a change to the source takes the approval away: it is not claimed, and the
   const cur = row(env, "SELECT updated_at FROM tenancies WHERE id = ?", t).updated_at;
   ok(await req(env, "PUT", `/admin/tenancies/${t}`, { tenant_email: "new@tenant.example.test", updated_at: cur }));
   assert.equal(await nextEmail(env), null, "recipient and tenancy changed: not claimed");
+  // A move-out that passes while queued (no edit): not claimed.
+  const gone = world(), g = await home(gone), gp = docPath(g.r, "licence_copy");
+  await queued(gone, gp);
+  run(gone, "UPDATE tenancies SET ended_on = ?", ago(1));
+  assert.equal(await nextEmail(gone), null, "the tenancy has ended");
 });
 
 test("a save from a dialog that read another source version is refused with 409 and writes nothing", async () => {

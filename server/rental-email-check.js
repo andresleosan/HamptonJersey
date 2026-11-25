@@ -3,7 +3,7 @@
 // imports it, so it imports nothing of email.js's (server/rental-emails.js prepares, queues and settles them).
 // It asks: queued with the approval of this very revision by a member of the team, within a day; the recipient still
 // that party's address (the tenancy's tenant_email; the landlord's email, landlord not archived); the property not
-// archived; and the source exactly as it was when the text was written (sourceSql, the same SQL the panel and the save
+// archived; for the tenant, the tenancy not ended (a planned move-out passing changes no updated_at); and the source exactly as it was when the text was written (sourceSql, the same SQL the panel and the save
 // read), so a change to the tenancy, the document, the rent change or what is owed after that and it does not leave.
 export const rentalEmailsReady = env => env?.AUT24_TENANT_DOCS_READY === "1";
 // Migration 0128 is there. Before it no statement names rental_emails.
@@ -36,6 +36,7 @@ export const RENTAL_CLAIMABLE = `EXISTS (SELECT 1 FROM rental_emails e JOIN tena
   WHERE e.email_ref = outbound.ref AND e.status = 'queued' AND e.revision = outbound.version AND e.approved_revision = e.revision
     AND outbound.created_at > ${RENTAL_QUEUE_LIMIT} AND r.archived_at IS NULL
     AND (e.kind <> 'landlord_arrears' OR l.archived_at IS NULL)
+    AND (e.kind = 'landlord_arrears' OR t.ended_on IS NULL OR t.ended_on > date('now'))
     AND outbound.recipient = ${RECIPIENT("e.kind")}
     AND EXISTS (SELECT 1 FROM admins WHERE email = e.approved_by)
     AND e.source_version = ${sourceSql("e.kind", "e.source_key")})`;

@@ -62,7 +62,7 @@ export function rentalText(kind, f) {
 const subjectOf = (kind, f) => ({ licence_copy: `Rental dwelling licence for ${f.address}`, eicr_copy: `Electrical safety report (EICR) for ${f.address}`,
   deposit_info: `Your tenancy deposit for ${f.address}`, rent_notice: `Rent change for ${f.address}`,
   [LANDLORD]: `Rent arrears at ${f.address}` })[kind].slice(0, 400);
-// R01: the app never emails bank details. A sort code, an 8-digit account number or an IBAN typed into the text is refused.
+// R01: the app never emails bank details. A sort code, an 8-digit account number or an IBAN in the text is refused.
 export const bankDetails = text => /\b\d{2}-\d{2}-\d{2}\b|\b\d{8}\b|\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}\b/.test(text);
 const STEP_LABEL = { reminder: "a friendly reminder", firm: "a firm reminder", call: "a phone call" };
 
@@ -167,7 +167,7 @@ async function save({ request, env, admin, params: [scope, id, kind] }) {
   const text = (b.text ?? "").trim() || s.text;
   if (!text) fail(409, CHANGED);
   if (text.length > 4000) return json({ error: "Please check the highlighted fields.", fields: { text: "Use 4,000 characters or fewer" } }, 400);
-  if (text !== s.text && bankDetails(text)) return json({ error: "Please check the highlighted fields.",
+  if (bankDetails(text)) return json({ error: "Please check the highlighted fields.",
     fields: { text: "Remove the bank account details: the app does not email them" } }, 400);
   const ts = now();
   const stmts = !e ? [env.DB.prepare(`INSERT INTO rental_emails (tenancy_id, kind, source_key, source_version, body, prepared_by, prepared_at)
@@ -249,7 +249,7 @@ function delivered(env, e, at, actor, by) {
   return [env.DB.prepare(`INSERT INTO rental_events (rental_id, tenancy_id, at, actor, type, data) SELECT ?, ?, ?, ?, 'rental_email.sent', ?
       WHERE changes() = 1`).bind(e.rental_id, e.tenancy_id, at, actor,
     JSON.stringify({ kind: e.kind, revision: e.revision, email_ref: e.email_ref, by, ...(e.kind === "rent_notice" ? { rent_change_id: Number(e.source_key) } : {}) })),
-  ...(TENANT_DOCS.includes(e.kind) ? [env.DB.prepare(`UPDATE compliance_items SET done_on = ?, note = ?, updated_at = ?, updated_by = ?
+  ...(TENANT_DOCS.includes(e.kind) ? [env.DB.prepare(`UPDATE compliance_items SET done_on = ?, expires_on = NULL, note = ?, updated_at = ?, updated_by = ?
       WHERE rental_id = ? AND kind = ? AND done_on IS NULL AND ${sent}`).bind(day, note, now(), actor, e.rental_id, e.kind, e.id, e.email_ref)]
     : e.kind === LANDLORD ? [env.DB.prepare(`INSERT INTO arrears_steps (tenancy_id, charge_due_on, step, done_at, done_by, note)
       SELECT ?, ?, 'landlord', ?, ?, ? WHERE ${sent} ON CONFLICT DO NOTHING`).bind(e.tenancy_id, e.source_key, at, actor, note, e.id, e.email_ref)] : [])];
