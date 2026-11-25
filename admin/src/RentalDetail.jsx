@@ -10,6 +10,7 @@ import { CancelMoveOut, ChangeRent, CorrectCharge, DETAILS, EditPayment, EditTen
 import { FromLetAgreed, TenancyRecords, useOriginReady } from "./RentalOrigin.jsx";
 import { OUTCOME, TenancyExit } from "./TenancyExit.jsx";
 import { TenancyInspections } from "./RentalInspection.jsx";
+import { STEP_EMAIL_STATUS, RentalStepEmail } from "./RentalStepEmail.jsx";
 import { TenancySignatures } from "./TenancySignatures.jsx";
 import { TenancyContact } from "./TenancyContact.jsx";
 import { RepairLinks } from "./RepairLinks.jsx";
@@ -35,7 +36,7 @@ const MovePayment = ({ d, p, onDone, ...rest }) => <Assign payment={p} from={d.t
 const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice: RecordNotice, end: EndTenancy, charge: CorrectCharge,
   edit: EditTenancy, check: UpdateCheck, repair: RepairDialog, cancelEnd: CancelMoveOut, editPayment: EditPayment,
   unassign: UnassignPayment, move: MovePayment, suppliers: Suppliers, writeOff: WriteOff, reverseWriteOff: ReverseWriteOff,
-  answer: RenewalAnswer, email: RentalEmail };
+  answer: RenewalAnswer, email: RentalEmail, stepEmail: RentalStepEmail };
 // AUT-24 (data.tenant_emails, d.rental_emails: its switch): what can be emailed from here, prepared and approved in RentalEmail.
 const TENANT_DOCS = ["licence_copy", "eicr_copy", "deposit_info"];
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
@@ -292,6 +293,10 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
       : <p>Loading tenancy…</p>}</section>;
   const t = d.tenancy, a = d.arrears, today = jerseyToday(), ended = !!t.ended_on && t.ended_on <= today, full = t.service === "full";
   const act = (kind, extra) => () => open(kind, { d, ...extra }), draft = d.writeoffs && arrearsDraft(d, today);
+  // AUT-23 (d.step_emails: its switch): what happened to the email of an arrears step or of this term's renewal message.
+  const mailOf = (kind, key) => d.step_emails?.findLast(x => x.kind === kind && x.source_key === key);
+  const mailed = step => { const x = a && mailOf("rent_arrears", `${a.oldest_unpaid_on}/${step}`); return x && STEP_EMAIL_STATUS[x.status]; };
+  const renewalMail = d.renewal && mailOf(d.renewal.landlord ? "renewal_tenant" : "renewal_landlord", t.end_on);
   const more = rows => rows.length > SHORT && <button type="button" className="linkish" aria-expanded={all} onClick={() => setAll(x => !x)}>
     {all ? "Show the newest only" : `Show all ${rows.length} (last 24 months)`}</button>;
   return <section className="card tenancy" id={`tenancy-${id}`} tabIndex={-1} aria-labelledby={h}>
@@ -303,6 +308,11 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
       <p className="ref"><span className="muted">Payment reference</span> <strong>{t.payment_ref}</strong></p>
     </div>
     {note}
+    {/* AUT-23: an email whose result is not known waits for a person, even once its step or message is no longer due. */}
+    {d.step_emails?.filter(x => x.status === "needs_review").map(x => <p key={`${x.kind}-${x.source_key}`} className="warn" role="note">
+      {x.step ? `${ARREARS_STEPS.find(s => s[1] === x.step)?.[2]} email` : x.kind === "renewal_landlord" ? "Renewal email to the landlord"
+        : "Renewal email to the tenant"}: not known whether it was sent.{" "}
+      <button type="button" className="btn ghost sm" onClick={act("stepEmail", { which: x.step ? "arrears" : "renewal" })}>Check it</button></p>)}
     {d.law && !ended && lawApplies(t, d.law) === "unknown" && <p className="warn" role="note">It is not recorded whether the 2025 rules
       apply to this tenancy. Add its agreement date and scope under Edit details.</p>}
     {t.ended_on ? <p className="warn" role="note">{ended ? `Ended ${fmtDay(t.ended_on)}.` : `Moves out ${fmtDay(t.ended_on)}.`}</p>
@@ -326,11 +336,12 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
         {d.writeoffs && d.balance > 0 && <button type="button" className="btn ghost sm" onClick={act("writeOff")}>Write off<span className="sr"> rent owed</span></button>}</p>
       <div className="late">{!a ? !ended && <p>Not late.</p> : a.days_late === 0 ? <p>Rent due today, not late yet.</p> : <>
         <p><strong className="err">{a.days_late} days late</strong> since {fmtDay(a.oldest_unpaid_on)}</p>
-        {a.done.map(s => <p key={s.step} className="muted">{ARREARS_STEPS.find(x => x[1] === s.step)[2]} done {day(s.done_at)}{s.note && `: ${s.note}`}</p>)}
+        {a.done.map(s => <p key={s.step} className="muted">{ARREARS_STEPS.find(x => x[1] === s.step)[2]} done {day(s.done_at)}{s.note && `: ${s.note}`}
+          {mailed(s.step) && ` · ${mailed(s.step)}`}</p>)}
         {a.next_step && <p className="ctl">Next step: <strong>{a.next_step.label}</strong>
           <button type="button" className="btn sm" onClick={() => open("step", { row: { tenancy_id: t.id, oldest_unpaid_on: a.oldest_unpaid_on,
             next_step: a.next_step, tenant_name: t.tenant_name, address: t.address, payment_ref: t.payment_ref, balance: d.balance, days_late: a.days_late } })}>
-            Mark done<span className="sr">: {a.next_step.label}</span></button></p>}
+            Mark done<span className="sr">: {a.next_step.label}</span></button>{mailed(a.next_step.step) && <span className="muted"> {mailed(a.next_step.step)}</span>}</p>}
         {d.rental_emails && a.days_late >= 10 && !a.done.some(s => s.step === "landlord") && <p className="ctl"><button type="button"
           className="btn ghost sm" onClick={act("email", { url: `/admin/tenancies/${t.id}/emails/landlord_arrears`,
             title: "Arrears notice to the landlord" })}>Email the landlord</button></p>}</>}</div>
@@ -339,6 +350,8 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
     {draft && <NoticeDraft text={draft} id={`arrears-draft-${id}`} title={`${a.next_step.label} draft`} label="Text to send"
       badge={a.next_step.step === "letter" ? "Draft · not validated by a lawyer" : "Draft · nothing is sent from the app"}
       file={`${t.payment_ref}-${a.next_step.step}.txt`} />}
+    {draft && d.step_emails && <p className="ctl"><button type="button" className="btn ghost sm" onClick={act("stepEmail", { which: "arrears" })}>
+      Email the tenant<span className="sr">: {a.next_step.label}</span></button></p>}
     {d.writeoffs?.length > 0 && <><h3>Written off</h3><ul className="plain-list">{d.writeoffs.map(w => <li key={w.id}>
       <span>{pence(w.amount)} written off {fmtDay(w.written_off_on)}<span className="muted cell-note">{w.reason}{w.reversed_on
         && ` · Reversed ${fmtDay(w.reversed_on)}: ${w.reversal_reason}`}</span></span>
@@ -354,7 +367,10 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
       <NoticeDraft text={renewalDraft(d, landlord ?? "[Landlord]")} id={`renewal-draft-${id}`} label="Text to send"
         title={d.renewal.landlord ? "Message to the tenant" : "Message to the landlord"}
         badge={d.renewal.landlord ? "Draft · not validated by a lawyer" : "Draft · nothing is sent from the app"}
-        file={`${t.payment_ref}-renewal-${d.renewal.landlord ? "tenant" : "landlord"}.txt`} /></>}
+        file={`${t.payment_ref}-renewal-${d.renewal.landlord ? "tenant" : "landlord"}.txt`} />
+      {d.step_emails && <p className="ctl"><button type="button" className="btn ghost sm" onClick={act("stepEmail", { which: "renewal" })}>
+        {d.renewal.landlord ? "Email the tenant" : "Email the landlord"}</button>
+        {renewalMail && <span className="muted"> {STEP_EMAIL_STATUS[renewalMail.status]}</span>}</p>}</>}
     <div className="ctl">
       <button type="button" className="btn sm" onClick={act("payment")}>Record payment</button>
       {!ended && <button type="button" className="btn ghost sm" onClick={act("rent")}>Change rent</button>}
@@ -482,6 +498,11 @@ const EVENT = {
       d.effective_on < v.earliest_on ? `, before the earliest date worked out (${fmtDay(v.earliest_on)})` : ""}${
       v.cover === "unknown" ? ", not recorded whether the 2025 rules apply" : ""}`}`,
   "charge.edited": d => `Charge due ${fmtDay(d.due_on)} corrected from ${pence(d.before)} to ${pence(d.after)}`,
+  // AUT-23: an arrears or renewal email, by its step or term only.
+  ...Object.fromEntries([["prepared", "prepared"], ["queued", "approved and queued"], ["sent", "sent"], ["confirmed", "confirmed sent by a person"],
+    ["unknown", "not known whether sent"], ["not_sent", "not sent"]].map(([k, v]) => [`rental_step_email.${k}`, d => `${d.step
+      ? `${ARREARS_STEPS.find(x => x[1] === d.step)?.[2]} email` : d.kind === "renewal_landlord" ? "Renewal email to the landlord"
+      : "Renewal email to the tenant"} ${v}`])),
   "arrears.step_done": d => `${ARREARS_STEPS.find(x => x[1] === d.step)?.[2]} marked done${d.note ? `: ${d.note}` : ""}`,
   "charge.written_off": d => `${pence(d.amount)} of rent written off`,
   "charge.writeoff_reversed": d => `Write-off of ${pence(d.amount)} reversed: owed again`,

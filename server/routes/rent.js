@@ -14,6 +14,7 @@ import { ECONOMIC_FIELDS, structuredEconomicsReady } from "../listing-economics.
 import { listingBatch, listingClock } from "../listing-events.js";
 import { originReady } from "../tenancy-origins.js";
 import { rentalEmailsReady, rentalEmailTable } from "../rental-email-check.js";
+import { rentalStepEmailRows } from "../rental-step-email-check.js";
 
 const MAX_POUNDS = 1000000, MAX_PENCE = 100 * MAX_POUNDS; // R20
 const ENDED = "This tenancy has ended", CHANGED = "This property changed meanwhile. Reload to see it";
@@ -198,7 +199,7 @@ export async function detail(env, id) {
   const arrears = late?.oldest_unpaid_on ? { oldest_unpaid_on: late.oldest_unpaid_on, days_late: late.days_late,
     next_step: STEP[late.next_step] ?? null,
     done: steps.filter(x => x.charge_due_on === late.oldest_unpaid_on).map(({ charge_due_on, ...x }) => x) } : null;
-  const rpi = setting ? JSON.parse(setting.value) : null;
+  const rpi = setting ? JSON.parse(setting.value) : null, stepEmails = await rentalStepEmailRows(env, id); // AUT-23: only with its switch
   const notice = tenancy.notice_given_on && { given_on: tenancy.notice_given_on, by: tenancy.notice_by };
   // The rent in force today (tenancy.rent is the latest agreed, maybe from a later date); the starting rent before the start.
   // ADM-15: with its switch the assistant reads the 2025 rules (law), not the label.
@@ -207,7 +208,8 @@ export async function detail(env, id) {
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
     ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}),
     ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers, origin) } : {}),
-    ...(rentalEmailsReady(env) && await rentalEmailTable(env) ? { rental_emails: true } : {}) }; // AUT-24: server/rental-emails.js
+    ...(rentalEmailsReady(env) && await rentalEmailTable(env) ? { rental_emails: true } : {}), // AUT-24: server/rental-emails.js
+    ...(stepEmails ? { step_emails: stepEmails } : {}) };
 }
 
 // ADM-14: the answers and listing drafts recorded for a tenancy, newest first (through the rental_events_rental index),

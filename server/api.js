@@ -22,6 +22,7 @@ import insightRoutes from "./routes/insights.js";
 import saleRoutes from "./routes/sales.js";
 import offerEmailRoutes from "./offer-emails.js";
 import rentalEmailRoutes from "./rental-emails.js";
+import rentalStepEmailRoutes from "./rental-step-emails.js";
 import rentalRoutes from "./routes/rentals.js";
 import rentRoutes, { arrearsReady, writeoffRoutes, renewalReady, renewalRoutes } from "./routes/rent.js";
 import statementRoutes, { closingRoutes, statementsReady } from "./statements.js";
@@ -205,6 +206,7 @@ async function route(request, env, segments, waitUntil) {
     if (env.AGE14_SUPPRESSION_READY === '1') routes = [...routes, ...advertiserPrivacyRoutes];
     routes = [...routes, ...offerEmailRoutes]; // OFE-02: 404 while OFE02_SEND_READY is off or before migration 0126
     routes = [...routes, ...rentalEmailRoutes]; // AUT-24: 404 while AUT24_TENANT_DOCS_READY is off or before migration 0128
+    routes = [...routes, ...rentalStepEmailRoutes]; // AUT-23: 404 while AUT23_RENTAL_EMAILS_READY is off or before migration 0127
     for (const [m, re, handler, auth] of routes) {
       const hit = m === method && re.exec(path);
       if (!hit) continue;
