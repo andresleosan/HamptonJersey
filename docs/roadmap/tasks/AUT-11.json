@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-  "falta": "Solo la pausa con un correo real: con «Pause all outbound» puesto, aprobar y encolar una consulta de prueba, comprobar que Hermes no la recoge en su ronda, quitar la pausa y comprobar que sale. Doble envío y reclamo único ya comprobados con el envío real del 25-nov (AGE-05).",
+  "falta": "Solo la pausa con un correo real: con «Pause all outbound» puesto, aprobar y encolar una consulta de prueba, comprobar que Hermes no la recoge en su ronda, quitar la pausa y comprobar que sale. Doble envío y reclamo único ya comprobados con el envío real del 25-nov (AGE-05). Traído de AUT-17 (25-nov, fase E del plan): primer correo real de «Coordinar visitas» (a la agencia o al cliente), en borrador o enviado; «Confirmar disponibilidad» ya dejó un borrador real (mail_tasks: 1 availability drafted).",
   "bloqueo": "Canal de correo de Hermes (AUT-17)",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
