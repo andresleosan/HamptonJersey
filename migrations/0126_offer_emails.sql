@@ -4,7 +4,7 @@
 -- revision, and only that one is queued in outbound (template 'offer_to_seller'). amount and offer_updated_at are the
 -- offer as it was read: any later change to it (amount, conditions, counter, status) means the approval no longer
 -- holds. Additive: one new table, no existing row changes.
-CREATE TABLE offer_emails (
+CREATE TABLE IF NOT EXISTS offer_emails (
   offer_id INTEGER PRIMARY KEY REFERENCES offers(id) ON DELETE CASCADE,
   revision INTEGER NOT NULL DEFAULT 1 CHECK (revision > 0),
   advertiser_id INTEGER NOT NULL,
@@ -21,4 +21,4 @@ CREATE TABLE offer_emails (
   prepared_by TEXT NOT NULL,
   prepared_at TEXT NOT NULL
 );
-CREATE INDEX offer_emails_queued ON offer_emails(status) WHERE status = 'queued';
+CREATE INDEX IF NOT EXISTS offer_emails_queued ON offer_emails(status) WHERE status = 'queued';
