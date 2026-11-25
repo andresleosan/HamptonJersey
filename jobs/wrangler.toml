@@ -83,7 +83,7 @@ PRE10_PURPOSE_READY = "1"
 VIS12_CALENDAR_READY = "0"
 VIS12_CALENDAR_INVITES_READY = "0"
 # MSG-01: the daily retention pass deletes Facebook conversations 30 days after their last message. Must match the other wrangler.toml.
-META_MESSAGES_READY = "0"
+META_MESSAGES_READY = "1"
 
 [triggers]
 crons = ["*/10 * * * *"]

@@ -184,9 +184,11 @@ ANA04_SEARCH_STATS_READY = "1"
 # MSG-01 / PRE-08: messages to Hampton's Facebook page arrive through Meta's signed webhook (/api/meta/webhook) and show in
 # Messages (migration 0109). Needs the PRE-02 app and the secrets META_APP_SECRET, META_VERIFY_TOKEN and META_PAGE_ID.
 # Collects messages from the public: only Luis switches it on. Must match the other wrangler.toml (its retention).
-META_MESSAGES_READY = "0"
+# Switched on 25-nov-2026 by Luis so Meta can verify the webhook address; META_VERIFY_TOKEN is set, and until Luis
+# loads META_APP_SECRET and META_PAGE_ID every POST is refused (503) and nothing is stored.
+META_MESSAGES_READY = "1"
 # MSG-01: a person's reply from Messages goes to Facebook (Send API, within 24 hours of their last message; needs
-# META_PAGE_TOKEN). Sends messages: only Luis switches it on.
+# META_PAGE_TOKEN). Sends messages: only Luis switches it on. His yes of 25-nov-2026 is for after his own test message.
 META_SEND_READY = "0"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.

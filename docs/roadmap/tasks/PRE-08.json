@@ -6,8 +6,8 @@
   "fase": "F6",
   "estado": "parcial",
   "responsable": "Luis",
-  "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503.",
-  "falta": "PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
+  "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503. 25-nov-2026: entrada encendida por decisión de Luis (META_MESSAGES_READY=1 en los dos wrangler.toml) y clave de verificación creada y cargada (META_VERIFY_TOKEN).",
+  "falta": "Luis (trámite de Meta, PRE-02): cargar META_APP_SECRET y META_PAGE_ID en Cloudflare, registrar el webhook en Meta y mandar un mensaje de prueba a la página desde su Facebook. Después, desarrollo: publicar para que el despliegue tome los secretos y comprobar el saludo y la llamada firmada real. La firma del webhook de WhatsApp ya no es criterio de cierre (plan MSG-01, 16-nov): queda anotada en PRE-24.",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:484",
@@ -16,7 +16,9 @@
     "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después.",
     "Plan: docs/roadmap/work/MSG-01/plan.md (decisiones y fuentes; docs oficiales de Meta comprobadas el 16-nov-2026).",
     "Pruebas: tests/server/meta-webhooks.test.mjs (firma válida, errónea, ausente, repetida, mal formada; token; tamaño; repetición idempotente; fallo de D1 sin 200; apagado 404).",
-    "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
+    "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor.",
+    "25-nov-2026: decisión de Luis («Sí a las tres»): (1) crear la clave de verificación sin mostrarla, guardarla en Cloudflare y dejar una copia en un archivo privado del VPS; (2) encender la entrada de mensajes de Facebook; (3) tras su mensaje de prueba, encender que el equipo responda desde el panel.",
+    "25-nov-2026: META_VERIFY_TOKEN cargado en Cloudflare Pages (64 caracteres, generado sin mostrarlo; copia privada en el VPS, fuera del repositorio). node --test tests/server/meta-webhooks.test.mjs tests/server/msg-01-facebook-replies.test.mjs: 26/26."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -31,10 +33,10 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Comprobar con llamadas reales de la app de Meta (PRE-02)",
+  "externalBlocker": "Luis: secretos META_APP_SECRET y META_PAGE_ID (app de Meta, PRE-02), registrar el webhook y mandar un mensaje de prueba a la página.",
   "resources": [
     "meta-webhooks"
   ],
-  "nextStep": "Tras PRE-02: cargar los secretos y comprobar el handshake y una llamada firmada real con META_MESSAGES_READY encendido por Luis.",
-  "actualizado": "2026-11-16"
+  "nextStep": "Cuando Luis cargue los secretos y avise: publicar, comprobar el saludo con la clave real (200 y el challenge devuelto) y, tras su mensaje de prueba, contar la fila en channel_messages y cerrar.",
+  "actualizado": "2026-11-25"
 }

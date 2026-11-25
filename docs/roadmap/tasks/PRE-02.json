@@ -7,14 +7,15 @@
   "estado": "pendiente",
   "responsable": "Luis",
   "hecho": "",
-  "falta": "Luis: crear la app de Meta, verificar el negocio, conectar la página de Facebook de Hampton y pedir pages_messaging (revisión de Meta). Después dar el secreto de la app, el token de la página y el verify token como secretos de Cloudflare.",
+  "falta": "Luis: comprobar su acceso de administrador a la página de Facebook y a la cuenta de empresa de Meta de Hampton (25-nov: «No lo sé»); crear la app dentro de esa cuenta, conectar la página y cargar META_APP_SECRET, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare; registrar el webhook y pedir el acceso avanzado (verificación del negocio y revisión de Meta). La clave de verificación no la da Meta: ya está creada y cargada (25-nov).",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:591",
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:376",
     "docs/roadmap/ESTADO.md:14",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta.",
-    "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después."
+    "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después.",
+    "25-nov-2026: lo que Meta necesita de la app antes de registrar el webhook ya está hecho (PRE-08: entrada encendida y clave de verificación). Luis respondió «No lo sé» a si es administrador de la página y de la cuenta de empresa de Meta: su primer paso es comprobarlo."
   ],
   "assignedSlot": "hermes",
   "allocationStatus": "proposed",
@@ -25,6 +26,6 @@
   "resources": [
     "meta-integration"
   ],
-  "nextStep": "Luis empieza el trámite en developers.facebook.com.",
-  "actualizado": "2026-11-16"
+  "nextStep": "Luis: primer paso del trámite (comprobar accesos); después, un paso cada vez con la guía de docs/roadmap/work/PRE-02/.",
+  "actualizado": "2026-11-25"
 }

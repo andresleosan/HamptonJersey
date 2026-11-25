@@ -17199,9 +17199,9 @@
       "origen": "texto",
       "fase": "F6",
       "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "Construido apagado: webhook firmado (PRE-08) guarda los mensajes de la página en channel_conversations/channel_messages (0109, retención 30 días como el chat web); Messages muestra Website chat | Facebook con Waiting/Answered/Handled, vínculo a contacto (MSG-03) y respuesta de una persona. Enviar exige META_SEND_READY, ventana de 24 h, messaging_type RESPONSE y que Pause all outbound no esté activo.",
-      "falta": "PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
+      "responsable": "desarrollo",
+      "hecho": "Construido apagado: webhook firmado (PRE-08) guarda los mensajes de la página en channel_conversations/channel_messages (0109, retención 30 días como el chat web); Messages muestra Website chat | Facebook con Waiting/Answered/Handled, vínculo a contacto (MSG-03) y respuesta de una persona. Enviar exige META_SEND_READY, ventana de 24 h, messaging_type RESPONSE y que Pause all outbound no esté activo. 25-nov-2026: entrada encendida por decisión de Luis (META_MESSAGES_READY=1) y aviso de privacidad con el apartado «Messages on Facebook».",
+      "falta": "Desarrollo: el borrador de Hermes para las respuestas (decisión de Luis del 25-nov), construido apagado y con una persona aprobando cada respuesta; antes de instalarlo o encenderlo, una pregunta a Luis (el texto del cliente va al modelo de Hermes, el proveedor de reserva y el texto del aviso). Antes de que entren mensajes (antes de los secretos de Luis): el plan de borrado de las solicitudes de privacidad (PRE-12) debe nombrar las conversaciones de Facebook vinculadas al contacto, como ya hace la copia de datos (server/privacy-requests.js y su etiqueta en el panel). Luis (PRE-02): app de Meta, página conectada y secretos META_APP_SECRET, META_PAGE_ID y META_PAGE_TOKEN. Tras el mensaje de prueba de Luis: encender META_SEND_READY (autorizado el 25-nov) y comprobar una respuesta desde el panel. Recorrido real con un mensaje del público cuando Meta apruebe el acceso avanzado.",
       "bloqueo": "",
       "evidencia": [
         "server/api.js:3-21",
@@ -17213,7 +17213,12 @@
         "Pruebas: tests/server/msg-01-facebook-replies.test.mjs (lista, envío apagado, 24 h, pausa, forma de la llamada a la Send API con fetch falso) y tests/msg-01-facebook.e2e.cjs (1280 y 390, local aislado).",
         "Revisión independiente (16-nov): sin graves; corregidos los 6 menores: 5xx de Meta cuenta como incierto, una respuesta a la vez por conversación, aviso claro si Meta aceptó pero no se pudo registrar, «Answered» por id del último mensaje mostrado, retención aunque se apague el interruptor, token en cabecera Authorization y hora de Meta acotada a 7 días. Decisión: Pause all outbound también para Facebook (spec 2026-11-08 §2).",
         "16-nov: la copia de acceso de PRE-12 nombra las conversaciones de Facebook para revisarlas a mano (como los chats web), solo si la persona tiene alguna.",
-        "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
+        "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor.",
+        "25-nov-2026: decisión de Luis sobre el borrador de Hermes para Facebook, en sus palabras: «solucionar esa parte ya hay visto bueno para automatizar y usar la IA». Alcance aplicado: solo los borradores de respuesta de Facebook; una persona aprueba cada respuesta (regla del 16-nov).",
+        "25-nov-2026: decisión de Luis («Sí a las tres»): clave de verificación, entrada de mensajes encendida y, tras su mensaje de prueba, responder desde el panel (META_SEND_READY sigue en \"0\" hasta entonces).",
+        "25-nov-2026: aviso de privacidad (site/apply.js): apartado «Messages on Facebook» con hechos del código (se guardan el texto, las respuestas, las horas y el identificador que da Facebook; adjuntos no; responde una persona; 30 días; borrado a petición). Decisión (fuente: plan MSG-01, paso 4, y precedente del párrafo del chat web): se publica sin calificar el papel de Meta, que es una pregunta abierta al abogado (PRE-33).",
+        "25-nov-2026: revisión independiente del cambio (aviso e interruptor): sin graves. Corregidos en el mismo commit tres menores del texto: el uso incluye contactar a la persona y lo que pida registrar, «our app sends no automatic replies» (la página puede tener respuestas automáticas propias de Facebook) y el borrado no alcanza a Messenger ni a la bandeja de la página en Facebook. Queda apuntado en falta el plan de borrado de PRE-12. Con la entrada encendida y sin los secretos de Luis: el saludo con la clave correcta responde 200 y cualquier POST 503 sin leer el cuerpo ni tocar la base.",
+        "25-nov-2026: npm test 3567/3567, npm run build y check:release correctos; navegador aislado a 1280 y 390: tests/msg-01-facebook.e2e.cjs y tests/pre09-viewing-privacy.e2e.cjs PASS."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -17235,13 +17240,13 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Trámite de Meta (PRE-02) y Luis encendiendo META_MESSAGES_READY y META_SEND_READY (0109 ya aplicada)",
+      "externalBlocker": "Trámite de Meta (PRE-02): app, secretos, webhook registrado y aprobación del acceso avanzado.",
       "resources": [
         "web-chat",
         "meta-channel"
       ],
-      "nextStep": "Cuando PRE-02 esté listo: secretos, Luis enciende META_MESSAGES_READY y después META_SEND_READY; recorrido real con un mensaje de prueba a la página.",
-      "actualizado": "2026-11-16"
+      "nextStep": "Plan de una página del borrador de Hermes en docs/roadmap/work/MSG-01/ y construirlo apagado; con los secretos de Luis, prueba real y META_SEND_READY.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "MSG-02",
@@ -19604,14 +19609,15 @@
       "estado": "pendiente",
       "responsable": "Luis",
       "hecho": "",
-      "falta": "Luis: crear la app de Meta, verificar el negocio, conectar la página de Facebook de Hampton y pedir pages_messaging (revisión de Meta). Después dar el secreto de la app, el token de la página y el verify token como secretos de Cloudflare.",
+      "falta": "Luis: comprobar su acceso de administrador a la página de Facebook y a la cuenta de empresa de Meta de Hampton (25-nov: «No lo sé»); crear la app dentro de esa cuenta, conectar la página y cargar META_APP_SECRET, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare; registrar el webhook y pedir el acceso avanzado (verificación del negocio y revisión de Meta). La clave de verificación no la da Meta: ya está creada y cargada (25-nov).",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:591",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:376",
         "docs/roadmap/ESTADO.md:14",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): retirada expresa de Meta.",
-        "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después."
+        "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después.",
+        "25-nov-2026: lo que Meta necesita de la app antes de registrar el webhook ya está hecho (PRE-08: entrada encendida y clave de verificación). Luis respondió «No lo sé» a si es administrador de la página y de la cuenta de empresa de Meta: su primer paso es comprobarlo."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -19622,8 +19628,8 @@
       "resources": [
         "meta-integration"
       ],
-      "nextStep": "Luis empieza el trámite en developers.facebook.com.",
-      "actualizado": "2026-11-16"
+      "nextStep": "Luis: primer paso del trámite (comprobar accesos); después, un paso cada vez con la guía de docs/roadmap/work/PRE-02/.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "PRE-03",
@@ -19767,8 +19773,8 @@
       "fase": "F6",
       "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503.",
-      "falta": "PRE-02: app de Meta con permisos, suscripción de la página y secretos META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ID y META_PAGE_TOKEN en Cloudflare. Luis enciende META_MESSAGES_READY (en los dos wrangler.toml) y, para enviar, META_SEND_READY. Comprobar con la app real. Aviso de privacidad (PRE-09) que mencione los mensajes de Facebook. Borradores de Hermes después de PRE-32.",
+      "hecho": "server/meta-webhooks.js (apagado, META_MESSAGES_READY): handshake con verify token en tiempo constante y firma X-Hub-Signature-256 (HMAC-SHA256 de los bytes exactos con el app secret, WebCrypto) antes de leer o guardar; límite 1 MiB; cabecera ausente, repetida o mal formada rechazada; sin secretos, 503. 25-nov-2026: entrada encendida por decisión de Luis (META_MESSAGES_READY=1 en los dos wrangler.toml) y clave de verificación creada y cargada (META_VERIFY_TOKEN).",
+      "falta": "Luis (trámite de Meta, PRE-02): cargar META_APP_SECRET y META_PAGE_ID en Cloudflare, registrar el webhook en Meta y mandar un mensaje de prueba a la página desde su Facebook. Después, desarrollo: publicar para que el despliegue tome los secretos y comprobar el saludo y la llamada firmada real. La firma del webhook de WhatsApp ya no es criterio de cierre (plan MSG-01, 16-nov): queda anotada en PRE-24.",
       "bloqueo": "",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:484",
@@ -19777,7 +19783,9 @@
         "Reactivada el 16-nov-2026 por decisión de Luis: Facebook (Messenger de la página de Hampton), con borrador de Hermes y aprobación humana; Hermes no contesta solo. PUB-03 (publicar en redes) sigue retirada; Instagram queda para después.",
         "Plan: docs/roadmap/work/MSG-01/plan.md (decisiones y fuentes; docs oficiales de Meta comprobadas el 16-nov-2026).",
         "Pruebas: tests/server/meta-webhooks.test.mjs (firma válida, errónea, ausente, repetida, mal formada; token; tamaño; repetición idempotente; fallo de D1 sin 200; apagado 404).",
-        "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor."
+        "16-nov: migración 0109 aplicada en producción (aditiva, marcador Time Travel previo en el relevo privado), sin encender el interruptor.",
+        "25-nov-2026: decisión de Luis («Sí a las tres»): (1) crear la clave de verificación sin mostrarla, guardarla en Cloudflare y dejar una copia en un archivo privado del VPS; (2) encender la entrada de mensajes de Facebook; (3) tras su mensaje de prueba, encender que el equipo responda desde el panel.",
+        "25-nov-2026: META_VERIFY_TOKEN cargado en Cloudflare Pages (64 caracteres, generado sin mostrarlo; copia privada en el VPS, fuera del repositorio). node --test tests/server/meta-webhooks.test.mjs tests/server/msg-01-facebook-replies.test.mjs: 26/26."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -19792,12 +19800,12 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Comprobar con llamadas reales de la app de Meta (PRE-02)",
+      "externalBlocker": "Luis: secretos META_APP_SECRET y META_PAGE_ID (app de Meta, PRE-02), registrar el webhook y mandar un mensaje de prueba a la página.",
       "resources": [
         "meta-webhooks"
       ],
-      "nextStep": "Tras PRE-02: cargar los secretos y comprobar el handshake y una llamada firmada real con META_MESSAGES_READY encendido por Luis.",
-      "actualizado": "2026-11-16"
+      "nextStep": "Cuando Luis cargue los secretos y avise: publicar, comprobar el saludo con la clave real (200 y el challenge devuelto) y, tras su mensaje de prueba, contar la fila en channel_messages y cerrar.",
+      "actualizado": "2026-11-25"
     },
     {
       "id": "PRE-09",
@@ -20445,7 +20453,7 @@
       "estado": "bloqueado",
       "responsable": "Hampton",
       "hecho": "",
-      "falta": "Sin respuesta: si usan WhatsApp con clientes y si tienen un número que pueda pasar a WhatsApp Business (decide F6).",
+      "falta": "Sin respuesta: si usan WhatsApp con clientes y si tienen un número que pueda pasar a WhatsApp Business (decide F6). Traído de PRE-08 (25-nov): cuando WhatsApp entre en una fase, verificar la firma de su webhook (salió del alcance de PRE-08 el 16-nov-2026, plan MSG-01).",
       "bloqueo": "Dato de Hampton",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:699",
@@ -20461,7 +20469,7 @@
         "whatsapp-integration"
       ],
       "nextStep": "Hampton confirma uso y número disponible para WhatsApp Business.",
-      "actualizado": "2026-11-14"
+      "actualizado": "2026-11-25"
     },
     {
       "id": "PRE-25",

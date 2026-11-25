@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **MSG-01 / PRE-08, entrada de Facebook encendida:** la app ya responde a la comprobación de Meta (clave de verificación creada, decisión de Luis) y el aviso de privacidad explica los mensajes de Facebook; no entra ningún mensaje hasta que Luis cree la app de Meta, conecte la página y cargue sus secretos. Responder desde el panel se enciende tras su mensaje de prueba. Progreso 155 de 216 (sin cambio).
+
 24-nov-2026 · **AUT-17, respuestas en la consulta:** cada consulta enviada muestra las respuestas que llegaron por correo (fecha, tipo y referencia HE-IN, el texto sigue en Email) y el botón «Use for the answer» rellena canal, hora y evidencia del formulario de respuesta; qué contestó la agencia lo elige el empleado. Progreso 155 de 216 (sin cambio).
 
 24-nov-2026 · **AUT-17, respuestas a las consultas aprobadas:** cuando el cartero envía una consulta aprobada a una agencia desde Gmail, guarda su hilo; la respuesta de la agencia aparecerá en Settings › Email ligada a su consulta, una sola vez. Para verlo funcionar, Luis reinstala el cartero en el VPS. Progreso 155 de 216 (sin cambio).

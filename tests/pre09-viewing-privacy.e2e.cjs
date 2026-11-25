@@ -33,7 +33,9 @@ const { chromium, webkit } = require(process.env.PW || 'playwright-core');
           'our legal basis is that legal obligation', 'collect the rent', 'protect and settle the deposit',
           'for 6 years after it ends', 'load their typefaces from Google Fonts, so Google receives your IP address',
           'Matterport, YouTube and Vimeo, which play our property tours and videos, receive it only when you open one',
-          '(Matterport, YouTube or Vimeo) then receives your IP address', 'Hampton Estates, 42 Bath Street'])
+          '(Matterport, YouTube or Vimeo) then receives your IP address', 'Hampton Estates, 42 Bath Street',
+          'If you write to our Facebook page, your message reaches us through Facebook (Meta)',
+          'We delete a conversation from our systems 30 days after its last message'])
           assert.ok(text.includes(phrase), `privacy notice is missing: ${phrase}`);
         assert.equal(await name.inputValue(), 'Synthetic visitor');
         assert.equal(await form.getByRole('button', { name: 'Request viewing' }).count(), 1);

@@ -517,13 +517,15 @@ export function renderPrivacy(root) {
       <li>For a viewing request: the property, the day and the time you chose.</li>
       <li>If you use the chat on our website: your name, the email or mobile number you give, your messages and our
         replies, the property you were looking at and when you last had the chat open.</li>
+      <li>If you write to our Facebook page: your messages and our replies, the times, and the identifier Facebook
+        gives us for your account.</li>
     </ul>
 
     <h2>Why we use it</h2>
     <ul>
       <li>To look for properties or businesses that match your search and tell you about them.</li>
       <li>To arrange viewings and keep a record of what we have discussed with you.</li>
-      <li>To answer the messages you send us through the chat on our website.</li>
+      <li>To answer the messages you send us through the chat on our website or our Facebook page.</li>
       <li>To show on a property's page how many people are interested in it: a number only, from 2 people, never your
         name or details.</li>
       <li>To send you news about homes and the Jersey market, only if you ticked the box for it.</li>
@@ -568,6 +570,15 @@ export function renderPrivacy(root) {
       message. If you ask us to register your search or arrange a viewing, those details are kept as explained above.
       While the conversation is still open on your device, you can delete it yourself with "Delete chat"; at any time,
       you can ask us to delete it.</p>
+
+    <h2>Messages on Facebook</h2>
+    <p>If you write to our Facebook page, your message reaches us through Facebook (Meta). In our own systems we keep
+      the text of your messages, our replies, the times and the identifier Facebook gives us for your account; we do
+      not save attachments. A person from Hampton Estates reads and answers every message; our app sends no automatic
+      replies. We use what you write only to answer you, on Facebook or by contacting you. If you ask us to register
+      your search or arrange a viewing, those details are kept as explained above. We delete a conversation from our
+      systems 30 days after its last message, and you can ask us to delete it sooner at any time. Deleting it from our
+      systems does not delete it from Facebook: it stays in your Messenger and in our page's inbox there.</p>
 
     <h2>Email sent to the app</h2>
     <p>When you reply to an email from our app, Hampton Estates can read your reply in its staff panel. Cloudflare
