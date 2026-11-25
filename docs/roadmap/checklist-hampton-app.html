@@ -1458,10 +1458,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Enviar la consulta por un canal utilizable, con trazabilidad y sin duplicados",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "Luis",
    "hecho": "Construido en local el 15-nov-2026 tras AGE05_SEND_READY (apagado) y la migración 0080 (sin aplicar); sin publicar. Al preparar o editar la consulta se elige un contacto del anunciante con email o teléfono; se guarda su referencia, nunca la dirección. «Approve sending» registra quién y cuándo aprueba una versión exacta (destinatario, contacto y texto); Save changes la invalida. «Send by email» encola un solo correo por versión en la tubería de AUT-17; dos empleados o un reintento encuentran el mismo. La tubería de correo solo reclama un correo de consulta si su comprobación en SQL se cumple en ese mismo momento; si no, lo deja sin reclamar y la pasada siguiente lo devuelve a una persona. La pausa general lo retiene. Aceptado por el proveedor pasa a sent con su hora; rechazado vuelve a manual sin iniciar el plazo; incierto queda en needs_review hasta que una persona dice si salió, sin reenvío automático. Con el servicio de correo apagado no se encola nada y la consulta sigue «To send manually»; el canal manual de AGE-03 no cambia. Apagar AGE05_SEND_READY (también el del reloj, en jobs/wrangler.toml) devuelve a manual lo que estaba en cola sin enviarlo. Mientras un correo espera, el panel dice por qué no sale (pausa, ajuste, servicio o remitente parado), la tarea de Inbox sigue abierta hasta que sale y una persona puede devolverlo a envío manual; a las 24 h en cola vuelve solo a una persona.",
-   "falta": "Interruptor Confirmar disponibilidad (21-nov): apagado, Hermes deja la consulta en Borradores de Gmail; encendido, la envía sola. Criterio de cierre reformulado el 21-nov (PRE-23): el Gmail de Hampton, vía Hermes, acepta el mensaje aprobado, la app registra el acuse (cuenta, messageId, threadId) y un segundo intento no duplica el envío. Depende del canal de correo de Hermes (AUT-17), ya no de Cloudflare. Se mantienen la acción manual y el tratamiento de resultados inciertos. Por verificar en el panel: el paso desde una vivienda externa sin ficha hasta la consulta con contacto verificado (BUS-07, AGE-03, AGE-04). Solo falta lo externo: la activación del correo (AUT-17) y la decisión de encender AGE05_SEND_READY, ambas de Luis, y una prueba real del criterio de aceptación (dos pulsaciones simultáneas dan un solo correo; un fallo no inicia el plazo de dos días). Construido, migrado (0080) y apagado: contacto concreto del anunciante, aprobación humana de cada versión, envío por la tubería de correo con revalidación en la propia reclamación, freno real del interruptor en el reloj, «Return to manual sending» y caducidad de la aprobación a las 24 h.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:291",
@@ -1486,7 +1486,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "No comprobado: envío real, DNS y cuenta de correo; la aplicación de 0080 en producción; el reloj real de Cloudflare (probado con server/jobs.js sobre SQLite); el plan de consultas de D1 con datos reales; el import diferido en el Worker real (los dos paquetes se construyen en local).",
     "15-nov-2026: publicada apagada; 0080 (cinco ADD COLUMN, aditiva) aplicada en producción; npm test 2663/2663; tests/age05-send.e2e.cjs pasa a 1280 y 390; dos revisiones independientes: la primera halló dos graves (el interruptor no frenaba lo encolado; consultas atascadas en cola), la segunda los dio por cerrados y halló que apagar solo en la web no frenaba: el interruptor queda nombrado en los dos wrangler.toml con una prueba que exige que coincidan, y el panel ya no afirma que no saldrá. Tubería de las demás plantillas idéntica en 36 combinaciones. Pasa a la cola de Luis (skill §2).",
     "17-nov-2026: estado corregido a parcial: el código está en main y 0080 aplicada; solo falta lo externo (AUT-17 y encender AGE05_SEND_READY, de Luis). «Pendiente» bloqueaba en la ruta a AGE-09, que solo necesita el envío manual ya activo.",
-    "24-nov-2026: Luis pidió en la sesión encender AGE05_SEND_READY; puesto a \"1\" en wrangler.toml y jobs/wrangler.toml a la vez (0080 ya aplicada). Con «Confirmar disponibilidad» apagado, Hermes deja cada consulta aprobada en Borradores del Gmail de Hampton."
+    "24-nov-2026: Luis pidió en la sesión encender AGE05_SEND_READY; puesto a \"1\" en wrangler.toml y jobs/wrangler.toml a la vez (0080 ya aplicada). Con «Confirmar disponibilidad» apagado, Hermes deja cada consulta aprobada en Borradores del Gmail de Hampton.",
+    "25-nov-2026: prueba real cerrada. Consulta general de HE-R286 al anunciante de prueba 6 (buzón de Luis, elegido por él para no escribir a una agencia real). Aprobada 07:11 UTC y encolada; el cartero no podía recogerla: D1 rechazaba la consulta del reclamo («Expression tree is too large», profundidad 100). Arreglado en d12d2da5 (comprobación del reclamo reordenada; pruebas con límite 90; tests/server/d1-depth.test.mjs). 08:04:26 Gmail aceptó el envío: outbound 1 accepted, message_id y gmail_thread_id guardados, 1 intento (email_attempts 1), un solo evento queued y otro sent_by_email (08:10, el reloj). Sin duplicados: una fila outbound, un intento. 17:54 la respuesta de Luis llegó a email_inbound enlazada a outbound 1. El segundo intento sin duplicar lo cubren las pruebas de aut-17-hermes-outbound (reclamo único y resultado «same»)."
    ],
    "modulo": "M06",
    "deps": [
@@ -1495,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "AUT-11"
    ],
    "criterio_aceptacion": "Dos empleados o un reintento producen una sola consulta enviada; un fallo no empieza el reloj de dos días.",
-   "actualizado": "2026-11-24"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "AGE-06",
@@ -2506,7 +2507,7 @@ document.addEventListener('DOMContentLoaded', () => {
    "estado": "parcial",
    "responsable": "Luis",
    "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-   "falta": "Actualización 21-nov (PRE-23): la prueba real se hace con el nuevo transporte Hermes-Gmail: doble envío, pausa general (también con trabajos ya en cola o reclamados por Hermes) y resultado incierto. Esa prueba cierra el componente de correo; WhatsApp y Meta siguen pendientes de sus propios flujos. Solo falta probar las barandillas con un envío real, que exige AUT-17 activo. La pausa general, la idempotencia por snapshot, la cuota diaria compartida, las supresiones y la comprobación de pausa antes de cada llamada están en main (server/email.js). Las barandillas del flujo de consultas (revalidar aprobación, búsqueda activa, vigencia de la propiedad y permisos; una sola acción compartida entre empleados y reintentos) están en AGE-03 y AGE-05; los topes por agencia y de otros canales llegan con esos flujos.",
+   "falta": "Solo la pausa con un correo real: con «Pause all outbound» puesto, aprobar y encolar una consulta de prueba, comprobar que Hermes no la recoge en su ronda, quitar la pausa y comprobar que sale. Doble envío y reclamo único ya comprobados con el envío real del 25-nov (AGE-05).",
    "bloqueo": "Canal de correo de Hermes (AUT-17)",
    "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -2518,7 +2519,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "tests/server/email.test.mjs",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
-    "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05."
+    "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05.",
+    "25-nov-2026: envío real hecho (AGE-05): una sola fila outbound, un solo intento en email_attempts, un único evento de envío. Queda solo la pausa general con un correo real en cola: Pause all outbound con uno encolado → no sale; Resume → sale."
    ],
    "modulo": "M06",
    "deps": [
@@ -2526,7 +2528,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "EST-09"
    ],
    "criterio_aceptacion": "Dos acciones concurrentes no envían dos veces y una propiedad invalidada no sale en una consulta pendiente.",
-   "actualizado": "2026-11-21"
+   "actualizado": "2026-11-25"
   },
   {
    "id": "AUT-12",
@@ -2699,7 +2701,8 @@ document.addEventListener('DOMContentLoaded', () => {
     "24-nov: respuestas en la consulta. tests/server/age-05-send (22/22, nueva: lista solo las respuestas de su correo o de su tarea de Hermes, sin texto, nada se registra sola; sin AGE-06 no aparecen); e2e tests/age03-enquiries.e2e.cjs con el paso nuevo pasa a 1280 y 390 con AGE05_SEND_READY=0 (con 1 falla antes, en main limpio también: fallo anterior, ver MEJORAS). Revisión independiente: nada grave; arreglados la respuesta elegida que pasaba a otra consulta y el botón en rebotes.",
     "24-nov: responsable Luis. El transporte (fases A-D) está construido y encendido; los envíos «Traído de» de otras tareas se construyen cuando el canal esté probado con un envío real (plan maestro: ANA-08 y VIS-13/OFE-02 piden AUT-17 activado). Fuente: skill sección 2 (lo único que falta es de Luis) y plan de ANA-08.",
     "25-nov-2026: decisión de Luis (PRE-13): la IA de Hermes no ve ningún nombre; el cartero pone «Hello \u003cnombre>,» al enviar o al dejar el borrador (marcador {{greeting}}), y a la app vuelve el texto con el marcador, nunca el nombre. Commits bb8ff91c y 17f33684; npm test 3571/3571.",
-    "25-nov-2026 (con el sí de Luis a las instalaciones): cartero reinstalado dos veces hoy, 05:11 UTC (hilo de Gmail de la cola aprobada) y 06:41 UTC (sin nombres para el modelo; copias correo.mjs.~1~ y ~2~); skill hampton-correo = main (copia anterior en /root/hermes/skills-copias). Envío de correo activado por Luis en el panel a las 05:54 UTC (resumen diario apagado). Prueba real en curso: consulta 1 (HE-R286) a la agencia de prueba «PRUEBA Luis (no usar)», que llega al correo de Luis."
+    "25-nov-2026 (con el sí de Luis a las instalaciones): cartero reinstalado dos veces hoy, 05:11 UTC (hilo de Gmail de la cola aprobada) y 06:41 UTC (sin nombres para el modelo; copias correo.mjs.~1~ y ~2~); skill hampton-correo = main (copia anterior en /root/hermes/skills-copias). Envío de correo activado por Luis en el panel a las 05:54 UTC (resumen diario apagado). Prueba real en curso: consulta 1 (HE-R286) a la agencia de prueba «PRUEBA Luis (no usar)», que llega al correo de Luis.",
+    "25-nov-2026: prueba real de las fases B y D hecha. Cartero reinstalado (06:41 UTC). La consulta aprobada de HE-R286 salió por el Gmail de Hampton a las 08:04 (outbound 1 accepted, message_id y gmail_thread_id guardados) y la respuesta de Luis volvió a email_inbound enlazada a outbound 1 a las 17:54. El primer reclamo fallaba en D1 por profundidad de la consulta; arreglado en d12d2da5."
    ],
    "actualizado": "2026-11-25"
   },
@@ -7501,10 +7504,10 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Alta automática de la agencia de cada ficha para poder preparar consultas sin trabajo manual",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
+   "estado": "hecho",
    "responsable": "Luis",
    "hecho": "En producción desde el 24-nov (e64d0180): cada día el reloj añade a Advertisers las agencias de la importación con su correo genérico y sus fichas (solo añade; respeta lo que el equipo edite o quite). Primera pasada 09:00 UTC: Hunt 160, Red 42, Slomans 40, Prestige 14, Columbia 2. Las 6 fichas importadas fuera de HE-R (HE-C018 a HE-C021, HE-I002, HE-I003) entran en la pasada del 25-nov (arreglo del filtro en el commit siguiente). Hay 2 coincidencias aprobadas en fichas de Hunt que ya tienen destinatario.",
-   "falta": "Solo de Luis: la primera consulta real con AGE05_SEND_READY encendido y su borrador en el Gmail de Hampton. Desarrollo, al pasar: comprobar el 25-nov que Hunt llega a 162 y Columbia a 6.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "24-nov-2026: decisión de Luis, opción A (alta automática en vez de manual).",
@@ -7516,14 +7519,15 @@ document.addEventListener('DOMContentLoaded', () => {
     "24-nov-2026: revisión independiente del diff: nada grave; aplicadas sus mejoras (alta y estado en una transacción, estado por agencia solo si la escritura cuajó, rango de importación).",
     "24-nov-2026 09:00 UTC, lectura de producción: advertisers 1-5 creados por «AGE-15 sync» con su correo genérico (Hunt 160 fichas, Red 42, Slomans 40, Prestige 14, Columbia 2); app_settings.advertiser_sync day 2026-11-24 con los ids 1-5. SELECT sobre matches: 2 coincidencias shortlisted en fichas de Hunt, ahora con destinatario.",
     "24-nov-2026: el filtro de rango HE-R028–HE-R285 (sugerido por la revisión) dejaba fuera 6 fichas importadas el 8-oct con fotos de la agencia (HE-C018 a HE-C021 de Columbia, HE-I002 e HE-I003 de Hunt); BUS-07 sí las cuenta. Quitado; prueba con HE-I002 → 21/21. La pasada del 25-nov las añade.",
-    "24-nov-2026: AGE05_SEND_READY encendido a petición de Luis (los dos wrangler.toml)."
+    "24-nov-2026: AGE05_SEND_READY encendido a petición de Luis (los dos wrangler.toml).",
+    "25-nov-2026: cerrada. Cuentas comprobadas en producción: Hunt 162 y Columbia 6. Primera consulta real con AGE05_SEND_READY encendido: HE-R286, enviada por el Gmail de Hampton vía Hermes a las 08:04 UTC y respondida (17:54, en email_inbound). Por decisión de Luis («Buzón de prueba tuyo») el destinatario fue un anunciante de prueba con su buzón, no Hunt, para no escribir a una agencia real; el camino (coincidencia aprobada → contacto → aprobar → enviar) es el mismo. Evidencia completa en AGE-05."
    ],
    "modulo": "M06",
    "deps": [
     "AGE-04"
    ],
    "criterio_aceptacion": "Cada ficha importada de una agencia conocida tiene su anunciante con correo genérico sin alta manual; la consulta se puede preparar y su borrador llega al Gmail de Hampton.",
-   "actualizado": "2026-11-24"
+   "actualizado": "2026-11-25"
   }
  ],
  "reconciliacion": {

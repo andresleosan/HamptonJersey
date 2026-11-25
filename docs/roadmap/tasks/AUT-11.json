@@ -7,7 +7,7 @@
   "estado": "parcial",
   "responsable": "Luis",
   "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-  "falta": "Actualización 21-nov (PRE-23): la prueba real se hace con el nuevo transporte Hermes-Gmail: doble envío, pausa general (también con trabajos ya en cola o reclamados por Hermes) y resultado incierto. Esa prueba cierra el componente de correo; WhatsApp y Meta siguen pendientes de sus propios flujos. Solo falta probar las barandillas con un envío real, que exige AUT-17 activo. La pausa general, la idempotencia por snapshot, la cuota diaria compartida, las supresiones y la comprobación de pausa antes de cada llamada están en main (server/email.js). Las barandillas del flujo de consultas (revalidar aprobación, búsqueda activa, vigencia de la propiedad y permisos; una sola acción compartida entre empleados y reintentos) están en AGE-03 y AGE-05; los topes por agencia y de otros canales llegan con esos flujos.",
+  "falta": "Solo la pausa con un correo real: con «Pause all outbound» puesto, aprobar y encolar una consulta de prueba, comprobar que Hermes no la recoge en su ronda, quitar la pausa y comprobar que sale. Doble envío y reclamo único ya comprobados con el envío real del 25-nov (AGE-05).",
   "bloqueo": "Canal de correo de Hermes (AUT-17)",
   "evidencia": [
     "admin/src/ApplicantDetail.jsx:279-281",
@@ -19,7 +19,8 @@
     "tests/server/email.test.mjs",
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
-    "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05."
+    "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05.",
+    "25-nov-2026: envío real hecho (AGE-05): una sola fila outbound, un solo intento en email_attempts, un único evento de envío. Queda solo la pausa general con un correo real en cola: Pause all outbound con uno encolado → no sale; Resume → sale."
   ],
   "modulo": "M06",
   "deps": [
@@ -61,5 +62,5 @@
     "consultations-contract"
   ],
   "nextStep": "Cuando el canal Hermes-Gmail opere, comprobar con un envío real que dos acciones concurrentes no envían dos veces, que la pausa frena lo encolado y cerrar.",
-  "actualizado": "2026-11-21"
+  "actualizado": "2026-11-25"
 }
