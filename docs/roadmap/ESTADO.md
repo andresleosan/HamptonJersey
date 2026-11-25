@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+25-nov-2026 · **EST-19, papelera y purga de fotos (cerrada):** encendidas desde el 15 y 16-nov; el primer borrado real llegará cuando una casa lleve seis meses no disponible y se revisará entonces. Progreso 157 → 158 de 211 (74,88 %).
+
 25-nov-2026 · **PRE-04, medición de antes (cerrada):** no existe medición anterior a la app (Luis); desde ahora se compara solo con lo que cuenta la app. **Fase 2:** notas de voz, servidor privado de modelos locales, automatizaciones con datos sensibles en local, folletos por parroquia y Places.je salen del total por decisión de Luis. Progreso 156 de 216 → 157 de 211 (74,41 %).
 
 25-nov-2026 · **PRE-22, comisiones entre agencias (cerrada):** por decisión de Luis del 10-nov se tratan en persona, fuera de la app; la app no las registra ni las exige, y ninguna consulta las menciona. No cambia nada para el equipo. Progreso 155 → 156 de 216 (72,22 %).

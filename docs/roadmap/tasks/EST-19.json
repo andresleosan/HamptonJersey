@@ -4,10 +4,10 @@
   "titulo": "Papelera de no disponibles y purga de archivos a los seis meses",
   "origen": "plan",
   "fase": "F1-B",
-  "estado": "parcial",
+  "estado": "hecho",
   "responsable": "Luis",
-  "hecho": "Construido 15-nov (30560c9), apagado y sin migración. Papelera: Listings muestra, con EST19_TRASH_READY, las fichas cuya confirmación vigente para su operación dice no disponible (EST-15/EST-16), con fecha de entrada (confirmed_at), motivo, alcance y, por ficha, cuántas fotos borraría la purga, cuándo (seis meses naturales en hora Jersey, recorte a fin de mes) y cuántos archivos conserva; leerla no borra nada. Restaurar es registrar con evidencia una confirmación «available» con el formulario de EST-16, que la saca de la papelera. Purga: con EST19_PURGE_READY una persona pulsa «Delete N due photos»; en la web, nunca en el reloj (sin R2), relee los candidatos en el servidor y borra como mucho 20 fotos y sus miniaturas (40 objetos en una llamada a R2), primero, en un lote D1 que vuelve a comprobar todas las protecciones, un evento listing.photos_purged por ficha (ids borrados y fecha de entrada, sin datos personales) y el DELETE … RETURNING de las filas media; después borra en R2 solo las claves devueltas que ninguna fila ni captura usa ya. Si R2 falla quedan archivos huérfanos, anotados en un evento listing.photo_files_left por ficha, nunca un borrado sin comprobar (revisión 15-nov, 283fe46). Solo purga fotos (kind photo) de origen external con archivo propio; conserva planos, documentos, archivos con nombre de documento (regla DOCUMENT_NAME de server/visibility.js), privados PUB-11, fotos propias de Hampton y subidas, la portada, archivos compartidos por otra fila, blobs de capturas SPR-03, fotos con decisión AGE-10 y todo lo de fichas publicadas o con venta en curso, oferta abierta, tenencia activa o cierre de alquiler PUB-16 sin resolver. No toca la ficha, sus confirmaciones, capturas, consultas, visitas, identidad de mercado ni personas.",
-  "falta": "Encender EST19_PURGE_READY (Luis) y comprobar un primer lote real. La papelera (EST19_TRASH_READY=1) ya está encendida desde el 15-nov-2026.",
+  "hecho": "Construido 15-nov (30560c9), apagado y sin migración. Papelera: Listings muestra, con EST19_TRASH_READY, las fichas cuya confirmación vigente para su operación dice no disponible (EST-15/EST-16), con fecha de entrada (confirmed_at), motivo, alcance y, por ficha, cuántas fotos borraría la purga, cuándo (seis meses naturales en hora Jersey, recorte a fin de mes) y cuántos archivos conserva; leerla no borra nada. Restaurar es registrar con evidencia una confirmación «available» con el formulario de EST-16, que la saca de la papelera. Purga: con EST19_PURGE_READY una persona pulsa «Delete N due photos»; en la web, nunca en el reloj (sin R2), relee los candidatos en el servidor y borra como mucho 20 fotos y sus miniaturas (40 objetos en una llamada a R2), primero, en un lote D1 que vuelve a comprobar todas las protecciones, un evento listing.photos_purged por ficha (ids borrados y fecha de entrada, sin datos personales) y el DELETE … RETURNING de las filas media; después borra en R2 solo las claves devueltas que ninguna fila ni captura usa ya. Si R2 falla quedan archivos huérfanos, anotados en un evento listing.photo_files_left por ficha, nunca un borrado sin comprobar (revisión 15-nov, 283fe46). Solo purga fotos (kind photo) de origen external con archivo propio; conserva planos, documentos, archivos con nombre de documento (regla DOCUMENT_NAME de server/visibility.js), privados PUB-11, fotos propias de Hampton y subidas, la portada, archivos compartidos por otra fila, blobs de capturas SPR-03, fotos con decisión AGE-10 y todo lo de fichas publicadas o con venta en curso, oferta abierta, tenencia activa o cierre de alquiler PUB-16 sin resolver. No toca la ficha, sus confirmaciones, capturas, consultas, visitas, identidad de mercado ni personas. Cerrada el 25-nov-2026 por decisión de Luis: la papelera (EST19_TRASH_READY) y la purga por lotes (EST19_PURGE_READY) están encendidas desde el 15 y el 16-nov; el primer borrado real llegará cuando una casa lleve seis meses confirmada como no disponible.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
@@ -28,7 +28,8 @@
     "Decisión 15-nov · entrada = confirmed_at de la confirmación no disponible vigente; una nueva confirmación no disponible reinicia el plazo (más conservador). Fuente: ficha EST-19 (traído de EST-15).",
     "Decisión 15-nov · retención legal: el plan no fija ninguna para fotos; la de 5 años (V14) es de ventas y contactos y la purga no toca esas filas. Confirmaciones de disponibilidad: se conservan (la purga no borra fichas). BUS-10/BUS-07: la purga no borra market_properties, observaciones ni listing_market_links, así que no aplica retirarlos.",
     "Revisión independiente 15-nov sin fallos graves; corregidas la carrera lectura/borrado y los documentos con kind photo (283fe46). tests/server/est-19-trash.test.mjs 11/11, photo-purge-policy 4/4, spr-03-captures 12, media-* 83, listing-history 30; tests/est19-trash.e2e.cjs PASS a 1280 y 390.",
-    "15-nov-2026: publicada en 2d319fa (bebb518, 91ac3fe, db063ce); papelera encendida (EST19_TRASH_READY=1, no borra); purga apagada para Luis; npm test 2790/2790; tests/est19-trash.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente sin graves (apagado sin SQL ni R2; deadline() idéntico en 1,5 M de instantes; 13 cambios inyectados entre lectura y lote sin borrado indebido; regla de documentos sin excluir fotos válidas en 95.055 nombres)."
+    "15-nov-2026: publicada en 2d319fa (bebb518, 91ac3fe, db063ce); papelera encendida (EST19_TRASH_READY=1, no borra); purga apagada para Luis; npm test 2790/2790; tests/est19-trash.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión independiente sin graves (apagado sin SQL ni R2; deadline() idéntico en 1,5 M de instantes; 13 cambios inyectados entre lectura y lote sin borrado indebido; regla de documentos sin excluir fotos válidas en 95.055 nombres).",
+    "25-nov-2026: decisión de Luis «Sí, cerrarla» sin esperar al primer lote real. Hoy no hay ninguna casa confirmada como no disponible (0 confirmaciones «unavailable», 0 eventos listing.photos_purged), así que el primer borrado tardará meses. Comprobado con las pruebas de la purga y de la papelera; la revisión del primer lote real queda en MEJORAS."
   ],
   "modulo": "M12",
   "deps": [
@@ -87,13 +88,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Luis: decidir si encender EST19_PURGE_READY (borra archivos de producción).",
+  "externalBlocker": "",
   "resources": [
     "market-inventory",
     "availability-contract",
     "media-private",
     "jobs-clock"
   ],
-  "nextStep": "Cuando Luis encienda EST19_PURGE_READY, comprobar el primer lote real (filas media, objetos R2 y evento listing.photos_purged) y cerrar.",
-  "actualizado": "2026-11-15"
+  "nextStep": "Revisar el primer lote real cuando ocurra (MEJORAS): filas media, objetos en el almacenamiento y evento listing.photos_purged.",
+  "actualizado": "2026-11-25"
 }

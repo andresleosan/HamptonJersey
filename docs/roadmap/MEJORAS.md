@@ -259,3 +259,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-17] Vigilar el hilo de la cola solo hasta que se borre el contenido (30 días desde created_at, no desde claimed_at) · una consulta reclamada tarde puede guardar respuestas tras borrarse su texto; inocuo · 2026-11-24
 - [AUT-17] Al registrar a mano el envío de un borrador de Hermes, proponer como hora la del borrador · si se registra tarde, la hora de una respuesta anterior queda antes de sent_at y AGE-06 la rechaza · 2026-11-24
 - [AGE-03] tests/age03-enquiries.e2e.cjs falla con AGE05_SEND_READY=1 (encendido el 24-nov): espera la dirección del anunciante y el panel muestra el selector de contacto; actualizar la prueba al modo con envío · 2026-11-24
+- [EST-19] Revisar el primer lote real de la purga de fotos (filas media, objetos en el almacenamiento y evento listing.photos_purged) cuando ocurra · se cerró sin lote real por decisión de Luis · 25-nov-2026
