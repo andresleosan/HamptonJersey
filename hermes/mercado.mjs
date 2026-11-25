@@ -85,15 +85,18 @@ function feed(raw) {
   let json;
   try { json = JSON.parse(raw); } catch { return null; }
   if (!json || typeof json !== "object") return null;
-  const by = new Map(), todo = [[json, false]];
+  // inList: this object is an element of a list (a candidate advert). inAdvert: an ancestor already is one, so the lists
+  // inside it ("similar homes", photos, history) are not lists of adverts and nothing in them is indexed.
+  const by = new Map(), todo = [[json, false, false]];
   let nodes = 0;
   while (todo.length) {
-    const [o, inList] = todo.pop();
+    const [o, inList, inAdvert] = todo.pop();
     const entries = Object.entries(o);
     if ((nodes += entries.length) > MAX_NODES || (!Array.isArray(o) && entries.length > MAX_KEYS)) return null;
+    const advertHere = inList && !inAdvert && !Array.isArray(o);
     for (const [k, v] of entries) {
-      if (v && typeof v === "object") todo.push([v, Array.isArray(o)]);
-      else if (inList && typeof v === "string" && LINK_KEYS.has(norm(k))) (by.get(v) ?? by.set(v, []).get(v)).push(o);
+      if (v && typeof v === "object") todo.push([v, Array.isArray(o), inAdvert || advertHere]);
+      else if (advertHere && typeof v === "string" && LINK_KEYS.has(norm(k))) (by.get(v) ?? by.set(v, []).get(v)).push(o);
     }
   }
   return by;

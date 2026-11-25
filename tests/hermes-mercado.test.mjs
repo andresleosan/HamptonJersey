@@ -63,7 +63,8 @@ const TRICKY = JSON.stringify({ filters: { location: "/to-let/fake", maxPrice: "
   { url: "/to-let/x1", section: "/to-let/lettings", price: 2000, groundRent: 250, previousPrice: 2400, minPrice: 900,
     parentId: 17, pricePerSqft: 45, similar: "/to-let/x9" },
   { url: "/to-let/x2", section: "/to-let/lettings", price: 3000 },
-  { url: "/to-let/x3", link: "/to-let/x4", price: 1500 }] });
+  { url: "/to-let/x3", link: "/to-let/x4", price: 1500 },
+  { url: "/to-let/x5", price: 2500, similarHomes: [{ url: "/to-let/x6", price: 999 }] }] });
 const flat = (n, price_text, extra = {}) => ({ listing_url: `https://agency.test/to-let/flat-${n}`, operation: "rent",
   use: "residential", price_text, ...extra });
 const advert = (n, extra = {}) => ({ listing_url: `https://agency.test/to-let/home-${n}`, operation: "rent", use: "residential",
@@ -202,6 +203,7 @@ for (const [name, bad, reason] of [
   ["a second link in another advert's object", x("x9", "£2,000"), "link_not_on_page"],
   ["a filter echo", x("fake", "£1,200"), "link_not_on_page"],
   ["an object holding two delivered adverts", x("x4", "£1,500"), "price_not_on_page"],
+  ["a home in another advert's «similar homes» list", x("x6", "£999"), "link_not_on_page"],
 ]) test(`a JSON page refuses ${name}`, async t => {
   const { app, cfg, deliver } = await setup(t);
   const r = await deliver({ pages: ["https://agency.test/to-let/tricky.json"], adverts: [x("x2", "£3,000"), x("x3", "£1,500"), bad] });
