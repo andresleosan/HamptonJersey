@@ -10,6 +10,7 @@ import { rentalStepEmailPass } from "./rental-step-emails.js";
 import { remindersReady, reminderPass, reminderSettlePass } from "./viewing-reminders.js";
 import { viewingEmailsReady } from "./viewing-email-check.js";
 import { viewingEmailPass, viewingEmailSettlePass } from "./viewing-emails.js";
+import { welcomePass, welcomeSettlePass } from "./applicant-welcome.js";
 import { receiveEmail } from "./email-inbound.js";
 import { weeklyInsightsPass } from './weekly-insights.js';
 import { weeklyEmailReady } from './weekly-insights-email-check.js';
@@ -108,6 +109,8 @@ const clock = {
       try { await viewingEmailPass(env); }
       catch { console.error('Viewing email pass failed'); }
     }
+    try { await welcomePass(env); } // AUT-25: a new applicant's welcome email and data check (off: nothing)
+    catch { console.error('Applicant welcome pass failed'); }
     // Use processing time for email: a delayed old trigger must not send yesterday's summary.
     // AGE-05: an enquiry email is claimed only while its check holds; what happened to each is written on it after.
     await emailPass(env, now(), now, await enquiryEmailCheck(env));
@@ -122,6 +125,8 @@ const clock = {
     }
     try { await viewingEmailSettlePass(env); } // AUT-21, also switched off: what is queued is taken back, a notice unsent is a task
     catch { console.error('Viewing email settle failed'); }
+    try { await welcomeSettlePass(env); } // AUT-25, also switched off: what is queued is taken back; accepted moves New to Searching
+    catch { console.error('Applicant welcome settle failed'); }
   },
 };
 

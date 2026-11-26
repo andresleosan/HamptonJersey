@@ -9092,6 +9092,34 @@
       "acceptance": [
         "Las copias de licencia y EICR y los datos prescritos del depósito (ADM-11), el aviso de subida de renta (ADM-15) y el aviso al propietario del paso +10 de atrasos (ADM-03) salen por correo tras la aprobación de una persona (R01), y su entrega queda registrada con el acuse de Gmail."
       ]
+    },
+    {
+      "id": "AUT-25",
+      "parentTaskId": "AUT-25",
+      "title": "Bienvenida automática y revisión de datos de cada solicitante nuevo de la web",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-25.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-25/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Cada solicitante nuevo de la web recibe una sola bienvenida con su búsqueda y lo que falta; nunca a búsquedas anteriores al encendido ni ya tomadas por el equipo; al salir, la búsqueda pasa a Searching y deja el Inbox; los datos raros abren una tarea sin valores. Sale por el Gmail de Hampton vía Hermes."
+      ]
     }
   ],
   "tasks": [
@@ -21198,6 +21226,47 @@
       "nextStep": "Arreglar el acceso a los inciertos; contrato de prueba con el buzón de Luis; encender.",
       "actualizado": "2026-11-26",
       "externalBlocker": ""
+    },
+    {
+      "id": "AUT-25",
+      "seccion": "Automatizaciones e IA",
+      "titulo": "Bienvenida automática y revisión de datos de cada solicitante nuevo de la web",
+      "origen": "plan",
+      "fase": "F2",
+      "estado": "parcial",
+      "responsable": "desarrollo",
+      "hecho": "26-nov-2026: construido y apagado (AUT25_APPLICANT_WELCOME_READY=0, sin migración). Cada búsqueda nueva registrada en la web (residencial, en New y sin asignar) recibe un correo de bienvenida con su propia búsqueda y los datos que faltan para que conteste (teléfono, fecha de mudanza, presupuesto, situación de vivienda si alquila). El interruptor aprueba; solo búsquedas registradas después de encenderlo. Al aceptarlo Gmail, pasa a Searching y su aviso New applicant se cierra. Revisión con reglas fijas: presupuesto raro o sin correo válido abre una tarea en el Inbox con los motivos, sin valores.",
+      "falta": "Prueba real con el buzón de Luis y su sí para encender en los dos wrangler.",
+      "bloqueo": "",
+      "evidencia": [
+        "Decisión de Luis 26-nov-2026: «Bienvenida + revisión», «El interruptor aprueba», «Solo los nuevos».",
+        "26-nov-2026: tests/server/aut-25-applicant-welcome.test.mjs (9 pruebas); d1-depth con todo encendido."
+      ],
+      "modulo": "M04",
+      "deps": [
+        "AUT-17"
+      ],
+      "criterio_aceptacion": "Cada solicitante nuevo de la web recibe una sola bienvenida con su búsqueda y lo que falta; nunca a búsquedas anteriores al encendido ni ya tomadas por el equipo; al salir, la búsqueda pasa a Searching y deja el Inbox; los datos raros abren una tarea sin valores. Sale por el Gmail de Hampton vía Hermes.",
+      "assignedSlot": "hermes",
+      "allocationStatus": "proposed",
+      "assignmentRole": "seguimiento; no sustituye al responsable externo",
+      "executionEligibility": "ready",
+      "dependencies": [
+        {
+          "id": "AUT-17",
+          "scope": "component:email-transport",
+          "requires": "integrated",
+          "basis": "explicit",
+          "reason": "El correo de la app sale por Hermes desde el Gmail de Hampton (AUT-17, hecha)."
+        }
+      ],
+      "resources": [
+        "email-transport",
+        "jobs-clock"
+      ],
+      "nextStep": "Prueba con el buzón de Luis (registro de prueba en la web); después encender en los dos wrangler.",
+      "actualizado": "2026-11-26",
+      "externalBlocker": "Luis: prueba con su buzón y sí para encender."
     }
   ]
 }

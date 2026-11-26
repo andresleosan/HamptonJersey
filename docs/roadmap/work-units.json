@@ -9092,6 +9092,34 @@
       "acceptance": [
         "Las copias de licencia y EICR y los datos prescritos del depósito (ADM-11), el aviso de subida de renta (ADM-15) y el aviso al propietario del paso +10 de atrasos (ADM-03) salen por correo tras la aprobación de una persona (R01), y su entrega queda registrada con el acuse de Gmail."
       ]
+    },
+    {
+      "id": "AUT-25",
+      "parentTaskId": "AUT-25",
+      "title": "Bienvenida automática y revisión de datos de cada solicitante nuevo de la web",
+      "preferredSlot": "hermes",
+      "priority": 120,
+      "kind": "development",
+      "enabled": true,
+      "reviewRequired": true,
+      "dependencies": [],
+      "resources": [
+        {
+          "key": "email-transport",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/tasks/AUT-25.json",
+          "mode": "write"
+        },
+        {
+          "key": "path:docs/roadmap/work/AUT-25/",
+          "mode": "write"
+        }
+      ],
+      "acceptance": [
+        "Cada solicitante nuevo de la web recibe una sola bienvenida con su búsqueda y lo que falta; nunca a búsquedas anteriores al encendido ni ya tomadas por el equipo; al salir, la búsqueda pasa a Searching y deja el Inbox; los datos raros abren una tarea sin valores. Sale por el Gmail de Hampton vía Hermes."
+      ]
     }
   ]
 }

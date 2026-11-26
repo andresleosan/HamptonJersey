@@ -54,4 +54,5 @@ test("the carrier's claim with every switch on fits D1's depth", async () => {
   assert.ok(claim.includes("e.type = 'viewing.cancelled'"), "the claim carries AUT-21's check");
   assert.ok(claim.includes("FROM rental_emails e") && claim.includes("WHEN 'landlord_arrears_notice' THEN"), "the claim carries AUT-24's check");
   assert.ok(claim.includes("FROM rental_step_emails re"), "the claim carries AUT-23's check");
+  assert.ok(claim.includes("WHEN 'applicant_welcome' THEN") && claim.includes("a.match_inputs_revision + 1 = outbound.version"), "the claim carries AUT-25's check");
 });
