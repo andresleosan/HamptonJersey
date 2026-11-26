@@ -6,6 +6,8 @@ Cada tanda de estas listas sigue la [regla de extracción para el archivo de Ham
 
 Consulta el [seguimiento de extracción y archivado](seguimiento-extraccion.md) antes de repetir un canal. El registro se actualiza con cada carga verificada.
 
+Para comprobar si una web ya aportó fichas a Archived, busca su ID en la [checklist de las 237 entradas](../access-review-queue.csv). Las rutas de un mismo dominio comparten el estado de la tanda. El [listado del 26 de noviembre](../canales-archived-2026-11-26.csv) reúne los 46 dominios con fichas identificadas.
+
 Se conserva el orden del estado de fuentes: `source_ref`, después `channel_id`. Cada canal mantiene su identificador y URL; canales distintos de una misma fuente cuentan por separado.
 
 | Lista | Canales | Posiciones |

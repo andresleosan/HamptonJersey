@@ -179,10 +179,30 @@ output = {
 decisions_path = HERE / 'access-decisions.json'
 queue_path = HERE / 'access-review-queue.csv'
 write_new_or_identical(decisions_path, json.dumps(output, ensure_ascii=False, indent=2) + '\n')
+_, archived_origins = read_csv(HERE / 'canales-archived-2026-11-26.csv')
+origins_by_route = {}
+for origin in archived_origins:
+    if origin['correspondencia'] == 'alta_nueva':
+        continue
+    for route in [origin['channel_id'], *origin['rutas_del_mismo_canal'].split()]:
+        if route in origins_by_route:
+            raise ValueError('Ruta asignada a dos orígenes: ' + route)
+        origins_by_route[route] = origin
+unknown_routes = origins_by_route.keys() - {row['review_ref'] for row in rows}
+if unknown_routes:
+    raise ValueError('Rutas ajenas al directorio aceptado: ' + ', '.join(sorted(unknown_routes)))
+
 stream = io.StringIO(newline='')
-writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator='\n')
+status_field = 'extraccion_del_origen_2026_11_26'
+writer = csv.DictWriter(stream, fieldnames=[status_field, 'origen_web_archived', *rows[0]], lineterminator='\n')
 writer.writeheader()
-writer.writerows(rows)
+for row in rows:
+    origin = origins_by_route.get(row['review_ref'])
+    writer.writerow({
+        status_field: origin['estado_extraccion'] if origin else '',
+        'origen_web_archived': origin['dominio'] if origin else '',
+        **row,
+    })
 write_new_or_identical(queue_path, stream.getvalue())
 counts = collections.Counter(row['review_state'] for row in rows)
 manifest = {

@@ -4,6 +4,14 @@
 
 ## Resultado
 
+### Checklist de extracción por web · 26 de noviembre de 2026
+
+Abre la [checklist de las 237 entradas](access-review-queue.csv). La primera columna marca **Completado** en las 77 rutas de los 44 dominios del directorio que aportaron fichas a la tanda de Archived. Las rutas de una misma web comparten marca para que la próxima búsqueda pueda saltarse ese origen. Las otras 160 filas quedan sin marca en esta tanda.
+
+El [listado de los 46 canales completados](canales-archived-2026-11-26.csv) cuenta cada dominio una vez e incluye los dos que faltaban en el directorio histórico, **Maisons Les Arches** y **Knight Frank UK para Jersey**. Las cifras por web suman las 1.022 fichas de partida. La marca responde a «¿ya tenemos fichas de esta web en la tanda del 26 de noviembre?». La [auditoría de disponibilidad](auditoria-archived-2026-11-26.md) detalla hasta dónde se comprobó el catálogo de cada web.
+
+### Revisión documental del directorio
+
 El [registro documental](access-decisions.json) y la [cola filtrable](access-review-queue.csv) trasladan los **237 registros fuente/ruta de 141 IDs** del relevo aceptado, con referencia a cada fila de origen, restricción heredada, evidencia conocida y siguiente acción. Sus categorías son de investigación: **no son `SourceAccessDecision`**, no están conectadas al producto y ninguna equivale a `allowed` o `approved`. Las 14 filas sin URL se mantienen como tales: ocho sociales, dos históricas y cuatro que esperan identificación del canal.
 
 | Estado de revisión documental | Registros |

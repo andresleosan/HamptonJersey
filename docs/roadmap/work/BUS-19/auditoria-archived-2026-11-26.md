@@ -26,6 +26,8 @@ Se comprobaron la operación y los identificadores de las fotos de importación 
 
 ## Inventario de orígenes de Archived
 
+Los 46 orígenes de esta tabla son los [46 canales con fichas en la tanda](canales-archived-2026-11-26.csv). La [checklist del directorio de 237 entradas](access-review-queue.csv) ya marca como completadas las webs correspondientes. La tercera columna de la tabla registra el avance del cotejo de disponibilidad.
+
 La base de 1.022 se reconstruyó con **716 enlaces originales explícitos**, **264 fichas de cinco manifiestos de importación** y **42 fichas con anuncio propio de Hampton enlazado**. Los tres grupos son disjuntos. La tabla muestra **46 orígenes web**. Un origen puede tener varias rutas de venta, alquiler o promoción. Los recuentos de la segunda columna describen las fichas de Hampton al inicio del cotejo.
 
 | Origen | Fichas de partida | Estado del cotejo |
