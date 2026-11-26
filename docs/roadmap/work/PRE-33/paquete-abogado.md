@@ -1,6 +1,6 @@
 # Hampton App: questions and document requests for Jersey counsel
 
-**Status: DRAFT, 17 November 2026.** Prepared by Optimyze for Hampton Estates to review before it is sent to
+**Status: DRAFT, 26 November 2026.** Prepared by Optimyze for Hampton Estates to review before it is sent to
 Hampton's Jersey lawyer. It is not legal advice and nothing in it has been validated. It describes what the
 software does today, from its source code and project records, and asks counsel to confirm, correct or supply the
 legal content. Wherever this note says "we", it means Hampton Estates (the controller) and Optimyze (which builds and
@@ -15,7 +15,7 @@ operates the software for Hampton).
 | 1 | Data protection clause for sales and lettings contracts | A short clause (or clauses) to insert in our agreements | High |
 | 2 | Retention after a tenancy or a sale ends | Confirmed periods, start dates and legal basis for each record type | High |
 | 3 | Processing agreements and international transfers | Outline of a Hampton–Optimyze processor contract (Art. 19), a view on each provider, and on remote access from Colombia | High |
-| 4 | Privacy notice and the website chat | Comments or a marked-up version of our notice, including three specific paragraphs | High |
+| 4 | Privacy notice and the website chat | Comments or a marked-up version of our notice, including the updated email, Facebook, chat and valuation wording | High |
 | 5 | Winning new landlords and vendors | Answers to nine specific questions, and consent wording for valuation offers | Medium |
 | 6 | Legal periods used by the rentals module | Confirmation (or correction) of each period, with a reference we can record | High |
 | 7 | Rent review notice letter | A rent review notice template for the 2025 tenancy rules | High |
@@ -33,16 +33,11 @@ A list of annexes is at the end (section 11).
 | | Details |
 |---|---|
 | Controller | Hampton Estates, estate and letting agency, St Helier, Jersey |
-| Legal name | `###` |
-| Company registration number | `###` |
-| JFSC registration (Proceeds of Crime (Jersey) Law 1999, Schedule 2) | `###` |
-| JOIC registration (Data Protection Authority (Jersey) Law 2018, Art. 17) | `###` |
-| Processor (proposed) | Optimyze: designs, builds and operates Hampton App on Hampton's instructions |
+| Registered company details | Hampton can supply the legal name and company number directly to counsel. |
+| JFSC and JOIC registrations | Hampton confirmed both on 20 November. Registration numbers and certificates are kept outside this packet. |
+| Processor (proposed) | Optimyze designs, builds and operates Hampton App on Hampton's instructions. |
 
-> **Note on the `###` fields.** Hampton is confirming its legal name and registrations (JFSC and JOIC) at the time of
-> writing. We will fill them in before sending, or send them separately. Please tell us if any answer below depends on
-> them, in particular whether rent and deposits paid into a Hampton account count as administering client money and
-> need their own registration, and whether Optimyze needs its own JOIC registration as a processor.
+Please advise whether the registrations cover the handling of rent and deposits paid into a Hampton account, and whether Optimyze requires its own JOIC registration as a processor.
 
 Hampton lets homes (fully managing some of them, including rent collection and monthly statements to landlords, and
 only finding a tenant for others), sells homes, and handles some commercial property and business transfers.
@@ -52,30 +47,25 @@ only finding a tenant for others), sells homes, and handles some commercial prop
 Hampton App is Hampton's own software. It has:
 
 - **A public website** with Hampton's listings, a "Register your search" form for people looking to rent or buy, a
-  viewing request form, a privacy notice and a website chat (built; switched off between tests).
+  viewing request form, a privacy notice and a website chat answered by staff.
 - **A staff panel**, used only by Hampton's team after signing in with Google, where they review searches, suggest
   homes, arrange viewings, record offers and sales, and run the rentals they manage (tenancies, rent, deposits,
   repairs, compliance checks and statements).
 - **A clock** that runs scheduled jobs: reminders to staff, retention clean-up, daily summaries to the team.
-- **Email through the app** (built, not yet switched on): emails sent from Hampton's domain and replies received into
-  the panel. No real email has been sent through it.
-- **An AI assistant called Hermes**, run by Optimyze on a virtual server, which drafts texts such as listing
-  descriptions. It never reads the database; it only gets public data (published listings) and counts. Nothing it
-  writes is sent to anyone until a member of staff approves it in the panel.
-- **A private Telegram channel for the team**, which receives counts and listing references only ("New applicant",
-  "New viewing request for [listing]"), never a person's details.
+- **Email through the app** uses Hampton's Gmail account. The carrier on the Hermes server sends or drafts emails, reads replies to recognised threads, and returns them to the staff panel. A live enquiry and reply were tested on 25 November. Gmail retains its own mailbox copies.
+- **Hermes** uses a model to draft selected enquiries from property details, proposed times and, when supplied for that purpose, household size. The model is given no recipient address or named party in the designated fields. The carrier handles the actual address and greeting. The property import also supplies selected Drive documents to Hermes. Filename exclusions filter known personal and financial documents, but do not establish the contents of every accepted file.
+- **A private Telegram channel for the team**, which receives counts, references and links to tasks in the panel. The alert format excludes client names and contact details.
 
 Design rules that matter for the questions below:
 
-- **People decide.** The app suggests and drafts; a member of staff approves every match, presentation, business
-  email and letter. Nothing is sent to clients automatically today.
+- **Approval depends on the workflow.** Staff review matches, presentations and individual offer emails. Availability and viewing-coordination emails can be saved as Gmail drafts or sent under a team setting. Viewing reminders and post-visit emails are enabled for a controlled trial. Keeping them enabled beyond the trial needs a separate decision.
 - **"Unknown" is not "yes".** Where a legal rule depends on facts the app does not have, it says so and asks a person.
 - **Legal periods are parameters marked "estimated"** until a Jersey lawyer validates them. The app records who
   validated them and when (Settings › Legal terms), and only then enforces them strictly.
 
 ### 1.3 Data classes we use
 
-| Class | Examples | Rule today |
+| Class | Examples | Project policy for model inputs |
 |---|---|---|
 | C0 Public | Published listings, public market adverts | May be processed by AI |
 | C1 Business contact | Agents' emails, company names | AI only with a provider under a processing agreement |
@@ -118,8 +108,9 @@ a retention period. Our contracts themselves do not yet contain a data protectio
 | Viewing requests | 12 months after the day of the viewing | |
 | Sale records and the details in them | 5 years after the sale completes or falls through | Stated as anti-money-laundering record keeping |
 | Tenancy, payment, deposit and repair records | While the home is managed or the tenancy lasts, and 6 years after it ends | Stated in the notice since 16 November 2026 |
+| Requests to sell, let or value a property | 12 months after last activity | As stated in the owner form notice |
 | Website chat | 30 days after the last message | |
-| Email through the app | Content 30 days; delivery records 90 days | See section 5 |
+| Email through the app | In-app content 30 days and delivery records 90 days | Gmail holds a separate copy. Please advise on mailbox retention as well. |
 
 The app also keeps an internal register of privacy requests (access, rectification, erasure, objection,
 portability). The response deadline for each request is typed in by staff: the app does not calculate one, because
@@ -149,9 +140,8 @@ app's parameters and the privacy notice.
 ## 4. Processing agreements, providers and international transfers
 
 **What the app does today.** The intended arrangement, decided by Hampton, is that **Hampton owns** every account
-used by the app and **Optimyze operates** them as an authorised processor. The transfer of some accounts into
-Hampton's name is still in progress, and no processing agreement has been signed yet. The privacy notice already
-names Cloudflare and Optimyze as acting only on Hampton's instructions.
+used by the app and **Optimyze operates** them as an authorised processor. Account ownership and recovery still require verification for each service. We have no signed processing agreements on file in the project. The privacy notice already
+names Cloudflare, Google for email, and Optimyze as acting on Hampton's instructions.
 
 Optimyze's personnel administer the systems remotely, **including from Colombia**.
 
@@ -159,14 +149,14 @@ Providers involved, and what each receives:
 
 | Provider | Role in the app | Personal data it receives | Location / status |
 |---|---|---|---|
-| Cloudflare | Hosting of the website, panel and database; anti-spam check on forms; email sending and receiving (not yet live); proposed AI model for a future automatic website chat (Workers AI) | All data held by the app | Global network; certified under the EU-US Data Privacy Framework (to confirm for each product, see Q4) |
-| Google | Staff sign-in (Firebase Authentication); read-only import of property files from Google Drive; viewing calendar (built, off); website fonts | Staff accounts; property files Hampton shares; viewing times; visitors' IP addresses (fonts) | Global |
-| Optimyze | Builds, maintains and operates the app and Hermes | Access to all data for maintenance | Remote, including Colombia |
-| OpenAI (via Hermes) | Hermes's main AI model, through a ChatGPT Pro subscription signed in through Codex (not the API). "Improve the model for everyone" is switched off | Public data and counts only (C0) | United States |
-| DeepSeek (via Hermes) | Hermes's fallback model, used when the main one is unavailable | Same as above (C0) | China |
-| Virtual server provider | Hosts Hermes and the Telegram notifier | What Hermes receives (C0) and short-lived logs | `###` (to confirm) |
-| Telegram | Team channel and, when enabled, Hermes's private chat with Optimyze's operator | Counts and listing references only | Global |
-| Meta (planned) | Receiving and answering Hampton's Facebook page messages in the panel (decided on 16 November 2026; not built) | Messages people send to the page | Global |
+| Cloudflare | Hosts the application and its records and checks forms for spam. Its separate outbound email transport is off. Workers AI is proposed for a future chat phase. | App records, form submissions and any messages the app stores. Please assess each product actually used. | Global network. Coverage of each product remains to be confirmed. |
+| Google | Staff sign-in through Firebase, read-only property import from Drive, Google Fonts and Hampton's active Gmail transport. The viewing calendar integration is off. | Staff accounts, selected property files, visitors' IP addresses for fonts, recipients, messages and replies in Gmail. | Global. Mailbox copies have a separate retention lifecycle. |
+| Optimyze | Builds and operates the app and Hermes. | Administrative access for maintenance. | Remote, including Colombia. |
+| OpenAI via Hermes | Primary model through a ChatGPT Pro subscription used through Codex. | Public listing tasks, selected property documents and minimised enquiry facts. Free text or an accepted file could identify someone. | Please assess this subscription and its terms separately from any API offering. |
+| DeepSeek via Hermes | Configured fallback for model tasks. | Please assess which inputs may be sent on fallback, including data in property files or user-supplied text. | Separate transfer and contractual review requested. |
+| Virtual server provider | Hosts the mail carrier, Hermes and team notifier. | The carrier processes recipient addresses, message bodies and replies. Selected model inputs are narrower than the carrier's data. | Hampton and Optimyze can confirm the provider and hosting location privately. |
+| Telegram | Private team alerts with counts, references and links back to the panel. | Team account information and limited operational notifications. | Global. |
+| Meta | Integration for Hampton's Facebook Page. The inbound switch is enabled, but connection and a real message test are pending. Sending and model-assisted drafts are off. | Once connected, message text, replies, timestamps and the Facebook account identifier. The app discards attachments. | Global. |
 | Matterport, YouTube, Vimeo | Property tours and videos, loaded only when a visitor opens them | Visitor's IP address | Their own policies |
 
 **Questions.**
@@ -180,14 +170,10 @@ Providers involved, and what each receives:
    accepted in Jersey, and is a transfer risk assessment needed? Please supply or point us to the clauses.
 3. Do Cloudflare's and Google's **standard data processing terms** satisfy Art. 19 when the accounts are in Hampton's
    name, or does Hampton need anything further?
-4. **Cloudflare Workers AI.** For a future automatic website chat, we propose Cloudflare Workers AI (no training or
-   retention of prompts, according to Cloudflare). Does Cloudflare, Inc.'s Data Privacy Framework certification cover
+4. **Cloudflare Workers AI.** For a future automatic website chat, we propose Cloudflare Workers AI. Please confirm what terms, training and retention commitments would apply. Does Cloudflare, Inc.'s Data Privacy Framework certification cover
    Workers AI for a transfer to the United States under Art. 66(2)(a), or is another safeguard needed?
-5. **OpenAI and DeepSeek through Hermes.** Today both receive public data and counts only. (a) Is any agreement needed
-   while that remains true? (b) What would Hampton need before either could receive business contacts (C1) or
-   applicants' details (C2): a business plan with a processing agreement, a transfer safeguard, an impact assessment?
-   (c) Is DeepSeek, given its location, acceptable for anything beyond public data?
-6. **Telegram.** If only counts and listing references travel through it, is Telegram a processor at all?
+5. **Model inputs and fallback.** What contractual and transfer safeguards do the enquiry facts and selected property documents require under the current subscription and fallback arrangements? What further steps would be required before a Facebook message could be sent to either model for a draft reply? This is a proposed use of customer text. Which uses should stay disabled until assessed?
+6. **Telegram.** What is Telegram’s role for team membership and alerts that contain counts, references and links to the panel?
 7. **Meta.** When Hampton's Facebook page messages are handled in the panel, what is Hampton's relationship with Meta
    (processor, joint controller for page data, or independent controller), and what must the notice say?
 8. Does **Optimyze need its own JOIC registration** as a processor?
@@ -208,24 +194,20 @@ PRE-34 (prerequisites for the automatic website chat), MSG-04 (the automatic cha
 must be acknowledged on the last step of "Register your search" and in the chat form, and it is linked next to the
 viewing request button. It covers: who we are, what we collect, why, legal basis, who else handles the data, retention,
 the website chat, email sent to the app, landlords and tenants of managed homes, rights (including the Art. 36
-objection to marketing), the browser storage used, and how to contact us. The "Who we are" section still lacks the
-legal name and JOIC registration number (`###`).
+objection to marketing), the browser storage used, and how to contact us. The current notice identifies the controller by its trading name and address. Please advise what additional identifying information, if any, belongs there.
 
-Three paragraphs need your review specifically:
+We request particular attention to the following wording:
 
 - **"Web chat."** A person reads and answers every message; the chat does not reply automatically. Conversations are
   deleted 30 days after the last message; the visitor can delete an open conversation from their device ("Delete
   chat") or ask us to delete it. The chat asks the visitor to tick "I have read the privacy notice" before sending.
-- **"Email sent to the app."** Replies to the app's emails are readable in the staff panel; Cloudflare sends and
-  receives on our instructions; email content is removed after 30 days; delivery and receipt records after 90 days;
-  attachments are not saved; a minimal fingerprint of each received message is kept up to 90 days to stop a duplicate
-  delivery restoring a deleted message; and a fingerprint of an address that asked us to stop sending is kept to
-  honour that preference until the person asks us to remove it.
+- **"Email sent to the app."** Gmail carries the app's ordinary mail and keeps its own copy. The notice also describes Cloudflare for limited cases such as sign-in codes or replies to the app's own reply address. The app removes message content after 30 days and delivery records after 90 days. It retains a duplicate-message fingerprint for up to 90 days and an address suppression fingerprint until removal is requested.
+- **"Messages on Facebook."** The notice covers staff replies, data kept in the app and the distinction between deletion from the app and copies held by Meta. It currently describes human replies. Please review it before any model receives text to draft a reply.
 - **Marketing consent.** "Register your search" has an optional, unticked box: "Send me news about homes and the Jersey
   market (optional). You can stop at any time."
 
 A future paragraph will be needed when the chat starts answering automatically (section 4, Q4 and Q9): it would say
-the first replies are automatic, what is kept, that the model provider does not train on or retain the messages, the
+the first replies are automatic, what is kept, the model provider’s verified training and retention practices, the
 30-day period, that a search is only registered if the visitor asks, how to delete, and the right to complain to the
 JOIC.
 
@@ -237,23 +219,21 @@ JOIC.
    keeping and anonymous interest counts, consent for news, contract and legal obligation for managed tenancies?
 3. Is a **tick box saying "I have read the privacy notice"** appropriate where the basis is not consent, or should it
    be a plain link with no box?
-4. Are the three paragraphs above (web chat, email sent to the app, marketing consent) adequate? Is keeping a
+4. Are the web chat, email, Facebook and marketing paragraphs adequate? Is keeping a
    fingerprint of a suppressed address "until the person asks us to remove it" acceptable?
 5. What should the **automatic chat paragraph** say, and is the wording proposed above enough as a starting point?
-6. The "Book a valuation" form for owners (built, not open) will collect name, contact details, the property address
-   and whether they want to sell or let. Does the current notice cover it, or does it need an owners' section?
+6. The public owner form is enabled and its first end-to-end submission remains to be checked. The notice now describes the owner's contact details, property address, purpose and 12-month retention after last activity. Is that wording adequate, including the stated legal basis?
 
 **Requested document:** a marked-up notice, and the wording of the automatic chat paragraph.
 
-**Unblocks:** PRE-09 (privacy notice), AUT-17 (email through the app: the "Email sent to the app" paragraph), MSG-02
+**Unblocks:** PRE-09 (privacy notice), the notice for the active Gmail workflow (AUT-17), MSG-02
 (website chat: legal review of its notice), PRE-34 and MSG-04 (automatic chat), PUB-10 (Book a valuation).
 
 ---
 
 ## 6. Winning new landlords and vendors
 
-**What the app does today.** Hampton prefers owners who come forward themselves: a "Book a valuation" form (built,
-not open), a page showing how many people are searching in each parish (built, not published; only groups of 5 or
+**What the app does today.** Hampton prefers owners who come forward themselves: an enabled "Book a valuation" form, a page showing how many people are searching in each parish (built, not published; only groups of 5 or
 more), and a QR code on each property poster in the office window that counts openings in aggregate. Leaflets are
 postponed. Hampton does not buy lists, copy portals or run call campaigns. Two further ideas are on hold until we
 have your answers:
@@ -399,10 +379,7 @@ the applicant. The table lives in the code (Annex F): changing it requires a new
 | Entitled for Work Only | To confirm (only jointly with an eligible partner) | Allowed | To confirm (occupies only with an eligible partner) | To confirm |
 | Registered / Standard | Excluded | Allowed | Excluded | To confirm |
 
-If the tenure of a home for sale is not given, it is "to confirm" for the last three statuses. Restrictions: a
-first-time buyer restriction (purchases only) excludes anyone without Entitled status and anyone who must sell a home
-first, and is "to confirm" otherwise; an over-55 restriction is always "to confirm". With no status given, Registered
-homes are open (except purchases through the Royal Court, which are not checked) and Qualified homes are "to confirm".
+If a sale has no tenure, the last three statuses in the table require confirmation. For a first-time buyer restriction, a known ineligible status or a recorded need to sell first fails the check. Entitled and Permanent Entitled applicants recorded as first-time buyers pass it. Other unresolved cases go to staff. Over-55 restrictions always require confirmation. If the applicant's status is unknown, a Qualified home requires confirmation. A Registered home passes this category check for rent or share transfer. For other purchase tenures, the software leaves the housing check unrated unless another restriction applies.
 
 **Points where the table departs from our earlier plan, or may be wrong:**
 
@@ -436,27 +413,14 @@ If it fits the same engagement, we would welcome a review of:
   sent by a person (Annex G).
 - **Renewal messages (ADM-14).** A message asking the landlord whether to renew, and one telling the tenant the
   landlord's decision (Annex G).
-- **Anti-money-laundering checks on buyers and sellers (OFE-07).** The app does not yet record due diligence. Once
-  Hampton's JFSC registration is confirmed (`###`), what should the app record (with only a reference to documents
+- **Anti-money-laundering checks on buyers and sellers (OFE-07).** Staff can mark a due-diligence milestone, but the app has no structured checks register. Hampton has confirmed its JFSC registration. What should the app record (with only a reference to documents
   kept elsewhere) under section 18 of the JFSC Handbook?
 
 ---
 
-## 11. Annexes to attach
+## 11. Enclosed annexes
 
-Paths are in Hampton App's code repository. The privacy notice is best sent as a printout of the live page. Every
-draft must be shown with **fictitious data only**.
-
-| Annex | Content | Path |
-|---|---|---|
-| A | Privacy notice (the live page "Privacy notice" on the website, or its source) | `site/apply.js`, function `renderPrivacy` (lines 498–613) |
-| B | Consent boxes in "Register your search" | `site/apply.js`, lines 260–264 |
-| C | Consent box in the website chat form | `site/chat.js`, lines 174–175 |
-| D | Retention notice email (section 3, Q5) | `server/retention-notices.js`, lines 20–30 |
-| E | Rent review draft of facts (section 8); a screenshot with fictitious data is clearer | `admin/src/RentalDialogs.jsx`, `noticeDraft` (lines 124–141) |
-| F | Housing category rules (section 9) | `server/matching.js`, lines 53–110 |
-| G | Arrears drafts and renewal messages (section 10) | `admin/src/RentalDialogs.jsx`, `arrearsDraft` (lines 166–186) and `renewalDraft` (from line 287) |
-| H | Legal periods as stored in the code (section 7) | `server/rentals.js`, lines 8–10 and 21 |
+The companion document contains the privacy notice, form labels, sample correspondence and software rules. All people, properties, balances, indices and dates in worked examples are fictitious. Hampton can supply its company particulars and the hosting location directly to counsel. [Open annexes A–H](annexes.md)
 
 Public sources we relied on (consulted October 2026):
 
@@ -464,10 +428,3 @@ Public sources we relied on (consulted October 2026):
 - gov.je, residential tenancy changes 2026; rented dwellings licensing; deposit protection; residential status
 - Data Protection (Jersey) Law 2018: jerseylaw.je/laws/current/l_3_2018; JOIC registration guidance
 - Proceeds of Crime (Jersey) Law 1999; JFSC Handbook section 18 (real estate agents)
-
----
-
-*Internal note for Hampton and Optimyze (remove before sending):* fill in the `###` fields (legal name, company
-number, JFSC and JOIC registrations, and the location of the virtual server); attach annexes A to H with fictitious
-data; decide whether section 10 goes in this engagement. Separately from this package, Hermes still checks which
-existing provider agreements cover each purpose (PRE-13 plan); this package does not assume any agreement exists.
