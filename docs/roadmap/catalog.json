@@ -9576,16 +9576,17 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "Código de AUT-17 desplegado y verificado en aea7eb5 el 7-nov-2026; activación del correo pendiente: hampton-jobs prepara un resumen interno por dirección y día a partir de las 08:00 Europe/Jersey; probado en verano, invierno y ambos cambios de hora. Solo contadores y enlace al panel, sin datos de clientes; cada persona recibe su propio correo. El equipo revisa la muestra y autoriza los envíos recurrentes en Automations. Respeta pausa, bajas, cuota y preferencias; nunca envía al día siguiente un resumen caducado ni repite uno aceptado. Corregido en local el 6-nov tras revisión: los resultados inciertos pendientes siguen contados y accesibles después de medianoche; reconocerlos no reenvía el resumen.",
-      "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. Activación real del servicio, publicación y migración de AUT-17, destinatarios elegidos en el panel y comprobación de un resumen recibido por el equipo. Sigue apagado por defecto y no hubo envíos reales.",
-      "bloqueo": "Activación de AUT-17",
+      "falta": "Luis o Hampton elige los destinatarios en Settings → Automations, revisa la muestra y aprueba el resumen diario. El equipo confirma la recepción tras las 08:00 de Jersey.",
+      "bloqueo": "Luis o Hampton elige los destinatarios en Settings → Automations, revisa la muestra y aprueba el resumen diario. El equipo confirma la recepción tras las 08:00 de Jersey.",
       "evidencia": [
         "server/email.js",
         "server/jobs.js",
         "admin/src/EmailSettings.jsx",
         "tests/server/email.test.mjs",
-        "tests/email-e2e.mjs"
+        "tests/email-e2e.mjs",
+        "26-nov: AUT-17 ya entrega por Hermes. Lectura de producción sin datos de destinatarios: resumen diario desactivado y cero resúmenes diarios aceptados. El paso pendiente es la aprobación en Automations y la recepción en el buzón elegido."
       ],
-      "actualizado": "2026-11-21",
+      "actualizado": "2026-11-26",
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
@@ -9599,14 +9600,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis: Activación de AUT-17",
+      "externalBlocker": "Luis o Hampton elige los destinatarios en Settings → Automations, revisa la muestra y aprueba el resumen diario. El equipo confirma la recepción tras las 08:00 de Jersey.",
       "resources": [
         "notifications-schema",
         "inbox-ui",
         "email-pipeline",
         "jobs-clock"
       ],
-      "nextStep": "Comprobar la activación de AUT-17, destinatarios elegidos y recepción real de un resumen; no rehacer el envío ya construido."
+      "nextStep": "Luis o Hampton elige los destinatarios en Settings → Automations, revisa la muestra y aprueba el resumen diario. El equipo confirma la recepción tras las 08:00 de Jersey."
     },
     {
       "id": "NOT-11",
@@ -11862,16 +11863,19 @@
       "origen": "plan",
       "fase": "F3-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita.",
-      "falta": "Prueba real con el buzón de Luis (cliente de prueba enlazado a una visita de prueba; el cartero solo envía 07:00-20:00 Jersey) y su sí para dejar encendido VIS13_REMINDERS_READY. La confirmación por respuesta de correo no cierra la tarea de 2 h (solo el botón).",
-      "bloqueo": "Correo (AUT-17)",
+      "responsable": "Luis",
+      "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita. El interruptor está encendido para la prueba real del 26-nov. El cartero aceptó el recordatorio de dos horas.",
+      "falta": "Queda confirmar la recepción del recordatorio de dos horas en el buzón de prueba y decidir si los recordatorios seguirán activos. Una respuesta por correo requiere seguimiento del equipo. El botón Confirm cierra la tarea de dos horas.",
+      "bloqueo": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
       "evidencia": [
         "jobs/wrangler.toml:1-24",
         "server/jobs.js:1-15",
         "docs/superpowers/specs/2026-10-23-hampton-app-f3a-design.md:37",
         "25-nov-2026: commits bd6a3935, 1d461db0, ecff13fd, c38e3569 (revisión independiente: la propuesta más reciente decide el cliente). 16 pruebas focales; npm test 3600/3600; build OK.",
-        "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados."
+        "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados.",
+        "La prueba real del 26-nov registró el recordatorio de dos horas como accepted a las 07:34 UTC. Se comprobó hasta la aceptación por el cartero. Las pruebas locales cubren también el recordatorio de 24 h y las tres acciones de la página privada. La lectura de D1 del 26-nov confirmó que el recordatorio de dos horas seguía en estado accepted. La recepción en el buzón corresponde al destinatario.",
+        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
+        "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con dos citas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -11886,15 +11890,15 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis: comprobar en su buzón el recordatorio de prueba (26-nov desde las 07:00 Jersey) y dar el sí para dejarlo encendido.",
+      "externalBlocker": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
       "resources": [
         "viewings-contract",
         "viewings-ui",
         "email-pipeline",
         "jobs-clock"
       ],
-      "nextStep": "Con las respuestas de Luis: ajustar si hace falta, prueba con su buzón y encender.",
-      "actualizado": "2026-11-25"
+      "nextStep": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
+      "actualizado": "2026-11-26"
     },
     {
       "id": "VIS-14",
@@ -13779,7 +13783,7 @@
       "estado": "parcial",
       "responsable": "desarrollo",
       "hecho": "El catálogo propio conserva extracción existente. Se ha construido una normalización pura de observaciones y fichas propias de Jersey: conserva importes y periodos originales, distingue venta, renta y traspaso, calcula renta mensual solo cuando procede y mantiene desconocidos y hechos humanos. Incluye contrato de fuentes pendiente sin lectores externos ni autorización implícita. Se preparó un puente interno de páginas manuales con guardas transaccionales y pruebas locales; no tiene ruta ni lectores activos. La comparación manual ya admite el formato histórico sin el campo derivado de renta exacta y sigue detectando cambios en términos originales. 20-nov-2026: primer lector externo, Gaudin & Co (server/market-readers/gaudin.js; deja fuera los anuncios Let Agreed, Under Offer o Sold), registrado en server/market-readers/index.js y usado por el barrido diario: lee solo la ruta revisada del canal (?page=N), una petición por página, y solo datos de la tarjeta (enlace, parroquia, precio, dormitorios, baños); sin fotos ni descripciones. 21-nov-2026: segundo lector, Keys Properties (server/market-readers/keys.js): el sitemap HTML da los anuncios vigentes y el RSS sus datos (dormitorios, tipo, parroquia, precio, enlace); 2 peticiones por pasada. El canal de Keys revisado en una subpágina (St Helier) se lee como subconjunto vacío del canal raíz. Petición común con guarda de host, ruta y redirecciones en server/market-readers/fetch.js. 21-nov-2026: tercer lector, Finders Keepers (server/market-readers/finderskeepers.js): lee el JSON que usa la búsqueda de su propia web (/property.json, solo anuncios no vendidos, 12 por página, una petición por página); deja fuera comercial, terreno y garajes; sin descripciones ni fotos. 21-nov: Finders Keepers guarda también si hay aparcamiento (plazas > 0 = sí; 0 o sin dato = desconocido).",
-      "falta": "Luis: mirar en Hermes 2 por qué la tarea nocturna hampton-mercado no se ejecutó el 25 ni el 26-nov (no aparece en su registro; el custodio no recibió nada). Piloto de Hermes con Gaudin, Keys y Finders Keepers (piezas del VPS instaladas el 23-nov, 0123 aplicada): la primera noche (24-nov, 04:53 UTC) falló por el custodio: no seguía la redirección de gaudin.je a www.gaudin.je (arreglado e instalado en el VPS el 24-nov); Keys y Finders Keepers: el custodio rechazaba con 400 sus páginas www. (arreglado e instalado el 24-nov). Riesgo para esta noche: Finders Keepers carga sus anuncios con JavaScript (3 en el HTML de 24) y la portada de Keys no trae ninguno; lo más probable es una lectura corta que el custodio acepta (Finders Keepers unas 3 de 23, Keys ninguna), que no llega al 95 %; entregar el feed /property.json como página tampoco sirve con el custodio actual (ensayo del 24-nov), así que el remedio sería que el custodio verifique también páginas JSON (anuncio por enlace y precio por importe), un cambio de verificación con revisión independiente e instalación de Luis, que se decide con lo que dé esta noche; con el custodio nuevo, comparar casa por casa dos días seguidos con la última lectura completa (al menos el 95 % de cada fuente, ninguna inventada) y, si pasa, borrar los lectores de código y encender MARKET_AUTO_WITHDRAW_READY; después la primera carga por tandas. Finders Keepers nunca completó una lectura de código en producción (invalid_response el 22 y el 23-nov): para el piloto la línea base es su propio feed leído desde el VPS el día de la comparación (parseFindersKeepers sobre /property.json, páginas 1 y 2).",
+      "falta": "Luis comprueba la programación de hampton-mercado en Hermes 2 (sin entregas el 25 ni el 26-nov). El custodio instalado ya admite el JSON de Finders Keepers y el ensayo local con RSS y sitemap reales de Keys pasó. Falta observar dos noches de entregas de Hermes y cotejar casa por casa al menos el 95 % de cada fuente, sin ninguna inventada. Para Finders Keepers, usar como referencia su feed del día. Solo cuando pase el piloto procede retirar los lectores de código, activar MARKET_AUTO_WITHDRAW_READY y comenzar la carga por tandas del plan.",
       "bloqueo": "",
       "evidencia": [
         "server/listing-features.js:1-30",
@@ -13814,7 +13818,10 @@
         "24-nov ~07:00 UTC: ensayo local de entregar() (hermes/mercado.mjs, sin red, fetchFn con el feed de Finders Keepers páginas 1 y 2 guardado esa mañana): 23 anuncios de parseFindersKeepers con las 2 páginas JSON como pages: precio como en la tarjeta («£2,265 pcm») 22 price_not_on_page; precio como número del feed («2265») 23 price_not_on_page; canal invalid_response en los dos casos. Un cambio solo de la skill no basta. Decisión (fuente 5, lo más simple y reversible): no se cambia la verificación antes de la noche; se juzga con el resultado del 25-nov comparando cuentas con la línea base, no solo líneas done.",
         "25-nov-2026: el custodio verifica también páginas JSON (el feed del propio sitio, caso Finders Keepers): un anuncio vale si es un elemento de una lista con su enlace en un campo de enlace (url, link…) y su importe en un campo de precio (price, rent, amount…), un objeto por anuncio; el periodo solo pasa si lo da el feed (si no, el alquiler llega sin cifra mensual); un feed que diga «For let»/«For sale» contra la operación de Hermes rechaza el anuncio; feeds desmesurados fallan cerrados. Dos revisiones de seguridad (automática e independiente) con sus hallazgos corregidos. node --test tests/hermes-mercado.test.mjs y bus-09/bus-08: 131/131; npm test 3567/3567. Commits 323dff62..de171119.",
         "25-nov-2026 ~06:40 UTC: instalado en el VPS con el sí de Luis del 25-nov: /root/hampton-hermes/mercado/mercado.mjs = main (copia anterior mercado.mjs.~3~), hampton-mercado reiniciado («Market custodian on 172.16.47.20:8789»); skill hampton-mercado = main (copia anterior fuera de la carpeta de skills). La noche del 24 al 25 Hermes no entregó nada (0 líneas del custodio).",
-        "26-nov-2026 05:07 Jersey: docker logs hampton-mercado: ninguna entrega desde el reinicio del 25-nov 05:44 UTC (última, 24-nov 04:53: gaudin 16 y 159 rechazadas link_not_on_page). Dos noches sin lectura (25 y 26-nov); el registro de hermes2 no muestra la tarea. Su programación está en el volumen de Hermes 2 (no accesible)."
+        "26-nov-2026 05:07 Jersey: docker logs hampton-mercado: ninguna entrega desde el reinicio del 25-nov 05:44 UTC (última, 24-nov 04:53: gaudin 16 y 159 rechazadas link_not_on_page). Dos noches sin lectura (25 y 26-nov); el registro de hermes2 no muestra la tarea. Su programación está en el volumen de Hermes 2 (no accesible).",
+        "26-nov: node scripts/rehearse-keys-market.mjs <rss.xml> <sitemap.html> reproduce la entrega de Keys con dos archivos locales. Usa parseKeys y entregar con DNS, páginas y puerta simulados, y muestra solo recuentos y motivos. Prueba sintética: de dos anuncios RSS solo seguía uno en el sitemap y el custodio lo admitió; con sitemap vacío el ensayo falla. node --test tests/server/bus-09-keys-reader.test.mjs: 5/5. Falta ejecutarlo con las dos capturas reales de una misma pasada; este ensayo no acredita una noche del piloto.",
+        "26-nov: ensayo con las dos páginas públicas de Keys de la misma lectura (2 GET mediante fetchAllowed, sitemap.aspx y RSS). La intersección RSS/sitemap contenía 12 anuncios. El custodio local ejecutó entregar sobre ambas capturas: 12 encolados, 0 rechazados. El custodio actual puede verificar este formato. Solo se conservaron recuentos; sin escrituras en la app, entregas de Hermes ni activaciones.",
+        "26-nov: consulta agregada de solo lectura en D1 para las tres agencias del piloto. Las pasadas del 25 y del 26-nov tienen una página registrada y cero observaciones cada una. El cotejo de seis lecturas se puede ejecutar con scripts/compare-market-pilot.mjs y la consulta comprobada en docs/roadmap/work/BUS-09/cotejo-piloto.md. Ninguna noche acredita cobertura."
       ],
       "modulo": "M02",
       "deps": [
@@ -13852,7 +13859,7 @@
         "source-connectors",
         "market-inventory"
       ],
-      "nextStep": "26-nov por la mañana: docker logs hampton-mercado; comparar por fuente con la línea base (Finders Keepers 23 del feed, Keys 12, Gaudin su web). Si Hermes vuelve a no entregar nada, pedir a Luis que mire la tarea del mercado de Hermes 2. Keys: ensayo sin red con su RSS y sitemap reales antes de tocar XML.",
+      "nextStep": "Luis comprueba en Hermes 2 cuándo corrió hampton-mercado. En la próxima pasada, Hermes debe usar el RSS de Keys y descartar los anuncios que ya no aparecen en el sitemap. Comparar las entregas con las líneas base de cada fuente en dos noches consecutivas.",
       "actualizado": "2026-11-26"
     },
     {
@@ -19483,10 +19490,10 @@
       "origen": "plan",
       "fase": "F3-B",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL. 26-nov-2026: borrador automático (OFE02_AUTO_DRAFT_READY=0): el reloj prepara el texto propuesto de cada oferta de venta nueva cuando la ficha tiene un solo propietario con un solo correo, y abre una tarea en el Inbox («Approve the email to the seller» o «Choose the seller…») que el avisador publica en el canal de Telegram del equipo como línea fija, sin importe ni vendedor. La aprobación sigue siendo de una persona en Sales; la tarea se cierra al aprobar, al cerrarse la oferta o al apagar.",
-      "falta": "Encender OFE02_SEND_READY y OFE02_AUTO_DRAFT_READY tras la prueba real con el buzón de Luis. Opcional: línea propia en el avisador («Seller email to approve» con enlace a Sales); hoy sale como «New item in the panel».",
-      "bloqueo": "Correo (AUT-17)",
+      "responsable": "Luis",
+      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL. 26-nov-2026: borrador automático (OFE02_AUTO_DRAFT_READY=0): el reloj prepara el texto propuesto de cada oferta de venta nueva cuando la ficha tiene un solo propietario con un solo correo, y abre una tarea en el Inbox («Approve the email to the seller» o «Choose the seller…») que el avisador publica en el canal de Telegram del equipo como línea fija, sin importe ni vendedor. La aprobación sigue siendo de una persona en Sales; la tarea se cierra al aprobar, al cerrarse la oferta o al apagar. El envío y el borrador automático están encendidos para la prueba real del 26-nov. Se creó el borrador y el canal del equipo aceptó el aviso para revisarlo en Sales.",
+      "falta": "Queda aprobar el borrador de prueba en Sales, comprobar el correo en el buzón de prueba y decidir si se mantienen activos el envío con aprobación humana y el borrador automático.",
+      "bloqueo": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
@@ -19494,7 +19501,9 @@
         "migrations/0012_sales.sql:28",
         "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes).",
         "25-nov-2026, decisiones de Luis en la sesión: primera prueba real con su buzón (vendedor de prueba individual con su correo) antes de dejar encendido OFE02_SEND_READY. En producción hoy: 0 ofertas abiertas.",
-        "26-nov-2026: tests/server/ofe-02-seller-email.test.mjs (borrador automático, tarea única, /news sin importe ni vendedor, cierre al aprobar, retirar o apagar) 16/16. En producción solo la oferta de prueba 1 abierta."
+        "26-nov-2026: tests/server/ofe-02-seller-email.test.mjs (borrador automático, tarea única, /news sin importe ni vendedor, cierre al aprobar, retirar o apagar) 16/16. En producción solo la oferta de prueba 1 abierta.",
+        "En la prueba real del 26-nov se observó el borrador automático, su tarea y la aceptación del aviso por el canal del equipo. La lectura de D1 confirmó que la oferta de prueba tenía un borrador en estado draft y aún carecía de correo al vendedor en la cola.",
+        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -19509,14 +19518,14 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Luis: sí para encender el envío de ofertas al propietario (y prueba con su buzón).",
+      "externalBlocker": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
       "resources": [
         "sales-contract",
         "sales-ui",
         "email-pipeline",
         "listings-contract"
       ],
-      "nextStep": "Prueba real 26-nov con el buzón de Luis encendiendo también OFE02_AUTO_DRAFT_READY: el borrador de la oferta 1 aparece solo, llega el aviso a Telegram, Luis aprueba en Sales; después decidir si quedan encendidos.",
+      "nextStep": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
       "actualizado": "2026-11-26"
     },
     {
@@ -20893,27 +20902,30 @@
       "fase": "—",
       "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "17-nov-2026: borrador en inglés preparado en docs/roadmap/work/PRE-33/paquete-abogado.md, autónomo y sin datos personales: contexto de Hampton App y nueve temas, cada uno con qué hace hoy la app, preguntas concretas, documento pedido y tareas que desbloquea: (1) cláusula de datos para contratos de gestión, alquiler, venta y ofertas; (2) conservación tras terminar un alquiler o una venta y plazo de respuesta a solicitudes (PRE-12), con el texto del aviso previo; (3) contrato de encargo Hampton–Optimyze (art. 19) con anexo de subencargados, acceso remoto desde Colombia y acuerdos con Cloudflare (incl. Workers AI y DPF), Google, OpenAI y DeepSeek (reserva de Hermes), Telegram, Meta y el servidor de Hermes (PRE-13, PRE-28, PRE-34); (4) revisión del aviso de privacidad, párrafos Web chat y Email sent to the app y casilla de noticias (PRE-09, AUT-17, MSG-02) y futuro párrafo del chat automático; (5) captar propietarios: consentimiento para ofrecer valoraciones (REG-16), cartas a «The Owner», datos de ventas por dirección, carteles, folletos, recomendaciones, investigación de empresas (BUS-20), publicidad por teléfono y correo y sistema de reclamaciones; (6) plazos legales de Rentals de ADM-11, ADM-17 y ADM-20 (desde cuándo corren los 28 días, revisión de los 29 riesgos, regime2025From, initialTermYears, ámbito y premium); (7) plantilla de carta de aviso de revisión de renta (ADM-15); (8) validación de la tabla de categorías de vivienda (BUS-13); (9) opcional: plantilla de contrato (ADM-19), borradores de atrasos y renovación y diligencia debida (OFE-07). Lista de anexos con rutas. Razón social, número y registros JFSC/JOIC y ubicación del servidor quedan como ### con nota.",
-      "falta": "Luis lo revisa y lo envía al abogado; después, incorporar sus respuestas.",
-      "bloqueo": "",
+      "hecho": "Expediente en inglés listo para revisar y enviar. El documento del 17-nov plantea nueve consultas sobre contratos, conservación, acuerdos y transferencias, privacidad, captación, plazos de alquiler, revisión de renta, categorías de vivienda y borradores. El 26-nov se actualizó con la confirmación de los registros de Hampton, el correo de Gmail vía Hermes, los datos mínimos de redacción, el formulario de propietarios, Facebook y las integraciones futuras. annexes.md contiene los anexos A–H. Los textos de ejemplo usan datos ficticios.",
+      "falta": "Luis y Hampton revisan el expediente, facilitan por privado la razón social, número de sociedad y proveedor y ubicación del servidor, deciden si incluyen el apartado opcional y lo remiten a su abogado. El abogado debe responder para incorporar sus correcciones en las tareas correspondientes.",
+      "bloqueo": "Luis y Hampton deben aportar los datos societarios y de alojamiento por privado, aprobar el alcance y enviar el expediente al abogado de Jersey.",
       "evidencia": [
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md §6.6",
-        "site/apply.js (Email sent to the app)",
-        "docs/roadmap/work/PRE-33/paquete-abogado.md"
+        "docs/roadmap/work/PRE-33/paquete-abogado.md",
+        "docs/roadmap/work/PRE-33/annexes.md",
+        "PRE-03, PRE-13, PRE-23, PUB-10, PUB-21, MSG-01 y la configuración publicada en 4a760f23 documentan los registros y el estado de los servicios.",
+        "A–C contrastados con renderPrivacy y las casillas de site/apply.js y site/chat.js. D con server/retention-notices.js. E y G generados con noticeDraft, arrearsDraft y renewalDraft de admin/src/RentalDialogs.jsx, con datos ficticios. F con server/matching.js. H extraído de LEGAL y CALENDAR_LEGAL de server/rentals.js.",
+        "26-nov: 39/39 pruebas locales de housing-rule, adm-17-legal-terms, retention-notices y retention-notices-off. Comprobados los ocho anexos, enlaces, ocho salidas de borradores de alquiler y 17 parámetros contra el código."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: requiere su decisión, dato o gestión; la persona asignada realiza seguimiento, no sustituye esa autoridad.",
+      "externalBlocker": "Luis y Hampton deben aportar los datos societarios y de alojamiento por privado, aprobar el alcance y enviar el expediente al abogado de Jersey.",
       "resources": [
         "legal-review-package",
         "data-processing-agreements",
         "retention-policy"
       ],
-      "nextStep": "Luis revisa docs/roadmap/work/PRE-33/paquete-abogado.md, rellena los ### (razón social, número, registros JFSC/JOIC, ubicación del servidor), adjunta los anexos A–H con datos ficticios y lo envía al abogado; con sus respuestas, actualizar PRE-12, PRE-13, ADM-15, ADM-17/20, BUS-13, REG-16, BUS-20, PRE-09 y MSG-02.",
-      "actualizado": "2026-11-17"
+      "nextStep": "Enviar paquete-abogado.md y annexes.md juntos tras la revisión de Hampton. Los registros JFSC y JOIC ya están confirmados. Si el abogado pide justificantes, Hampton los facilita por privado.",
+      "actualizado": "2026-11-26"
     },
     {
       "id": "PRE-34",
@@ -21075,13 +21087,15 @@
       "origen": "plan",
       "fase": "F2",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6).",
-      "falta": "Prueba real con el buzón de Luis y su sí para encender. Residual: tras un alquiler, si el equipo aún no registró la tenencia, el nuevo inquilino no está identificado y su otra visita se cancelaría (registrar la tenencia en las 24 h).",
-      "bloqueo": "",
+      "responsable": "Luis",
+      "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6). El interruptor está encendido para la prueba real del 26-nov.",
+      "falta": "Queda completar la visita de prueba en el panel, comprobar la petición de feedback en el buzón y decidir si se mantienen activos estos correos. Para excluir al nuevo inquilino del aviso por alquiler, el equipo debe registrar la tenencia durante las primeras 24 horas.",
+      "bloqueo": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
       "evidencia": [
         "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos.",
-        "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido."
+        "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido.",
+        "La lectura de D1 del 26-nov confirmó que la visita de prueba seguía en estado confirmed y aún carecía de correo de feedback en la cola. Las pruebas locales cubren el feedback y la cancelación tras una venta o un alquiler.",
+        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios."
       ],
       "modulo": "M04",
       "deps": [
@@ -21105,9 +21119,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Prueba con el buzón de Luis; después encender en los dos wrangler.",
-      "actualizado": "2026-11-25",
-      "externalBlocker": "Luis: prueba con su buzón y sí para encender."
+      "nextStep": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
+      "actualizado": "2026-11-26",
+      "externalBlocker": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita."
     },
     {
       "id": "AUT-22",

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+26-nov-2026 · **VIS-13, OFE-02 y AUT-21:** el recordatorio de 24 h conserva su horario al editar notas o reasignar la visita. El cartero aceptó el recordatorio de 2 h de prueba, la oferta sigue en borrador y la visita de feedback sigue confirmada. **BUS-09:** Keys aportó 12 anuncios vigentes y los 12 pasaron el ensayo local. Ya se pueden comparar las tres agencias en dos noches consecutivas. **PRE-33:** expediente con ocho anexos para revisión de Hampton. **NOT-10:** el resumen diario espera la elección de destinatarios y la aprobación del equipo. 163 → 163 de 216.
+
 26-nov-2026 · **MSG-01 (borrador de Hermes, apagado):** en Messages › Facebook, «Draft with Hermes» pide una propuesta de respuesta que solo rellena la caja; Hermes ve solo el texto de los mensajes, nunca nombres ni ids, y una persona envía. MSG-01 pasa a la cola de Luis. 163 → 163 de 216.
 
 26-nov-2026 · **MSG-01 y AUT-24:** el plan de borrado de una solicitud de privacidad nombra las conversaciones de Facebook del contacto para borrarlas a mano; un documento al inquilino solo sale para el contrato vigente, nunca para el siguiente registrado por adelantado. AUT-22 y AUT-23 pasan a la cola de Luis (solo falta su prueba). 163 → 163 de 216.
