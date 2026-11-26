@@ -26,6 +26,7 @@ import captureRoutes from '../property-captures.js';
 import privateMediaRoutes from '../private-media.js';
 import { posterQrRoutes } from "../poster-qr.js";
 import { unusedFiles } from './media.js';
+import { listingCsvBatch } from '../listing-csv-batch.js';
 
 export const ID = "(HE-[A-Z]\\d{3,})";
 // The cover of listing l: the one chosen, else its first stored photo (served at /media/<id>?thumb).
@@ -160,6 +161,7 @@ async function createdBefore(env, admin, operation, hash) {
 // Also Properties Queue's draft (PUB-21), which ties the new listing to its row on the server.
 export async function createListing(env, admin, input, context = {}) {
   const { operation_id, ...body } = input && typeof input === 'object' ? input : {};
+  const { csvImport, ...eventContext } = context;
   const operation = context.source === 'queue' ? undefined : operation_id; // the queue's draft is tied to its own row
   if (operation !== undefined && !OPERATION.test(operation)) fail(400, "Invalid operation. Reload and try again.");
   const hash = operation && await sha256(JSON.stringify(body));
@@ -192,9 +194,12 @@ export async function createListing(env, admin, input, context = {}) {
       const insertSql = economicInput
         ? `INSERT INTO listings (${cols.join(", ")}) SELECT ${insertValues} WHERE ${ECONOMICS_GUARD_SQL}`
         : `INSERT INTO listings (${cols.join(", ")}) VALUES (${insertValues})`;
-      const [inserted] = await listingBatch(env, id, { actor: admin, source: 'panel', ...context, action: 'created',
+      const claims = csvImport ? [['url', csvImport.url], ...csvImport.addresses.map(address => ['address', address])] : [];
+      const [inserted] = await listingBatch(env, id, { actor: admin, source: 'panel', ...eventContext, action: 'created',
         derivedFields: derivedListingFields(row).filter(k => !(k in r.value)) }, [
         env.DB.prepare(insertSql).bind(...cols.map(c => row[c]), ...(economicInput ? ECONOMICS_GUARD_ARGS : [])),
+        ...claims.map(([kind, value]) => env.DB.prepare(
+          'INSERT INTO listing_csv_import_keys(kind,identity,listing_id) VALUES(?,?,?)').bind(kind, value, id)),
         // The receipt joins the same batch: a second request with this operation fails here and undoes its own listing.
         ...(operation ? [env.DB.prepare(`INSERT INTO listing_event_operations (actor, operation_id, request_hash, event_id)
           SELECT ?, ?, ?, id FROM events WHERE entity_type = 'listing' AND entity_id = ? AND type = 'listing.created'`)
@@ -584,6 +589,7 @@ export default [
     json(await validateListingHistoryRows(env,{id,ids:(await readJson(request,262144))?.ids})),true],
   ["GET", /^\/admin\/listings$/, list, true],
   ["POST", /^\/admin\/listings$/, create, true],
+  ['POST', /^\/admin\/listings\/import$/, args => listingCsvBatch(args, createListing), true],
   ["GET", new RegExp(`^/admin/listings/${ID}/address-review$`), addressReviewPreview, true],
   ["POST", new RegExp(`^/admin/listings/${ID}/address-review$`), reviewPublicAddress, true],
   ['GET', new RegExp(`^/admin/listings/${ID}/traceability$`), async ({request,env,admin,params:[id]}) => {

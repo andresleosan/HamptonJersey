@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { adminMediaUrl } from "./admin-media-url.js";
 import { AVAILABILITY, OPERATION, USE, STATUS_LABEL, stateOf, priceText, fmtDate, fmtDayMonth } from "./format.js";
 import { OPTIONS } from "../../server/applicants.js";
 import { ON_MARKET } from "../../server/listing.js";
 import NewProperty from "./NewProperty.jsx";
+import ListingCsvImport from "./ListingCsvImport.jsx";
 import WithdrawalDialog from './WithdrawalDialog.jsx';
 import Trash from "./Trash.jsx";
 import { OPERATION_FILTER, bedsRange, passesExtra, bedsLabel, bathsLabel, daysAgo, editTimestamp, passesEditedWithin, compareListings, listingsPage } from "./listing-filters.js";
@@ -32,6 +33,8 @@ const CONFIRMED_BY = { owner: "owner", agency: "agency", other: "other source" }
 
 export default function Listings({ onChange }) {
   const [rows, setRows] = useState(null), [error, setError] = useState(null), [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importButton = useRef(null);
   const [withdrawalTracking,setWithdrawalTracking]=useState(false),[withdrawal,setWithdrawal]=useState(null);
   const [tracking, setTracking] = useState(false), [source, setSource] = useState("");
   const [tab, setTab] = useState("published"), [q, setQ] = useState(""), [use, setUse] = useState(""),
@@ -85,8 +88,12 @@ export default function Listings({ onChange }) {
   return <section className="listings-screen" aria-labelledby="t-props">
     <div className="head"><h1 id="t-props">Listings</h1>
       <div className="inline"><a className="btn ghost" href="#/queue">Properties Queue</a>
-        <button type="button" className="btn" onClick={() => setCreating(true)}>Add new property</button></div></div>
+        <button ref={importButton} type="button" className="btn ghost" disabled={creating || importing} aria-expanded={importing}
+          aria-controls={importing ? "listing-csv-panel" : undefined} onClick={() => setImporting(true)}>Import CSV</button>
+        <button type="button" className="btn" disabled={importing} onClick={() => setCreating(true)}>Add new property</button></div></div>
     {creating && <NewProperty rows={rows} onClose={() => { setCreating(false); load(); }} />}
+    {importing && <ListingCsvImport onClose={() => { setImporting(false); requestAnimationFrame(() => importButton.current?.focus()); }}
+      onImported={() => { change(setTab, 'draft'); load(); onChange?.(); }} />}
     <div className="seg" role="group" aria-label="Status">{TABS.map(([k, t]) =>
       <button key={k} type="button" aria-pressed={tab === k} onClick={() => { if (tab !== k) change(setTab, k); }}>{t}<span className="count">{counts[k]}</span></button>)}</div>
     <div className="filters">
@@ -178,7 +185,7 @@ export default function Listings({ onChange }) {
       : tab === "ready_for_review" ? <p>No listings are ready for review.</p>
       : tab === "to_confirm" ? <p>No listings to confirm. A listing on the website asks for a call to its owner 3 months after its last confirmation, or 1 month for a rental.</p>
       : <><p>No {TABS.find(([k]) => k === tab)[1].toLowerCase()} listings.</p>
-        {tab !== "archived" && <button type="button" className="btn sm" onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}
+        {tab !== "archived" && <button type="button" className="btn sm" disabled={importing} onClick={() => setCreating(true)}>Add new property</button>}</>}</div>}
     <Trash />
     {withdrawal&&<WithdrawalDialog listing={withdrawal} onClose={()=>setWithdrawal(null)} onSaved={async result=>{
       setWithdrawal(null);setMsg({ok:true,text:result.listing.published
