@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { fmtAgo, fmtDate } from "./format.js";
 import { usePoll } from "./poll.js";
 import { TEAM_MAX } from "../../server/chat.js";
 import { ChatContact } from "./ChatContact.jsx";
 import FacebookMessages from "./FacebookMessages.jsx";
+const Email = lazy(() => import("./Email.jsx"));
 
 // MSG-02 (spec 2026-11-06): the website's chats. Waiting ones first, oldest wait first; a person replies, marks it
 // handled or deletes it. The visitor sees a reply while the chat is open on their device, for 7 days (C5).
@@ -21,13 +22,24 @@ const seen = iso => !iso ? "Not seen on the website since their first message"
   : Date.now() - Date.parse(iso) < 60e3 ? "Visitor on the website now" : `Last on the website ${fmtAgo(iso)}`;
 
 // chat: one to open from a contact's record (MSG-03), shown among All. facebook: Facebook conversations waiting, only
-// when MSG-01 is switched on (META_MESSAGES_READY); then the screen offers Website chat and Facebook.
+// when MSG-01 is switched on (META_MESSAGES_READY). Received email uses the same staff inbox as Email.
 export default function Messages({ paused, onChange, chat, facebook, channel: start }) {
-  const [channel, setChannel] = useState(facebook != null && start === "facebook" ? "facebook" : "web");
-  const choose = facebook != null && <div className="seg" role="group" aria-label="Channel">
-    {[["web", "Website chat"], ["facebook", "Facebook"]].map(([k, t]) => <button key={k} type="button" aria-pressed={channel === k}
-      onClick={() => setChannel(k)}>{t}{k === "facebook" && facebook > 0
-        && <span className="count">{facebook}<span className="sr"> waiting</span></span>}</button>)}</div>;
+  const channel = start === "email" || (facebook != null && start === "facebook") ? start : "web";
+  const chooseChannel = next => {
+    const params = new URLSearchParams();
+    if (/^\d+$/.test(chat ?? "")) params.set("chat", chat);
+    if (next !== "web") params.set("channel", next);
+    location.hash = params.size ? `#/messages?${params}` : "#/messages";
+  };
+  const options = [["web", "Website chat"], ...(facebook != null ? [["facebook", "Facebook"]] : []), ["email", "Received email"]];
+  const choose = <div className="seg" role="group" aria-label="Channel">
+    {options.map(([k, t]) => <button key={k} type="button" aria-pressed={channel === k} onClick={() => chooseChannel(k)}>
+      {t}{k === "facebook" && facebook > 0 && <span className="count">{facebook}<span className="sr"> waiting</span></span>}</button>)}</div>;
+  if (channel === "email") return <section aria-labelledby="t-msg">
+    <div className="head"><h1 id="t-msg">Messages</h1></div>
+    {choose}
+    <Suspense fallback={<p role="status">Loading email…</p>}><Email receivedOnly /></Suspense>
+  </section>;
   if (channel === "facebook" && facebook != null) return <FacebookMessages paused={paused} onChange={onChange} channels={choose} />;
   return <WebChats paused={paused} onChange={onChange} chat={chat} channels={choose} />;
 }

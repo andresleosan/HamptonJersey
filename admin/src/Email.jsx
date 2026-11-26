@@ -5,7 +5,7 @@ import { fmtDate } from "./format.js";
 const STATUS={draft:"Draft",queued:"Queued",sending:"Sending",accepted:"Accepted by Cloudflare",failed:"Failed",unknown:"Unknown result",cancelled:"Cancelled"};
 // AUT-17 fase D: replies to an email Hermes sent from Gmail, sorted by their headers (what the sender says).
 const REPLY_KIND={human:"Reply from a person to an email Hermes sent.",auto:"Automatic reply (out of office or acknowledgement) to an email Hermes sent.",bounce:"Delivery failure: an email Hermes sent did not reach this address."};
-export default function Email({query,privacy}) {
+export default function Email({query,privacy,receivedOnly=false}) {
   const params=new URLSearchParams(query), pendingOnly=params.get("review")==="pending";
   const [box,setBox]=useState(pendingOnly||params.get("box")==="outbound"?"outbound":"inbound"),[before,setBefore]=useState(null),[revision,setRevision]=useState(0);
   const [data,setData]=useState(null),[error,setError]=useState(null),[selected,setSelected]=useState(null),[result,setResult]=useState(null);
@@ -16,19 +16,32 @@ export default function Email({query,privacy}) {
     api(`/admin/email?box=${box}${pendingOnly?"&review=pending":""}${before?`&before=${before}`:""}`).then(d=>{if(live)setData(d);},e=>{if(live)setError(e.message);});
     return ()=>{live=false;};
   },[box,before,revision,pendingOnly]);
+  // Returning to Messages from another tab re-reads the source. A deleted email must not reappear from this view.
+  useEffect(()=>{
+    if(!receivedOnly)return;
+    const visibility=()=>{
+      setSelected(null);
+      setData(null);
+      if(document.visibilityState==="visible")setRevision(n=>n+1);
+    };
+    document.addEventListener("visibilitychange",visibility);
+    return ()=>document.removeEventListener("visibilitychange",visibility);
+  },[receivedOnly]);
   const chooseBox=value=>{
     const hash=value==="outbound"?"#/email?box=outbound":"#/email";
     if(location.hash!==hash){location.hash=hash;return;}
     setBox(value);setBefore(null);setSelected(null);setResult(null);
   };
   const changed=text=>{setSelected(null);setBefore(null);setRevision(n=>n+1);setResult(text);};
-  return <section aria-labelledby="email-title">
+  return <section aria-label={receivedOnly ? "Received email" : undefined} aria-labelledby={receivedOnly ? undefined : "email-title"}>
+    {!receivedOnly && <>
     <div className="head"><div><h1 id="email-title">Email</h1><p className="muted">Read replies and check sending results.</p></div><a className="btn ghost" href="#/automations">Email preferences</a></div>
     <div className="seg" role="group" aria-label="Email box">
       <button type="button" aria-pressed={box==="inbound"&&!pendingOnly} onClick={()=>chooseBox("inbound")}>Received</button>
       <button type="button" aria-pressed={box==="outbound"&&!pendingOnly} onClick={()=>chooseBox("outbound")}>Outgoing</button>
       <button type="button" aria-pressed={pendingOnly} onClick={()=>{location.hash="#/email?review=pending";}}>Pending review{data?` (${data.pending_review})`:""}</button>
     </div>
+    </>}
     {pendingOnly&&<p className="muted">Unknown results from all days, until reviewed or removed after 90 days. Reviewing never resends an email.</p>}
     {result && <p role="status" tabIndex={-1} ref={said} className="ok">{result}</p>}
     <div className="email-layout">
@@ -40,20 +53,20 @@ export default function Email({query,privacy}) {
               <small>{m.sender||m.recipient||"Address removed"} · {fmtDate(m.received_at||m.created_at)}</small>
               {box==="outbound" && <span className={`badge ${m.status==="accepted"?"positive":m.status==="unknown"?"attention":"neutral"}`}>{STATUS[m.status]}</span>}
             </button></li>)}</ul>:<div className="card empty"><p>{pendingOnly?(data.pending_review?"No unknown results on this page.":"No unknown results waiting for review."):box==="inbound"?"No received emails yet.":"No outgoing emails yet."}</p>
-              <p className="muted">{pendingOnly?(data.pending_review?"Choose Newest emails to see remaining reviews.":"Results that need review appear here. Outgoing keeps their history for 90 days."):box==="inbound"?"Replies sent to the app's configured address appear here after Email Routing is connected.":"Enable the daily team summary in Automations after the email service is ready."}</p></div>}
+              <p className="muted">{pendingOnly?(data.pending_review?"Choose Newest emails to see remaining reviews.":"Results that need review appear here. Outgoing keeps their history for 90 days."):box==="inbound"?"Incoming messages appear here when the app receives them.":"Enable the daily team summary in Automations after the email service is ready."}</p></div>}
         <div className="inline">
           {data?.next && <button type="button" className="btn ghost sm" onClick={()=>{setBefore(data.next);setSelected(null);}}>Older emails</button>}
           {before && <button type="button" className="btn ghost sm" onClick={()=>{setBefore(null);setSelected(null);}}>Newest emails</button>}
-          <button type="button" className="btn ghost sm" onClick={()=>setRevision(n=>n+1)}>Refresh email list</button>
+          <button type="button" className="btn ghost sm" onClick={()=>{if(receivedOnly)setSelected(null);setRevision(n=>n+1);}}>Refresh email list</button>
         </div>
       </div>
-      {selected && <EmailDetail key={`${box}:${selected}`} box={box} id={selected} privacy={privacy} onChanged={changed} onReviewed={()=>setRevision(n=>n+1)} onOutgoing={id=>{setBox("outbound");setBefore(null);setSelected(id);}}/>}
-      {!selected && !!data?.items.length && <p className="muted">Choose an email to read it and review its result.</p>}
+      {selected && <EmailDetail key={`${box}:${selected}`} box={box} id={selected} privacy={privacy} readOnly={receivedOnly} onChanged={changed} onReviewed={()=>setRevision(n=>n+1)} onOutgoing={id=>{setBox("outbound");setBefore(null);setSelected(id);}}/>}
+      {!selected && !!data?.items.length && <p className="muted">{box==="inbound" ? "Choose an email to read it." : "Choose an email to review its result."}</p>}
     </div>
   </section>;
 }
 
-function EmailDetail({box,id,privacy,onChanged,onReviewed,onOutgoing}) {
+function EmailDetail({box,id,privacy,readOnly,onChanged,onReviewed,onOutgoing}) {
   const [message,setMessage]=useState(null),[error,setError]=useState(null),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
   const title=useRef(null),said=useRef(null),focused=useRef(false),retrying=useRef(false);
   const retry=()=>{retrying.current=true;setRevision(n=>n+1);};
@@ -88,20 +101,20 @@ function EmailDetail({box,id,privacy,onChanged,onReviewed,onOutgoing}) {
     </>:<><p className="muted">Check the sender before acting on this message. A suggested thread does not verify who sent it.</p>
       {privacy&&<dl className="kv"><div><dt>Reference</dt><dd>HE-IN-{message.id}</dd></div></dl>}
       {REPLY_KIND[message.reply_kind]&&<p>{REPLY_KIND[message.reply_kind]}</p>}
-      {message.outbound_id&&<button type="button" className="btn ghost sm" onClick={()=>onOutgoing(message.outbound_id)}>View suggested outgoing thread</button>}
+      {!readOnly&&message.outbound_id&&<button type="button" className="btn ghost sm" onClick={()=>onOutgoing(message.outbound_id)}>View suggested outgoing thread</button>}
       {message.html_only===1&&<p className="muted">HTML-only message shown as source text. Formatting and remote content are not loaded.</p>}
       {message.attachments>0&&<p className="muted">{message.attachments} attachments were not saved.</p>}
       {message.truncated===1&&<p className="warn">Message truncated to 50,000 characters.</p>}</>}
     {message.text?<pre className="email-body">{message.text}</pre>:<p className="muted">Email content was removed after 30 days or following a deletion request.</p>}
     {error&&<><p role="alert" className="err">Couldn't refresh this email. The displayed details may be out of date. {error}</p>
       <button type="button" className="btn ghost" onClick={retry}>Retry loading email</button></>}
-    <div className="inline">
+    {!readOnly&&<div className="inline">
       {address&&<button type="button" className="btn ghost sm" disabled={busy} onClick={()=>{
         if(confirm("Stop sending to this address and cancel its pending emails?"))act(()=>api("/admin/email/suppressions",{method:"POST",body:{address}}),"Address suppressed. Pending sending to it is cancelled.");
       }}>Stop sending to this address</button>}
       {box==="inbound"&&privacy&&<a className="btn ghost sm" href={`#/privacy?email=${message.id}`}>Record a privacy request</a>}
       {box==="inbound"&&<button type="button" className="btn ghost sm danger" disabled={busy} onClick={remove}>Delete email</button>}
-    </div>
+    </div>}
     {result&&<p ref={said} tabIndex={-1} role={result.error?"alert":"status"} className={result.error?"err":"ok"}>{result.text}</p>}
   </article>;
 }
