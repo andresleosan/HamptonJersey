@@ -48,9 +48,9 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 | --- | --- | --- |
 
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
-| OFE-02 | 0 | Construido y publicado apagado. Lo tuyo: sí para encender el correo de ofertas al propietario, tras una prueba con tu buzón. |
-| VIS-13 | 0 | Construido y publicado apagado. Lo tuyo: decidir si los recordatorios salen solos con el interruptor y si van también a reservas web sin enlace; después sí para encender, tras una prueba con tu buzón. |
-| AUT-21 | 0 | Construido y apagado: feedback tras la visita y aviso al cancelar visitas cuando la casa se alquila o vende. Lo tuyo: prueba con tu buzón y sí para encender. |
+| OFE-02 | 0 | El borrador de prueba ya está en Sales. Revisa el destinatario y el texto, apruébalo y comprueba la recepción en tu buzón. Después decide si dejas activos el envío con aprobación humana y el borrador automático. |
+| VIS-13 | 0 | El cartero aceptó el recordatorio de dos horas. Comprueba la recepción en tu buzón de prueba y decide si dejas activos los recordatorios automáticos de las visitas enlazadas. |
+| AUT-21 | 0 | Marca la visita de prueba como Completed. Comprueba en tu buzón la petición de feedback a partir de una hora después, dentro del horario de envío, y decide si dejas activos los correos de visita. |
 | AUT-22 | 0 | Construido y apagado: resumen semanal por correo. Lo tuyo: elegir destinatarios en Email settings, prueba y sí para encender. |
 
 | AUT-24 | 0 | Construido y apagado: documentos al inquilino, aviso de renta y aviso al propietario, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |
