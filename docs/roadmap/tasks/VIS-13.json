@@ -17,7 +17,7 @@
     "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados.",
     "La prueba real del 26-nov registró el recordatorio de dos horas como accepted a las 07:34 UTC. Se comprobó hasta la aceptación por el cartero. Las pruebas locales cubren también el recordatorio de 24 h y las tres acciones de la página privada. La lectura de D1 del 26-nov confirmó que el recordatorio de dos horas seguía en estado accepted. La recepción en el buzón corresponde al destinatario.",
     "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
-    "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con dos citas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
+    "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con citas editadas, reasignadas o movidas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",

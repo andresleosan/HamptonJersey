@@ -2827,7 +2827,7 @@
         "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados.",
         "La prueba real del 26-nov registró el recordatorio de dos horas como accepted a las 07:34 UTC. Se comprobó hasta la aceptación por el cartero. Las pruebas locales cubren también el recordatorio de 24 h y las tres acciones de la página privada. La lectura de D1 del 26-nov confirmó que el recordatorio de dos horas seguía en estado accepted. La recepción en el buzón corresponde al destinatario.",
         "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
-        "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con dos citas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
+        "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con citas editadas, reasignadas o movidas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -8430,9 +8430,9 @@
       "fase": "F6",
       "estado": "parcial",
       "responsable": "Luis",
-      "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes.",
-      "falta": "Actualización 21-nov (PRE-23): el tramo de correo llega por Hermes desde el Gmail de Hampton. Las respuestas a consultas que Hermes trae y los reenvíos seleccionados deben aparecer una sola vez aunque lleguen por los dos caminos; importar todo el buzón sigue siendo otra decisión. Solo el tramo de correo del alcance vigente: reenvíos seleccionados de Gmail cuando AUT-17 opere (hoy bloqueado por el dominio, ver COLA-LUIS). El tramo chat web está comprobado. Messenger e Instagram quedan retirados con Meta; WhatsApp y Outlook son posteriores.",
-      "bloqueo": "",
+      "hecho": "16-nov-2026, construido apagado (MSG03_CONTACT_LINK_READY=\"0\", migración aditiva 0093 sin aplicar): desde Messages una persona vincula un chat web a un contacto existente (sugerencia por mismo email o teléfono, o buscador por nombre/email/teléfono) o lo desvincula; nunca automático. Escritura con versión CAS (chats.contact_version, 409 si está desfasada), eventos contact.chat_linked/contact.chat_unlinked en el historial del contacto, sin tocar los relojes de retención. La ficha del aplicante lista los chats vinculados y los abre en Messages. Apagado, la API y la pantalla quedan como antes. El chat web se comprobó en producción el 17-nov. Desde Messages → Received email el personal puede leer la bandeja entrante que ya usa Settings → Email. Se comparten el contenido y la autorización del servidor. El correo de AUT-17 ya funciona con Gmail. La selección manual apagada usa el identificador del mensaje original de Gmail y conserva una sola copia y el vínculo de respuesta en ambos órdenes de llegada.",
+      "falta": "Autorizar la selección manual de un mensaje de prueba en Gmail, instalar el cartero actualizado, encender la selección para la prueba y confirmar el resultado en Messages. Facebook sigue su propia ficha MSG-01.",
+      "bloqueo": "Luis o el titular del buzón autoriza la prueba y elige un mensaje recibido de los últimos 30 días por el canal privado.",
       "evidencia": [
         "admin/src/App.jsx:122-136",
         "admin/src/ApplicantDetail.jsx:279-281",
@@ -8442,7 +8442,9 @@
         "Pruebas: tests/server/msg-03-contact-link.test.mjs (7 casos: apagado con y sin 0093, sugerencia sin vínculo automático, mismo nombre no es la misma persona, retención intacta, CAS 409, revincular/desvincular con eventos, contacto borrado deja el chat sin vínculo, entradas inválidas/401/403, búsqueda con comodines literales) y e2e tests/msg03-contact-link.e2e.cjs en el contenedor aislado a 1280 y 390 px y zoom 200 %, aprobado.",
         "Decisiones (plan 2026-11-08 tarea 2 y cierre 2026-11-09; resto, opción más simple y reversible): la versión es un contador propio del vínculo porque MSG-02 aún no tiene revisión compartida del chat; un chat tiene como máximo un contacto; el evento va en el contacto (vinculado y, al mover, el anterior) con solo chat_id, sin texto; vincular no extiende los 30 días del chat ni los 12 meses del contacto; al borrar el contacto el chat queda sin vínculo (ON DELETE SET NULL).",
         "16-nov-2026: 0093 aplicada en producción tras el marcador Time Travel 0000046c-000008e8-00005125-19990df175633ce8331b26d32937c514; MSG03_CONTACT_LINK_READY=1 en wrangler.toml.",
-        "17-nov-2026: tramo chat web comprobado en producción: Luis encendió el chat unos minutos, abrió un chat de prueba, lo contestó desde el panel, lo vinculó a un contacto y lo vio en la ficha; chat apagado de nuevo (app_settings.webchat on=0). D1 remoto (lectura): chats.id 1 con contact_id y contact_version 1."
+        "17-nov-2026: tramo chat web comprobado en producción: Luis encendió el chat unos minutos, abrió un chat de prueba, lo contestó desde el panel, lo vinculó a un contacto y lo vio en la ficha; chat apagado de nuevo (app_settings.webchat on=0). D1 remoto (lectura): chats.id 1 con contact_id y contact_version 1.",
+        "26-nov: tests/msg03-received-email.e2e.cjs en navegador local aislado a 1280 y 390 px. Datos de bandeja simulados; se comprobaron navegación, refresco y respuesta 401 del servidor local sin sesión. El endpoint de correo existente tiene cinco pruebas de servidor.",
+        "26-nov: 68 pruebas focales de cartero y servidor con datos ficticios. Selección individual apagada por defecto, preflight antes de la lectura, límite de tamaño y retención, sin acceso del modelo. Las pruebas cubren selección y respuesta en ambos órdenes y el borrado. Decisión según L2C01 y PRE-23: selección expresa del original por un operador. Falta comprobar en la interfaz de Gmail del titular cómo obtiene el ID individual."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -8464,14 +8466,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "AUT-17 activo (correo de la app).",
+      "externalBlocker": "Luis o el titular del buzón autoriza la prueba y elige un mensaje recibido de los últimos 30 días por el canal privado.",
       "resources": [
         "web-chat",
         "meta-channel",
         "email-pipeline"
       ],
-      "nextStep": "Cuando el canal Hermes-Gmail de AUT-17 opere: traer las respuestas a envíos de Hampton y los reenvíos seleccionados sin duplicados.",
-      "actualizado": "2026-11-21"
+      "nextStep": "Seguir docs/roadmap/work/MSG-03/seleccion-gmail.md para la primera selección con consentimiento. Verificar una sola entrada en Messages y acordar si la selección queda habilitada.",
+      "actualizado": "2026-11-26"
     },
     {
       "id": "MSG-04",
