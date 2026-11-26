@@ -132,7 +132,7 @@ test("approving queues one email to the lead tenant, once; Gmail's acceptance re
   assert.ok(ok(await door(env, "threads")).threads.some(x => x.id === "t-1"));
   assert.equal((await context(env, p)).blocked, `Already recorded as given on ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long",
     year: "numeric", timeZone: "UTC" }).format(new Date(`${T}T12:00:00Z`))}.`);
-  assert.equal((await req(env, "GET", tenancyPath(t, "licence_copy"))).status, 404, "a tenant's document is reached from its property only");
+  assert.equal((await context(env, tenancyPath(t, "licence_copy"))).blocked, (await context(env, p)).blocked, "by its tenancy, the same email");
 });
 
 test("a change to the source takes the approval away: it is not claimed, and the clock gives it back to a person", async () => {
@@ -245,6 +245,28 @@ test("unknown is never sent again; a person says what happened; refused goes bac
   assert.equal(m.status, "sent");
   assert.match(check(env, r, "licence_copy").note, /confirmed by a person/);
   assert.equal(JSON.parse(row(env, "SELECT data FROM rental_events WHERE type = 'rental_email.sent'").data).by, "person");
+});
+
+// Review 26-nov: an email whose result is unknown stays reachable once the tenancy has ended (another may be in place):
+// the tenancy's page lists it, its dialog opens by the tenancy, and a person's answer records the email only, not the
+// property's check, which belongs to whoever is in now.
+test("unknown stays reachable from the tenancy after it ended; confirming it leaves the property's check alone", async () => {
+  const env = world();
+  const { r, t } = await home(env);
+  await queued(env, docPath(r, "licence_copy"));
+  ok(await result(env, await nextEmail(env), "unknown"));
+  await rentalEmailPass(env);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ago(1), t);
+  assert.equal((await req(env, "GET", docPath(r, "licence_copy"))).status, 404, "no tenancy in place on the property");
+  assert.deepEqual(ok(await req(env, "GET", `/admin/tenancies/${t}`)).rental_email_checks, [{ kind: "licence_copy" }]);
+  const p = tenancyPath(t, "licence_copy"), c = await context(env, p);
+  assert.equal(c.email.status, "needs_review");
+  assert.equal((await save(env, p, { revision: c.email.revision, source_version: c.source_version })).status, 409, "an ended tenancy gets no new email");
+  const m = ok(await req(env, "POST", `${p}/outcome`, { revision: c.email.revision, sent: true })).email;
+  assert.equal(m.status, "sent");
+  assert.equal(check(env, r, "licence_copy").done_on, null, "the check is the tenancy in place's, not the ended one's");
+  assert.equal(n(env, "SELECT COUNT(*) n FROM rental_events WHERE type = 'rental_email.sent'"), 1);
+  assert.deepEqual(ok(await req(env, "GET", `/admin/tenancies/${t}`)).rental_email_checks, []);
 });
 
 test("the landlord is told at step +10, and the step is marked done only once Gmail accepted it", async () => {

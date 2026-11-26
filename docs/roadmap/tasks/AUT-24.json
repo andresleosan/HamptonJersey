@@ -5,13 +5,14 @@
   "origen": "plan",
   "fase": "F2",
   "estado": "parcial",
-  "responsable": "desarrollo",
-  "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos.",
-  "falta": "Antes de encender: que un correo con resultado incierto siga alcanzable desde la ficha aunque la tenencia termine o el aviso deje de aplicar (revisión 26-nov; nunca se reenvía). Probar con datos de prueba y el sí de Luis.",
+  "responsable": "Luis",
+  "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos. 26-nov: un correo con resultado incierto queda en la ficha del contrato («Check it») aunque el contrato termine; se abre por el contrato y confirmarlo no marca la comprobación de la propiedad si ese contrato ya terminó.",
+  "falta": "Probar con datos de prueba y el buzón de Luis, y su sí para encender en los dos wrangler.",
   "bloqueo": "",
   "evidencia": [
     "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis.",
-    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada."
+    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada.",
+    "26-nov-2026: inciertos alcanzables tras terminar el contrato (rental_email_checks en GET /admin/tenancies/:id; ruta por contrato para documentos del inquilino). node --test aut-24: 11/11."
   ],
   "modulo": "M07",
   "deps": [
@@ -35,7 +36,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Arreglar el acceso a los inciertos; contrato de prueba con el buzón de Luis; encender.",
+  "nextStep": "Contrato de prueba con el buzón de Luis; recorrer documentos, aviso de renta y aviso al propietario; encender.",
   "actualizado": "2026-11-26",
-  "externalBlocker": ""
+  "externalBlocker": "Luis: prueba con su buzón y sí para encender AUT24_TENANT_DOCS_READY."
 }

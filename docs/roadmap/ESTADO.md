@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+26-nov-2026 · **AUT-24 y AUT-25 (listas para la prueba de Luis):** un correo de alquiler con resultado incierto sigue en la ficha del contrato («Check it») aunque el contrato termine; la bienvenida nunca va al correo de un segundo registro con el mismo teléfono. Ambas pasan a la cola de Luis. 163 → 163 de 216.
+
 26-nov-2026 · **AUT-25 (construida, apagada):** cada solicitante nuevo de la web recibirá un correo de bienvenida con su búsqueda y los datos que faltan, y pasará a Searching sin que nadie lo toque; un presupuesto raro o sin correo abre una tarea. Total de tareas 256 → 257. Progreso 163 de 215 → 163 de 216.
 
 26-nov-2026 · **OFE-02 (borrador automático, apagado):** cada oferta de venta nueva llega a Sales con el correo al vendedor ya redactado y una tarea en el Inbox que el avisador publica en Telegram; una persona sigue aprobando cada correo. Progreso sin cambio: 163 de 215.

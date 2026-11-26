@@ -39,6 +39,9 @@ const DIALOGS = { payment: RecordPayment, rent: ChangeRent, renew: Renew, notice
   answer: RenewalAnswer, email: RentalEmail, stepEmail: RentalStepEmail };
 // AUT-24 (data.tenant_emails, d.rental_emails: its switch): what can be emailed from here, prepared and approved in RentalEmail.
 const TENANT_DOCS = ["licence_copy", "eicr_copy", "deposit_info"];
+const EMAIL_TITLE = { licence_copy: "Licence copy to the tenant", eicr_copy: "EICR copy to the tenant",
+  deposit_info: "Deposit's prescribed information to the tenant", rent_notice: "Rent change notice to the tenant",
+  landlord_arrears: "Arrears notice to the landlord" }; // as server/rental-emails.js TITLE
 const day = iso => fmtDay(jerseyToday(new Date(iso)));
 const FINAL = ["done", "cancelled"];
 const TONE = { reported: "active", awaiting_approval: "attention", approved: "active", in_progress: "active", done: "positive", cancelled: "neutral" };
@@ -313,6 +316,10 @@ function Tenancy({ id, tick, note, open, refresh, next, requestedDeadline, landl
       {x.step ? `${ARREARS_STEPS.find(s => s[1] === x.step)?.[2]} email` : x.kind === "renewal_landlord" ? "Renewal email to the landlord"
         : "Renewal email to the tenant"}: not known whether it was sent.{" "}
       <button type="button" className="btn ghost sm" onClick={act("stepEmail", { which: x.step ? "arrears" : "renewal" })}>Check it</button></p>)}
+    {/* AUT-24: the same for a tenant's document, the landlord's notice or the rent notice, opened by this tenancy. */}
+    {d.rental_email_checks?.map(x => <p key={x.kind} className="warn" role="note">{EMAIL_TITLE[x.kind]}: not known whether it was sent.{" "}
+      <button type="button" className="btn ghost sm" onClick={act("email", { url: `/admin/tenancies/${t.id}/emails/${x.kind}`,
+        title: EMAIL_TITLE[x.kind] })}>Check it<span className="sr">: {EMAIL_TITLE[x.kind]}</span></button></p>)}
     {d.law && !ended && lawApplies(t, d.law) === "unknown" && <p className="warn" role="note">It is not recorded whether the 2025 rules
       apply to this tenancy. Add its agreement date and scope under Edit details.</p>}
     {t.ended_on ? <p className="warn" role="note">{ended ? `Ended ${fmtDay(t.ended_on)}.` : `Moves out ${fmtDay(t.ended_on)}.`}</p>

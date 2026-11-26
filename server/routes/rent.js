@@ -208,7 +208,9 @@ export async function detail(env, id) {
     deadlines: deadlines(tenancy, today, periods), earliest_move_out: notice ? earliestMoveOut(tenancy, notice, periods) : null,
     ...legalLabel(legal), ...(law ? { law, law_history } : {}), ...(net ? { writeoffs } : {}),
     ...(answers && tenancy.kind === "fixed" && !tenancy.ended_on ? { renewal: renewalOf(tenancy, answers, origin) } : {}),
-    ...(rentalEmailsReady(env) && await rentalEmailTable(env) ? { rental_emails: true } : {}), // AUT-24: server/rental-emails.js
+    // AUT-24: server/rental-emails.js. Its emails whose result is unknown, listed here even once the tenancy ended.
+    ...(rentalEmailsReady(env) && await rentalEmailTable(env) ? { rental_emails: true, rental_email_checks: (await env.DB.prepare(
+      "SELECT kind FROM rental_emails WHERE tenancy_id = ? AND status = 'needs_review' ORDER BY id").bind(id).all()).results } : {}),
     ...(stepEmails ? { step_emails: stepEmails } : {}) };
 }
 

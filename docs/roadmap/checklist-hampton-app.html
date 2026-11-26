@@ -7612,13 +7612,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "parcial",
-   "responsable": "desarrollo",
-   "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos.",
-   "falta": "Antes de encender: que un correo con resultado incierto siga alcanzable desde la ficha aunque la tenencia termine o el aviso deje de aplicar (revisión 26-nov; nunca se reenvía). Probar con datos de prueba y el sí de Luis.",
+   "responsable": "Luis",
+   "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos. 26-nov: un correo con resultado incierto queda en la ficha del contrato («Check it») aunque el contrato termine; se abre por el contrato y confirmarlo no marca la comprobación de la propiedad si ese contrato ya terminó.",
+   "falta": "Probar con datos de prueba y el buzón de Luis, y su sí para encender en los dos wrangler.",
    "bloqueo": "",
    "evidencia": [
     "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis.",
-    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada."
+    "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada.",
+    "26-nov-2026: inciertos alcanzables tras terminar el contrato (rental_email_checks en GET /admin/tenancies/:id; ruta por contrato para documentos del inquilino). node --test aut-24: 11/11."
    ],
    "modulo": "M07",
    "deps": [
@@ -7634,13 +7635,14 @@ document.addEventListener('DOMContentLoaded', () => {
    "origen": "plan",
    "fase": "F2",
    "estado": "parcial",
-   "responsable": "desarrollo",
+   "responsable": "Luis",
    "hecho": "26-nov-2026: construido y apagado (AUT25_APPLICANT_WELCOME_READY=0, sin migración). Cada búsqueda nueva registrada en la web (residencial, en New y sin asignar) recibe un correo de bienvenida con su propia búsqueda y los datos que faltan para que conteste (teléfono, fecha de mudanza, presupuesto, situación de vivienda si alquila). El interruptor aprueba; solo búsquedas registradas después de encenderlo. Al aceptarlo Gmail, pasa a Searching y su aviso New applicant se cierra. Revisión con reglas fijas: presupuesto raro o sin correo válido abre una tarea en el Inbox con los motivos, sin valores.",
-   "falta": "Prueba real con el buzón de Luis y su sí para encender en los dos wrangler. Antes de encender: comprobar qué correo queda en el contacto cuando REG-14 une un registro web por teléfono (revisión de seguridad 26-nov: el correo va a la dirección guardada y solo repite la búsqueda enviada).",
+   "falta": "Prueba real con el buzón de Luis (registro en la web) y su sí para encender en los dos wrangler.",
    "bloqueo": "",
    "evidencia": [
     "Decisión de Luis 26-nov-2026: «Bienvenida + revisión», «El interruptor aprueba», «Solo los nuevos».",
-    "26-nov-2026: tests/server/aut-25-applicant-welcome.test.mjs (9 pruebas); d1-depth con todo encendido."
+    "26-nov-2026: tests/server/aut-25-applicant-welcome.test.mjs (9 pruebas); d1-depth con todo encendido.",
+    "26-nov-2026: comprobado REG-14: un segundo registro con el mismo teléfono y otro correo no crea búsqueda (solo «registered again» al equipo), así que no hay bienvenida al correo nuevo; la única va al correo guardado. Prueba nueva en aut-25: 10/10."
    ],
    "modulo": "M04",
    "deps": [

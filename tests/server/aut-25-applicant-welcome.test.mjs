@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { makeEnv, T0 } from "./helpers.mjs";
+import { makeEnv, call, T0 } from "./helpers.mjs";
 import { claimForHermes, settleForHermes } from "../../server/email.js";
 import { welcomePass, welcomeSettlePass, welcomeEmail } from "../../server/applicant-welcome.js";
 
@@ -167,4 +167,20 @@ test("the website and the clock carry the same AUT25_APPLICANT_WELCOME_READY, of
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT25_APPLICANT_WELCOME_READY = "(.*)"$/m)?.[1];
   assert.equal(flag("wrangler.toml"), "0");
   assert.equal(flag("jobs/wrangler.toml"), "0");
+});
+
+// Pre-switch check (26-nov): REG-14 finds a returning person by email OR phone. A second website registration with the
+// same phone and another email creates no search (only "registered again" for the team), so no welcome goes to the new
+// address; the one welcome goes to the address the first registration stored.
+test("a repeat registration by phone with another email gets no welcome; the first one's address keeps the only one", async () => {
+  const env = await started(world());
+  globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
+  const form = o => ({ operation: "rent", name: "Fixture Person", phone: "+447797000111", budget_max: 2500, bedrooms_min: 2,
+    parishes_wanted: ["St Helier"], privacy: true, marketing: false, turnstile: "tok", ...o });
+  assert.equal((await call(env, "POST", "/applicants", { body: form({ email: "first@example.test" }) })).status, 201);
+  assert.equal((await call(env, "POST", "/applicants", { body: form({ email: "second@example.test" }) })).status, 201);
+  assert.equal(rows(env, "SELECT COUNT(*) n FROM applicants")[0].n, 1);
+  assert.deepEqual(rows(env, "SELECT email FROM contacts"), [{ email: "first@example.test" }]);
+  await welcomePass(env);
+  assert.deepEqual(outbound(env).map(o => o.recipient), ["first@example.test"]);
 });

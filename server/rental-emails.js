@@ -70,7 +70,9 @@ const gate = async env => { if (!(await rentalEmailsOn(env))) fail(404, "Not fou
 // What an email of this kind is about, read now: the tenancy (for a tenant's document, the one in place on that property),
 // the party and its address, the source's key and version, the facts of the text, and why it cannot go now (blocked).
 async function subject(env, scope, id, kind) {
-  if (!KINDS.includes(kind) || (scope === "rentals") !== TENANT_DOCS.includes(kind)) fail(404, "Not found");
+  // A tenant's document opens by its property (the tenancy in place) or by its tenancy, so one whose result is unknown
+  // stays reachable after that tenancy ended; the landlord's and the rent notice only by the tenancy.
+  if (!KINDS.includes(kind) || (scope === "rentals" && !TENANT_DOCS.includes(kind))) fail(404, "Not found");
   if (TENANT_DOCS.includes(kind) && !calendarReady(env)) fail(404, "Not found");
   const today = jerseyToday();
   const tid = scope === "tenancies" ? Number(id) : (await env.DB.prepare(`SELECT n.id FROM tenancies n WHERE n.rental_id = ?
@@ -250,7 +252,8 @@ function delivered(env, e, at, actor, by) {
       WHERE changes() = 1`).bind(e.rental_id, e.tenancy_id, at, actor,
     JSON.stringify({ kind: e.kind, revision: e.revision, email_ref: e.email_ref, by, ...(e.kind === "rent_notice" ? { rent_change_id: Number(e.source_key) } : {}) })),
   ...(TENANT_DOCS.includes(e.kind) ? [env.DB.prepare(`UPDATE compliance_items SET done_on = ?, expires_on = NULL, note = ?, updated_at = ?, updated_by = ?
-      WHERE rental_id = ? AND kind = ? AND done_on IS NULL AND ${sent}`).bind(day, note, now(), actor, e.rental_id, e.kind, e.id, e.email_ref)]
+      WHERE rental_id = ? AND kind = ? AND done_on IS NULL AND ${sent} AND EXISTS (SELECT 1 FROM tenancies WHERE id = ?
+        AND (ended_on IS NULL OR ended_on > ?))`).bind(day, note, now(), actor, e.rental_id, e.kind, e.id, e.email_ref, e.tenancy_id, jerseyToday())]
     : e.kind === LANDLORD ? [env.DB.prepare(`INSERT INTO arrears_steps (tenancy_id, charge_due_on, step, done_at, done_by, note)
       SELECT ?, ?, 'landlord', ?, ?, ? WHERE ${sent} ON CONFLICT DO NOTHING`).bind(e.tenancy_id, e.source_key, at, actor, note, e.id, e.email_ref)] : [])];
 }
