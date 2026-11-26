@@ -8310,9 +8310,9 @@
       "origen": "texto",
       "fase": "F6",
       "estado": "parcial",
-      "responsable": "desarrollo",
-      "hecho": "Construido apagado: webhook firmado (PRE-08) guarda los mensajes de la página en channel_conversations/channel_messages (0109, retención 30 días como el chat web); Messages muestra Website chat | Facebook con Waiting/Answered/Handled, vínculo a contacto (MSG-03) y respuesta de una persona. Enviar exige META_SEND_READY, ventana de 24 h, messaging_type RESPONSE y que Pause all outbound no esté activo. 25-nov-2026: entrada encendida por decisión de Luis (META_MESSAGES_READY=1) y aviso de privacidad con el apartado «Messages on Facebook». 26-nov-2026: el plan de borrado de una solicitud de privacidad nombra las conversaciones de Facebook vinculadas al contacto, para borrarlas a mano desde Messages (Delete las desvincula y las conserva).",
-      "falta": "Desarrollo: el borrador de Hermes para las respuestas (decisión de Luis del 25-nov), construido apagado y con una persona aprobando cada respuesta; antes de instalarlo o encenderlo, una pregunta a Luis (el texto del cliente va al modelo de Hermes, el proveedor de reserva y el texto del aviso). Luis (PRE-02): app de Meta, página conectada y secretos META_APP_SECRET, META_PAGE_ID y META_PAGE_TOKEN. Tras el mensaje de prueba de Luis: encender META_SEND_READY (autorizado el 25-nov) y comprobar una respuesta desde el panel. Recorrido real con un mensaje del público cuando Meta apruebe el acceso avanzado.",
+      "responsable": "Luis",
+      "hecho": "Construido apagado: webhook firmado (PRE-08) guarda los mensajes de la página en channel_conversations/channel_messages (0109, retención 30 días como el chat web); Messages muestra Website chat | Facebook con Waiting/Answered/Handled, vínculo a contacto (MSG-03) y respuesta de una persona. Enviar exige META_SEND_READY, ventana de 24 h, messaging_type RESPONSE y que Pause all outbound no esté activo. 25-nov-2026: entrada encendida por decisión de Luis (META_MESSAGES_READY=1) y aviso de privacidad con el apartado «Messages on Facebook». 26-nov-2026: el plan de borrado de una solicitud de privacidad nombra las conversaciones de Facebook vinculadas al contacto, para borrarlas a mano desde Messages (Delete las desvincula y las conserva). 26-nov-2026: borrador de Hermes construido apagado (MSG01_HERMES_DRAFTS_READY=0, migración 0130 channel_reply_drafts): una persona de hermes_drafters pulsa «Draft with Hermes»; Hermes, por su propia puerta (HERMES_REPLY_KEY), recibe solo el texto de los últimos 10 mensajes (máx. 4.000 caracteres, sin nombre ni ids) y devuelve una propuesta que solo rellena la caja; caduca si llega otro mensaje, al marcar atendida o al borrar. Script de Hermes en el repositorio (hermes/respuestas.mjs, skill hampton-respuestas), sin instalar.",
+      "falta": "Luis (borrador de Hermes): responder si el texto del cliente puede ir al modelo de Hermes (ChatGPT Pro; ¿también DeepSeek de reserva?) y qué dice el aviso de privacidad; crear HERMES_REPLY_KEY (Pages y custodio) y dar el sí para instalar hermes/respuestas.mjs; depende también de PRE-13. Luis (PRE-02): app de Meta, página conectada y secretos META_APP_SECRET, META_PAGE_ID y META_PAGE_TOKEN. Tras el mensaje de prueba de Luis: encender META_SEND_READY (autorizado el 25-nov) y comprobar una respuesta desde el panel. Recorrido real con un mensaje del público cuando Meta apruebe el acceso avanzado.",
       "bloqueo": "",
       "evidencia": [
         "server/api.js:3-21",
@@ -8330,7 +8330,8 @@
         "25-nov-2026: aviso de privacidad (site/apply.js): apartado «Messages on Facebook» con hechos del código (se guardan el texto, las respuestas, las horas y el identificador que da Facebook; adjuntos no; responde una persona; 30 días; borrado a petición). Decisión (fuente: plan MSG-01, paso 4, y precedente del párrafo del chat web): se publica sin calificar el papel de Meta, que es una pregunta abierta al abogado (PRE-33).",
         "25-nov-2026: revisión independiente del cambio (aviso e interruptor): sin graves. Corregidos en el mismo commit tres menores del texto: el uso incluye contactar a la persona y lo que pida registrar, «our app sends no automatic replies» (la página puede tener respuestas automáticas propias de Facebook) y el borrado no alcanza a Messenger ni a la bandeja de la página en Facebook. Queda apuntado en falta el plan de borrado de PRE-12. Con la entrada encendida y sin los secretos de Luis: el saludo con la clave correcta responde 200 y cualquier POST 503 sin leer el cuerpo ni tocar la base.",
         "25-nov-2026: npm test 3567/3567, npm run build y check:release correctos; navegador aislado a 1280 y 390: tests/msg-01-facebook.e2e.cjs y tests/pre09-viewing-privacy.e2e.cjs PASS.",
-        "26-nov-2026: privacy-requests + msg-01: 50/50 (prueba nueva: el plan de borrado lista facebook_messages solo si las hay)."
+        "26-nov-2026: privacy-requests + msg-01: 50/50 (prueba nueva: el plan de borrado lista facebook_messages solo si las hay).",
+        "26-nov-2026: borrador de Hermes integrado (e5beceab, de 16fc46a9); msg-01-hermes-drafts 12/12; revisión independiente sin fallos confirmados (4 notas a MEJORAS). Decisión: sí de Luis 25-nov en CONTINUIDAD sustituye «tras PRE-32» de plan.md (PRE-32 hecha). Navegador: no recorrido (necesita el interruptor encendido)."
       ],
       "assignedSlot": "hermes",
       "allocationStatus": "proposed",
@@ -8352,7 +8353,7 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Trámite de Meta (PRE-02): app, secretos, webhook registrado y aprobación del acceso avanzado.",
+      "externalBlocker": "Luis: secretos de Meta (PRE-02), respuesta sobre el borrador de Hermes (modelo, reserva, aviso) y HERMES_REPLY_KEY.",
       "resources": [
         "web-chat",
         "meta-channel"

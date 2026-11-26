@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+26-nov-2026 · **MSG-01 (borrador de Hermes, apagado):** en Messages › Facebook, «Draft with Hermes» pide una propuesta de respuesta que solo rellena la caja; Hermes ve solo el texto de los mensajes, nunca nombres ni ids, y una persona envía. MSG-01 pasa a la cola de Luis. 163 → 163 de 216.
+
 26-nov-2026 · **MSG-01 y AUT-24:** el plan de borrado de una solicitud de privacidad nombra las conversaciones de Facebook del contacto para borrarlas a mano; un documento al inquilino solo sale para el contrato vigente, nunca para el siguiente registrado por adelantado. AUT-22 y AUT-23 pasan a la cola de Luis (solo falta su prueba). 163 → 163 de 216.
 
 26-nov-2026 · **AUT-24 y AUT-25 (listas para la prueba de Luis):** un correo de alquiler con resultado incierto sigue en la ficha del contrato («Check it») aunque el contrato termine; la bienvenida nunca va al correo de un segundo registro con el mismo teléfono. Ambas pasan a la cola de Luis. 163 → 163 de 216.
