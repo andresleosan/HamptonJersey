@@ -36,7 +36,18 @@ header file; never print, copy or open it) and `--noproxy '*'`.
    - `{"error": …}`: stop and say the error in your reply. Do not retry.
    - Otherwise each item has `run_id` (at the top), `source_ref`, `channel_id`, `hosts`, `paths`.
 2. For each item, at most **40 items per run**, one at a time:
-   a. Open the listing page `https://<first host><first path>`. Follow "next page" links only while they stay inside the
+   a. **Keys Properties root channel** (`source_ref` = `src-keys-properties`, `paths` includes the exact entry `/`).
+      For this item, use your web tools to read just two pages, once each: `/sitemap.aspx` and `/images/ADKP/rss.xml`
+      over HTTPS on a Keys host supplied in the item. Both pages and any redirects must stay inside its allowed hosts
+      and paths. Put both exact page addresses in `pages`. A Keys item scoped to a subpage uses the ordinary listing
+      procedure below and does not grant access to these two pages.
+      The RSS keeps old adverts. Match each RSS item's property ID (the digits after `pi-adkp`, case-insensitive)
+      to a property link on today's sitemap. Write one Advert (below) per matched home, using the RSS item's exact link, the
+      Rent/Sale operation from that link and the price text from that same item's title. Preserve the pound sign,
+      commas and decimals. A title with only an amount gives only that amount, even for rent; never add `pcm`.
+      Leave out garages, land and items without a clear match or price. Skip detail pages and photos. If either source
+      fails, use its failure reason from (d); if both load but yield no matches, report `invalid_response`. Submit the matched adverts at (c).
+      **Other items.** Open the listing page `https://<first host><first path>`. Follow "next page" links only while they stay inside the
       item's hosts and paths; at most 19 pages. If the list has 20 pages or more, do not read it: deliver
       `fail` = `invalid_response` (d). Keep the exact address of every page you used.
       **A list loaded by JavaScript.** If the listing page shows only a few of its adverts, or none, because a script
