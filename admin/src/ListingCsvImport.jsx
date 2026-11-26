@@ -17,6 +17,7 @@ async function send(mode, rows) {
 
 export default function ListingCsvImport({ onClose, onImported }) {
   const [file, setFile] = useState(null), [results, setResults] = useState(null);
+  const [showPaste, setShowPaste] = useState(false), [csvText, setCsvText] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [progress, setProgress] = useState('');
   const running = useRef(false);
   const mounted = useRef(true);
@@ -41,6 +42,14 @@ export default function ListingCsvImport({ onClose, onImported }) {
       running.current = false;
       setBusy(false);
     }
+  }
+
+  function usePastedCsv() {
+    setError(''); setProgress(''); setFile(null); setResults(null);
+    try {
+      setFile({ name: 'Pasted CSV', rows: readListingCsv(new TextEncoder().encode(csvText)) });
+      setCsvText(''); setShowPaste(false);
+    } catch (failure) { setError(failure.message); }
   }
 
   async function preview() {
@@ -95,6 +104,13 @@ export default function ListingCsvImport({ onClose, onImported }) {
     <p className="muted" id="listing-import-help">Choose up to {LISTING_CSV_LIMIT} rows. Preview checks existing listings and flags missing verified addresses. Ready rows are rechecked before they are saved as private drafts.</p>
     <label>Listings CSV<input type="file" accept=".csv,text/csv" aria-describedby="listing-import-help"
       autoFocus disabled={busy} onChange={read} /></label>
+    <button type="button" className="btn ghost" disabled={busy} aria-expanded={showPaste}
+      aria-controls="listing-import-paste" onClick={() => setShowPaste(!showPaste)}>Paste CSV</button>
+    {showPaste && <div id="listing-import-paste">
+      <label>CSV text<textarea rows={5} maxLength={1024 * 1024} value={csvText}
+        disabled={busy} onChange={event => setCsvText(event.target.value)} /></label>
+      <button type="button" className="btn ghost" disabled={!csvText.trim() || busy} onClick={usePastedCsv}>Use pasted CSV</button>
+    </div>}
     {file && <p>{file.name} · {file.rows.length} rows</p>}
     <p className="inline actions">
       {file && <button type="button" className="btn ghost" disabled={busy} onClick={preview}>Preview import</button>}
