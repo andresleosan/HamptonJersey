@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+26-nov-2026 · **BUS-09:** la lectura de D1 sigue sin observaciones del piloto en las dos últimas pasadas. Pasa a la cola de Luis hasta que Hermes 2 recupere sus entregas nocturnas. 163 → 163 de 216.
+
 26-nov-2026 · **MSG-03:** Messages muestra los correos recibidos. El cartero puede importar un original elegido expresamente por el operador y reconocer la respuesta del mismo mensaje sin duplicarla. La selección espera el consentimiento y la prueba de Hampton. 163 → 163 de 216.
 
 26-nov-2026 · **VIS-13, OFE-02 y AUT-21:** el recordatorio de 24 h conserva su horario al editar notas o reasignar la visita. El cartero aceptó el recordatorio de 2 h de prueba, la oferta sigue en borrador y la visita de feedback sigue confirmada. **BUS-09:** Keys aportó 12 anuncios vigentes y los 12 pasaron el ensayo local. Ya se pueden comparar las tres agencias en dos noches consecutivas. **PRE-33:** expediente con ocho anexos para revisión de Hampton. **NOT-10:** el resumen diario espera la elección de destinatarios y la aprobación del equipo. 163 → 163 de 216.
