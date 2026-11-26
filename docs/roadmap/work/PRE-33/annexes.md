@@ -289,7 +289,7 @@ Hampton
 
 ## Annex H · Rental period defaults
 
-These are the software defaults, pending legal review. The two staff reminders are operational settings. Staff enter the next review date for the 29 hazards. Settings can override the defaults with a versioned record.
+These are the software defaults, pending legal review. The two staff reminders use fixed intervals in the software. Staff enter the next review date for the 29 hazards. Settings › Legal terms can save versioned changes to the other values when their modules are enabled.
 
 | Setting | Software field | Default |
 |---|---|---|
@@ -297,8 +297,8 @@ These are the software defaults, pending legal review. The two staff reminders a
 | Inventory reports | `reportDays` | 7 days |
 | Dwelling licence | `licenceYears` | 2 years |
 | Electrical installation report | `eicrYears` | 5 years |
-| Gas safety | `gasYears` | 1 years |
-| Alarm checks | `alarmsYears` | 1 years |
+| Gas safety | `gasYears` | 1 year |
+| Alarm checks | `alarmsYears` | 1 year |
 | Staff alerts before a deadline | `warnDays` | 60, 30, 7 days |
 | Staff renewal reminder | `renewalDays` | 90 days |
 | Rent review notice | `rentNoticeMonths` | 2 months |

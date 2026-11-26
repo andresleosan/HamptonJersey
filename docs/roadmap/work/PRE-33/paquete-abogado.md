@@ -60,8 +60,7 @@ Design rules that matter for the questions below:
 
 - **Approval depends on the workflow.** Staff review matches, presentations and individual offer emails. Availability and viewing-coordination emails can be saved as Gmail drafts or sent under a team setting. Viewing reminders and post-visit emails are enabled for a controlled trial. Keeping them enabled beyond the trial needs a separate decision.
 - **"Unknown" is not "yes".** Where a legal rule depends on facts the app does not have, it says so and asks a person.
-- **Legal periods are parameters marked "estimated"** until a Jersey lawyer validates them. The app records who
-  validated them and when (Settings › Legal terms), and only then enforces them strictly.
+- **Rental legal parameters** are initially marked "estimated". Staff record the reference and date of legal validation in Settings › Legal terms. Section 7 describes which checks this changes.
 
 ### 1.3 Data classes we use
 
@@ -77,9 +76,7 @@ Design rules that matter for the questions below:
 ## 2. Data protection clause for sales and lettings contracts
 
 **What the app does today.** Personal data in the rentals module (landlords, tenants, occupants, payments, deposits,
-inventories, repairs) and in the sales module (offers, sale progress) is processed under contract and legal
-obligation. The privacy notice already has a section "Landlords and tenants of homes we manage" with that basis and
-a retention period. Our contracts themselves do not yet contain a data protection clause.
+inventories, repairs) and in the sales module (offers, sale progress) is kept in the app. The privacy notice states contract and legal obligation as bases for managed tenancy records and gives a retention period. We seek counsel’s assessment of the appropriate bases for the sales and lettings workflows. Our contracts themselves do not yet contain a data protection clause.
 
 **Questions.**
 
@@ -100,17 +97,17 @@ a retention period. Our contracts themselves do not yet contain a data protectio
 
 ## 3. Retention after a tenancy or a sale ends
 
-**What the app does today** (and what the privacy notice says):
+The middle column gives the periods in the public privacy notice (Annex A). The last column describes how the software implements them and where enforcement remains incomplete.
 
-| Record | Kept for | Notes |
+| Record | Period stated in the notice | Implementation |
 |---|---|---|
-| Applicant searches and contact details | 12 months from the last activity once all searches are resolved | An active search, an open offer or a sale protects the record. A notice email in month 12 is built but switched off (Annex D) |
-| Viewing requests | 12 months after the day of the viewing | |
-| Sale records and the details in them | 5 years after the sale completes or falls through | Stated as anti-money-laundering record keeping |
-| Tenancy, payment, deposit and repair records | While the home is managed or the tenancy lasts, and 6 years after it ends | Stated in the notice since 16 November 2026 |
-| Requests to sell, let or value a property | 12 months after last activity | As stated in the owner form notice |
-| Website chat | 30 days after the last message | |
-| Email through the app | In-app content 30 days and delivery records 90 days | Gmail holds a separate copy. Please advise on mailbox retention as well. |
+| Applicant searches and contact details | 12 months from the last activity once all searches are resolved | An active search, an open offer or a sale protects the record. Linked ongoing tenancies can also protect a contact. The notice email in month 12 is switched off (Annex D) |
+| Viewing requests | 12 months after the day of the viewing | The daily cleanup selects requests older than 12 months |
+| Sale records and the details in them | 5 years after the sale completes or falls through | The cleanup preserves contacts linked to a sale in any state. Five-year deletion of sales is unimplemented |
+| Tenancy, payment, deposit and repair records | While the home is managed or the tenancy lasts, and 6 years after it ends | The project has no verified six-year automatic deletion for these records |
+| Requests to sell, let or value a property | 12 months after last activity | The daily cleanup uses the date of the last update |
+| Website chat | 30 days after the last message | The daily cleanup removes expired conversations and their messages |
+| Email through the app | In-app content 30 days and delivery records 90 days | The app cleans stored content and delivery records. Gmail holds a separate copy. Please advise on mailbox retention as well. |
 
 The app also keeps an internal register of privacy requests (access, rectification, erasure, objection,
 portability). The response deadline for each request is typed in by staff: the app does not calculate one, because
@@ -278,9 +275,7 @@ PUB-19 (parish demand page).
 ## 7. Legal periods used by the rentals module
 
 **What the app does today.** The rentals module keeps a calendar per home and per tenancy, warns staff 60, 30 and 7
-days before each deadline, and shows overdue items in red. Every period below is a parameter marked **"estimated"**.
-When counsel confirms them, staff record "validated" with the reference and date of your advice, and the app then
-enforces the 2025 tenancy rules strictly instead of only warning.
+days before a deadline, and shows overdue items in red. Staff can record the reference and date of legal validation for the configurable periods in Annex H. For a tenancy recorded as covered by the 2025 rules, validation makes the app block an overlong initial term or a further fixed term. A possible premium still requires staff confirmation. The two staff reminder intervals are fixed in the software.
 
 | Parameter | Current value | Source we used |
 |---|---|---|
