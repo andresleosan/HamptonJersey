@@ -8,7 +8,7 @@
   "responsable": "Luis",
   "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6). El interruptor está encendido para la prueba real del 26-nov.",
   "falta": "Queda completar la visita de prueba en el panel, comprobar la petición de feedback en el buzón y decidir si se mantienen activos estos correos. Para excluir al nuevo inquilino del aviso por alquiler, el equipo debe registrar la tenencia durante las primeras 24 horas.",
-  "bloqueo": "Marcar la visita de prueba como Completed y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
+  "bloqueo": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
   "evidencia": [
     "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos.",
     "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido.",
@@ -37,7 +37,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Marcar la visita de prueba como Completed y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
+  "nextStep": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
   "actualizado": "2026-11-26",
-  "externalBlocker": "Marcar la visita de prueba como Completed y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita."
+  "externalBlocker": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita."
 }

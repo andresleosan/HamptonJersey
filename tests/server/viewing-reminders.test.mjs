@@ -84,14 +84,20 @@ test("editing notes keeps the 24-hour reminder, but moving the appointment insid
   const recentEdit = new Date(start - 23 * H).toISOString();
   const kept = viewing(env, at(start), client(env), { changed: recentEdit });
   const moved = viewing(env, at(start), client(env), { changed: recentEdit });
-  for (const id of [kept, moved]) {
+  const reassigned = viewing(env, at(start), client(env), { changed: recentEdit });
+  for (const id of [kept, moved, reassigned]) {
     run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type)
       VALUES (?, 'team', 'viewing', ?, 'viewing.booked')`, oldBooking, String(id));
   }
   run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type)
     VALUES (?, 'team', 'viewing', ?, 'viewing.rescheduled')`, recentEdit, String(moved));
+  const slot = at(start);
+  run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+    VALUES (?, 'team', 'viewing', ?, 'viewing.rescheduled', ?)`, recentEdit, String(reassigned),
+    JSON.stringify({ from: { ...slot, negotiator_id: 1 }, to: { ...slot, negotiator_id: 2 } }));
   await reminderPass(env, start - 22 * H);
-  assert.deepEqual(outbound(env).map(o => [o.entity_id, o.template]), [[String(kept), "viewing_reminder_24h"]]);
+  assert.deepEqual(outbound(env).map(o => [o.entity_id, o.template]),
+    [kept, reassigned].map(id => [String(id), "viewing_reminder_24h"]));
 });
 
 test("inside 2 hours: one reminder at most; after the start: none", async () => {

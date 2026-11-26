@@ -67,7 +67,11 @@ export async function reminderPass(env, t = Date.now()) {
     AND NOT ${check}`).bind(ts).run();
   const { results } = await env.DB.prepare(`SELECT v.id, v.date, v.time, v.kind, v.name, v.listing_id, v.reminded_at,
       COALESCE((SELECT e.at FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)
-        AND e.type IN ('viewing.booked', 'viewing.confirmed', 'viewing.rescheduled') ORDER BY e.at DESC LIMIT 1),
+        AND e.type IN ('viewing.booked', 'viewing.confirmed', 'viewing.rescheduled')
+        AND (e.type <> 'viewing.rescheduled' OR CASE WHEN json_valid(e.data) THEN
+          (json_extract(e.data, '$.from.date'), json_extract(e.data, '$.from.time')) =
+          (json_extract(e.data, '$.to.date'), json_extract(e.data, '$.to.time')) END IS NOT TRUE)
+        ORDER BY e.at DESC LIMIT 1),
         v.updated_at, v.created_at) AS scheduled_at, COALESCE(l.title, v.listing_title_snapshot) AS title, l.location, l.country,
       lower(trim(c.email)) AS email, EXISTS (SELECT 1 FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)
         AND e.type = 'viewing.client_confirmed' AND json_extract(e.data, '$.slot') = ${SLOT}) AS confirmed_by_client
