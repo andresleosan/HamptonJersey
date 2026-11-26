@@ -197,7 +197,8 @@ const DOOR = [
 export async function hermesDoor(request, env, path) {
   if (path.startsWith("/mail/")) {
     if (!env.HERMES_MAIL_KEY || env.HERMES_MAIL_KEY === env.HERMES_KEY || !(await keyOk(request, env, env.HERMES_MAIL_KEY))) fail(401, "Unauthorized");
-    await setting(env, "hermes_mail_seen", { at: now() }, "hermes").run(); // the panel's "sender is running"
+    if (path !== "/mail/selected" && path !== "/mail/selected/ready")
+      await setting(env, "hermes_mail_seen", { at: now() }, "hermes").run(); // the panel's "sender is running"
     for (const [m, re, handler] of mailDoor) {
       const hit = m === request.method && re.exec(path);
       if (hit) return await handler({ request, env, params: hit.slice(1) });

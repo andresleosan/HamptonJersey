@@ -68,9 +68,60 @@ async function queue(cfg) {
 // none of it. Without the read permission Gmail answers 403 and nothing is read. ponytail: every thread on every run
 // (10 min, 50 threads at most); the app keeps each message once.
 const head = (p, n) => p?.headers?.find(h => h.name.toLowerCase() === n)?.value ?? null;
-const part = (p, type) => p?.mimeType === type && p.body?.data ? Buffer.from(p.body.data, "base64url").toString("utf8")
-  : (p?.parts ?? []).reduce((found, x) => found ?? part(x, type), null);
+function part(p, type) {
+  if (!p || p.filename || p.body?.attachmentId || /^attachment\b/i.test(head(p, "content-disposition") ?? "")
+    || /^message\//i.test(p.mimeType ?? "")) return null;
+  if (p.mimeType === type && typeof p.body?.data === "string")
+    return Buffer.from(p.body.data, "base64url").toString("utf8");
+  for (const sub of p.parts ?? []) {
+    const found = part(sub, type);
+    if (found !== null) return found;
+  }
+  return null;
+}
 const clip = (v, max) => typeof v === "string" ? v.slice(0, max) : null;
+function inboundMessage(m, at) {
+  const p = m.payload, plain = part(p, "text/plain"), body = plain ?? part(p, "text/html") ?? "";
+  const htmlOnly = plain == null && body.length > 0;
+  return {
+    id: m.id, at, from: clip(head(p, "from"), 500), subject: clip(head(p, "subject"), 500),
+    message_id: clip(head(p, "message-id"), 512), in_reply_to: clip(head(p, "in-reply-to"), 512),
+    references: clip(head(p, "references"), 2048), auto_submitted: clip(head(p, "auto-submitted"), 100),
+    precedence: clip(head(p, "precedence"), 100), autoreply: !!(head(p, "x-autoreply") || head(p, "x-autorespond")),
+    content_type: clip(head(p, "content-type") ?? p?.mimeType ?? null, 300), text: body.slice(0, 50000) || null,
+    ...(htmlOnly && { html_only: true }), ...(body.length > 50000 && { truncated: true }),
+  };
+}
+
+// Operator CLI only. No search, thread read, model call, send or attachment request.
+export async function seleccionar(cfg, id) {
+  if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(id)) throw new Error("Invalid original Gmail message ID");
+  if ((await door(cfg, "selected/ready")).ready !== true) throw new Error("Manual selection is off");
+  const auth = await accessToken(cfg);
+  const response = await cfg.fetchFn(`${GMAIL}/messages/${id}?format=full`, { method: "GET", redirect: "error",
+    headers: { authorization: `Bearer ${auth}` }, signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw new Error(`Gmail returned ${response.status}`);
+  // Gmail may include inline parts in a full message. Bound the response before parsing and keep only its text body.
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of response.body) {
+    size += chunk.byteLength;
+    if (size > 1024 * 1024) throw new Error("Selected message exceeds 1 MiB");
+    chunks.push(chunk);
+  }
+  const m = JSON.parse(Buffer.concat(chunks).toString("utf8")), received = Number(m?.internalDate);
+  if (!Number.isSafeInteger(m?.sizeEstimate) || m.sizeEstimate < 0 || m.sizeEstimate > 1024 * 1024)
+    throw new Error("Invalid Gmail message size or exceeds 1 MiB");
+  if (m?.id !== id || typeof m.threadId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(m.threadId)
+    || !Array.isArray(m.labelIds) || m.labelIds.some(l => l === "SENT" || l === "DRAFT")
+    || !Number.isFinite(received) || received <= Date.now() - 30 * 86400e3 || received > Date.now() + 300_000)
+    throw new Error("Select a recent incoming message");
+  // The carrier attests that Gmail returned an incoming message. User labels may contain names.
+  const { stored } = await door(cfg, "selected", { thread_id: m.threadId, incoming: true,
+    messages: [inboundMessage(m, new Date(received).toISOString())] });
+  if (stored !== 0 && stored !== 1) throw new Error("Unexpected import result");
+  return { stored };
+}
 async function respuestas(cfg) {
   let threads;
   try { ({ threads } = await door(cfg, "threads")); } catch { return; } // switched off, or the app is not answering
@@ -88,13 +139,9 @@ async function respuestas(cfg) {
       let batch = [], size = 0;
       const flush = async () => { if (batch.length) await door(cfg, "replies", { thread_id: t.id, messages: batch }); batch = []; size = 0; };
       for (const m of (await r.json()).messages ?? []) {
-        const at = new Date(Number(m.internalDate)).toISOString(), p = m.payload;
+        const at = new Date(Number(m.internalDate)).toISOString();
         if (m.labelIds?.some(l => l === "SENT" || l === "DRAFT") || at < (t.after ?? "")) continue;
-        const msg = { id: m.id, at, from: clip(head(p, "from"), 500), subject: clip(head(p, "subject"), 500), message_id: clip(head(p, "message-id"), 512),
-          in_reply_to: clip(head(p, "in-reply-to"), 512), references: clip(head(p, "references"), 2048), auto_submitted: clip(head(p, "auto-submitted"), 100),
-          precedence: clip(head(p, "precedence"), 100), autoreply: !!(head(p, "x-autoreply") || head(p, "x-autorespond")),
-          content_type: clip(head(p, "content-type") ?? p?.mimeType ?? null, 300),
-          text: (part(p, "text/plain") ?? part(p, "text/html") ?? "").slice(0, 50000) || null };
+        const msg = inboundMessage(m, at);
         const n = Buffer.byteLength(JSON.stringify(msg));
         if (batch.length === 50 || size + n > 900_000) await flush(); // under the app's 1 MiB and 50 messages
         batch.push(msg); size += n;
@@ -244,6 +291,23 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const { APP_ORIGIN: origin, HERMES_MAIL_KEY_FILE: keyFile, GOOGLE_TOKEN_FILE: tokenFile, ESTADO_DIR: estado,
     CARTERO_KEY_FILE: callerFile, LISTEN_HOST: host, LISTEN_PORT: port = "8788" } = process.env;
   const [cmd, clientFile, code] = process.argv.slice(2);
+  if (cmd === "seleccionar") {
+    if (process.argv.length !== 4 || process.env.MSG03_MANUAL_GMAIL_READY !== "1"
+      || !/^https:\/\/[^/]+$/.test(origin ?? "") || !keyFile || !tokenFile) {
+      console.error("Manual selection requires the operator environment and one original Gmail message ID");
+      process.exit(1);
+    }
+    try {
+      const key = readFileSync(keyFile, "utf8").trim();
+      if (key.length < 32) throw new Error("Missing mail configuration");
+      const result = await seleccionar({ origin, key, tokenFile, fetchFn: fetch }, clientFile);
+      console.log(result.stored ? "Message recorded" : "Already processed");
+    } catch {
+      console.error("Could not import the message. Check the original ID, age, read permission and manual-selection settings.");
+      process.exit(1);
+    }
+    process.exit(0);
+  }
   if (cmd === "autorizar") { console.log(consentLink(client(clientFile), process.env.GMAIL_LEER === "1")); process.exit(0); }
   if (cmd === "codigo") {
     if (!tokenFile || !code) { console.error("Set GOOGLE_TOKEN_FILE and pass the code"); process.exit(1); }

@@ -156,6 +156,7 @@ test("the carrier answers only Hermes's key, and listens only on a private addre
   const url = `http://127.0.0.1:${server.address().port}/siguiente`;
   try {
     assert.equal((await fetch(url, { method: "POST" })).status, 401);
+    assert.equal((await fetch(new URL("/seleccionar", url), { method: "POST", headers: { authorization: `Bearer ${callerKey}` } })).status, 404);
     assert.equal((await fetch(url, { method: "POST", headers: { authorization: `Bearer ${"x".repeat(40)}` } })).status, 401);
     assert.equal((await fetch(url, { method: "POST", headers: { authorization: `Bearer ${callerKey}` } })).status, 200);
   } finally { server.close(); }
@@ -243,4 +244,66 @@ test("a thread the app refuses, or a 403 on a later thread, does not stop the ot
   await siguiente(cfg);
   assert.ok(calls.some(c => c.url.includes("/threads/t3")), "t3 is still read");
   assert.equal(calls.filter(c => c.url.endsWith("/mail/replies")).length, 1, "t3's replies reach the app after t1's were refused");
+});
+
+test("an operator imports exactly the original Gmail message chosen, without a mailbox search, attachment request or send", async () => {
+  const { seleccionar } = await import("../../hermes/correo.mjs");
+  const msg = structuredClone(THREAD.messages[1]);
+  msg.threadId = "t1";
+  msg.sizeEstimate = 1200;
+  msg.internalDate = String(Date.now());
+  msg.payload.parts.unshift({ mimeType: "text/plain", filename: "private.txt", body: { data: b64("Private attachment") } });
+  const { cfg, calls } = world({ gmail: url => {
+    if (url.endsWith("/mail/selected/ready")) return { status: 200, body: { ready: true } };
+    if (url.endsWith("/messages/g1?format=full")) return { status: 200, body: msg };
+    if (url.endsWith("/mail/selected")) return { status: 200, body: { stored: 1 } };
+    throw Error("unexpected path");
+  } });
+  assert.deepEqual(await seleccionar(cfg, "g1"), { stored: 1 });
+  assert.deepEqual(calls.filter(c => c.url.includes("/gmail/v1/")).map(c => new URL(c.url).pathname),
+    ["/gmail/v1/users/me/messages/g1"]);
+  const body = JSON.parse(calls.find(c => c.url.endsWith("/mail/selected")).body);
+  assert.equal(body.messages[0].text, "Yes, still available.");
+  assert.equal(body.incoming, true);
+  assert.equal(body.labels, undefined);
+  assert.ok(!JSON.stringify(body).includes("Private attachment"));
+});
+
+test("manual selection rejects missing consent, invalid IDs, sent or draft mail, mismatched responses and old messages", async () => {
+  const { seleccionar } = await import("../../hermes/correo.mjs");
+  for (const [id, ready, gmailStatus, override] of [
+    ["../t1", true, 200, {}], ["g1", false, 200, {}], ["g1", true, 403, {}],
+    ["g1", true, 200, { labelIds: ["SENT"] }], ["g1", true, 200, { labelIds: ["DRAFT"] }],
+    ["g1", true, 200, { sizeEstimate: undefined }], ["g1", true, 200, { sizeEstimate: 5 * 1024 * 1024 }],
+    ["g1", true, 200, { id: "other" }], ["g1", true, 200, { internalDate: "1" }],
+  ]) {
+    const { cfg, calls } = world({ gmail: url => url.endsWith("/mail/selected/ready")
+      ? { status: ready ? 200 : 404, body: { ready } }
+      : { status: gmailStatus, body: { ...THREAD.messages[1], sizeEstimate: 1200, internalDate: String(Date.now()), threadId: "t1", ...override } } });
+    await assert.rejects(() => seleccionar(cfg, id));
+    assert.ok(!calls.some(c => c.url.endsWith("/mail/selected")));
+    if (!ready || id === "../t1") assert.ok(!calls.some(c => c.url.includes("googleapis.com")));
+  }
+});
+
+test("manual selection bounds Gmail responses and never imports a forwarded attachment as the body", async () => {
+  const { seleccionar } = await import("../../hermes/correo.mjs");
+  const message = { ...THREAD.messages[1], sizeEstimate: 65536, threadId: "t1", internalDate: String(Date.now()), labelIds: ["INBOX", "private label"] };
+  message.payload = { ...message.payload, parts: [
+    { mimeType: "message/rfc822", parts: [{ mimeType: "text/plain", body: { data: b64("attached private email") } }] },
+    { mimeType: "text/plain", headers: [{ name: "Content-Disposition", value: "attachment" }], body: { data: b64("private attachment") } },
+    { mimeType: "text/plain", body: { attachmentId: "a1", size: 10 } },
+    { mimeType: "text/html", body: { data: b64("<p>example</p>".repeat(4000)) } },
+  ] };
+  const { cfg, calls } = world({ gmail: url => url.endsWith("/mail/selected/ready") ? { status: 200, body: { ready: true } }
+    : url.endsWith("/mail/selected") ? { status: 200, body: { stored: 1 } } : { status: 200, body: message } });
+  await seleccionar(cfg, "g1");
+  const posted = calls.find(c => c.url.endsWith("/mail/selected")).body, m = JSON.parse(posted).messages[0];
+  assert.equal(m.text.length, 50000);
+  assert.equal(m.html_only, true);
+  assert.equal(m.truncated, true);
+  assert.ok(!posted.includes("private") && !posted.includes("attached"));
+  message.payload.parts[3].body.data = b64("X".repeat(1024 * 1024));
+  await assert.rejects(() => seleccionar(cfg, "g1"), /exceeds 1 MiB/);
+  assert.equal(calls.filter(c => c.url.endsWith("/mail/selected")).length, 1);
 });

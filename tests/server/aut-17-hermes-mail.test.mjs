@@ -358,3 +358,46 @@ test("a thread with two emails of Hermes takes replies from the first send and l
   ok(await replies(env, "t1", [reply({ at: "2026-06-01T00:00:00.000Z" })]));
   assert.equal(row(env, "SELECT mail_task_id FROM email_inbound").mail_task_id, row(env, "SELECT MAX(id) AS id FROM mail_tasks").id);
 });
+
+const selectOne = (env, m, thread = "t1", extra = {}) => door(env, "POST", "/mail/selected", {
+  thread_id: thread, messages: [m], incoming: true, ...extra,
+});
+test("a manual Gmail selection needs its own switch, the carrier key and one recent incoming message", async () => {
+  const env = world(), m = reply({ at: new Date().toISOString() });
+  assert.equal((await selectOne(env, m)).status, 404);
+  env.MSG03_MANUAL_GMAIL_READY = "1";
+  assert.equal((await door({ ...env, HERMES_MAIL_READY: "0" }, "POST", "/mail/selected/ready")).status, 404);
+  assert.equal((await call(env, "POST", "/hermes/mail/selected", { bearer: GENERAL, origin: null })).status, 401);
+  ok(await door(env, "POST", "/mail/selected/ready"));
+  assert.equal(row(env, "SELECT COUNT(*) n FROM app_settings WHERE key='hermes_mail_seen'").n, 0);
+  for (const extra of [{ incoming: false }, { incoming: undefined }, { messages: [m, m] }])
+    assert.equal((await selectOne(env, m, "t1", extra)).status, 400);
+  for (const invalid of [reply({ at: "2020-01-01" }), reply({ at: "2100-01-01" }), reply({ id: [] }), reply({ at: null })])
+    assert.equal((await selectOne(env, invalid)).status, 400);
+  assert.deepEqual(ok(await selectOne(env, m)), { stored: 1 });
+  assert.equal(row(env, "SELECT COUNT(*) n FROM app_settings WHERE key='hermes_mail_seen'").n, 0);
+  assert.deepEqual(ok(await selectOne(env, m)), { stored: 0 });
+  const selected = row(env, "SELECT mail_task_id, outbound_id, reply_kind FROM email_inbound");
+  assert.deepEqual(selected, { mail_task_id: null, outbound_id: null, reply_kind: null });
+});
+
+test("a selected message and a recognised reply keep one original, its link and its deletion in either order", async () => {
+  for (const selectedFirst of [true, false]) {
+    const env = world();
+    env.MSG03_MANUAL_GMAIL_READY = "1";
+    // Selection can predate settlement of the send that makes this thread recognisable.
+    const m = reply(), choose = () => selectOne(env, m), sync = () => replies(env, "t1", [m]);
+    if (selectedFirst) ok(await choose());
+    const t = await sentTask(env);
+    ok(await sync());
+    if (!selectedFirst) ok(await choose());
+    assert.equal(row(env, "SELECT COUNT(*) n FROM email_inbound").n, 1);
+    const item = row(env, "SELECT * FROM email_inbound");
+    assert.equal(item.mail_task_id, t.id);
+    assert.equal(item.sender, DESK);
+    assert.equal(item.reply_kind, "human");
+    run(env, "DELETE FROM email_inbound WHERE id = ?", item.id);
+    ok(await choose()); ok(await sync());
+    assert.equal(row(env, "SELECT COUNT(*) n FROM email_inbound").n, 0);
+  }
+});

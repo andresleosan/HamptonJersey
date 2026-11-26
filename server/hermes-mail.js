@@ -270,38 +270,62 @@ export function replyKind(m) {
 // of Hermes in the thread, never to a person. Headers are cut to size and a malformed message is skipped, so one odd
 // email never stops the rest.
 const cut = (v, max) => typeof v === "string" && v ? v.slice(0, max) : null;
-async function mailReplies({ request, env }) {
-  if (!mailReady(env)) fail(404, "Not found");
+const selectedReady = env => mailReady(env) && env.MSG03_MANUAL_GMAIL_READY === "1";
+const gmailId = value => typeof value === "string" && GMAIL_ID.test(value);
+async function selectionStatus({ env }) {
+  if (!selectedReady(env)) fail(404, "Not found");
+  return json({ ready: true });
+}
+async function mailReplies({ request, env }, selected = false) {
+  if (!mailReady(env) || (selected && !selectedReady(env))) fail(404, "Not found");
   const b = await readJson(request, 1024 * 1024) ?? {};
-  if (!GMAIL_ID.test(b.thread_id ?? "")) fail(400, "thread_id is not a Gmail id");
+  if (!gmailId(b.thread_id)) fail(400, "thread_id is not a Gmail id");
   if (!Array.isArray(b.messages) || b.messages.length > 50) fail(400, "Send at most 50 messages");
+  if (selected && (b.messages.length !== 1 || b.incoming !== true))
+    fail(400, "Select one incoming message");
   let t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(result_at) AS result_at FROM mail_tasks WHERE gmail_thread_id = ?
     AND status IN ('sent', 'drafted')`).bind(b.thread_id).first(), outId = null;
   if (!t?.id) { // an approved enquiry of the queue: the reply is linked to its email, as one through Cloudflare is
     t = await env.DB.prepare(`SELECT MAX(id) AS id, MIN(claimed_at) AS result_at FROM outbound WHERE ${OUT_THREAD} AND gmail_thread_id = ?`)
       .bind(b.thread_id).first();
-    if (!t?.id) fail(404, "Not a thread of the app's email");
-    outId = t.id;
+    if (!t?.id && !selected) fail(404, "Not a thread of the app's email");
+    outId = t?.id ?? null;
   }
   const stmts = [], ts = now();
   for (const m of b.messages) {
-    if (!GMAIL_ID.test(m?.id ?? "") || Number.isNaN(Date.parse(m.at ?? ""))) continue;
-    const at = new Date(m.at).toISOString();
-    if (at < t.result_at) continue; // before the email went out: not a reply
+    const received = typeof m?.at === "string" ? Date.parse(m.at) : NaN;
+    if (!gmailId(m?.id) || !Number.isFinite(received)) {
+      if (selected) fail(400, "Invalid selected message");
+      continue;
+    }
+    if (selected && (received <= Date.now() - WATCH_MS || received > Date.now() + 300_000))
+      fail(400, "Outside the content retention period");
+    const at = new Date(received).toISOString(), linked = t?.id && at >= t.result_at;
+    if (!selected && !linked) continue; // before the email went out: not a reply
     const sender = emailAddress(/<([^<>]+)>\s*$/.exec(cut(m.from, 500) ?? "")?.[1] ?? cut(m.from, 500));
+    if (selected && !sender) fail(400, "A sender address is required");
     const body = cut(m.text, 1e6) ?? "(No text content)", key = await sha256(`gmail\0${m.id}`);
+    // A prior selection can gain its verified reply link. A deletion leaves only its key, so neither path restores it.
     stmts.push(env.DB.prepare("INSERT INTO email_inbound_keys VALUES (?, ?) ON CONFLICT (key) DO NOTHING").bind(key, ts),
       env.DB.prepare(`INSERT INTO email_inbound (dedupe_key, sender, header_from, recipient, subject, text, html_only, truncated,
         attachments, message_id, in_reply_to, references_header, received_at, mail_task_id, reply_kind, outbound_id)
-      SELECT ?, ?, ?, NULL, ?, ?, 0, ?, 0, ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1`)
-      .bind(key, sender, sender, cut(m.subject, 500) ?? "(No subject)", body.slice(0, 50000), body.length > 50000 ? 1 : 0,
-        cut(m.message_id, 512), cut(m.in_reply_to, 512), cut(m.references, 2048), at, outId ? null : t.id, replyKind(m), outId));
+      SELECT ?1, ?, ?, NULL, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?
+      WHERE changes() = 1 OR EXISTS (SELECT 1 FROM email_inbound WHERE dedupe_key = ?1)
+      ON CONFLICT(dedupe_key) DO UPDATE SET mail_task_id = excluded.mail_task_id, outbound_id = excluded.outbound_id,
+        reply_kind = excluded.reply_kind
+      WHERE email_inbound.mail_task_id IS NULL AND email_inbound.outbound_id IS NULL
+        AND (excluded.mail_task_id IS NOT NULL OR excluded.outbound_id IS NOT NULL)`)
+      .bind(key, sender, sender, cut(m.subject, 500) ?? "(No subject)", body.slice(0, 50000), m.html_only === true ? 1 : 0,
+        body.length > 50000 || m.truncated === true ? 1 : 0, cut(m.message_id, 512), cut(m.in_reply_to, 512),
+        cut(m.references, 2048), at, linked && !outId ? t.id : null, linked ? replyKind(m) : null, linked ? outId : null));
   }
   const out = stmts.length ? await env.DB.batch(stmts) : [];
   return json({ stored: out.filter((_, i) => i % 2).reduce((n, r) => n + r.meta.changes, 0) });
 }
 
 export const mailDoor = [
+  ["POST", /^\/mail\/selected\/ready$/, selectionStatus],
+  ["POST", /^\/mail\/selected$/, ctx => mailReplies(ctx, true)],
   ["POST", /^\/mail\/outbound\/next$/, outboundNext],
   ["POST", /^\/mail\/outbound\/([a-f0-9]{32})\/result$/, outboundResult],
   ["POST", /^\/mail\/(\d+)\/check$/, mailCheck],
