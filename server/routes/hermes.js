@@ -7,6 +7,8 @@ import { QUIET, quietCutoff } from "./applicants.js";
 import { readyCount } from "../applicant-ready.js";
 import { mailDoor, mailRoutes } from "../hermes-mail.js";
 import { marketDoor, marketReady } from "./hermes-market.js";
+import { canUseHermesDrafts, draftersOnly } from "../hermes-drafters.js";
+import { repliesDoor, repliesReady } from "../hermes-replies.js";
 
 // AUT-13 (spec 2026-10-31): Hermes's door. Hermes, on the VPS, reaches it through the key's custodian (H4), which adds
 // Authorization: Bearer <HERMES_KEY>. Fixed operations, public data (C0) and counts only: never who (H6, H7); since PUB-21
@@ -214,6 +216,17 @@ export async function hermesDoor(request, env, path) {
     }
     fail(404, "Not found");
   }
+  // MSG-01: the Facebook reply drafts (server/hermes-replies.js), with their own key, held only by the replies custodian.
+  if (path.startsWith("/replies/")) {
+    if (!repliesReady(env)) fail(404, "Not found");
+    if (!env.HERMES_REPLY_KEY || [env.HERMES_KEY, env.HERMES_MAIL_KEY, env.HERMES_MARKET_KEY].includes(env.HERMES_REPLY_KEY) ||
+        !(await keyOk(request, env, env.HERMES_REPLY_KEY))) fail(401, "Unauthorized");
+    for (const [m, re, handler] of repliesDoor) {
+      const hit = m === request.method && re.exec(path);
+      if (hit) return await handler({ request, env, params: hit.slice(1) });
+    }
+    fail(404, "Not found");
+  }
   if (!(await keyOk(request, env))) fail(401, "Unauthorized");
   await setting(env, "hermes", { at: now() }, "hermes").run(); // H12: when Hermes last asked
   for (const [m, re, handler] of DOOR) {
@@ -222,22 +235,6 @@ export async function hermesDoor(request, env, path) {
   }
   fail(404, "Not found");
 }
-
-// AUT-15 (spec 2026-11-03): who may use Hermes drafts, that is spend Luis's personal ChatGPT plan. The app_settings row
-// hermes_drafters holds a JSON list of emails, set by a remote SQL command (never in this public repo); no row or any
-// other value means nobody. Not a role: never reuse it for another permission.
-async function canUseHermesDrafts(env, email) {
-  const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'hermes_drafters'").first();
-  try {
-    const list = JSON.parse(row?.value);
-    return Array.isArray(list) && list.some(e => typeof e === "string" && e.trim().toLowerCase() === email);
-  } catch { return false; }
-}
-// Before reading the request, so someone off the list can't tell which listings exist.
-const draftersOnly = handler => async ctx => {
-  if (!(await canUseHermesDrafts(ctx.env, ctx.admin))) fail(403, "Hermes drafts aren't available to your account.");
-  return handler(ctx);
-};
 
 // The panel's side (session and same origin, like every admin route): ask, see, use or discard a draft (H10), resume.
 const shape = j => j ? { id: j.id, kind: j.kind, listing_id: j.listing_id, status: j.status, created_at: j.created_at,

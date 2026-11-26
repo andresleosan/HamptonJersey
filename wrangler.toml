@@ -224,6 +224,9 @@ META_MESSAGES_READY = "1"
 # MSG-01: a person's reply from Messages goes to Facebook (Send API, within 24 hours of their last message; needs
 # META_PAGE_TOKEN). Sends messages: only Luis switches it on. His yes of 25-nov-2026 is for after his own test message.
 META_SEND_READY = "0"
+# MSG-01: Hermes drafts a reply to a Facebook conversation when a person asks (migration 0130, HERMES_REPLY_KEY). A person
+# reviews and sends every reply; Hermes sends nothing. Keep equal in both wrangler.toml files.
+MSG01_HERMES_DRAFTS_READY = "0"
 FIREBASE_PROJECT_ID = "hamptonestatesjersey"
 # Clave pública (site key) del widget "hamptonjersey viewings"; en local .dev.vars usa la de prueba.
 TURNSTILE_SITE_KEY = "0x4AAAAAAFQB3xGjTWfMlGS5"

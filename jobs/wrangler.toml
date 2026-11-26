@@ -116,6 +116,9 @@ VIS12_CALENDAR_READY = "0"
 VIS12_CALENDAR_INVITES_READY = "0"
 # MSG-01: the daily retention pass deletes Facebook conversations 30 days after their last message. Must match the other wrangler.toml.
 META_MESSAGES_READY = "1"
+# MSG-01: Hermes drafts a reply to a Facebook conversation when a person asks (migration 0130, HERMES_REPLY_KEY). A person
+# reviews and sends every reply; Hermes sends nothing. Keep equal in both wrangler.toml files.
+MSG01_HERMES_DRAFTS_READY = "0"
 
 [triggers]
 crons = ["*/10 * * * *"]

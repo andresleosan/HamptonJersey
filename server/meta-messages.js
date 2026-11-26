@@ -3,6 +3,7 @@ import { messageText, TEAM_MAX } from "./chat.js";
 import { logEvent } from "./events.js";
 import { chatContactReady } from "./chat-contact.js";
 import { metaSendReady } from "./meta-webhooks.js";
+import { draftsView } from "./hermes-replies.js";
 
 // MSG-01 (docs/roadmap/work/MSG-01/plan.md): the Facebook page's conversations in Messages. A person reads and replies;
 // nothing is sent on its own. Sending is META_SEND_READY, Luis's switch: off, a reply is refused and the screen says
@@ -46,7 +47,7 @@ async function contactLink(env, id) {
   return { contact: contact.id === null ? null : contact, version, suggestions: [] };
 }
 
-async function detail({ env, params: [id] }) {
+async function detail({ env, admin, params: [id] }) {
   const [{ results: [c] }, { results: messages }, { results: [hold] }] = await env.DB.batch([
     env.DB.prepare(`SELECT id, external_user_id, status, last_inbound_at, created_at, handled_at, handled_by
       FROM channel_conversations WHERE id = ?`).bind(Number(id)),
@@ -59,7 +60,7 @@ async function detail({ env, params: [id] }) {
   return json({ conversation: c, messages,
     send: { on: metaSendReady(env), paused: !!hold, window_open: windowOpen(c.last_inbound_at),
       window_ends_at: new Date(Date.parse(c.last_inbound_at) + WINDOW_MS).toISOString() },
-    ...(link && { contact_link: link }) });
+    ...(link && { contact_link: link }), ...(await draftsView(env, admin, c.id)) });
 }
 
 // Messenger Send API: the reply as a RESPONSE to the person's page-scoped id. The token goes in the Authorization header,

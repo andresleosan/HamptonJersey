@@ -74,6 +74,7 @@ import { backupReady, withApplicationWrite, BackupMaintenanceError } from "./bac
 import backupRoutes, { BACKUP_ADMIN } from "./routes/backups.js";
 import { metaMessagesReady, metaWebhook } from "./meta-webhooks.js";
 import facebookRoutes from "./meta-messages.js";
+import { repliesReady, replyRoutes } from "./hermes-replies.js";
 import caseAccessRoutes from "./routes/case-access.js";
 import repairReportRoutes from "./routes/repair-reports.js";
 import { caseAccessReady } from "./case-access.js";
@@ -197,6 +198,7 @@ async function route(request, env, segments, waitUntil) {
     if (vis17Ready(env)) routes = [...routes, ...coordinationRoutes, ...applicantViewingProposalRoutes];
     if (backupReady(env)) routes = [...routes, ...backupRoutes]; // PRE-14: needs migration 0094
     if (metaMessagesReady(env)) routes = [...routes, ...facebookRoutes]; // MSG-01: needs migration 0109
+    if (metaMessagesReady(env) && repliesReady(env)) routes = [...routes, ...replyRoutes]; // MSG-01: Hermes's drafts, needs migration 0130
     // ADM-12: the tenant's repair link; needs migration 0110, CASE_CHALLENGE_HMAC_KEY, and 0046/0049 to create links.
     if (caseAccessReady(env)) routes = [...routes, ...caseAccessRoutes, ...repairReportRoutes];
     // ADM-18: the rental application; needs migration 0117, the same sign-in (0110 and the key) and 0046/0049.

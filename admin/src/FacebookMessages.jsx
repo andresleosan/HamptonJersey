@@ -88,8 +88,22 @@ function Conversation({ id, paused, onChanged, onGone }) {
     try { await api(`/admin/facebook/${id}`, { method: "DELETE" }); await onGone(); }
     catch (e) { if (e.status === 404) onGone(); else { setMsg({ text: e.message }); setBusy(false); } }
   };
+  // MSG-01: Hermes's draft. Using it only fills the reply box; Send reply stays the person's.
+  const draftAct = async (path, done) => {
+    setBusy(true); setMsg(null);
+    try { done?.(await api(path, { method: "POST" })); await load(); }
+    catch (e) { if (e.status === 404) onGone(); else { setMsg({ text: e.message }); await load(); } }
+    finally { setBusy(false); }
+  };
+  const askDraft = () => draftAct(`/admin/facebook/${id}/draft`);
+  const useDraft = dr => {
+    if (text.trim() && !confirm("Replace what you have typed in the reply box with Hermes's draft?")) return;
+    draftAct(`/admin/facebook/${id}/draft/${dr.id}/use`, r => setText(r.draft.text));
+  };
+  const discardDraft = dr => draftAct(`/admin/facebook/${id}/draft/${dr.id}/discard`);
   if (!d) return err ? <p role="alert" className="err">{err}</p> : <p>Loading conversation…</p>;
   const c = d.conversation, s = d.send, [label, tone] = STATUS[c.status];
+  const dr = d.drafts?.draft; // `drafts` only for someone on the drafters list, with the switch on
   const name = d.contact_link?.contact?.name ?? `Facebook user …${String(c.external_user_id).slice(-4)}`;
   // Why Send is not available, in the order the server checks it.
   const blocked = !s.on ? "Sending replies to Facebook is off. Nothing you write here is sent; answer from Facebook's Page inbox for now."
@@ -112,6 +126,23 @@ function Conversation({ id, paused, onChanged, onGone }) {
         {" · "}<time dateTime={m.sent_at}>{fmtDate(m.sent_at)}</time>
         {m.direction === "out" && OUT[m.status] && <> · <span className={m.status === "sending" ? "" : "err"}>{OUT[m.status]}</span></>}</p>
       <p className="text">{m.text}</p></li>)}</ol>
+    {d.drafts && <div className="hermes-draft" role="group" aria-labelledby="f-hermes">
+      <h3 id="f-hermes">{dr?.status === "draft" ? "Draft from Hermes" : "Draft with Hermes"}</h3>
+      {["queued", "working"].includes(dr?.status) ? <div className="row">
+        <p>Hermes is writing a draft (asked <time dateTime={dr.created_at}>{fmtDate(dr.created_at)}</time>).</p>
+        <button type="button" className="btn ghost sm" onClick={() => discardDraft(dr)} disabled={busy}>Cancel</button></div>
+      : dr?.status === "draft" ? <div className="draft">
+        {dr.text.split("\n").map((line, i) => <p key={i}>{line}</p>)}
+        <div className="row">
+          <button type="button" className="btn sm" onClick={() => useDraft(dr)} disabled={busy}>Use this draft</button>
+          <button type="button" className="btn ghost sm" onClick={() => discardDraft(dr)} disabled={busy}>Discard</button></div>
+        <p className="muted">Using it only fills the reply box. Nothing is sent until you press Send reply.</p></div>
+      : <div className="row">
+        {dr?.status === "void" && <p>The last draft is out of date: they wrote again or the conversation changed.</p>}
+        {dr?.status === "failed" && <p>Hermes couldn't write the last draft.</p>}
+        {c.status !== "handled" && <button type="button" className="btn ghost sm" onClick={askDraft} disabled={busy}>Draft with Hermes</button>}
+        <p className="muted">Hermes reads the latest messages of this conversation and drafts a reply for you to check and send.</p></div>}
+    </div>}
     <form onSubmit={send} className="chat-reply">
       {blocked && <p className="warn" id="f-blocked">{blocked}</p>}
       <label>Reply<textarea value={text} maxLength={TEAM_MAX} rows={4} onChange={e => setText(e.target.value)}
