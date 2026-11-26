@@ -1,6 +1,10 @@
 // BUS-09: the Keys Properties reader. Synthetic RSS and sitemap (they only mimic the structure), never copies of the site.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { keysReader, parseKeys } from '../../server/market-readers/keys.js';
 import { normalizeObservation } from '../../server/market-extraction.js';
 
@@ -40,4 +44,21 @@ test('a channel reviewed on a sub-page is a subset of the whole site: read as co
 test('a feed or sitemap without adverts is an invalid response, not an empty market', async () => {
   assert.equal((await reader([sitemap([]), rss([])]).readPage(ctx()).catch(e => e)).code, 'invalid_response');
   assert.equal((await reader([]).readPage(ctx({ allowed_hosts: ['evil.example'] })).catch(e => e)).code, 'access_denied');
+});
+
+test('offline Keys rehearsal compares the live RSS subset with the custodian and returns only counts', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'keys-fixture-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const paths = [join(dir, 'rss.xml'), join(dir, 'sitemap.html')];
+  await writeFile(paths[0], rss([item('2 Bedroom Flat, St Helier £1,980.00', 'Rent-X', 10),
+    item('4 Bedroom House, St Mary £625,000.00', 'Sale-Y', 20)]));
+  await writeFile(paths[1], sitemap([10]));
+  const run = () => spawnSync(process.execPath, ['scripts/rehearse-keys-market.mjs', ...paths], { encoding: 'utf8' });
+  const live = run();
+  assert.equal(live.status, 0, live.stderr);
+  assert.deepEqual(JSON.parse(live.stdout), { baseline: 1, queued: 1, rejected: 0, reasons: {} });
+  await writeFile(paths[1], sitemap([]));
+  const empty = run();
+  assert.equal(empty.status, 1);
+  assert.deepEqual(JSON.parse(empty.stdout), { baseline: 0, error: 'empty_baseline' });
 });
