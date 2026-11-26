@@ -433,3 +433,41 @@ test('D1 local: a sub-channel completes empty, and Hermes reads its root channel
     assert.equal(await count("SELECT COUNT(*) AS n FROM market_source_runs WHERE status='complete'"), 2);
   } finally { await mf.dispose(); }
 });
+
+test('pilot SQL retains each day and channel, including retried pages, unfinished and empty runs', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.parse(at(0)) });
+  const ref = 'src-gaudin-co';
+  const env = world({ HERMES_MARKET_READY: '1', HERMES_MARKET_SOURCES: ref });
+  source(env, ref, 'site', [`${ref}.example.test`], ['/properties']);
+  source(env, ref, 'rent', [`${ref}.example.test`], ['/rent']);
+  const guide = readFileSync(new URL('../../docs/roadmap/work/BUS-09/cotejo-piloto.md', import.meta.url), 'utf8');
+  const sql = /```sql\n([\s\S]*?)\n```/.exec(guide)[1];
+  const report = day => rows(env, sql, { jersey_day: at(day).slice(0, 10) });
+  const send = (ch, adverts, exhausted) => ({ lease: ch, records: adverts, exhausted });
+
+  await marketSweepPass(env, at(0), { readers: {} });
+  const ch = { run_id: runOf(env, 0).id, source_ref: ref, channel_id: 'site' };
+  const claim = async () => ok(await door(env, 'POST', '/claim', ch)).lease;
+  const page = async body => ok(await door(env, 'POST', '/page', body));
+  const first = send(await claim(), [advert(ref, 'A')], false);
+  await page(first);
+  assert.equal((await page(first)).replayed, true);
+  assert.equal(report(0).find(r => r.channel_id === 'site').complete, 0);
+  rest(env);
+  const lease = await claim();
+  ok(await door(env, 'POST', '/fail', { ...ch, lease, reason: 'unavailable' }));
+  rest(env);
+  await page(send(await claim(), [advert(ref, 'B')], true));
+  const firstNight = report(0);
+  assert.deepEqual(firstNight.map(r => [r.channel_id, r.complete, r.pages, JSON.parse(r.urls).sort()]), [
+    ['rent', 0, 0, []], ['site', 1, 2, [url(ref, 'A'), url(ref, 'B')]],
+  ]);
+  rest(env);
+  t.mock.timers.setTime(Date.parse(at(1)));
+  await marketSweepPass(env, at(1), { readers: {} });
+  ch.run_id = runOf(env, 1).id;
+  await page(send(await claim(), [advert(ref, 'B'), advert(ref, 'C')], true));
+  assert.deepEqual(JSON.parse(report(1).find(r => r.channel_id === 'site').urls).sort(), [url(ref, 'B'), url(ref, 'C')]);
+  assert.deepEqual(report(0), firstNight);
+  assert.deepEqual(report(2), []);
+});
