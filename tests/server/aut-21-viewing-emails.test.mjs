@@ -304,10 +304,10 @@ test("the texts hold the property, place, date and time only", () => {
   }
 });
 
-test("the website and the clock carry the same AUT21_VIEWING_EMAILS_READY, off", () => {
+test("the website and the clock carry the same AUT21_VIEWING_EMAILS_READY, on (real test 26-nov)", () => {
   const flag = f => readFileSync(new URL(`../../${f}`, import.meta.url), "utf8").match(/^AUT21_VIEWING_EMAILS_READY = "(\d)"/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });
 
 // Review 25-nov: three ways a cancelled viewing's client could be failed.

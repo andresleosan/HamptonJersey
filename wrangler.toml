@@ -62,10 +62,10 @@ AGE05_SEND_READY = "1"
 # OFE-02: from Sales, an open offer emailed to its seller (an owner in the Advertisers directory), each email approved
 # by a team member and sent through the approved queue (migration 0126). Sends messages: only Luis switches it on, here
 # and in jobs/wrangler.toml at the same time (a test checks it). Off, the clock takes back what is queued.
-OFE02_SEND_READY = "0"
+OFE02_SEND_READY = "1"
 # OFE-02: the clock prepares the proposed seller email and opens an Inbox task (posted to Telegram) for each new
 # open sale offer. Sends nothing by itself. Keep equal in both wrangler.toml files.
-OFE02_AUTO_DRAFT_READY = "0"
+OFE02_AUTO_DRAFT_READY = "1"
 # AUT-25: one welcome email to each new website applicant (their own search and what is missing) and a data check
 # task. Sends messages: the switch is the approval. Keep equal in both wrangler.toml files.
 AUT25_APPLICANT_WELCOME_READY = "0"
@@ -185,7 +185,7 @@ HERMES_MAIL_READY = "1"
 # VIS-13: the client's reminders 24 h and 2 h before a confirmed viewing linked to their search (VIS-17), one approved-queue
 # email each, sent verbatim through the carrier with no review one by one (the switch is the approval), and Confirm /
 # another time / Cancel on AGE-12's private page. Sends messages: only Luis switches it on, in both wrangler.toml at once.
-VIS13_REMINDERS_READY = "0"
+VIS13_REMINDERS_READY = "1"
 # AUT-22: the week's saved Insights (weekly_insights) by email to the team summary's recipients and its configuration
 # revision (Settings > Automations), once per week and recipient, never to an owner, through the approved queue sent by
 # Hermes's carrier (no migration). Sends messages: only Luis switches it on, here and in jobs/wrangler.toml at once.
@@ -194,7 +194,7 @@ AUT22_WEEKLY_EMAIL_READY = "0"
 # and, 24 h after a listing is let or sold (PUB-16), its other viewings cancelled with a notice to each client: approved-queue
 # emails sent verbatim through the carrier with no review one by one (the switch is the approval). No migration. Sends
 # messages: only Luis switches it on, in both wrangler.toml at once. Off, the clock takes back what is queued.
-AUT21_VIEWING_EMAILS_READY = "0"
+AUT21_VIEWING_EMAILS_READY = "1"
 # AUT-24: the licence copy, the EICR copy and the deposit's prescribed information (ADM-11) and the rent change notice
 # (ADM-15) to the lead tenant, and the arrears notice of step +10 (ADM-03) to the landlord, each prepared and approved by
 # a person (R01), sent through the approved queue by Hermes's carrier; Gmail's acceptance records the delivery. Needs

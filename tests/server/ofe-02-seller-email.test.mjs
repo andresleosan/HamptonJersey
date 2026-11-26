@@ -251,10 +251,10 @@ test("migration 0126 only adds a table and its index", () => {
   assert.ok(sql.split(";").map(s => s.trim()).filter(Boolean).every(s => /^CREATE (TABLE|INDEX) (IF NOT EXISTS )?offer_emails/.test(s)));
 });
 
-test("the website and the clock carry the same OFE02_SEND_READY, off", () => {
+test("the website and the clock carry the same OFE02_SEND_READY, on (real test 26-nov)", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^OFE02_SEND_READY = "(.*)"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });
 
 // Review 25-nov: a text written from an offer as it no longer is never goes out with the new offer's record. A text is
@@ -330,8 +330,8 @@ test("two contacts or no owner: no draft, the task asks a person to choose; a cl
   assert.ok(task(env, b).resolved_at);
 });
 
-test("the website and the clock carry the same OFE02_AUTO_DRAFT_READY, off", () => {
+test("the website and the clock carry the same OFE02_AUTO_DRAFT_READY, on (real test 26-nov)", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^OFE02_AUTO_DRAFT_READY = "(.*)"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });
