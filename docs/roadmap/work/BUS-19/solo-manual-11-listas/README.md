@@ -2,6 +2,8 @@
 
 Preparado el 26-nov-2026 a partir de los datos guardados en este clon. La primera lista contiene 12 canales y las otras diez contienen 10 cada una. Son 112 canales de 57 fuentes.
 
+Cada tanda de estas listas sigue la [regla de extracción para el archivo de Hampton](../../../../fichas-archivadas.md), incluidas las fotos privadas, las coincidencias con Listings y la comprobación de cobertura por canal.
+
 Se conserva el orden del estado de fuentes: `source_ref`, después `channel_id`. Cada canal mantiene su identificador y URL; canales distintos de una misma fuente cuentan por separado.
 
 | Lista | Canales | Posiciones |

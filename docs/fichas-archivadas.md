@@ -1,0 +1,51 @@
+# Regla de extracción de fichas para el archivo de Hampton Estates
+
+Cada ficha extraída de cualquiera de los **237 canales del directorio** debe poder reconstruirse con el mismo detalle que una ficha de **Listings → Archived** del panel de empleados. El archivo contenía **1.022 fichas el 26 de noviembre de 2026**. Ese recuento identifica la colección de referencia. El volumen de cada extracción depende de los anuncios que muestre cada canal en la fecha de revisión. [Directorio aceptado](roadmap/work/BUS-23/resumen-aceptacion-publicable.md) · [Plantilla de una ficha](plantilla-ficha-archivo.json)
+
+## Qué guardar de cada ficha
+
+Usa un `id_exportacion` estable en el maestro, el JSON, el cruce y el manifiesto de archivos. Conserva la referencia de la agencia y, cuando esté disponible, la URL individual de la ficha. Para una unidad que solo figure en el plano interactivo de una promoción, guarda la URL del plano o promoción y el identificador visible de la unidad. Las columnas y claves son las mismas en todas las listas.
+
+| Bloque | Datos que se deben buscar y guardar |
+| --- | --- |
+| Identidad y procedencia | Título, clase de registro (inmueble o promoción), promoción matriz y número de unidad cuando proceda. Por cada aparición, agencia o portal, `source_ref`, `channel_id`, URL del catálogo y de la ficha, referencia de origen, fecha de consulta y fechas de publicación o actualización que muestre la fuente. |
+| Oferta | Uso residencial o comercial, tipo de inmueble, venta o alquiler, estado literal del anuncio y disponibilidad equivalente en Hampton. Régimen de tenencia, categoría de vivienda y restricciones de ocupación o compra. Conserva anuncios reservados, vendidos o alquilados que el canal aún muestre, con su estado de origen. |
+| Dirección | País, localidad, parroquia, calle, nombre o número del edificio, unidad, código postal y promotor. Distingue una dirección de la urbanización de la dirección acreditada de una unidad. Conserva por separado la localidad pública y la dirección interna. |
+| Precio y condiciones | Texto anunciado con calificadores como «desde», «ofertas superiores a» o «POA». Importe de venta o renta, moneda y periodicidad, precio por superficie, depósito, tasas parroquiales, gastos de comunidad, servicios incluidos y fecha disponible. Conserva tanto la mención original como su importe y período cuando consten. |
+| Características físicas | Dormitorios, baños, aseos independientes, salas, superficie interior y unidad original, planta, plantas del edificio, año, estado de conservación, calefacción y doble acristalamiento. Plazas y tipo de aparcamiento, garaje, trastero, ascensor, exteriores, equipamientos, mobiliario y política de mascotas. |
+| Texto y otros detalles | Resumen, descripción y especificaciones por grupo, etiqueta y valor dentro de los usos permitidos por la fuente. Registra otros datos publicados y su evidencia, por ejemplo ocupación, referencia o vigencia de un certificado. La verificación documental corresponde al personal de Hampton. |
+| Galería y documentos | Portada si la identifica la fuente, todas las fotos y vistas aéreas, planos, folletos, documentos del anuncio, vídeo y visita virtual. Registra orden, leyenda, procedencia y si cada recurso pertenece a la unidad, a la promoción o es ilustrativo. |
+
+En la plantilla, `listing`, `details` y `content` agrupan los campos del editor. Usa `listing.specs` para las características expresadas en palabras. Por ejemplo, dos plazas asignadas se guardan como `{"group":"Parking","label":"Allocated spaces","value":"2"}` si así lo indica el anuncio. Guarda cualquier dato adicional y su unidad o redacción original en `otros_datos_fuente` de la aparición correspondiente. Usa fechas ISO 8601 con la precisión que ofrezca la fuente.
+
+Conserva los valores originales por fuente cuando difieran. Usa `null` en JSON y celda vacía en CSV para un valor desconocido. Anota en `campos_sin_valor` los datos aplicables ausentes y en `incidencias` el motivo de cualquier conflicto o conversión dudosa. Un precio «POA» conserva su texto y deja el importe vacío. Si la fuente dice «Reserved» y no hay equivalencia inequívoca, conserva ese literal y deja la disponibilidad pendiente de revisión. El panel valida el tipo, el importe y el estado antes de la carga. [Campos de Listings](../server/listing.js) · [Categorías y estados](../server/listing-category.js) · [Dirección](../server/listing-details.js) · [Características físicas](../server/listing-physical.js) · [Condiciones económicas](../server/listing-economics.js)
+
+## Fotos, planos y archivos privados
+
+1. Revisa la galería de detalle hasta el último elemento. Asocia cada recurso al `id_exportacion` y a la fuente que lo muestra. Conserva la posición y marca la portada publicada. Identifica los planos y las fotos compartidas de una promoción para que no se atribuyan como vistas reales de una unidad.
+2. Anota la URL de origen, el proveedor, el permiso aplicable y la visibilidad privada. Si ya existe un archivo privado accesible en Hampton o el canal permite obtener la copia, guarda los bytes autorizados con ruta relativa al paquete, tipo de contenido, tamaño y SHA-256. Las fotos externas se mantienen privadas en Hampton (`origin=external`, `public=0`). Los documentos internos del personal siguen en su circuito privado.
+3. Identifica la variante (`original` o `miniatura`) y su estado (`guardado`, `solo_enlace` o `fallo`). Solo un archivo abierto y verificado cuenta como copia. Si falta permiso para descargar, conserva la referencia permitida y el motivo. Si el original y la miniatura corresponden a la misma foto, cuenta un recurso con sus dos variantes. Para un medio ya archivado en Hampton, registra su referencia en Listings como procedencia. [Política de retención y fotos](roadmap/work/BUS-19/retencion-mercado-v1.md) · [Capturas privadas](../server/property-captures.js) · [Modelo de medios](../migrations/0001_init.sql)
+
+## Identidad y cobertura de los canales
+
+- Revisa la decisión de acceso vigente de cada canal. Sigue el método, las rutas y el alcance autorizados. Registra los canales pendientes, denegados, retirados o sin URL con el motivo correspondiente. Las [11 listas manuales](roadmap/work/BUS-19/solo-manual-11-listas/README.md) reúnen 112 de los 237 canales originales.
+- Para cada canal de la tanda, recorre sus secciones, filtros de oferta, paginación, fichas de detalle y unidades de promociones dentro del alcance permitido. Registra las páginas o secciones comprobadas y la evidencia de la última página o del total visible. Si falla una página o una ficha, conserva su referencia y marca la cobertura parcial. Usa «catálogo vacío» solo cuando hayas podido comprobarlo. Si no se pudo leer, la cantidad de fichas es desconocida.
+- Conserva todas las apariciones de la misma ficha con sus canales de procedencia. Una redirección o alias conserva su fila de cobertura. Cuenta cada ficha una sola vez en el total de la tanda. Mantén separadas las unidades de un edificio, las promociones y las ofertas de operaciones distintas. Antes de fusionar apariciones exige una referencia común o evidencia suficiente de unidad, dirección y operación.
+- Registra cada cotejo con Listings como confirmado, candidato o sin coincidencia. Solo un cotejo confirmado lleva el código Hampton en el maestro. Guarda los códigos candidatos y su evidencia en el cruce. Repite la extracción con la misma identidad para evitar altas duplicadas y conservar los cambios observados.
+
+## Entrega y criterios de aceptación
+
+Entrega un paquete privado por tanda con archivos CSV en UTF-8. La [plantilla JSON](plantilla-ficha-archivo.json) representa una propiedad dentro de `propiedades.json`. Repite los bloques de procedencia y multimedia tantas veces como corresponda. Si la ficha carece de recursos, deja la lista vacía e indica si pudiste revisar la galería.
+
+| Archivo | Contenido verificable |
+| --- | --- |
+| `anuncios-recuperados.csv` | Una fila por `id_exportacion`, con los campos de la ficha, el resultado del cotejo, el código verificado cuando exista y los recuentos de recursos. |
+| `propiedades.json` | Objeto con la lista `propiedades`. Conserva los campos estructurados, las observaciones por canal, los valores de origen, los recursos y las incidencias de cada ficha. |
+| `cruce-identidad-listings.csv` | Identificador de exportación, estado del cotejo, código confirmado o candidato en columnas distintas, evidencia y referencia a Listings cuando exista. |
+| `fotos-y-planos.csv` y `fotos-privadas/` | Manifiesto por ficha y recurso, con sus variantes y estado de archivo. La carpeta contiene las copias autorizadas. Toda ruta de archivo debe resolver dentro del paquete. |
+| `cobertura-canales.csv` | Una fila por canal de la tanda con `source_ref`, `channel_id`, URL, fecha, método, alcance comprobado, resultado, número de fichas distintas asociadas si se conoce y evidencia de vacíos o incidencias. |
+| `informe-final.txt` | Recuentos de canales por resultado, inmuebles y promociones únicos, cotejos, originales, miniaturas, enlaces pendientes y fallos. Incluye los motivos pendientes y las referencias o recibos de verificación de la tanda. |
+
+Para cerrar la tanda, comprueba que cada ficha tenga procedencia, que los identificadores del maestro y el JSON coincidan, y que todas las referencias del cruce y del manifiesto apunten a una ficha. Concilia el recuento de la galería con el manifiesto y verifica los tamaños y las huellas de las copias. Declara el alcance incompleto si quedan páginas o fichas pendientes. Para cerrar el directorio completo, concilia los **237 canales originales** por identificador, incluidos los que tengan un motivo registrado para quedar fuera.
+
+La exportación queda preparada para una carga posterior en el archivo privado. En esa carga, la nueva ficha debe quedar archivada y sin publicar. El estado editorial «archivada» es independiente del estado comercial anunciado. El [importador CSV de Listings](../admin/src/listing-csv.js) admite un subconjunto de campos. Su recibo acredita únicamente esa etapa. Para declarar una ficha cargada, coteja en Listings los datos estructurados y los archivos privados asociados. Los paquetes reales, fotos y recibos se conservan en el almacenamiento privado de la tanda.

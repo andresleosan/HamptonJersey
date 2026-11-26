@@ -8,6 +8,8 @@
 
 ## 2. Decisiones de Luis
 
+Cuando las observaciones de mercado se utilicen para preparar fichas archivables, la entrega final sigue la [regla de extracción para el archivo](../../../fichas-archivadas.md). El recibo del custodio acredita las observaciones que aceptó. La ficha de detalle, su galería y la cobertura se verifican en la exportación.
+
 | Fecha | Decisión | Qué implica |
 | --- | --- | --- |
 | 20-nov | Solo los canales que se pueden leer; el resto, al final (BUS-24). | Entran las 75 fuentes revisadas como permitidas para lectura automática. |

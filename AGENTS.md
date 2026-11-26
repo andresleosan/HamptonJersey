@@ -1,3 +1,7 @@
+# Extracción de fichas de propiedades
+
+Para cualquier canal del directorio de Hampton, aplica la [regla de extracción para el archivo](docs/fichas-archivadas.md). Toda tanda debe entregar las fichas en el formato de Listings, los recursos asociados a cada inmueble y un recuento verificable por canal. Usa la misma regla para trabajo manual, lectores y exportaciones.
+
 # Pruebas de navegador
 
 Para pruebas de interfaz ejecuta `E2E_PRODUCTION_READONLY=0 npm run test:e2e:isolated`, seleccionando una prueba concreta con `E2E_SCRIPT=tests/<archivo>.cjs` cuando corresponda. El modo local usa Chromium sin su sandbox únicamente dentro del contenedor temporal sin red, sin capacidades, sin privilegios y con datos ficticios. No ejecutes ese navegador sin sandbox directamente en el host ni lo uses con producción. Para WebKit usa `HAMPTON_E2E_BROWSER=webkit`.
