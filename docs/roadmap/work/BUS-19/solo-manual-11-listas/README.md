@@ -4,6 +4,8 @@ Preparado el 26-nov-2026 a partir de los datos guardados en este clon. La primer
 
 Cada tanda de estas listas sigue la [regla de extracción para el archivo de Hampton](../../../../fichas-archivadas.md), incluidas las fotos privadas, las coincidencias con Listings y la comprobación de cobertura por canal.
 
+Consulta el [seguimiento de extracción y archivado](seguimiento-extraccion.md) antes de repetir un canal. El registro se actualiza con cada carga verificada.
+
 Se conserva el orden del estado de fuentes: `source_ref`, después `channel_id`. Cada canal mantiene su identificador y URL; canales distintos de una misma fuente cuentan por separado.
 
 | Lista | Canales | Posiciones |
