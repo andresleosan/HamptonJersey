@@ -12,6 +12,7 @@ import { json, fail, readJson, now, sha256 } from "./http.js";
 import { emailAddress } from "./email.js";
 import { emailStop, keyed } from "./consultations.js";
 import { offerSendReady, offerTable, OFFER_CLAIMABLE, OFFER_QUEUE_LIMIT } from "./offer-email-check.js";
+import { taskStatements } from "./notification-tasks.js";
 
 const OPEN = "('pending', 'countered')";
 const CHANGED = "This email changed. Reload to review it.";
@@ -191,6 +192,56 @@ export async function offerEmailPass(env) {
         back(env, e, " AND changes() = 1"), note("offer.seller_email_not_sent", !live ? "switched_off" : expired ? "expired" : "blocked")]);
     }
   } catch { console.error("Offer email pass failed"); } // never the offer, the address or the text
+}
+
+// OFE-02 (OFE02_AUTO_DRAFT_READY, with OFE02_SEND_READY): the clock prepares the proposed text for each new open sale
+// offer and opens one Inbox task for it, which Hermes's /news passes to the team's Telegram channel as a fixed line.
+// Only with one owner who has one contact with an email; otherwise the task asks a person to choose. Nothing is sent:
+// a team member still approves in Sales. One task per offer, resolved once its email is queued, the offer closes or
+// the switches go off. ponytail: 20 new offers a pass.
+export const SELLER_TASK = "seller-email:";
+const taskOf = (id, draft) => ({ taskKey: SELLER_TASK + id, category: "task", target: { kind: "offer", id: String(id) },
+  title: draft ? "Approve the email to the seller" : "Choose the seller for an offer email", preserveDone: true,
+  reason: draft ? "The app prepared it from the offer. Check it in Sales and approve it, or change it first."
+    : "This listing has no single owner with one email in the Advertisers directory. Choose who receives it in Sales." });
+export async function offerDraftPass(env) {
+  try {
+    if (!(await offerTable(env))) return;
+    const live = env.OFE02_AUTO_DRAFT_READY === "1" && offerSendReady(env);
+    const { results: done } = await env.DB.prepare(`SELECT n.task_key, n.event_id, n.title, n.task_reason FROM notifications n
+      LEFT JOIN offers o ON o.id = CAST(substr(n.task_key, ${SELLER_TASK.length + 1}) AS INTEGER)
+      LEFT JOIN offer_emails e ON e.offer_id = o.id
+      WHERE n.task_key LIKE '${SELLER_TASK}%' AND n.resolved_at IS NULL
+        AND (?1 = 0 OR o.id IS NULL OR o.status NOT IN ${OPEN} OR e.status IN ('queued', 'sent', 'needs_review')) LIMIT 50`)
+      .bind(live ? 1 : 0).all();
+    // A task moves only with a newer event on the same record (notification-tasks.js): one per close, by ids only.
+    for (const n of done) await env.DB.batch([env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data)
+        SELECT ?, 'system', entity_type, entity_id, 'offer.seller_email_task_closed', data FROM events WHERE id = ?`).bind(now(), n.event_id),
+      ...taskStatements(env, { ...taskOf(n.task_key.slice(SELLER_TASK.length), true), title: n.title, reason: n.task_reason,
+        eventId: null, resolved: true }, { ifInserted: true })]);
+    if (!live) return;
+    const { results } = await env.DB.prepare(`SELECT o.id FROM offers o JOIN listings l ON l.id = o.listing_id
+      WHERE o.status IN ${OPEN} AND l.operation = 'sale' AND l.archived_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM offer_emails WHERE offer_id = o.id)
+        AND NOT EXISTS (SELECT 1 FROM notifications WHERE task_key = '${SELLER_TASK}' || o.id) ORDER BY o.id LIMIT 20`).all();
+    for (const { id } of results) {
+      const { o, list } = await view(env, id);
+      const one = list.length === 1 && list[0].contacts.length === 1 ? list[0] : null, ts = now();
+      const offerOpen = `EXISTS (SELECT 1 FROM offers WHERE id = ? AND status IN ${OPEN} AND updated_at = ?)`;
+      await env.DB.batch([
+        ...(one ? [env.DB.prepare(`INSERT INTO offer_emails (offer_id, advertiser_id, contact_key, body, amount, offer_updated_at,
+            prepared_by, prepared_at) SELECT ?, ?, ?, ?, ?, ?, 'automatic', ? WHERE ${offerOpen} ON CONFLICT (offer_id) DO NOTHING`)
+          .bind(o.id, one.id, one.contacts[0].key, offerText({ listing: { ...o, id: o.listing_id }, offer: o }), o.amount,
+            o.updated_at, ts, o.id, o.updated_at)] : []),
+        // On the buyer's record by ids only, as the offer's other tasks (sourceAllowsTarget): never the seller or the text.
+        env.DB.prepare(`INSERT INTO events (at, actor, entity_type, entity_id, type, data) SELECT ?, 'system', 'applicant',
+            CAST(applicant_id AS TEXT), ?, json_object('version', 1, 'offer_id', id) FROM offers
+          WHERE id = ? AND status IN ${OPEN} AND updated_at = ?${one ? " AND changes() = 1" : ""}`)
+          .bind(ts, one ? "offer.seller_email_auto_prepared" : "offer.seller_email_needs_seller", o.id, o.updated_at),
+        ...taskStatements(env, { ...taskOf(o.id, one), eventId: null }, { ifInserted: true }),
+      ]);
+    }
+  } catch { console.error("Offer draft pass failed"); } // never the offer, the seller or the text
 }
 
 export default [

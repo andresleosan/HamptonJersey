@@ -86,9 +86,12 @@ async function news({ request, env }) {
     FROM notifications n JOIN events e ON e.id = n.event_id
     LEFT JOIN viewing_requests v ON e.entity_type = 'viewing' AND v.id = e.entity_id
     LEFT JOIN listings l ON l.id = v.listing_id AND l.published = 1 AND l.archived_at IS NULL
-    WHERE n.id > ?1 AND n.id <= ?2 AND n.action_required = 1 AND n.category IN ('new_applicant', 'viewing')
+    WHERE n.id > ?1 AND n.id <= ?2 AND n.action_required = 1
+      AND (n.category IN ('new_applicant', 'viewing') OR n.task_key LIKE 'seller-email:%')
     ORDER BY n.id LIMIT ${NEWS}`).bind(Number(after), max).all();
-  const items = results.map(n => n.category === "new_applicant"
+  // OFE-02: a seller email to approve, a fixed line only: never the amount, the seller or the text.
+  const items = results.map(n => n.category === "task" ? { id: n.id, text: "Seller email to approve", link: panel(request, "sales") }
+    : n.category === "new_applicant"
     ? { id: n.id, text: "New applicant", link: panel(request) }
     : { id: n.id, text: n.listing ? `New viewing request for ${n.listing}` : "New viewing request", link: panel(request, "viewings") });
   // A cursor past the last notice (a restored database) comes back to it, so later notices are not skipped.

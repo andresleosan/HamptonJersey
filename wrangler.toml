@@ -63,6 +63,9 @@ AGE05_SEND_READY = "1"
 # by a team member and sent through the approved queue (migration 0126). Sends messages: only Luis switches it on, here
 # and in jobs/wrangler.toml at the same time (a test checks it). Off, the clock takes back what is queued.
 OFE02_SEND_READY = "0"
+# OFE-02: the clock prepares the proposed seller email and opens an Inbox task (posted to Telegram) for each new
+# open sale offer. Sends nothing by itself. Keep equal in both wrangler.toml files.
+OFE02_AUTO_DRAFT_READY = "0"
 # PUB-10: the public «Sell or let» form receives owners' requests (migration 0118). Also needs the app_settings row
 # owner_enquiries = {"enabled":true,"privacy_version":...} of the published owners' notice (PRE-09, JOIC of PRE-03).
 # Collects personal data from the public: switched on 25-nov-2026 by decision of Luis (12 months retention, notice 2026-11-25).

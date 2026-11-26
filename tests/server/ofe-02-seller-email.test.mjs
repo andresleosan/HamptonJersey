@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { makeEnv, seedListing, call, adminCookie, T0 } from "./listing-client.mjs";
 import { configure } from "./email-helpers.mjs";
 import { prepareSummary, claimForHermes } from "../../server/email.js";
-import { offerEmailPass } from "../../server/offer-emails.js";
+import { offerEmailPass, offerDraftPass } from "../../server/offer-emails.js";
 import worker from "../../server/jobs.js";
 
 const ADMIN = "admin@example.test", KEY = "hermes-mail-key-hermes-mail-key-0123456789";
@@ -273,4 +273,65 @@ test("a text written before the offer changed is refused, and the proposed text 
   const e = ok(await save(env, id, { revision: 1, advertiser_id: seller, contact_key: keyOf(ctx, seller, SELLER), text: now.proposed_text,
     offer_updated_at: now.offer.updated_at })).email;
   assert.ok(e.text.includes("800,000") && !e.blocked && !e.stale);
+});
+
+// OFE02_AUTO_DRAFT_READY: the clock prepares the proposed text and opens one Inbox task, which Telegram's /news carries
+// as a fixed line; nothing is sent until a team member approves it in Sales.
+const auto = (env, on = true) => Object.assign(env, on && { OFE02_AUTO_DRAFT_READY: "1" });
+const task = (env, id) => env.DB.raw.prepare("SELECT title, resolved_at, target_kind, target_id FROM notifications WHERE task_key = ?")
+  .get(`seller-email:${id}`);
+const news = async env => ok(await call(env, "GET", "/hermes/news?after=0", { bearer: "g".repeat(40), origin: null })).items;
+const SOLE = [{ name: "Sam Seller", email: SELLER, phones: [] }];
+
+test("auto draft off, or OFE02_SEND_READY off: the clock prepares nothing and opens no task", async () => {
+  for (const env of [world(), auto(world({ on: false }))]) {
+    await owner(env, { contacts: SOLE });
+    const id = await offerOn(env);
+    await offerDraftPass(env);
+    assert.equal(n(env, "SELECT COUNT(*) AS n FROM offer_emails"), 0);
+    assert.equal(task(env, id), undefined);
+  }
+});
+
+test("one owner with one email: the clock prepares the proposed text and one task, posted to Telegram as a fixed line", async () => {
+  const env = auto(world());
+  const seller = await owner(env, { contacts: SOLE }), id = await offerOn(env);
+  await offerDraftPass(env);
+  await offerDraftPass(env); // again: still one email and one task
+  const e = mail(env), ctx = await context(env, id);
+  assert.deepEqual([e.status, e.revision, e.prepared_by, e.advertiser_id, e.body], ["draft", 1, "automatic", seller, ctx.proposed_text]);
+  assert.equal(ctx.email.contact.email, SELLER);
+  assert.equal(ctx.email.blocked, null);
+  assert.deepEqual({ ...task(env, id) }, { title: "Approve the email to the seller", resolved_at: null, target_kind: "offer", target_id: String(id) });
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM notifications WHERE task_key LIKE 'seller-email:%'"), 1);
+  const items = await news(env);
+  assert.deepEqual(items.map(i => i.text), ["Seller email to approve"]);
+  assert.ok(!JSON.stringify(items).includes("750") && !JSON.stringify(items).includes("seller.example"));
+  assert.equal(outbound(env).length, 0); // nothing leaves without a person
+  ok(await approve(env, id, 1));
+  await offerDraftPass(env);
+  assert.ok(task(env, id).resolved_at);
+  assert.equal(outbound(env).length, 1);
+});
+
+test("two contacts or no owner: no draft, the task asks a person to choose; a closed offer resolves it", async () => {
+  const env = auto(world());
+  await owner(env); // two contacts
+  const a = await offerOn(env), b = await offerOn(env, "HE-R002"); // HE-R002 has no owner
+  await offerDraftPass(env);
+  assert.equal(n(env, "SELECT COUNT(*) AS n FROM offer_emails"), 0);
+  for (const id of [a, b]) assert.equal(task(env, id).title, "Choose the seller for an offer email");
+  ok(await req(env, "POST", `/admin/offers/${a}/withdraw`, {}));
+  await offerDraftPass(env);
+  assert.ok(task(env, a).resolved_at);
+  assert.equal(task(env, b).resolved_at, null);
+  env.OFE02_AUTO_DRAFT_READY = "0"; // switched off: what is open is resolved
+  await offerDraftPass(env);
+  assert.ok(task(env, b).resolved_at);
+});
+
+test("the website and the clock carry the same OFE02_AUTO_DRAFT_READY, off", () => {
+  const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^OFE02_AUTO_DRAFT_READY = "(.*)"$/m)?.[1];
+  assert.equal(flag("wrangler.toml"), "0");
+  assert.equal(flag("jobs/wrangler.toml"), "0");
 });

@@ -99,6 +99,9 @@ AGE05_SEND_READY = "1"
 # OFE-02: offers emailed to their sellers from Sales (migration 0126). Keep equal in ../wrangler.toml. Off, no offer
 # email is claimed and the clock takes back what is queued.
 OFE02_SEND_READY = "0"
+# OFE-02: the clock prepares the proposed seller email and opens an Inbox task (posted to Telegram) for each new
+# open sale offer. Sends nothing by itself. Keep equal in both wrangler.toml files.
+OFE02_AUTO_DRAFT_READY = "0"
 # PRE-14: weekly encrypted backup write gate (migration 0094). Off until every writer in docs/roadmap/work/PRE-14/writer-coverage.md is covered; keep equal in the other wrangler.toml.
 BACKUP_READY = "0"
 # PRE-10: marketing objection per purpose and channel in the panel, and the consent check of every promotional email right before it is sent (migration 0096, applied 16-nov-2026). Sends nothing; keep equal in the other wrangler.toml.

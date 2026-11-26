@@ -19451,8 +19451,8 @@
       "fase": "F3-B",
       "estado": "parcial",
       "responsable": "desarrollo",
-      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL.",
-      "falta": "Encender OFE02_SEND_READY (envío a propietarios: necesita el sí de Luis) y una prueba real con un vendedor de prueba con su buzón.",
+      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL. 26-nov-2026: borrador automático (OFE02_AUTO_DRAFT_READY=0): el reloj prepara el texto propuesto de cada oferta de venta nueva cuando la ficha tiene un solo propietario con un solo correo, y abre una tarea en el Inbox («Approve the email to the seller» o «Choose the seller…») que el avisador publica en el canal de Telegram del equipo como línea fija, sin importe ni vendedor. La aprobación sigue siendo de una persona en Sales; la tarea se cierra al aprobar, al cerrarse la oferta o al apagar.",
+      "falta": "Encender OFE02_SEND_READY y OFE02_AUTO_DRAFT_READY tras la prueba real con el buzón de Luis. Opcional: línea propia en el avisador («Seller email to approve» con enlace a Sales); hoy sale como «New item in the panel».",
       "bloqueo": "Correo (AUT-17)",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
@@ -19460,7 +19460,8 @@
         "migrations/0001_init.sql:1-23",
         "migrations/0012_sales.sql:28",
         "25-nov-2026: commits c86fd0ac, eeab2256, c38e3569 (revisión independiente: texto atado a la versión de la oferta), 74b267da. npm test 3600/3600, build OK; d1-depth con OFE02 y VIS13 encendidos bajo 90. 0126 aplicada y registrada (migrations list sin pendientes).",
-        "25-nov-2026, decisiones de Luis en la sesión: primera prueba real con su buzón (vendedor de prueba individual con su correo) antes de dejar encendido OFE02_SEND_READY. En producción hoy: 0 ofertas abiertas."
+        "25-nov-2026, decisiones de Luis en la sesión: primera prueba real con su buzón (vendedor de prueba individual con su correo) antes de dejar encendido OFE02_SEND_READY. En producción hoy: 0 ofertas abiertas.",
+        "26-nov-2026: tests/server/ofe-02-seller-email.test.mjs (borrador automático, tarea única, /news sin importe ni vendedor, cierre al aprobar, retirar o apagar) 16/16. En producción solo la oferta de prueba 1 abierta."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -19482,8 +19483,8 @@
         "email-pipeline",
         "listings-contract"
       ],
-      "nextStep": "Con el sí de Luis: vendedor de prueba con su buzón, oferta de prueba, aprobar y comprobar envío y respuesta; después encender.",
-      "actualizado": "2026-11-25"
+      "nextStep": "Prueba real 26-nov con el buzón de Luis encendiendo también OFE02_AUTO_DRAFT_READY: el borrador de la oferta 1 aparece solo, llega el aviso a Telegram, Luis aprueba en Sales; después decidir si quedan encendidos.",
+      "actualizado": "2026-11-26"
     },
     {
       "id": "OFE-03",
