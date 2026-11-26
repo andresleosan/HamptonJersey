@@ -66,7 +66,9 @@ export async function reminderPass(env, t = Date.now()) {
   await env.DB.prepare(`UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE status = 'queued' AND template IN ${IN}
     AND NOT ${check}`).bind(ts).run();
   const { results } = await env.DB.prepare(`SELECT v.id, v.date, v.time, v.kind, v.name, v.listing_id, v.reminded_at,
-      COALESCE(v.updated_at, v.created_at) AS changed_at, COALESCE(l.title, v.listing_title_snapshot) AS title, l.location, l.country,
+      COALESCE((SELECT e.at FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)
+        AND e.type IN ('viewing.booked', 'viewing.confirmed', 'viewing.rescheduled') ORDER BY e.at DESC LIMIT 1),
+        v.updated_at, v.created_at) AS scheduled_at, COALESCE(l.title, v.listing_title_snapshot) AS title, l.location, l.country,
       lower(trim(c.email)) AS email, EXISTS (SELECT 1 FROM events e WHERE e.entity_type = 'viewing' AND e.entity_id = CAST(v.id AS TEXT)
         AND e.type = 'viewing.client_confirmed' AND json_extract(e.data, '$.slot') = ${SLOT}) AS confirmed_by_client
     FROM viewing_requests v LEFT JOIN listings l ON l.id = v.listing_id ${CLIENT}
@@ -76,7 +78,7 @@ export async function reminderPass(env, t = Date.now()) {
     const soon = `${v.date} ${v.time}` <= L2, slot = slotOf(v);
     // The 24-hour one only if the viewing was already at this time 24 hours before it (else it was booked or moved
     // inside 24 hours) and nobody has reminded the client of this time since.
-    const due = soon || (!v.reminded_at && local(Date.parse(v.changed_at) + 24 * H) < `${v.date} ${v.time}`);
+    const due = soon || (!v.reminded_at && local(Date.parse(v.scheduled_at) + 24 * H) < `${v.date} ${v.time}`);
     const to = typeof v.email === "string" && v.email.length <= 254 && EMAIL.test(v.email) ? v.email : null;
     if (due && to) {
       const template = REMINDERS[soon ? 1 : 0], { subject, text } = reminderEmail(v);

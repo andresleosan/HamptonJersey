@@ -78,6 +78,22 @@ test("booked or moved inside 24 hours, or first seen with both times passed, onl
   assert.ok(late);
 });
 
+test("editing notes keeps the 24-hour reminder, but moving the appointment inside the window skips it", async () => {
+  const env = world(), start = Date.parse("2026-12-10T14:00:00Z");
+  const oldBooking = new Date(start - 48 * H).toISOString();
+  const recentEdit = new Date(start - 23 * H).toISOString();
+  const kept = viewing(env, at(start), client(env), { changed: recentEdit });
+  const moved = viewing(env, at(start), client(env), { changed: recentEdit });
+  for (const id of [kept, moved]) {
+    run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type)
+      VALUES (?, 'team', 'viewing', ?, 'viewing.booked')`, oldBooking, String(id));
+  }
+  run(env, `INSERT INTO events (at, actor, entity_type, entity_id, type)
+    VALUES (?, 'team', 'viewing', ?, 'viewing.rescheduled')`, recentEdit, String(moved));
+  await reminderPass(env, start - 22 * H);
+  assert.deepEqual(outbound(env).map(o => [o.entity_id, o.template]), [[String(kept), "viewing_reminder_24h"]]);
+});
+
 test("inside 2 hours: one reminder at most; after the start: none", async () => {
   const env = world(), start = Date.parse("2026-12-10T14:00:00Z");
   viewing(env, at(start), client(env), { changed: new Date(start - H).toISOString() });
