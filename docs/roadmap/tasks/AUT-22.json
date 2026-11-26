@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F2",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "25-nov-2026: construido y publicado apagado (AUT22_WEEKLY_EMAIL_READY=0, sin migración). Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios del resumen diario del equipo, con su revisión de configuración; nunca a un propietario; sin recalcular.",
   "falta": "Prueba real con el buzón de Luis y su sí para encender. Necesita el resumen diario del equipo encendido en Email settings con destinatarios.",
   "bloqueo": "",

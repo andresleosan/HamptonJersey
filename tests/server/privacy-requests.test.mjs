@@ -471,6 +471,20 @@ test('REG-15: the copy lists the person\'s confirmed property alerts, and only w
   assert.equal(JSON.stringify(copy).includes('b'.repeat(64)), false, 'never the unsubscribe token');
 });
 
+// MSG-01, before messages come in: Delete unlinks a contact's Facebook conversations (ON DELETE SET NULL) and keeps them,
+// so the erasure plan names them for a person to delete from Messages, only for someone who has them.
+test('MSG-01: an erasure plan names the linked Facebook conversations to delete by hand, only for someone who has them', async () => {
+  const env = on(), cookie = await adminCookie(), p = person(env);
+  const made = (await create(env, cookie, { kind: 'erasure' })).data.request;
+  await call(env, 'POST', `${BASE}/${made.id}/contact`, { cookie, body: { revision: 1, contact_id: p.id } });
+  const plan = async () => (await call(env, 'GET', `${BASE}/${made.id}`, { cookie })).data.erasure.by_hand.map(x => [x.item, x.count]);
+  assert.equal((await plan()).some(([item]) => item === 'facebook_messages'), false);
+  for (const user of ['200000000000001', '200000000000002']) env.DB.raw.prepare(`INSERT INTO channel_conversations (channel, account_id,
+    external_user_id, contact_id, last_inbound_at, last_at, created_at) VALUES ('messenger', '100000000000001', ?, ?, ?, ?, ?)`)
+    .run(user, p.id, T, T, T);
+  assert.deepEqual((await plan()).find(([item]) => item === 'facebook_messages'), ['facebook_messages', 2]);
+});
+
 test('MSG-01: Facebook conversations are named in the copy for review by hand, only for someone who has them', async () => {
   const env = on(), cookie = await adminCookie();
   const { request } = await verified(env, cookie);

@@ -248,6 +248,7 @@ async function decideTenancy({ request, env, admin, params: [id, tenancy] }) {
 // ADM-18: rental applications belong to a search by id and go with it (0117, ON DELETE CASCADE); before 0117, none.
 async function erasurePlan(env, contactId, kept) {
   const applications = await hasTable(env, "rental_applications"), owners = await hasTable(env, "owner_requests");
+  const facebook = await facebookConversations(env, contactId);
   const n = await env.DB.prepare(`SELECT
     (SELECT COUNT(*) FROM applicants WHERE contact_id = ?1) AS searches,
     (SELECT COUNT(*) FROM offers o JOIN applicants s ON s.id = o.applicant_id WHERE s.contact_id = ?1) AS offers,
@@ -260,7 +261,9 @@ async function erasurePlan(env, contactId, kept) {
       ...(applications ? ["rental_applications"] : [])].map(item => ({ item, count: n[item] }))],
     by_hand: [{ item: "viewing_requests", count: await possibleViewings(env, contactId) },
       ...(owners ? [{ item: "owner_requests", count: await ownerRequestCount(env, contactId) }] : []),
-      ...(tenancyLinkReady(env) ? await tenancyItems(env, contactId) : [{ item: "rentals", count: null }])] };
+      ...(tenancyLinkReady(env) ? await tenancyItems(env, contactId) : [{ item: "rentals", count: null }]),
+      // MSG-01: Delete unlinks them (0109: ON DELETE SET NULL) and keeps them; named only for someone who has them.
+      ...(facebook ? [{ item: "facebook_messages", count: facebook }] : [])] };
 }
 
 async function detail({ env, params: [id] }) {

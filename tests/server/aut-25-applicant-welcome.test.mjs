@@ -172,9 +172,10 @@ test("the website and the clock carry the same AUT25_APPLICANT_WELCOME_READY, of
 // Pre-switch check (26-nov): REG-14 finds a returning person by email OR phone. A second website registration with the
 // same phone and another email creates no search (only "registered again" for the team), so no welcome goes to the new
 // address; the one welcome goes to the address the first registration stored.
-test("a repeat registration by phone with another email gets no welcome; the first one's address keeps the only one", async () => {
-  const env = await started(world());
+test("a repeat registration by phone with another email gets no welcome; the first one's address keeps the only one", async t => {
+  const env = await started(world()), real = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ success: true, hostname: "hampton.test" }));
+  t.after(() => { globalThis.fetch = real; });
   const form = o => ({ operation: "rent", name: "Fixture Person", phone: "+447797000111", budget_max: 2500, bedrooms_min: 2,
     parishes_wanted: ["St Helier"], privacy: true, marketing: false, turnstile: "tok", ...o });
   assert.equal((await call(env, "POST", "/applicants", { body: form({ email: "first@example.test" }) })).status, 201);

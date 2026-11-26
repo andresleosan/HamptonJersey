@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F2",
   "estado": "parcial",
-  "responsable": "desarrollo",
+  "responsable": "Luis",
   "hecho": "26-nov-2026: construido y publicado apagado (AUT23_RENTAL_EMAILS_READY=0, migración 0127 rental_step_emails aplicada). Recordatorios de atraso +1/+5 y carta +14 al inquilino principal, y mensajes de renovación al propietario y al inquilino, preparados desde los borradores de ADM-09/ADM-14, editables y aprobados por versión exacta (R01). Sale por la cola aprobada vía Hermes; enviar nunca marca el paso ni toca pagos. Sin datos bancarios.",
   "falta": "Probar con datos de prueba (hoy no hay contratos en producción) y el sí de Luis para encender.",
   "bloqueo": "",

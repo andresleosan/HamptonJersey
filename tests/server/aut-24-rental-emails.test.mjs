@@ -269,6 +269,21 @@ test("unknown stays reachable from the tenancy after it ended; confirming it lea
   assert.deepEqual(ok(await req(env, "GET", `/admin/tenancies/${t}`)).rental_email_checks, []);
 });
 
+// Review 26-nov: by its tenancy, a tenant's document goes only from the tenancy the property's route would pick (the one in
+// place); the next tenant's, entered ahead, is readable but cannot be prepared or approved, nor mark the property's check.
+test("by tenancy, a tenant's document is prepared only for the tenancy in place, never the next one entered ahead", async () => {
+  const env = world();
+  const { r, t } = await home(env);
+  run(env, "UPDATE tenancies SET ended_on = ? WHERE id = ?", ahead(30), t);
+  const next = ok(await req(env, "POST", `/admin/rentals/${r}/tenancies`, { tenant_name: "Nia Next", tenant_email: "nia@tenant.example.test",
+    kind: "periodic", regime: "2025", rent: 1600, start_on: ahead(31), due_day: 1, collect_from: ahead(365) }), 201).tenancy.id;
+  const p = tenancyPath(next, "licence_copy"), c = await context(env, p);
+  assert.match(c.blocked, /another tenancy is in place/i);
+  assert.equal((await save(env, p, { revision: 0, source_version: c.source_version })).status, 409);
+  assert.equal(n(env, "SELECT COUNT(*) n FROM rental_emails"), 0);
+  assert.equal((await context(env, tenancyPath(t, "licence_copy"))).blocked, null, "the tenancy in place still can");
+});
+
 test("the landlord is told at step +10, and the step is marked done only once Gmail accepted it", async () => {
   const env = world();
   const { t } = await home(env);

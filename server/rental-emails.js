@@ -66,6 +66,9 @@ const subjectOf = (kind, f) => ({ licence_copy: `Rental dwelling licence for ${f
 export const bankDetails = text => /\b\d{2}-\d{2}-\d{2}\b|\b\d{8}\b|\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}\b/.test(text);
 const STEP_LABEL = { reminder: "a friendly reminder", firm: "a firm reminder", call: "a phone call" };
 
+// The tenancy a tenant's document is for: the one in place on the property, as its route picks it (today, kind: parameters).
+const inPlace = (today, kind) => `n.id = (SELECT m.id FROM tenancies m WHERE m.rental_id = n.rental_id AND (m.ended_on IS NULL
+  OR m.ended_on > ${today}) AND (${kind} <> 'deposit_info' OR m.deposit_received_on IS NOT NULL) ORDER BY m.start_on, m.id LIMIT 1)`;
 const gate = async env => { if (!(await rentalEmailsOn(env))) fail(404, "Not found"); };
 // What an email of this kind is about, read now: the tenancy (for a tenant's document, the one in place on that property),
 // the party and its address, the source's key and version, the facts of the text, and why it cannot go now (blocked).
@@ -75,8 +78,7 @@ async function subject(env, scope, id, kind) {
   if (!KINDS.includes(kind) || (scope === "rentals" && !TENANT_DOCS.includes(kind))) fail(404, "Not found");
   if (TENANT_DOCS.includes(kind) && !calendarReady(env)) fail(404, "Not found");
   const today = jerseyToday();
-  const tid = scope === "tenancies" ? Number(id) : (await env.DB.prepare(`SELECT n.id FROM tenancies n WHERE n.rental_id = ?
-    AND (n.ended_on IS NULL OR n.ended_on > ?) AND (? <> 'deposit_info' OR n.deposit_received_on IS NOT NULL) ORDER BY n.start_on, n.id LIMIT 1`)
+  const tid = scope === "tenancies" ? Number(id) : (await env.DB.prepare(`SELECT n.id FROM tenancies n WHERE n.rental_id = ?1 AND ${inPlace("?2", "?3")}`)
     .bind(Number(id), today, kind).first())?.id ?? fail(404, "No tenancy in place on this property");
   let key = "", extra = {}, blocked = null;
   if (kind === "rent_notice") {
@@ -110,6 +112,8 @@ async function subject(env, scope, id, kind) {
       : kind !== "deposit_info" && !doc?.done_on ? `Record the ${kind === "eicr_copy" ? "EICR" : "licence"} first (Update in Checks).`
       : kind === "deposit_info" && !t.deposit_protected_on ? "Record the date the deposit was protected first (Edit details)." : null;
   }
+  if (TENANT_DOCS.includes(kind) && scope === "tenancies" && !(await env.DB.prepare(`SELECT 1 FROM tenancies n WHERE n.id = ?1 AND ${inPlace("?2", "?3")}`)
+    .bind(tid, today, kind).first())) blocked = "Another tenancy is in place on this property: send it from the property's Checks.";
   if (kind !== LANDLORD && t.ended_on && t.ended_on <= today) blocked = "This tenancy has ended.";
   const landlord = kind === LANDLORD;
   const to = emailAddress(landlord ? t.landlord_email : t.tenant_email);
@@ -251,9 +255,12 @@ function delivered(env, e, at, actor, by) {
   return [env.DB.prepare(`INSERT INTO rental_events (rental_id, tenancy_id, at, actor, type, data) SELECT ?, ?, ?, ?, 'rental_email.sent', ?
       WHERE changes() = 1`).bind(e.rental_id, e.tenancy_id, at, actor,
     JSON.stringify({ kind: e.kind, revision: e.revision, email_ref: e.email_ref, by, ...(e.kind === "rent_notice" ? { rent_change_id: Number(e.source_key) } : {}) })),
-  ...(TENANT_DOCS.includes(e.kind) ? [env.DB.prepare(`UPDATE compliance_items SET done_on = ?, expires_on = NULL, note = ?, updated_at = ?, updated_by = ?
-      WHERE rental_id = ? AND kind = ? AND done_on IS NULL AND ${sent} AND EXISTS (SELECT 1 FROM tenancies WHERE id = ?
-        AND (ended_on IS NULL OR ended_on > ?))`).bind(day, note, now(), actor, e.rental_id, e.kind, e.id, e.email_ref, e.tenancy_id, jerseyToday())]
+  ...(TENANT_DOCS.includes(e.kind) ? [env.DB.prepare(`UPDATE compliance_items SET done_on = ?1, expires_on = NULL, note = ?2, updated_at = ?3,
+      updated_by = ?4 WHERE rental_id = ?5 AND kind = ?6 AND done_on IS NULL
+      AND EXISTS (SELECT 1 FROM rental_emails WHERE id = ?7 AND status = 'sent' AND email_ref = ?8)
+      -- review 26-nov: only for the tenancy in place, so an ended or a next tenancy's email never marks the current one's check
+      AND EXISTS (SELECT 1 FROM tenancies n WHERE n.id = ?9 AND ${inPlace("?10", "?6")})`)
+    .bind(day, note, now(), actor, e.rental_id, e.kind, e.id, e.email_ref, e.tenancy_id, jerseyToday())]
     : e.kind === LANDLORD ? [env.DB.prepare(`INSERT INTO arrears_steps (tenancy_id, charge_due_on, step, done_at, done_by, note)
       SELECT ?, ?, 'landlord', ?, ?, ? WHERE ${sent} ON CONFLICT DO NOTHING`).bind(e.tenancy_id, e.source_key, at, actor, note, e.id, e.email_ref)] : [])];
 }

@@ -55,3 +55,4 @@ Solo entran las que los planes y la documentación no resuelven; mientras tanto 
 
 | AUT-24 | 0 | Construido y apagado: documentos al inquilino, aviso de renta y aviso al propietario, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |
 | AUT-25 | 0 | Construido y apagado: bienvenida y revisión de datos de cada solicitante nuevo de la web. Lo tuyo: registrarte en la web con tu buzón de prueba y sí para encender. |
+| AUT-23 | 0 | Construido y apagado: correos de atrasos y renovación, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |

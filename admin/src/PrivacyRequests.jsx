@@ -244,6 +244,7 @@ function Identity({ r, team, onSaved, reload }) {
 const BY_HAND = {
   rentals: () => "Rentals: not linked to contacts. Check Rentals by hand.",
   viewing_requests: n => `Viewing requests with the same email or phone: ${n}. Other people can share an email or phone: check each one before deleting it from Viewings.`,
+  facebook_messages: n => `Facebook conversations linked to this contact: ${n}. Delete keeps them, unlinked: delete each one from Messages first (this removes Hampton's copy only; the conversation stays on Facebook).`,
   owner_requests: n => `Owner requests with the same email or phone: ${n}. Other people can share an email or phone: find them with the contact search above (searching does not change the link), check each one and erase it on its page.`,
   tenancies: n => `Tenancies linked to this contact: ${n}. They are kept under their own rules and never deleted from here.`,
   tenancy_candidates: n => `Tenancies still to check below: ${n}.`,

@@ -278,3 +278,7 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-24] El aviso de cambio de renta no vuelve a comprobar en el reclamo que la fecha efectiva no pasó (ventana máx. 24 h) · revisión 26-nov · 26-nov-2026
 - [AUT-23] La carta +14 lista «Tell the landlord» entre los contactos con el inquilino (texto heredado de ADM-09; AUT-24 marca ese paso) · revisión 26-nov · 26-nov-2026
 - [AUT-24] La comprobación de datos bancarios no busca palabras clave como AUT-23 y la de «terminada» usa fecha UTC · revisión 26-nov · 26-nov-2026
+- [AUT-24] El reclamo (RENTAL_CLAIMABLE) y la escritura de approve no vuelven a comprobar «contrato vigente» (solo la lectura de save/approve); sin solapes de contratos no hay caso conocido · revisión 26-nov · 26-nov-2026
+- [AUT-24] Un documento aceptado por Gmail cuando su contrato ya no es el vigente queda enviado pero no marca la comprobación de la propiedad (a mano) · revisión 26-nov · 26-nov-2026
+- [AUT-24] Con AUT24_TENANT_DOCS_READY apagado, los correos inciertos no se listan en la ficha del contrato (sus rutas tampoco existen); si se apaga con alguno pendiente, revisarlo antes · revisión 26-nov · 26-nov-2026
+- [ADM-16] tests/adm-16-tenancy-exit.e2e.cjs falla en «fits at 200% zoom» (390 px) también en main limpio b1c7d51c: fallo anterior, no de AUT-24 · 26-nov-2026
