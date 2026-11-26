@@ -101,7 +101,7 @@ export default function ListingCsvImport({ onClose, onImported }) {
 
   return <section id="listing-csv-panel" className="card fields-group" aria-labelledby="t-listing-import">
     <h2 id="t-listing-import">Import listings from CSV</h2>
-    <p className="muted" id="listing-import-help">Choose up to {LISTING_CSV_LIMIT} rows. Preview checks existing listings and flags missing verified addresses. Ready rows are rechecked before they are saved as private drafts.</p>
+    <p className="muted" id="listing-import-help">Choose up to {LISTING_CSV_LIMIT} rows. Preview checks existing listings and flags missing verified addresses. Ready rows are rechecked and saved as private drafts without photos. Add a photo eligible for the website before publishing.</p>
     <label>Listings CSV<input type="file" accept=".csv,text/csv" aria-describedby="listing-import-help"
       autoFocus disabled={busy} onChange={read} /></label>
     <button type="button" className="btn ghost" disabled={busy} aria-expanded={showPaste}
