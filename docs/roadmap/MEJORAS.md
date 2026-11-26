@@ -282,6 +282,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [AUT-24] Un documento aceptado por Gmail cuando su contrato ya no es el vigente queda enviado pero no marca la comprobación de la propiedad (a mano) · revisión 26-nov · 26-nov-2026
 - [AUT-24] Con AUT24_TENANT_DOCS_READY apagado, los correos inciertos no se listan en la ficha del contrato (sus rutas tampoco existen); si se apaga con alguno pendiente, revisarlo antes · revisión 26-nov · 26-nov-2026
 - [ADM-16] tests/adm-16-tenancy-exit.e2e.cjs falla en «fits at 200% zoom» (390 px) también en main limpio b1c7d51c: fallo anterior, no de AUT-24 · 26-nov-2026
-- [MSG-01] Un borrador de Hermes sigue usable tras una respuesta humana posterior (solo caduca con un mensaje entrante) · revisión 26-nov · 26-nov-2026
-- [MSG-01] El texto de un borrador usado o descartado se guarda hasta que la conversación se borra (30 días); vaciarlo al usar/descartar · revisión 26-nov · 26-nov-2026
 - [MSG-01] Un borrador caducado en «working» no se marca failed; ocupa el hueco hasta que la persona vuelve a pedir · revisión 26-nov · 26-nov-2026

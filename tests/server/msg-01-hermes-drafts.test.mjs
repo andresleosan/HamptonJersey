@@ -149,6 +149,7 @@ test("the full path: ask, Hermes writes, the panel shows it, using it only marks
     assert.equal(used.status, 200);
     assert.equal(used.data.draft.text, "Hello, we will check.");
     assert.equal(row(env, "SELECT status FROM channel_reply_drafts").status, "used");
+    assert.equal(row(env, "SELECT text FROM channel_reply_drafts").text, null, "the text is not kept once used");
     assert.equal((await admin(env, "POST", `/admin/facebook/${id}/draft/${draft.id}/use`)).status, 409);
     assert.deepEqual(await shown(env, id), { draft: null });
     assert.equal(row(env, "SELECT COUNT(*) n FROM channel_messages WHERE direction = 'out'").n, 0);
@@ -182,6 +183,22 @@ test("a draft goes void when they write again or the conversation is handled, an
   const next = (await door(env, "/next", {})).data.draft;
   assert.equal(next.id, row(env, "SELECT id FROM channel_reply_drafts WHERE conversation_id = ? AND status = 'working'", a).id);
   assert.equal((await door(env, "/next", {})).data.draft, null);
+});
+
+// Review 26-nov: a person answered after the draft was asked (a reply that did not fail): the draft is for a question
+// already answered, so it is void; a discarded one keeps no text.
+test("a draft goes void once a person replied, unless that reply failed; a discarded draft keeps no text", async () => {
+  const env = world(), a = conversation(env), b = conversation(env, "Hi", "200000000000005");
+  await ask(env, a); await ask(env, b);
+  await write(env); await write(env);
+  const da = (await shown(env, a)).draft, db = (await shown(env, b)).draft;
+  message(env, a, "out", "Yes, two of them.", iso(Date.now() - MIN), "sent");
+  assert.equal((await shown(env, a)).draft.status, "void");
+  assert.equal((await admin(env, "POST", `/admin/facebook/${a}/draft/${da.id}/use`)).status, 409);
+  message(env, b, "out", "Hello", iso(Date.now() - MIN), "failed");
+  assert.equal((await shown(env, b)).draft.status, "draft", "a failed reply answered nothing");
+  assert.equal((await admin(env, "POST", `/admin/facebook/${b}/draft/${db.id}/discard`)).status, 200);
+  assert.equal(row(env, "SELECT text FROM channel_reply_drafts WHERE id = ?", db.id).text, null);
 });
 
 test("deleting the conversation deletes its drafts", async () => {

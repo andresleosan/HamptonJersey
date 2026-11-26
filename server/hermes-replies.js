@@ -9,9 +9,10 @@ import { canUseHermesDrafts, draftersOnly } from "./hermes-drafters.js";
 export const repliesReady = env => env?.MSG01_HERMES_DRAFTS_READY === "1";
 const STALE_MINUTES = 10, ATTEMPTS = 3, LAST = 10, CHARS = 4000;
 const OPEN = "'queued', 'working', 'draft'";
-// Void: they wrote after the draft was asked, or the conversation is handled. A void draft is never offered to use.
-const VOID = `(EXISTS (SELECT 1 FROM channel_messages m WHERE m.conversation_id = d.conversation_id AND m.direction = 'in'
-  AND m.id > d.last_message_id) OR EXISTS (SELECT 1 FROM channel_conversations c WHERE c.id = d.conversation_id AND c.status = 'handled'))`;
+// Void: they wrote after the draft was asked, a person replied since (a reply that did not fail), or the conversation is
+// handled. A void draft is never offered to use.
+const VOID = `(EXISTS (SELECT 1 FROM channel_messages m WHERE m.conversation_id = d.conversation_id AND m.id > d.last_message_id
+  AND (m.direction = 'in' OR COALESCE(m.status, '') <> 'failed')) OR EXISTS (SELECT 1 FROM channel_conversations c WHERE c.id = d.conversation_id AND c.status = 'handled'))`;
 
 // Before migration 0130 nothing here exists.
 const gate = handler => async ctx => {
@@ -96,12 +97,15 @@ async function ask({ env, admin, params: [id] }) {
   }
 }
 
+// Closed, the draft keeps no text (review 26-nov): Use hands it to the reply box once, read in the same batch.
 const decide = (to, from, where, message) => async ({ env, admin, params: [id, draft] }) => {
-  const d = await env.DB.prepare(`UPDATE channel_reply_drafts SET status = '${to}', decided_at = ?, decided_by = ?
-    WHERE id = ? AND conversation_id = ? AND status IN (${from}) AND ${where} RETURNING id, status, text`)
-    .bind(now(), admin, Number(draft), Number(id)).first();
-  if (!d) fail(409, message);
-  return json({ draft: { id: d.id, status: d.status, ...(to === "used" && { text: d.text }) } });
+  const cond = `id = ?1 AND conversation_id = ?2 AND status IN (${from}) AND ${where}`;
+  const [{ results: [read] }, { meta }] = await env.DB.batch([
+    env.DB.prepare(`SELECT text FROM channel_reply_drafts WHERE ${cond}`).bind(Number(draft), Number(id)),
+    env.DB.prepare(`UPDATE channel_reply_drafts SET status = '${to}', text = NULL, decided_at = ?3, decided_by = ?4
+      WHERE ${cond}`).bind(Number(draft), Number(id), now(), admin)]);
+  if (!meta.changes) fail(409, message);
+  return json({ draft: { id: Number(draft), status: to, ...(to === "used" && { text: read.text }) } });
 };
 // The update's own table is not aliased `d`, so the void test is repeated against it.
 const NOT_VOID = VOID.replace(/\bd\./g, "channel_reply_drafts.");
