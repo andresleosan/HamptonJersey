@@ -8988,7 +8988,7 @@
       "preferredSlot": "hermes",
       "priority": 120,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
@@ -21102,16 +21102,17 @@
       "titulo": "Correos de visita: feedback tras la visita y aviso de cancelación cuando la casa se alquila o vende",
       "origen": "plan",
       "fase": "F2",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "25-nov-2026: construido y publicado apagado (AUT21_VIEWING_EMAILS_READY=0, sin migración). Petición de feedback 1 h después de marcar Completed (hasta 7 días, nunca tras no-show ni con respuesta ya anotada, nunca retroactiva: cuenta desde el primer tick encendido). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente en el mismo lote; nunca se cancela sin aviso; el comprador y el inquilino ya registrado no se cancelan; la tarea de PUB-16 sigue abierta hasta que Gmail acepta el aviso. Destinatario: el correo de la reserva. El interruptor es la aprobación (plan PUB-16, decisión de Luis; diseño de visitas §6). El interruptor está encendido para la prueba real del 26-nov.",
-      "falta": "Queda completar la visita de prueba en el panel, comprobar la petición de feedback en el buzón y decidir si se mantienen activos estos correos. Para excluir al nuevo inquilino del aviso por alquiler, el equipo debe registrar la tenencia durante las primeras 24 horas.",
-      "bloqueo": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "Una hora después de marcar una visita Completed sin respuesta, el cliente recibe por correo la petición de feedback (hasta 7 días; nunca tras no-show ni con respuesta ya anotada). 24 h después de alquilar o vender, las demás visitas futuras se cancelan con un aviso a cada cliente; el comprador y el inquilino ya registrado no se cancelan. Sale por Hermes desde el Gmail de Hampton (AUT-17). Para excluir al nuevo inquilino del aviso por alquiler, el equipo registra la tenencia en las primeras 24 horas.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "Traído de MEJORAS (VIS-04 y PUB-16) el 25-nov-2026; decisión de Luis: prioridad 1 de los correos nuevos.",
         "25-nov-2026: commits 281921a5, 071b0de2, 82ba9dd5 (revisión independiente: cierre de propuestas sin depender del interruptor VIS-17, tarea hasta que el aviso sale y nunca después del inicio, inquilino de tenancy_origins excluido). 19 pruebas focales; npm test 3638/3638; d1-depth con todo encendido.",
         "La lectura de D1 del 26-nov confirmó que la visita de prueba seguía en estado confirmed y aún carecía de correo de feedback en la cola. Las pruebas locales cubren el feedback y la cancelación tras una venta o un alquiler.",
-        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios."
+        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
+        "27-nov-2026 (Jersey): visita de prueba 11 (HE-T901, de prueba) con su resultado quitado en D1 tras marcador Time Travel (el panel no permite volver a «No answer yet»). outbound 185 viewing_feedback queued 21:30:29 por el reloj, claimed 21:34:37 en una ronda manual de Hermes 2, accepted 21:34:38. Luis lo recibió en Recibidos a las 16:34 (Colombia): «Your viewing of PRUEBA Luis (no usar) [HE-OUT-…]». El aviso de cancelación tras alquiler o venta queda cubierto por las pruebas locales (hoy no hay alquileres en producción)."
       ],
       "modulo": "M04",
       "deps": [
@@ -21135,9 +21136,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita.",
-      "actualizado": "2026-11-26",
-      "externalBlocker": "Marcar la visita de prueba con Mark completed → No answer yet → Save outcome y comprobar la recepción del correo de feedback a partir de una hora después, dentro del horario de envío. Decidir si se mantienen activos los correos de visita."
+      "nextStep": "Nada pendiente. Apagar: AUT21_VIEWING_EMAILS_READY a \"0\" en los dos wrangler.toml.",
+      "actualizado": "2026-11-27",
+      "externalBlocker": ""
     },
     {
       "id": "AUT-22",

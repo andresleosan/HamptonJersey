@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **AUT-21 hecha:** una hora después de marcar una visita Completed sin respuesta, el cliente recibe la petición de feedback por correo. Probado con el buzón de Luis. 170 → 171 de 216.
+
 27-nov-2026 · **NOT-10 hecha:** el equipo recibe cada mañana, desde las 08:00 de Jersey, el resumen diario por correo (solo contadores y enlace al panel). Probado con el buzón de Luis. 169 → 170 de 216.
 
 27-nov-2026 · **AUT-22 hecha:** el resumen semanal de Insights llega por correo al equipo (los destinatarios del resumen diario), nunca a un propietario. Probado con el buzón de Luis y encendido por su decisión. 168 → 169 de 216.
