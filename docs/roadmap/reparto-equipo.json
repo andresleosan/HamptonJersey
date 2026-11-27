@@ -33,11 +33,11 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 68,
-      "openCount": 20,
+      "openCount": 19,
       "states": {
         "replanteado": 8,
-        "hecho": 37,
-        "parcial": 12,
+        "hecho": 38,
+        "parcial": 11,
         "pendiente": 4,
         "descartado": 3,
         "bloqueado": 4
@@ -12181,17 +12181,18 @@
       "titulo": "Documentos al inquilino por correo con revisión humana",
       "origen": "plan",
       "fase": "F2",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "26-nov-2026: construido y publicado apagado (AUT24_TENANT_DOCS_READY=0, migración 0128 rental_emails aplicada). Copias de licencia y EICR e información prescrita del depósito al inquilino principal, aviso de cambio de renta y aviso al propietario en el paso +10 de atrasos, preparados, editables y aprobados por versión exacta (R01); la entrega se registra solo cuando Gmail lo acepta. Solo texto: el correo dice cómo obtener los documentos. 26-nov: un correo con resultado incierto queda en la ficha del contrato («Check it») aunque el contrato termine; se abre por el contrato y confirmarlo no marca la comprobación de la propiedad si ese contrato ya terminó. Por el contrato, un documento del inquilino solo se prepara para el contrato vigente de la propiedad; el siguiente, registrado por adelantado, no puede ni marcar la comprobación (revisión 26-nov).",
-      "falta": "Probar con datos de prueba y el buzón de Luis, y su sí para encender en los dos wrangler.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "Desde la ficha del alquiler, el equipo prepara, revisa y aprueba los correos al inquilino principal (copia de licencia y EICR, información prescrita del depósito, aviso de cambio de renta) y al propietario (aviso del paso +10 de atrasos). Cada uno sale una vez por Hermes desde el Gmail de Hampton (AUT-17) y la entrega queda registrada cuando Gmail lo acepta. Nunca datos bancarios ni a los demás ocupantes.",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "Traído de MEJORAS (ADM-11 y ADM-03) el 25-nov-2026; decisión de Luis.",
         "26-nov-2026: integrado (4 commits + 690b4ab3: el texto de atrasos al propietario vale solo para su día, revisión independiente). npm test 3660/3660. 0128 aplicada.",
         "26-nov-2026: inciertos alcanzables tras terminar el contrato (rental_email_checks en GET /admin/tenancies/:id; ruta por contrato para documentos del inquilino). node --test aut-24: 11/11.",
         "26-nov-2026: aut-24 12/12 (prueba nueva: contrato siguiente bloqueado).",
-        "26-nov-2026: npm test 3685/3685, build y check:release OK; revisión independiente sin fallos confirmados (3 notas a MEJORAS). Navegador: el aviso nuevo no se recorrió (necesita AUT24 encendido); adm-16 e2e pasa a 1280 y falla a 390/200 % igual que en main limpio (fallo anterior)."
+        "26-nov-2026: npm test 3685/3685, build y check:release OK; revisión independiente sin fallos confirmados (3 notas a MEJORAS). Navegador: el aviso nuevo no se recorrió (necesita AUT24 encendido); adm-16 e2e pasa a 1280 y falla a 390/200 % igual que en main limpio (fallo anterior).",
+        "27-nov-2026 (Jersey): con 0 alquileres en producción, Luis dijo «sí alquileres»; AUT24_TENANT_DOCS_READY=\"1\" en b6a7441f (npm test 3725/3725, jobs desplegado). Luis creó en el panel propietario, propiedad y contrato de prueba (HE-T0001) con alias de su buzón. Información del depósito: borrador guardado, aprobado tras una ronda manual de Hermes 2; outbound 195 tenant_deposit_info queued 22:13:49, claimed 22:14:23, accepted 22:14:24; el reloj marcó rental_emails 1 sent y el check deposit_info hecho el 27-nov. Luis lo recibió en Recibidos a las 17:14 (Colombia): «Your tenancy deposit for PRUEBA 1 Calle de prueba (no usar) [HE-OUT-…]». Las otras plantillas comparten el mismo camino y las cubren las pruebas locales."
       ],
       "modulo": "M07",
       "deps": [
@@ -12215,9 +12216,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Contrato de prueba con el buzón de Luis; recorrer documentos, aviso de renta y aviso al propietario; encender.",
-      "actualizado": "2026-11-26",
-      "externalBlocker": "Luis: prueba con su buzón y sí para encender AUT24_TENANT_DOCS_READY."
+      "nextStep": "Nada pendiente. Apagar: AUT24_TENANT_DOCS_READY a \"0\" en los dos wrangler.toml.",
+      "actualizado": "2026-11-27",
+      "externalBlocker": ""
     },
     {
       "id": "AUT-25",
