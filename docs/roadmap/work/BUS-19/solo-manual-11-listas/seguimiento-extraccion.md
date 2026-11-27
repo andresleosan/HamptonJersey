@@ -27,7 +27,19 @@ Los canales 1 y 2, 9 y 10 y las entradas de Bridle y BusinessHub se solapan. Una
 
 ### Punto de pausa de la lista 01
 
-Hampton mostraba **1.106 fichas archivadas** al releer el segundo lote. La tanda documenta 255 ofertas con fuente primaria. De ellas, 66 se añadieron, 53 ya estaban en Listings, 127 quedaron como candidatas y 9 requieren confirmar la identidad. La revisión de enlaces de agencias del portal y la preparación de un tercer lote quedaron abiertas. El segundo lote es la última carga de esta revisión con recibo de producción.
+Hampton mostraba **1.106 fichas archivadas** al releer el segundo lote. La tanda documenta 255 ofertas con fuente primaria. De ellas, 66 se añadieron, 53 ya estaban en Listings, 127 quedaron como candidatas y 9 requieren confirmar la identidad. El segundo lote es la última carga de esta revisión con recibo de producción.
+
+### Relevo del tercer lote · 27-nov-2026
+
+La séptima pasada dejó **31 fichas abiertas**. Ocho tienen solo la unidad confirmada, cinco tienen solo el estado de la oferta confirmado y 18 requieren ambas comprobaciones. Se confirmaron seis unidades adicionales y el acumulado local es de **180 fichas verificadas**. La revisión de las 31 referencias no encontró duplicados confirmados y registró **0 altas**.
+
+La consulta contó **1.119 propiedades en Listings** en todos los estados editoriales: 1.106 archivadas, 6 borradores y 7 publicadas. **Faltan 881 para la meta de 2.000.**
+
+- Empieza por la [cola de 28 referencias públicas](lista-01-lote-03-pendientes.csv). Cada fila indica la agencia, las fuentes consultadas y la comprobación que falta. Las tres fichas confidenciales se retoman con el CSV de la tanda privada.
+- Comprueba unidad y estado de la misma operación en fuentes autorizadas. Las rutas de la cola pueden corresponder a páginas antiguas. Una redirección o una ficha ausente no confirman venta, alquiler o retirada.
+- Con cada confirmación, vuelve a cotejar Listings por URL o referencia y por dirección, unidad y operación. Guarda los códigos de Listings y la evidencia por inmueble en el cruce de la tanda privada.
+
+El paquete de trabajo corresponde a `lista-01-lote-03-reconstruido` en el almacenamiento privado. Empieza allí por `resultado-31-confirmaciones.csv`, `cola-lote-03.csv` y `evidencia-septima-pasada/`. Huella SHA-256 del CSV privado de esta pasada `a4f062b808de91f21ea1c2bd6e2a677dc44e697352b1ff54e7749b7d85ce07fe`.
 
 ## Lista 01 · revisión del 26-nov-2026
 
