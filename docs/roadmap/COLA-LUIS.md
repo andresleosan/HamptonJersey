@@ -11,7 +11,6 @@ Desde el 16-nov-2026 las migraciones 0107 (REG-15), 0108 (ANA-04), 0109 (MSG-01)
 | Tarea | Desbloquea | Qué hace falta |
 | --- | --- | --- |
 | AUT-17 | 48 | 25-nov: prueba real hecha (consulta enviada por Gmail y respuesta de vuelta en la app). Nada pendiente tuyo para el correo. |
-| NOT-10 | 0 | El correo por Hermes ya funciona. Para recibir el resumen diario, elige los destinatarios y aprueba la muestra en Settings → Automations. Comprueba el primer correo a partir de las 08:00 de Jersey. |
 | MSG-02 | 1 | El chat de la web (fase 1) está en main y funciona. Falta: confirmar en Cloudflare la regla WAF de /api/chat* y /api/stats (ANA-09, PRE-34), terminar el avisador del VPS (Hermes) sin datos personales en el aviso, la revisión jurídica del aviso del chat y AUT-17 para contestar por correo a quien cerró la página. |
 | PUB-19 | 0 | Página «N personas buscan casa en tu parroquia» construida y apagada. Falta tu autorización de divulgación tras una revisión de privacidad (con el abogado, PRE-33) y PUB-10 operativo para el enlace a valoración; después, desarrollo revisa esquema, retención y coste D1 antes de migrar y encender. |
 | ADM-18 | 3 | Construida y apagada; migración 0117 aplicada el 17-nov. Para abrir la solicitud del inquilino: criterios de asequibilidad de Hampton (ADM18_AFFORDABILITY_POLICY; mientras, todo va a revisión humana), revisar y aplicar 0046 y 0049, el secreto CASE_CHALLENGE_HMAC_KEY, el correo (AUT-17) y tu decisión de poner ADM18_APPLICATION_READY a "1". |
