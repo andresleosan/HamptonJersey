@@ -9,6 +9,7 @@ import { VIEWING_EMAILS, viewingEmailClaimSql } from "./viewing-email-check.js";
 import { RENTAL_EMAILS, rentalEmailClaimSql } from "./rental-email-check.js";
 import { RENTAL_STEP_EMAILS, rentalStepClaimSql } from "./rental-step-email-check.js";
 import { WELCOME, welcomeClaimSql } from "./applicant-welcome-check.js";
+import { STATEMENT_TEMPLATE, statementEmailClaimSql } from "./statement-email-check.js";
 
 export const EMAIL_FROM = "hello@hamptonestatesjersey.com";
 export const EMAIL_REPLY_TO = "replies@app.hamptonestatesjersey.com";
@@ -96,7 +97,7 @@ export async function prepareSummary(env, ts) {
 // PRE-12: retention_notice, the notice before the retention pass deletes a contact, goes only while noticeClaimSql holds.
 // OFE-02: offer_to_seller, an offer taken to its seller, goes only while offerClaimSql holds (server/offer-email-check.js).
 // VIS-13: a viewing reminder goes only while reminderClaimSql holds (server/viewing-reminders.js).
-const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h", "weekly_insights", "viewing_feedback", "viewing_cancelled_closed", "tenant_licence_copy", "tenant_eicr_copy", "tenant_deposit_info", "tenant_rent_notice", "landlord_arrears_notice", "rent_arrears", "renewal_landlord", "renewal_tenant", "applicant_welcome"];
+const TRANSACTIONAL = ["team_summary", "enquiry", "saved_search_confirm", "retention_notice", "offer_to_seller", "viewing_reminder_24h", "viewing_reminder_2h", "weekly_insights", "viewing_feedback", "viewing_cancelled_closed", "tenant_licence_copy", "tenant_eicr_copy", "tenant_deposit_info", "tenant_rent_notice", "landlord_arrears_notice", "rent_arrears", "renewal_landlord", "renewal_tenant", "applicant_welcome", "owner_statement"];
 const PROMOTION = marketing => marketing ? `(outbound.template IN (${TRANSACTIONAL.map(t => `'${t}'`).join(",")})
   OR (EXISTS (SELECT 1 FROM contacts WHERE id = CAST(outbound.entity_id AS INTEGER) AND email = outbound.recipient)
     AND ${ALLOWED("CAST(outbound.entity_id AS INTEGER)", `CASE WHEN substr(outbound.template,1,${MARKETING_TEMPLATE.length})
@@ -157,6 +158,7 @@ async function outboundGate(env, enquiry, day) {
     [RENTAL_EMAILS, await rentalEmailClaimSql(env)], // AUT-24
     [RENTAL_STEP_EMAILS, await rentalStepClaimSql(env)], // AUT-23
     [[WELCOME], welcomeClaimSql(env)], // AUT-25
+    [[STATEMENT_TEMPLATE], statementEmailClaimSql(env)], // ADM-10
   ];
   return { notice, claim: AUTHORIZED(checks, purposeReady(env), capped), after: AUTHORIZED(checks, purposeReady(env), notice) };
 }

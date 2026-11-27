@@ -294,9 +294,10 @@ test('a co-listed listing is enquired about only through AGE-03', () => {
   // AUT-24's rental emails go only to a tenancy's own tenant or its property's landlord, approved by a person, never to an advertiser.
   // AUT-23's arrears and renewal emails go only to a tenancy's tenant or its landlord (rentals' own records), never to an advertiser.
   // AUT-25's welcome goes only to a new website applicant's own contact, never to an advertiser.
+  // ADM-10's statement goes only to the landlord of the closed statement (landlords.email), approved by a person, never to an advertiser.
   assert.deepEqual(code.filter(([, s]) => /INSERT INTO outbound/i.test(s)).map(([f]) => f).sort(),
     ['server/applicant-welcome.js', 'server/consultations.js', 'server/email.js', 'server/offer-emails.js', 'server/rental-emails.js', 'server/rental-step-emails.js', 'server/retention-notices.js',
-      'server/saved-searches.js', 'server/viewing-emails.js', 'server/viewing-reminders.js', 'server/weekly-insights-email.js']);
+      'server/saved-searches.js', 'server/statement-emails.js', 'server/viewing-emails.js', 'server/viewing-reminders.js', 'server/weekly-insights-email.js']);
   assert.deepEqual(code.filter(([, s]) => /advertisers/.test(s) && /\.contacts\b|\$\.contacts/.test(s)).map(([f]) => f).sort(),
     // AUT-17 (Luis, 21-nov-2026): Hermes writes the enquiry and the viewing proposal to the advertiser from Gmail.
     // OFE-02: the seller's contact, only of individual or entity advertisers.

@@ -6,6 +6,7 @@ import { emailPass } from "./email.js";
 import { enquiryEmailCheck, enquiryEmailPass } from "./consultation-email.js";
 import { offerEmailPass, offerDraftPass } from "./offer-emails.js";
 import { rentalEmailPass } from "./rental-emails.js";
+import { statementEmailPass } from "./statement-emails.js";
 import { rentalStepEmailPass } from "./rental-step-emails.js";
 import { remindersReady, reminderPass, reminderSettlePass } from "./viewing-reminders.js";
 import { viewingEmailsReady } from "./viewing-email-check.js";
@@ -119,6 +120,7 @@ const clock = {
     await offerDraftPass(env); // OFE-02: a proposed email and one Inbox task for each new open sale offer
     await rentalEmailPass(env); // AUT-24: what happened to each rental email (also off: what is queued is taken back)
     await rentalStepEmailPass(env); // AUT-23: what happened to each arrears or renewal email
+    await statementEmailPass(env); // ADM-10: a statement Gmail accepted is marked sent (also off: what is queued is taken back)
     if (remindersReady(env)) { // VIS-13: a reminder Gmail accepted marks its viewing reminded
       try { await reminderSettlePass(env); }
       catch { console.error('Viewing reminder settle failed'); }

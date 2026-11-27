@@ -283,3 +283,4 @@ Formato: `- [CÓDIGO] qué mejorar · por qué · fecha`.
 - [ADM-16] tests/adm-16-tenancy-exit.e2e.cjs falla en «fits at 200% zoom» (390 px) también en main limpio b1c7d51c: fallo anterior, no de AUT-24 · 26-nov-2026
 - [MSG-01] Un borrador caducado en «working» no se marca failed; ocupa el hueco hasta que la persona vuelve a pedir · revisión 26-nov · 26-nov-2026
 - [OFE-02] Fuera del horario del cartero (07:00-20:00 Jersey) no se puede aprobar un correo: el cartero no pregunta y a los 30 min la app dice «The app's email sender is not running», que suena a avería. Mejor dejar aprobar y que espere en cola hasta las 07:00, o decir el horario · prueba real 27-nov · 27-nov-2026
+- [ADM-10] Las respuestas del propietario al correo de la liquidación no se vigilan: owner_statement no está en OUT_THREAD de server/hermes-mail.js, así que Hermes no lee el hilo de Gmail · mantiene el alcance de la tarea (solo salida) · 27-nov-2026

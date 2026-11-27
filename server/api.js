@@ -26,6 +26,8 @@ import rentalStepEmailRoutes from "./rental-step-emails.js";
 import rentalRoutes from "./routes/rentals.js";
 import rentRoutes, { arrearsReady, writeoffRoutes, renewalReady, renewalRoutes } from "./routes/rent.js";
 import statementRoutes, { closingRoutes, statementsReady } from "./statements.js";
+import { statementEmailRoutes } from "./statement-emails.js";
+import { statementEmailReady } from "./statement-email-check.js";
 import accountingRoutes from "./rental-accounting.js";
 import reportRoutes from "./routes/report.js";
 import interestRoutes from "./routes/interest.js";
@@ -185,6 +187,7 @@ async function route(request, env, segments, waitUntil) {
     if (arrearsReady(env)) routes = [...routes, ...writeoffRoutes]; // ADM-09: needs migration 0045
     if (renewalReady(env)) routes = [...routes, ...renewalRoutes]; // ADM-14: no migration
     if (statementsReady(env)) routes = [...routes, ...closingRoutes]; // ADM-10: needs migration 0090
+    if (statementEmailReady(env)) routes = [...routes, ...statementEmailRoutes]; // ADM-10: emailing the closed statement
     if (chatContactReady(env)) routes = [...routes, ...chatContactRoutes]; // MSG-03: needs migration 0093
     if (chatApplicantReady(env)) routes = [...routes, ...chatApplicantRoutes]; // MSG-05: needs migrations 0093 and 0098
     if (purposeReady(env)) routes = [...routes, ...marketingPreferenceRoutes]; // PRE-10: needs migration 0096

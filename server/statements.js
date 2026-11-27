@@ -2,10 +2,11 @@ import { json, fail, readJson, now, sha256 } from "./http.js";
 import { addMonths } from "./rentals.js";
 import { jerseyToday } from "./viewings.js";
 import { fieldErrors, asObject } from "./routes/rentals.js";
+import { statementEmailReady } from "./statement-email-check.js";
 
 // ADM-10 (its switch, ADM10_STATEMENTS_READY, with migration 0090): a statement is closed as a frozen revision, marked
 // sent and paid to the landlord by hand, and the Inbox asks for last month's (server/notification-reconcile.js). Off,
-// the statement reads as before. Nothing is emailed: sending stays with AUT-17.
+// the statement reads as before. Emailing it is server/statement-emails.js, with its own switch.
 export const statementsReady = env => env?.ADM10_STATEMENTS_READY === "1";
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const CHANGED = "The figures changed meanwhile. Reload to see them";
@@ -66,7 +67,7 @@ async function statement({ request, env }) {
   const { results: runs } = await env.DB.prepare(`SELECT ${RUN}, CASE WHEN revision = MAX(revision) OVER () THEN snapshot END AS snapshot
     FROM statement_runs WHERE landlord_id = ? AND month = ? ORDER BY revision DESC`).bind(id, month).all();
   const list = runs.map(({ snapshot, ...r }) => r), paid = list.slice(1).find(r => r.paid_on);
-  return json({ ...s, digest: await sha256(kept(s)), runs: list, closed: runs.length ? { ...list[0],
+  return json({ ...s, ...(statementEmailReady(env) && { email_ready: true }), digest: await sha256(kept(s)), runs: list, closed: runs.length ? { ...list[0],
     paid_before: paid ? { revision: paid.revision, paid_on: paid.paid_on, net_pence: paid.net_pence } : null,
     statement: JSON.parse(runs[0].snapshot) } : null });
 }
@@ -94,7 +95,7 @@ async function close({ request, env, admin }) {
 
 // Sent to or paid to the landlord, recorded by hand on the latest closed revision of its month (today, Jersey), once each:
 // an older revision is superseded, so marking it could pay the landlord twice.
-const LATEST = `revision = (SELECT MAX(x.revision) FROM statement_runs x WHERE x.landlord_id = statement_runs.landlord_id
+export const LATEST = `revision = (SELECT MAX(x.revision) FROM statement_runs x WHERE x.landlord_id = statement_runs.landlord_id
   AND x.month = statement_runs.month)`;
 const mark = what => async ({ env, admin, params: [id] }) => {
   const { meta } = await env.DB.prepare(`UPDATE statement_runs SET ${what}_on = ?, ${what}_by = ? WHERE id = ? AND ${what}_on IS NULL

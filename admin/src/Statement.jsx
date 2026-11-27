@@ -101,6 +101,7 @@ function Closing({ data, onDone }) {
       <p>Closed {fmtDay(c.closed_at.slice(0, 10))} by {c.closed_by}: revision {c.revision}, net {pence(c.net_pence)}.</p>
       {changed && <div className="warn to-confirm"><p>The figures changed after this statement was closed. The statement below
         stays as it was closed.</p><button type="button" className="btn" onClick={closeIt} disabled={busy}>Close revision {c.revision + 1}</button></div>}
+      {data.email_ready && !c.sent_on && !changed && <StatementEmail run={c} onDone={onDone} />}
       {["sent", "paid"].map(w => <div key={w} className="inline">{c[`${w}_on`]
         ? <p>{w === "sent" ? "Sent to" : "Paid to"} the landlord on {fmtDay(c[`${w}_on`])} ({c[`${w}_by`]}).</p>
         : <><p>{w === "sent" ? "Not sent yet." : c.paid_before ? paidBefore(c) : "Not paid yet."}</p>
@@ -111,6 +112,38 @@ function Closing({ data, onDone }) {
     </>}
     {msg && <p role="alert" className="err">{msg.text}</p>}
   </section>;
+}
+
+// ADM-10 (ADM10_STATEMENT_EMAIL_READY): the closed statement emailed to the landlord (server/statement-emails.js). The team reads
+// the text and approves exactly it; Gmail taking it marks the statement sent. Mark as sent by hand stays for any other way.
+function StatementEmail({ run, onDone }) {
+  const [d, setD] = useState(null), [err, setErr] = useState(null), [busy, setBusy] = useState(false), url = `/admin/statement-runs/${run.id}/email`;
+  const load = () => api(url).then(setD, x => setErr(x.message));
+  useEffect(() => { load(); }, [run.id]);
+  const act = async (path, body, text) => {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try { await api(`${url}/${path}`, { method: "POST", body }); onDone({ ok: true, text }); await load(); }
+    catch (x) { setErr(x.message); if (x.status === 409) load(); }
+    setBusy(false);
+  };
+  const e = d?.email, waiting = e && ["queued", "sending", "accepted"].includes(e.status);
+  return <div className="card"><h3>Email to the landlord</h3>
+    {!d ? !err && <p role="status">Loading…</p> : <>
+      {d.recipient && <p>To {d.recipient.name}, {d.recipient.email}. Subject: {d.subject}</p>}
+      {e && <p role="status"><strong>{waiting ? "Approved and queued to send" : e.status === "unknown" ? "Not known whether it was sent" : "The last email did not leave"}</strong>
+        {" "}(approved by {e.approved_by})</p>}
+      {e?.status === "unknown" && <div className="inline"><p>The email service did not confirm it. Look in Hampton's Gmail, Sent folder, then say which.</p>
+        <button type="button" className="btn sm" disabled={busy} onClick={() => act("outcome", { sent: true }, "Marked sent.")}>It was sent</button>
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => act("outcome", { sent: false }, "Not sent.")}>It was not sent</button></div>}
+      {d.blocked ? <p className="err">{d.blocked}</p> : !e || !["queued", "sending", "accepted", "unknown"].includes(e.status) ? <>
+        <pre className="statement-email-text">{d.text}</pre>
+        {d.email_stop && <p className="muted">{d.email_stop}</p>}
+        <button type="button" className="btn" disabled={busy || !!d.email_stop}
+          onClick={() => act("approve", { revision: d.revision, digest: d.digest }, "Email approved and queued.")}>Approve and send</button></> : null}
+    </>}
+    {err && <p role="alert" className="err">{err}</p>}
+  </div>;
 }
 
 // A revision after one already paid: what was paid and the difference, never the whole net again.
