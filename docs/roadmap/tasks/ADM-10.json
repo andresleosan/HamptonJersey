@@ -5,7 +5,7 @@
   "origen": "plan",
   "fase": "F5-A",
   "estado": "parcial",
-  "responsable": "Luis",
+  "responsable": "desarrollo",
   "hecho": "Statements (#/rentals/statements) da por propietario con gestión completa y mes las rentas cobradas, los honorarios, el GST si se configura, las reparaciones cargadas y el neto, y se imprime desde el navegador con Print. Construido el 15-nov (2a1f1ba, apagado tras ADM10_STATEMENTS_READY con la migración aditiva 0090): cerrar un mes terminado guarda la liquidación como revisión congelada (statement_runs, instantánea JSON en peniques con su SHA-256); una corrección posterior no la cambia, el panel avisa «The figures changed» y se cierra la revisión siguiente; «sent» y «paid» al propietario se registran a mano una vez, con fecha y autor, solo en la última revisión, que muestra lo ya pagado en una anterior y la diferencia; descarga CSV en el navegador (fórmulas escapadas); los write-offs de ADM-09 del mes salen aparte, sin comisión y fuera del neto; el GST sin configurar sale como £0.00 «GST not configured»; y el Inbox pide «Close landlord statements» el día 1 hasta cerrar todos los del mes anterior. Nada se envía.",
   "falta": "Actualización 21-nov (PRE-23): el correo de la app sale y entra por Hermes con el Gmail de siempre de Hampton (AUT-17). Donde esta ficha dice EMAIL_SERVICE_READY, enlace send_email o Cloudflare Email, léase «canal de correo de Hermes operativo» (AUT-17); la aprobación humana y el interruptor propio de esta tarea no cambian. Decisiones de Luis: GST (¿registrada?, ¿tipo?) y PDF (navegador o servidor); envío por correo con AUT-17. El cierre mensual, sent/paid manual, CSV e impresión están encendidos desde el 15-nov-2026 (0090 aplicada, ADM10_STATEMENTS_READY=1 en web y reloj). Traído de AUT-17 (25-nov): enviar por correo la liquidación cerrada (statement_runs, última revisión) con revisión humana antes de cada envío (R01), sin cuenta bancaria, y marcar sent_on al confirmarse; hoy «sent» se registra a mano.",
   "bloqueo": "Correo (AUT-17) · Dato de Hampton",
@@ -26,7 +26,8 @@
     "Decisión (spec :42 y encargo del 15-nov): el plan no fija si la comisión lleva GST ni el tipo; no se inventa: £0.00 con «GST not configured». Decisión de Luis/Hampton: ¿Hampton está registrada para GST? ¿Qué tipo?",
     "Decisión (spec :25 y :40, encargo del 15-nov): sin PDF en servidor; impresión del navegador y CSV. Sin cuenta bancaria en el documento (spec :23).",
     "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): el snapshot y el PDF económico propio se construyen sin correo. Vuelve a desarrollo: lo externo es condición de activación.",
-    "15-nov-2026: publicada en 4150d9a (34b5cff, 21a2d19, 9818e7c y la corrección del reloj); 0090 (tabla statement_runs y trigger de UPDATE; aditiva) aplicada tras marcador Time Travel; encendida en web y reloj; npm test 2809/2809; tests/adm10-statements.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión: apagado idéntico en 90 combinaciones y en el reloj; la primera halló datos personales imborrables en la instantánea y riesgo de pagar dos veces (corregidos: solo {id,name}, sin trigger de DELETE, sent/paid solo en la última revisión, paid_before); la segunda halló que con el interruptor encendido el reloj pasaba de 5 términos por SELECT compuesto y D1 rechazaba todo el pase de notificaciones (corregido moviendo la fila al nivel superior; verificado con wrangler dev --local y 3 ticks sin errores)."
+    "15-nov-2026: publicada en 4150d9a (34b5cff, 21a2d19, 9818e7c y la corrección del reloj); 0090 (tabla statement_runs y trigger de UPDATE; aditiva) aplicada tras marcador Time Travel; encendida en web y reloj; npm test 2809/2809; tests/adm10-statements.e2e.cjs pasa a 1280 y 390; dos pasadas de revisión: apagado idéntico en 90 combinaciones y en el reloj; la primera halló datos personales imborrables en la instantánea y riesgo de pagar dos veces (corregidos: solo {id,name}, sin trigger de DELETE, sent/paid solo en la última revisión, paid_before); la segunda halló que con el interruptor encendido el reloj pasaba de 5 términos por SELECT compuesto y D1 rechazaba todo el pase de notificaciones (corregido moviendo la fila al nivel superior; verificado con wrangler dev --local y 3 ticks sin errores).",
+    "27-nov-2026: decisiones de Luis: PDF desde el navegador (Print → Guardar como PDF, lo que ya existe; nada en el servidor). GST: lo pregunta a Hampton; mientras, la liquidación sigue sin GST."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -41,13 +42,13 @@
       "scope": "partial"
     }
   ],
-  "externalBlocker": "Luis: decidir GST (registro y tipo) y si basta el PDF del navegador; el envío por correo depende de AUT-17.",
+  "externalBlocker": "Luis: confirmar con Hampton si está registrada para GST en Jersey (y el tipo) antes de cerrar.",
   "resources": [
     "rentals-contract",
     "rentals-ui",
     "email-pipeline",
     "statement-ui"
   ],
-  "nextStep": "Cuando Luis decida GST y PDF (y AUT-17 esté activo), ajustar y cerrar.",
-  "actualizado": "2026-11-25"
+  "nextStep": "Construir apagado el envío por correo de la liquidación cerrada (última revisión de statement_runs) por la cola aprobada de Hermes, con revisión humana antes de cada envío, sin cuenta bancaria, marcando sent_on al aceptarse; PDF del navegador (decisión 27-nov).",
+  "actualizado": "2026-11-27"
 }
