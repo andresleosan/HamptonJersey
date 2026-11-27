@@ -33,11 +33,11 @@
       "area": "Fuentes, agencias, integraciones y automatizaciones",
       "capacity": 2,
       "count": 68,
-      "openCount": 23,
+      "openCount": 22,
       "states": {
         "replanteado": 8,
-        "hecho": 34,
-        "parcial": 15,
+        "hecho": 35,
+        "parcial": 14,
         "pendiente": 4,
         "descartado": 3,
         "bloqueado": 4
@@ -12222,15 +12222,16 @@
       "titulo": "Bienvenida automática y revisión de datos de cada solicitante nuevo de la web",
       "origen": "plan",
       "fase": "F2",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "26-nov-2026: construido y apagado (AUT25_APPLICANT_WELCOME_READY=0, sin migración). Cada búsqueda nueva registrada en la web (residencial, en New y sin asignar) recibe un correo de bienvenida con su propia búsqueda y los datos que faltan para que conteste (teléfono, fecha de mudanza, presupuesto, situación de vivienda si alquila). El interruptor aprueba; solo búsquedas registradas después de encenderlo. Al aceptarlo Gmail, pasa a Searching y su aviso New applicant se cierra. Revisión con reglas fijas: presupuesto raro o sin correo válido abre una tarea en el Inbox con los motivos, sin valores.",
-      "falta": "Prueba real con el buzón de Luis (registro en la web) y su sí para encender en los dos wrangler.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "26-nov-2026: construido y apagado (AUT25_APPLICANT_WELCOME_READY=0, sin migración). Cada búsqueda nueva registrada en la web (residencial, en New y sin asignar) recibe un correo de bienvenida con su propia búsqueda y los datos que faltan para que conteste (teléfono, fecha de mudanza, presupuesto, situación de vivienda si alquila). El interruptor aprueba; solo búsquedas registradas después de encenderlo. Al aceptarlo Gmail, pasa a Searching y su aviso New applicant se cierra. Revisión con reglas fijas: presupuesto raro o sin correo válido abre una tarea en el Inbox con los motivos, sin valores. 27-nov-2026: prueba real en producción y decisión de Luis («sí, se queda AUT-25»): encendido en los dos wrangler.toml (41f410c7).",
+      "falta": "",
       "bloqueo": "",
       "evidencia": [
         "Decisión de Luis 26-nov-2026: «Bienvenida + revisión», «El interruptor aprueba», «Solo los nuevos».",
         "26-nov-2026: tests/server/aut-25-applicant-welcome.test.mjs (9 pruebas); d1-depth con todo encendido.",
-        "26-nov-2026: comprobado REG-14: un segundo registro con el mismo teléfono y otro correo no crea búsqueda (solo «registered again» al equipo), así que no hay bienvenida al correo nuevo; la única va al correo guardado. Prueba nueva en aut-25: 10/10."
+        "26-nov-2026: comprobado REG-14: un segundo registro con el mismo teléfono y otro correo no crea búsqueda (solo «registered again» al equipo), así que no hay bienvenida al correo nuevo; la única va al correo guardado. Prueba nueva en aut-25: 10/10.",
+        "27-nov-2026 (Jersey): AUT25_APPLICANT_WELCOME_READY=\"1\" (41f410c7, jobs desplegado 26809c96); applicant_welcome_since 06:00:34. Registro repetido con el correo del contacto de prueba existente → applicant.duplicate_submitted, sin búsqueda nueva ni bienvenida (REG-14, correcto). Registro con un alias nuevo del buzón de prueba → búsqueda 19 (web, residential, new) 06:19:06; outbound 15 applicant_welcome queued 06:20:30, claimed 06:21:28, accepted 06:21:29 con message_id; Luis la recibió en Recibidos: resume alquiler, cualquier parroquia, 1+ dormitorio, hasta £1,800/mes, y pide la fecha de mudanza y el estatus residencial. Vuelta 06:30:31: búsqueda 19 → searching (updated_by automation) y su aviso New applicant resuelto."
       ],
       "modulo": "M04",
       "deps": [
@@ -12254,9 +12255,9 @@
         "email-transport",
         "jobs-clock"
       ],
-      "nextStep": "Prueba con el buzón de Luis (registro de prueba en la web); después encender en los dos wrangler.",
-      "actualizado": "2026-11-26",
-      "externalBlocker": "Luis: registro de prueba en la web con su buzón y sí para encender AUT25_APPLICANT_WELCOME_READY."
+      "nextStep": "Nada pendiente. Las respuestas del solicitante vuelven por el hilo de Gmail; el equipo las atiende.",
+      "actualizado": "2026-11-27",
+      "externalBlocker": ""
     }
   ]
 }

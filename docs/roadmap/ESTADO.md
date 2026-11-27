@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **AUT-25 hecha:** cada solicitante nuevo de la web recibe al momento una bienvenida con su búsqueda y los datos que faltan, y su búsqueda pasa a Searching. Probado con el buzón de Luis y encendido por su decisión. 167 → 168 de 216.
+
 27-nov-2026 · **OFE-02 hecha:** cada oferta nueva de venta prepara sola el correo al vendedor y avisa por Telegram; sale solo cuando alguien lo aprueba en Sales. Probado con un correo real y encendido por decisión de Luis. 166 → 167 de 216.
 
 27-nov-2026 · **AUT-11 hecha:** «Pause all outbound» probado con un correo real: en pausa no se aprueba ni sale nada de la cola; al reanudar, el correo salió. 165 → 166 de 216.

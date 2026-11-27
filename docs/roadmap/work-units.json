@@ -9100,7 +9100,7 @@
       "preferredSlot": "hermes",
       "priority": 120,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [],
       "resources": [
