@@ -173,10 +173,10 @@ test("the owner of a property is never a recipient", async () => {
   assert.deepEqual((await claims(env2)).map(c => c.to), ["ops@example.test"], "an owner added after queueing is not claimed");
 });
 
-test("the website and the clock carry the same AUT22_WEEKLY_EMAIL_READY, off", () => {
+test("the website and the clock carry the same AUT22_WEEKLY_EMAIL_READY, on (Luis 27-nov)", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT22_WEEKLY_EMAIL_READY = "(.*)"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });
 
 test("the clock's tick makes the week's snapshot and queues its emails only while switched on", async t => {
