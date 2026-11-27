@@ -48,6 +48,5 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
 
-| AUT-23 | 0 | Construido y apagado: correos de atrasos y renovación, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |
 | MSG-01 | 0 | Borrador de Hermes para responder en Facebook, construido y apagado. Lo tuyo: decidir si el texto del cliente puede ir al modelo de Hermes (ChatGPT Pro; ¿también la reserva DeepSeek?), crear la llave HERMES_REPLY_KEY y dar el sí para instalar el script en Hermes. Además, los secretos de Meta (PRE-02). |
 | BUS-09 | 1 | El custodio está en marcha y D1 registra cero anuncios del piloto el 25 y el 26-nov. Pide a Hermes 2 que confirme si la tarea «hampton-mercado» sigue programada a las 02:00 de Jersey y te diga la última y la próxima ejecución. Con dos noches de entregas, desarrollo coteja las tres agencias. |

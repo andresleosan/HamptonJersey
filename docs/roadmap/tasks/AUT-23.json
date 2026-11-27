@@ -4,14 +4,15 @@
   "titulo": "Correos de atrasos y renovación con revisión humana",
   "origen": "plan",
   "fase": "F2",
-  "estado": "parcial",
-  "responsable": "Luis",
-  "hecho": "26-nov-2026: construido y publicado apagado (AUT23_RENTAL_EMAILS_READY=0, migración 0127 rental_step_emails aplicada). Recordatorios de atraso +1/+5 y carta +14 al inquilino principal, y mensajes de renovación al propietario y al inquilino, preparados desde los borradores de ADM-09/ADM-14, editables y aprobados por versión exacta (R01). Sale por la cola aprobada vía Hermes; enviar nunca marca el paso ni toca pagos. Sin datos bancarios.",
-  "falta": "Probar con datos de prueba (hoy no hay contratos en producción) y el sí de Luis para encender.",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "Desde la ficha del contrato, el equipo prepara, revisa y aprueba por correo los recordatorios de atraso (+1, +5), la carta formal (+14) al inquilino principal y los mensajes de renovación al propietario y al inquilino. Cada uno sale una vez por Hermes desde el Gmail de Hampton (AUT-17). Enviar nunca marca el paso como hecho ni registra un pago: eso sigue a mano. La carta avisa de que no hay plantilla validada por un abogado de Jersey.",
+  "falta": "",
   "bloqueo": "",
   "evidencia": [
     "Traído de MEJORAS (ADM-09 y ADM-14) el 25-nov-2026; decisión de Luis. En producción hoy no hay contratos de alquiler: se verificará con datos de prueba.",
-    "26-nov-2026: integrado (commit AUT-23 + 1d38c593 reparación de la fusión, 690b4ab3). Revisión independiente sin fallos importantes propios. npm test 3660/3660. 0127 aplicada (marcador previo 000004a0-00000138-0000512e-9404b7274c540ecaeabe767cb4a9bb2c)."
+    "26-nov-2026: integrado (commit AUT-23 + 1d38c593 reparación de la fusión, 690b4ab3). Revisión independiente sin fallos importantes propios. npm test 3660/3660. 0127 aplicada (marcador previo 000004a0-00000138-0000512e-9404b7274c540ecaeabe767cb4a9bb2c).",
+    "27-nov-2026 (Jersey): AUT23_RENTAL_EMAILS_READY=\"1\" en b6a7441f («sí alquileres», 0 alquileres reales). Contrato de prueba HE-T0001 con 26 días de atraso: Next step «Formal letter»; borrador guardado y aprobado (aviso de plantilla sin validar por abogado visible). outbound 198 rent_arrears queued 22:28:23, claimed 22:33:35 en una ronda manual de Hermes 2, accepted 22:33:36; el reloj marcó rental_step_emails 1 sent y arrears_steps sigue en 0 (enviar no marca el paso). Luis lo recibió en Recibidos a las 17:33 (Colombia): «Rent arrears · payment reference HE-T0001 [HE-OUT-…]». Renovación (fuera de su ventana en este contrato) cubierta por las pruebas locales."
   ],
   "modulo": "M07",
   "deps": [
@@ -35,7 +36,7 @@
     "email-transport",
     "jobs-clock"
   ],
-  "nextStep": "Contrato de prueba con el buzón de Luis; recorrer atraso y renovación; encender.",
-  "actualizado": "2026-11-26",
-  "externalBlocker": "Luis: sí para la prueba con datos de alquiler de prueba y para encender."
+  "nextStep": "Nada pendiente. Apagar: AUT23_RENTAL_EMAILS_READY a \"0\" en los dos wrangler.toml.",
+  "actualizado": "2026-11-27",
+  "externalBlocker": ""
 }

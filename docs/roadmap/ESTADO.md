@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **AUT-23 hecha:** desde la ficha del contrato se aprueban y envían por correo los recordatorios y la carta de atrasos al inquilino y los mensajes de renovación. Probado con un contrato de prueba y el buzón de Luis. 172 → 173 de 216.
+
 27-nov-2026 · **AUT-24 hecha:** desde la ficha del alquiler se aprueban y envían por correo los documentos al inquilino, el aviso de renta y el aviso de atrasos al propietario. Probado con un contrato de prueba y el buzón de Luis. 171 → 172 de 216.
 
 27-nov-2026 · **AUT-21 hecha:** una hora después de marcar una visita Completed sin respuesta, el cliente recibe la petición de feedback por correo. Probado con el buzón de Luis. 170 → 171 de 216.
