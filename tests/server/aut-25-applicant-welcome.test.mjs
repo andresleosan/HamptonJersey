@@ -163,10 +163,10 @@ test("the email holds the applicant's own search only", () => {
   for (const s of ["x@example.test", "+447700900123", "licensed", "http"]) assert.ok(!(subject + text).includes(s), s);
 });
 
-test("the website and the clock carry the same AUT25_APPLICANT_WELCOME_READY, off", () => {
+test("the website and the clock carry the same AUT25_APPLICANT_WELCOME_READY, on (Luis 27-nov)", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT25_APPLICANT_WELCOME_READY = "(.*)"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });
 
 // Pre-switch check (26-nov): REG-14 finds a returning person by email OR phone. A second website registration with the

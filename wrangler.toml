@@ -68,7 +68,7 @@ OFE02_SEND_READY = "1"
 OFE02_AUTO_DRAFT_READY = "1"
 # AUT-25: one welcome email to each new website applicant (their own search and what is missing) and a data check
 # task. Sends messages: the switch is the approval. Keep equal in both wrangler.toml files.
-AUT25_APPLICANT_WELCOME_READY = "0"
+AUT25_APPLICANT_WELCOME_READY = "1"
 # PUB-10: the public «Sell or let» form receives owners' requests (migration 0118). Also needs the app_settings row
 # owner_enquiries = {"enabled":true,"privacy_version":...} of the published owners' notice (PRE-09, JOIC of PRE-03).
 # Collects personal data from the public: switched on 25-nov-2026 by decision of Luis (12 months retention, notice 2026-11-25).
