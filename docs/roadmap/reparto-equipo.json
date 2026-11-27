@@ -49,10 +49,10 @@
       "area": "Inbox, visitas, alquileres y ofertas",
       "capacity": 2,
       "count": 65,
-      "openCount": 10,
+      "openCount": 9,
       "states": {
-        "hecho": 51,
-        "parcial": 8,
+        "hecho": 52,
+        "parcial": 7,
         "pendiente": 1,
         "descartado": 4,
         "bloqueado": 1
@@ -10455,11 +10455,11 @@
       "titulo": "Enviar cada oferta al propietario con un clic",
       "origen": "plan",
       "fase": "F3-B",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL. 26-nov-2026: borrador automático (OFE02_AUTO_DRAFT_READY=0): el reloj prepara el texto propuesto de cada oferta de venta nueva cuando la ficha tiene un solo propietario con un solo correo, y abre una tarea en el Inbox («Approve the email to the seller» o «Choose the seller…») que el avisador publica en el canal de Telegram del equipo como línea fija, sin importe ni vendedor. La aprobación sigue siendo de una persona en Sales; la tarea se cierra al aprobar, al cerrarse la oferta o al apagar. El envío y el borrador automático están encendidos para la prueba real del 26-nov. Se creó el borrador y el canal del equipo aceptó el aviso para revisarlo en Sales.",
-      "falta": "Queda aprobar el borrador de prueba en Sales, comprobar el correo en el buzón de prueba y decidir si se mantienen activos el envío con aprobación humana y el borrador automático.",
-      "bloqueo": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "25-nov-2026: construido y publicado apagado (OFE02_SEND_READY=0, migración 0126 aplicada). Desde Sales, en una oferta abierta, «Email the offer to the seller»: el vendedor es un anunciante individual o entidad de la ficha, se elige su contacto, se edita el texto (sin comprador por defecto) y una persona aprueba esa versión exacta; sale por la cola aprobada vía Hermes y la respuesta vuelve enlazada. Cualquier cambio en la oferta, el contacto o el texto quita la aprobación; el reclamo lo comprueba en SQL. 26-nov-2026: borrador automático (OFE02_AUTO_DRAFT_READY=0): el reloj prepara el texto propuesto de cada oferta de venta nueva cuando la ficha tiene un solo propietario con un solo correo, y abre una tarea en el Inbox («Approve the email to the seller» o «Choose the seller…») que el avisador publica en el canal de Telegram del equipo como línea fija, sin importe ni vendedor. La aprobación sigue siendo de una persona en Sales; la tarea se cierra al aprobar, al cerrarse la oferta o al apagar. El envío y el borrador automático están encendidos para la prueba real del 26-nov. Se creó el borrador y el canal del equipo aceptó el aviso para revisarlo en Sales. 27-nov-2026: prueba real completa en producción y decisión de Luis («sí OFE-02»): quedan encendidos el borrador automático y el envío con aprobación humana.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:10",
         "docs/superpowers/specs/2026-10-24-hampton-app-f3c-design.md:19",
@@ -10469,7 +10469,8 @@
         "25-nov-2026, decisiones de Luis en la sesión: primera prueba real con su buzón (vendedor de prueba individual con su correo) antes de dejar encendido OFE02_SEND_READY. En producción hoy: 0 ofertas abiertas.",
         "26-nov-2026: tests/server/ofe-02-seller-email.test.mjs (borrador automático, tarea única, /news sin importe ni vendedor, cierre al aprobar, retirar o apagar) 16/16. En producción solo la oferta de prueba 1 abierta.",
         "En la prueba real del 26-nov se observó el borrador automático, su tarea y la aceptación del aviso por el canal del equipo. La lectura de D1 confirmó que la oferta de prueba tenía un borrador en estado draft y aún carecía de correo al vendedor en la cola.",
-        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios."
+        "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
+        "26/27-nov-2026 (Jersey): oferta de prueba 1: borrador automático 26-nov 06:50:30, tarea seller-email:1 y aviso «Seller email to approve» al canal (avisador 200); al aceptarse la oferta, la tarea se cerró sola sin enviar (la app solo envía con la oferta abierta). Oferta de prueba 2: borrador automático 27-nov 04:00:30, tarea 1366 y aviso al canal 200; aprobada por Luis 05:41:13 (outbound 14 offer_to_seller queued); la pausa la retuvo (ver AUT-11); accepted por Gmail 05:48:04 con message_id; offer_emails 2 sent. Luis la recibió en Recibidos del buzón de prueba: £500,000, HE-T901, la condición, pide aceptar/rechazar/contraofertar y aclara que nada queda acordado; asunto con [HE-OUT-…] para enlazar la respuesta. Decisión: OFE02_SEND_READY y OFE02_AUTO_DRAFT_READY siguen en \"1\" en los dos wrangler.toml. Fuera del horario del cartero no se puede aprobar (MEJORAS)."
       ],
       "assignedSlot": "vscode",
       "allocationStatus": "proposed",
@@ -10484,15 +10485,15 @@
           "scope": "whole"
         }
       ],
-      "externalBlocker": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
+      "externalBlocker": "",
       "resources": [
         "sales-contract",
         "sales-ui",
         "email-pipeline",
         "listings-contract"
       ],
-      "nextStep": "Abrir la oferta de prueba en Sales, revisar destinatario y texto, aprobar el borrador y comprobar la recepción antes de decidir si se mantienen ambos interruptores.",
-      "actualizado": "2026-11-26"
+      "nextStep": "Nada pendiente. Cada oferta nueva de venta abre su borrador y su tarea; una persona lo aprueba en Sales.",
+      "actualizado": "2026-11-27"
     },
     {
       "id": "OFE-03",
