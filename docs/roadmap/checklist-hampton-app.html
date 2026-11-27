@@ -7600,21 +7600,22 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Resumen semanal de Insights por correo a dirección",
    "origen": "plan",
    "fase": "F2",
-   "estado": "parcial",
-   "responsable": "Luis",
-   "hecho": "25-nov-2026: construido y publicado apagado (AUT22_WEEKLY_EMAIL_READY=0, sin migración). Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios del resumen diario del equipo, con su revisión de configuración; nunca a un propietario; sin recalcular.",
-   "falta": "Prueba real con el buzón de Luis y su sí para encender. Necesita el resumen diario del equipo encendido en Email settings con destinatarios.",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "25-nov-2026: construido y publicado apagado (AUT22_WEEKLY_EMAIL_READY=0, sin migración). Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios del resumen diario del equipo, con su revisión de configuración; nunca a un propietario; sin recalcular. 27-nov-2026: prueba real en producción y decisión de Luis («sí AUT-22»): encendido en los dos wrangler.toml.",
+   "falta": "",
    "bloqueo": "",
    "evidencia": [
     "Traído de MEJORAS (ANA-08) el 25-nov-2026; decisión de Luis.",
-    "25-nov-2026: commits c3e5be62, e01101bd, d8c519af. 14 pruebas focales; npm test 3638/3638."
+    "25-nov-2026: commits c3e5be62, e01101bd, d8c519af. 14 pruebas focales; npm test 3638/3638.",
+    "27-nov-2026 (Jersey): AUT22_WEEKLY_EMAIL_READY=\"1\" (jobs desplegado 350edaca). Con la dirección de Luis como destinataria no se encoló: es el contacto del anunciante de prueba 7 y notOwner lo excluye (nunca a un propietario, correcto). Con un alias del mismo buzón: outbound 16 weekly_insights «Hampton weekly Insights · 2026-11-16 to 2026-11-22» queued 07:00:28, claimed 07:04:36 en la ronda programada de Hermes 2, accepted 07:04:37 con message_id. Luis lo recibió en Recibidos: 64 aperturas de fichas, 2 solicitudes de visita, 6 solicitantes nuevos, 3 visitas hechas; solo referencias de propiedades, sin datos personales."
    ],
    "modulo": "M09",
    "deps": [
     "AUT-17"
    ],
    "criterio_aceptacion": "Una vez por semana y destinatario, el resumen guardado en weekly_insights sale por correo a los destinatarios elegidos en Automations (los del resumen del equipo, con su revisión de configuración); nunca al propietario; sin recalcular ni duplicar.",
-   "actualizado": "2026-11-25"
+   "actualizado": "2026-11-27"
   },
   {
    "id": "AUT-23",

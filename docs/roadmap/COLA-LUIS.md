@@ -49,7 +49,6 @@ Ninguno todavía. `/avanzar` añade aquí cada migración no aditiva o interrupt
 
 Solo entran las que los planes y la documentación no resuelven; mientras tanto se aplica la opción más simple y reversible y se anota aquí para que Luis pueda cambiarla.
 | AUT-21 | 0 | En la visita de prueba elige Mark completed → No answer yet → Save outcome. Comprueba en tu buzón la petición de feedback a partir de una hora después, dentro del horario de envío, y decide si dejas activos los correos de visita. |
-| AUT-22 | 0 | Construido y apagado: resumen semanal por correo. Lo tuyo: elegir destinatarios en Email settings, prueba y sí para encender. |
 
 | AUT-24 | 0 | Construido y apagado: documentos al inquilino, aviso de renta y aviso al propietario, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |
 | AUT-23 | 0 | Construido y apagado: correos de atrasos y renovación, cada uno aprobado por una persona. Lo tuyo: contrato de prueba con tu buzón y sí para encender. |
