@@ -305,8 +305,8 @@ test("migration 0127 only adds a table and its index", () => {
   assert.ok(sql.split(";").map(s => s.trim()).filter(Boolean).every(s => /^CREATE (TABLE|INDEX) (IF NOT EXISTS )?rental_step_emails/.test(s)));
 });
 
-test("the website and the clock carry the same AUT23_RENTAL_EMAILS_READY, off", () => {
+test("the website and the clock carry the same AUT23_RENTAL_EMAILS_READY, on (Luis 27-nov)", () => {
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT23_RENTAL_EMAILS_READY = "(.*)"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });

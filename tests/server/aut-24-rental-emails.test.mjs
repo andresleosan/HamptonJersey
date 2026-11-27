@@ -377,11 +377,11 @@ test("no bank details and no other tenant's data in what is sent", async () => {
   assert.equal(n(env, "SELECT COUNT(*) n FROM rental_emails"), 0);
 });
 
-test("migration 0128 only adds a table and its index; both workers carry the same switch, off", () => {
+test("migration 0128 only adds a table and its index; both workers carry the same switch, on (Luis 27-nov)", () => {
   const sql = readFileSync(new URL("../../migrations/0128_rental_emails.sql", import.meta.url), "utf8").replace(/--.*$/gm, "");
   assert.deepEqual([...sql.matchAll(/^\s*(CREATE|ALTER|DROP|UPDATE|DELETE|INSERT)\s+(\w+)/gim)].map(m => `${m[1]} ${m[2]}`.toUpperCase()),
     ["CREATE TABLE", "CREATE INDEX"]);
   const flag = file => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").match(/^AUT24_TENANT_DOCS_READY = "([01])"$/m)?.[1];
-  assert.equal(flag("wrangler.toml"), "0");
-  assert.equal(flag("jobs/wrangler.toml"), "0");
+  assert.equal(flag("wrangler.toml"), "1");
+  assert.equal(flag("jobs/wrangler.toml"), "1");
 });

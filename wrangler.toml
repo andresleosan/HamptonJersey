@@ -200,7 +200,7 @@ AUT21_VIEWING_EMAILS_READY = "1"
 # a person (R01), sent through the approved queue by Hermes's carrier; Gmail's acceptance records the delivery. Needs
 # migration 0128. Sends messages: only Luis switches it on, here and in jobs/wrangler.toml at once. Off, the clock takes back
 # what is queued.
-AUT24_TENANT_DOCS_READY = "0"
+AUT24_TENANT_DOCS_READY = "1"
 # ADM-10: the closed statement (latest revision) emailed to its landlord, prepared and approved by a person (R01) for each send,
 # through the approved queue Hermes's carrier sends; Gmail's acceptance marks it sent. Needs ADM10_STATEMENTS_READY. Sends
 # messages: only Luis switches it on, here and in jobs/wrangler.toml at once. Off, no route and the clock takes back what is queued.
@@ -209,7 +209,7 @@ ADM10_STATEMENT_EMAIL_READY = "0"
 # tenant (ADM-14), each prepared, edited and approved by a person, then queued once (migration 0127) and sent verbatim
 # by Hermes's carrier from Hampton's Gmail. Sending never marks a step done nor pays anything. Sends messages: only Luis
 # switches it on, in both wrangler.toml at once. Off, nothing is claimed and the clock takes back what is queued.
-AUT23_RENTAL_EMAILS_READY = "0"
+AUT23_RENTAL_EMAILS_READY = "1"
 # BUS-09: Hermes reads the market's allowed channels of the sources in HERMES_MARKET_SOURCES (comma list, "*": all) through
 # its own door (/api/hermes/market/*, secret HERMES_MARKET_KEY, held by the market custodian on the VPS); the daily sweep
 # leaves those channels to it, also when a code reader exists. No migration. Keep equal in jobs/wrangler.toml.
