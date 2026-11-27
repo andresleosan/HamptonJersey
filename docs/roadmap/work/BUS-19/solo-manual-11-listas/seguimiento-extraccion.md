@@ -6,7 +6,7 @@ Consulta este registro antes de repetir un canal. La clave es el `channel_id` de
 
 Se conciliaron los **2.079 registros** del inventario anterior y se ejecutó la vista previa de Listings para las **2.123 URL históricas**. El portal de Jersey contenía **1.964 identificadores**, con **1.855** en las 78 páginas del catálogo. Se inspeccionaron las **1.962 fichas individuales incluidas** en la revisión. Dos identificadores se excluyeron por instrucción de Hampton. Un identificador del portal puede agrupar viviendas distintas.
 
-Los recibos de producción acreditan **66 altas privadas en Archived**, **232 notas internas de procedencia** y **16 fotos nuevas**. Cada nota se ha releído en su ficha. Las altas se verifican por código, fuente y visibilidad. Los códigos, originales y recibos por inmueble se conservan en la tanda privada.
+Los recibos de producción acreditan **66 altas privadas en Archived**, **232 notas internas de procedencia**, **16 fotos nuevas** y **3 documentos privados**. Cada nota se ha releído en su ficha. Las altas se verifican por código, fuente y visibilidad. Los códigos, originales y recibos por inmueble se conservan en la tanda privada.
 
 | Nº | Canal | Fuente | Ofertas con fuente primaria | Altas verificadas | Estado del canal en la tanda |
 |---:|---|---|---:|---:|---|
@@ -24,6 +24,10 @@ Los recibos de producción acreditan **66 altas privadas en Archived**, **232 no
 | 12 | `bus19-review-2841f43006bbe490` | Catterson Wood | 0 | 0 | Catálogo revisado. Pendiente acreditar oferta individual vigente. |
 
 Los canales 1 y 2, 9 y 10 y las entradas de Bridle y BusinessHub se solapan. Una ficha vista desde varios canales cuenta una vez en el total. Las coincidencias de dirección o de nombre que admiten varias unidades permanecen en el cruce privado hasta identificar la unidad y la operación. Las filas históricas siguientes documentan la primera pasada.
+
+### Punto de pausa de la lista 01
+
+Hampton mostraba **1.106 fichas archivadas** al releer el segundo lote. La tanda documenta 255 ofertas con fuente primaria. De ellas, 66 se añadieron, 53 ya estaban en Listings, 127 quedaron como candidatas y 9 requieren confirmar la identidad. La revisión de enlaces de agencias del portal y la preparación de un tercer lote quedaron abiertas. El segundo lote es la última carga de esta revisión con recibo de producción.
 
 ## Lista 01 · revisión del 26-nov-2026
 
