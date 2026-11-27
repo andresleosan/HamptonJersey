@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **PUB-10 hecha:** el formulario público «Sell or let» deja una tarea en el Inbox con la solicitud del propietario; probado por Luis en producción y borrado después. 164 → 165 de 216.
+
 27-nov-2026 · **VIS-13 hecha:** los clientes con visita confirmada reciben un recordatorio por correo 2 h antes (y 24 h antes); probado con el buzón de prueba de Luis y encendido por su decisión. 163 → 164 de 216.
 
 27-nov-2026 · **ANA-09:** la regla de límite del chat y del contador de vistas está creada en Cloudflare; empezará a actuar cuando el dominio pase de Wix a Cloudflare. 163 → 163 de 216.

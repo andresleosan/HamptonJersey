@@ -5726,11 +5726,11 @@ document.addEventListener('DOMContentLoaded', () => {
    "titulo": "Formulario público Book a valuation para captar propietarios",
    "origen": "plan",
    "fase": "F4",
-   "estado": "parcial",
-   "responsable": "Luis",
-   "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada.",
-   "falta": "Prueba real: Luis envía una solicitud en #/owners; comprobar que llega al panel con su tarea y borrarla.",
-   "bloqueo": "Dato de Hampton",
+   "estado": "hecho",
+   "responsable": "—",
+   "hecho": "La reserva pública deja elegir «General enquiry / valuation» y Insights muestra la demanda sin cubrir por parroquia. El formulario «Sell or let» (#/owners) guarda la solicitud con recibo idempotente y crea un evento sin datos personales y una tarea en Inbox, todo en una transacción. La migración aditiva 0118 sustituye a la reconstrucción de events/notifications, que se retiró. Staff abre el detalle, cambia el estado solo a mano, ve otras solicitudes con el mismo correo o teléfono para conciliarlas y puede borrar una solicitud por petición de supresión (borra recibo, cierra la tarea y deja un evento con quién lo hizo). Construida apagada: OWNER_REQUESTS_READY=\"0\" y sin la fila owner_enquiries no se recibe nada. 27-nov-2026: prueba real de Luis en producción: solicitud enviada desde www.hamptonestatesjersey.com/#/owners, vista en el Inbox y en su ficha, y borrada con Erase request.",
+   "falta": "",
+   "bloqueo": "",
    "evidencia": [
     "site/index.html:543",
     "site/owner.js",
@@ -5751,9 +5751,10 @@ document.addEventListener('DOMContentLoaded', () => {
     "Decisión: supresión manual por Staff y conciliación por mismo correo o teléfono; el plan prohíbe inventar vencimiento (plan PUB-10, última casilla).",
     "17-nov-2026: 0118 aplicada en remoto (sola, desde directorio temporal; marcador Time Travel en el relevo); tras el despliegue b9b8037f, GET /api/owner-requests/availability = {available:false} y la portada responde 200. Revisión independiente sin graves.",
     "Decisión de Luis 20-nov-2026: Hampton tiene sus registros (JFSC, JOIC); no se piden certificados ni se guardan números en el repositorio ni en la app.",
-    "25-nov-2026: decisión de Luis: 12 meses desde la última actividad y encender. Pasada de retención de owner_requests (ce9d0f72), aviso de privacidad con la sección y su plazo (fecha 25-nov), fila owner_enquiries privacy_version 2026-11-25 creada en producción (marcador previo 0000049f-0000081c-0000512e-d52a3e68caba16d27258af8ae8082dee) y OWNER_REQUESTS_READY=1 (602c4f3e). /api/owner-requests/availability responde available:true. Falta la prueba real de Luis en #/owners."
+    "25-nov-2026: decisión de Luis: 12 meses desde la última actividad y encender. Pasada de retención de owner_requests (ce9d0f72), aviso de privacidad con la sección y su plazo (fecha 25-nov), fila owner_enquiries privacy_version 2026-11-25 creada en producción (marcador previo 0000049f-0000081c-0000512e-d52a3e68caba16d27258af8ae8082dee) y OWNER_REQUESTS_READY=1 (602c4f3e). /api/owner-requests/availability responde available:true. Falta la prueba real de Luis en #/owners.",
+    "27-nov-2026 04:32 Jersey: owner_requests 3cee8711… (PRUEBA Luis (no usar), sale, valuation 1) con su tarea notifications 1367 owner-request:… action_required 1, creadas en la misma transacción; Luis la abrió desde el panel y la borró con Erase request a las 04:37: owner_requests 0 filas, tarea 1367 resolved_at 04:37:01. Sin correo (el formulario no envía ninguno)."
    ],
-   "actualizado": "2026-11-25"
+   "actualizado": "2026-11-27"
   },
   {
    "id": "PUB-11",
