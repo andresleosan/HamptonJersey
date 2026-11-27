@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **ANA-09:** la regla de límite del chat y del contador de vistas está creada en Cloudflare; empezará a actuar cuando el dominio pase de Wix a Cloudflare. 163 → 163 de 216.
+
 27-nov-2026 · **AUT-14:** comprobado que el avisador ya publica «Gone quiet», contactos que caducan y aplicantes con propuestas listas (desde el 25-nov). Solo falta invitar al equipo al canal. 163 → 163 de 216.
 
 26-nov-2026 · **BUS-09:** la lectura de D1 sigue sin observaciones del piloto en las dos últimas pasadas. Pasa a la cola de Luis hasta que Hermes 2 recupere sus entregas nocturnas. 163 → 163 de 216.

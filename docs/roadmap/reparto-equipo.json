@@ -10334,24 +10334,26 @@
       "estado": "parcial",
       "responsable": "Luis",
       "hecho": "La propia sentencia deja de contar al llegar a 20.000 aperturas en un día de Jersey.",
-      "falta": "Una sola regla de límite de peticiones (la única del plan Free), acotada a /api/chat* y /api/stats: más de 20 en 10 s por IP → bloqueo de 10 s; nunca todo /api/, porque la oficina sale por una IP y el panel rozaría el tope. Es la misma regla que necesita Hampton Bot (PRE-34). Ya se puede crear: desde el 1-nov-2026 el dominio está en Cloudflare (en *.pages.dev no hay WAF).",
+      "falta": "La regla ya está creada en la zona de Cloudflare (27-nov), pero no actúa: el dominio sigue con los servidores de nombres de Wix (ns10/ns11.wixdns.net) y www es un CNAME de Wix a hamptonjersey.pages.dev, así que el tráfico no pasa por la zona (en *.pages.dev no hay WAF). Actuará sola cuando el dueño del dominio en Wix cambie los servidores de nombres a Cloudflare; entonces repetir la ráfaga de prueba (60 GET a /api/stats: deben salir 429). Una sola regla (la única del plan Free), acotada a /api/chat, /api/chat/messages y /api/stats; nunca todo /api/. Es la misma que necesita Hampton Bot (PRE-34).",
       "bloqueo": "",
       "evidencia": [
         "server/routes/public.js:84-94",
         "docs/superpowers/specs/2026-10-24-hampton-app-f7a-design.md:37",
-        "docs/roadmap/ESTADO.md:15"
+        "docs/roadmap/ESTADO.md:15",
+        "27-nov-2026: Luis creó la regla «Hampton chat y contador de vistas» (expresión http.request.uri.path in {\"/api/chat\" \"/api/chat/messages\" \"/api/stats\"}, 20 peticiones / 10 s por IP, Block 10 s, Active). Prueba: 3 ráfagas de 60-70 GET a https://www.hamptonestatesjersey.com/api/stats desde el VPS → todas 404, ningún 429. DNS (DoH): NS ns10/ns11.wixdns.net; www CNAME hamptonjersey.pages.dev → el tráfico no pasa por la zona."
       ],
       "assignedSlot": "codex-desktop",
       "allocationStatus": "proposed",
       "assignmentRole": "seguimiento; no sustituye al responsable externo",
       "executionEligibility": "needs_scope_and_evidence_review",
       "dependencies": [],
-      "externalBlocker": "Luis: configuración autorizada y comprobación de la regla WAF compartida con chat.",
+      "externalBlocker": "Hampton (dueño del dominio en Wix): cambiar los servidores de nombres de hamptonestatesjersey.com a los de Cloudflare. La regla ya está creada y espera ese cambio.",
       "resources": [
         "external-account-config",
         "web-chat"
       ],
-      "nextStep": "Preparar y verificar con Luis la regla WAF acotada de chat y estadísticas, sin afectar todo el API."
+      "nextStep": "Preparar y verificar con Luis la regla WAF acotada de chat y estadísticas, sin afectar todo el API.",
+      "actualizado": "2026-11-27"
     },
     {
       "id": "ANA-10",
