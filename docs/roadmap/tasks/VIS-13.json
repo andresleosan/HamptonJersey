@@ -4,11 +4,11 @@
   "titulo": "Recordatorios a las 24 h y 2 h con Confirm, Reschedule y Cancel",
   "origen": "plan",
   "fase": "F3-B",
-  "estado": "parcial",
-  "responsable": "Luis",
-  "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita. El interruptor está encendido para la prueba real del 26-nov. El cartero aceptó el recordatorio de dos horas.",
-  "falta": "Queda confirmar la recepción del recordatorio de dos horas en el buzón de prueba y decidir si los recordatorios seguirán activos. Una respuesta por correo requiere seguimiento del equipo. El botón Confirm cierra la tarea de dos horas.",
-  "bloqueo": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
+  "estado": "hecho",
+  "responsable": "—",
+  "hecho": "25-nov-2026: construido y publicado apagado (VIS13_REMINDERS_READY=0, sin migración). El reloj encola un recordatorio al cliente 24 h y otro 2 h antes (duración real, hora de Jersey), solo a visitas enlazadas a una búsqueda por la propuesta más reciente; sale por la cola aprobada vía Hermes con lugar, fecha y hora, sin enlaces ni datos del hogar. reminded_* se escribe solo cuando Gmail lo acepta. A 2 h sin confirmar abre una tarea; nunca cancela solo. En la página privada del cliente (AGE-12): Confirm, pedir otra hora y Cancel, solo POST y solo para su visita. El interruptor está encendido para la prueba real del 26-nov. El cartero aceptó el recordatorio de dos horas. 27-nov-2026: Luis confirmó la recepción en Recibidos de su buzón de prueba (no en Spam) y decidió dejar los recordatorios encendidos («sí VIS-13»).",
+  "falta": "",
+  "bloqueo": "",
   "evidencia": [
     "jobs/wrangler.toml:1-24",
     "server/jobs.js:1-15",
@@ -17,7 +17,8 @@
     "25-nov-2026, decisiones de Luis en la sesión: el interruptor es la aprobación (sin aprobación uno a uno); solo visitas enlazadas a una búsqueda; primera prueba real con su buzón antes de dejarlo encendido. En producción hoy: 0 visitas confirmadas futuras, 0 propuestas, 0 enlaces privados.",
     "La prueba real del 26-nov registró el recordatorio de dos horas como accepted a las 07:34 UTC. Se comprobó hasta la aceptación por el cartero. Las pruebas locales cubren también el recordatorio de 24 h y las tres acciones de la página privada. La lectura de D1 del 26-nov confirmó que el recordatorio de dos horas seguía en estado accepted. La recepción en el buzón corresponde al destinatario.",
     "4a760f23 activó los interruptores de prueba en Pages y jobs. El 26-nov pasaron 50 de 50 pruebas locales de OFE-02, VIS-13 y AUT-21 con datos ficticios.",
-    "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con citas editadas, reasignadas o movidas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite."
+    "26-nov: el recordatorio de 24 h usa el historial de reserva, confirmación y cambio de hora. La prueba con citas editadas, reasignadas o movidas en tests/server/viewing-reminders.test.mjs comprueba que editar una nota conserva el aviso y mover la cita dentro de las 24 h lo omite.",
+    "27-nov-2026: outbound 2 viewing_reminder_2h (visita de prueba 10) creado 26-nov 07:30:33 UTC, accepted 07:34:31 por el cartero de Hermes, con message_id; Luis confirma que llegó a Recibidos del buzón de prueba el 26-nov 07:34 Jersey con el asunto «Viewing reminder: PRUEBA Luis (no usar), Thursday, 26 November 2026 at 09:30». Decisión: VIS13_REMINDERS_READY queda en \"1\" en los dos wrangler.toml (4a760f23)."
   ],
   "assignedSlot": "vscode",
   "allocationStatus": "proposed",
@@ -32,13 +33,13 @@
       "scope": "whole"
     }
   ],
-  "externalBlocker": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
+  "externalBlocker": "",
   "resources": [
     "viewings-contract",
     "viewings-ui",
     "email-pipeline",
     "jobs-clock"
   ],
-  "nextStep": "Comprobar en el buzón de prueba el recordatorio de dos horas y decidir si se mantienen los recordatorios automáticos para visitas enlazadas.",
-  "actualizado": "2026-11-26"
+  "nextStep": "Nada pendiente. Si un cliente responde al recordatorio, el equipo le contesta (seguimiento humano).",
+  "actualizado": "2026-11-27"
 }

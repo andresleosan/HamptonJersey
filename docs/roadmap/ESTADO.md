@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **VIS-13 hecha:** los clientes con visita confirmada reciben un recordatorio por correo 2 h antes (y 24 h antes); probado con el buzón de prueba de Luis y encendido por su decisión. 163 → 164 de 216.
+
 27-nov-2026 · **ANA-09:** la regla de límite del chat y del contador de vistas está creada en Cloudflare; empezará a actuar cuando el dominio pase de Wix a Cloudflare. 163 → 163 de 216.
 
 27-nov-2026 · **AUT-14:** comprobado que el avisador ya publica «Gone quiet», contactos que caducan y aplicantes con propuestas listas (desde el 25-nov). Solo falta invitar al equipo al canal. 163 → 163 de 216.
