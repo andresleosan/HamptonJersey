@@ -9,7 +9,7 @@ import { configure } from "./email-helpers.mjs";
 import { jerseyToday } from "../../server/viewings.js";
 import { addMonths } from "../../server/rentals.js";
 import { claimForHermes, settleForHermes } from "../../server/email.js";
-import { statementEmailPass } from "../../server/statement-emails.js";
+import { statementEmailPass, statementText } from "../../server/statement-emails.js";
 
 const T = jerseyToday(), PREV = addMonths(`${T.slice(0, 7)}-01`, -1).slice(0, 7);
 const ADMIN = "admin@example.test", OWNER = "owner@landlord.example.test";
@@ -172,23 +172,46 @@ test("it is not claimed once the revision is superseded, the address changed or 
   }
 });
 
-test("an unknown result is never sent again by the app: a person says whether it left", async () => {
+test("an unknown result is never sent again by the app: a person says whether it left, for the email they saw", async () => {
   const e = world(), { run: r } = await closed(e);
   ok(await approveCtx(e, r.id));
   await carrier(e, "unknown");
   await statementEmailPass(e);
   assert.equal(sentOn(e, r.id).sent_on, null);
-  assert.equal((await context(e, r.id)).email.status, "unknown");
+  const first = (await context(e, r.id)).email;
+  assert.equal(first.status, "unknown");
   assert.equal((await approveCtx(e, r.id)).status, 409, "no second email while this one is unknown");
-  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: "yes" })).status, 400);
-  ok(await req(e, "POST", `${path(r.id)}/outcome`, { sent: false }));
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: "yes", ref: first.ref })).status, 400);
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: false })).status, 400, "the email seen is named");
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: false, ref: "other" })).status, 409);
+  ok(await req(e, "POST", `${path(r.id)}/outcome`, { sent: false, ref: first.ref }));
   assert.equal(outbound(e)[0].status, "cancelled");
-  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: false })).status, 409);
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: false, ref: first.ref })).status, 409);
   ok(await approveCtx(e, r.id));
   assert.equal(outbound(e).length, 2);
   await carrier(e, "unknown");
-  ok(await req(e, "POST", `${path(r.id)}/outcome`, { sent: true }));
+  const second = (await context(e, r.id)).email;
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: true, ref: first.ref })).status, 409, "a stale page decides nothing");
+  ok(await req(e, "POST", `${path(r.id)}/outcome`, { sent: true, ref: second.ref }));
   assert.deepEqual(sentOn(e, r.id), { sent_on: T, sent_by: ADMIN });
+});
+
+test("a claim that only ran out of time cannot be called not sent for an hour, so a late Gmail answer is not lost", async () => {
+  const e = world(), { run: r } = await closed(e);
+  ok(await approveCtx(e, r.id));
+  await carrier(e, "unknown");
+  const { ref } = (await context(e, r.id)).email;
+  e.DB.raw.prepare("UPDATE outbound SET error_code = 'CLAIM_EXPIRED', claimed_at = ? WHERE ref = ?").run(new Date().toISOString(), ref);
+  assert.equal((await req(e, "POST", `${path(r.id)}/outcome`, { sent: false, ref })).status, 409);
+  e.DB.raw.prepare("UPDATE outbound SET claimed_at = ? WHERE ref = ?").run(new Date(Date.now() - 2 * 3600e3).toISOString(), ref);
+  ok(await req(e, "POST", `${path(r.id)}/outcome`, { sent: false, ref }));
+});
+
+test("the text never shows a written-off or other line that is not positive, as the panel does", () => {
+  const s = { month: "2026-10", landlord: { name: "Sam Owner" }, totals: { rent: 100, fee: 10, gst: null, repairs: 0, net: 90 },
+    rentals: [{ address: "A House", rent_received: 100, fee_percent: 10, fee: 10, repairs: [], other_received: 0, written_off: -500 }] };
+  const t = statementText(s, 1);
+  assert.ok(!t.includes("written off") && !t.includes("Other money"), t);
 });
 
 test("a refused email goes back to a person: the statement is not marked and a new approval is allowed", async () => {

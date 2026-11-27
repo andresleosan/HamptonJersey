@@ -14,6 +14,7 @@ import { bankDetails } from "./rental-emails.js";
 import { STATEMENT_TEMPLATE as TEMPLATE, STATEMENT_CLAIMABLE, STATEMENT_QUEUE_LIMIT, statementEmailReady } from "./statement-email-check.js";
 
 const CHANGED = "This statement changed. Reload to review it.";
+const LATE_MS = 3600e3;
 const ACTIVE = ["queued", "sending", "accepted", "unknown"];
 const pence = v => `${v < 0 ? "-" : ""}£${(Math.abs(v) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const MONTH = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -25,8 +26,8 @@ export function statementText(s, revision) {
   const t = s.totals, line = (label, v) => `  ${label}: ${pence(v)}`;
   const props = s.rentals.map(r => [r.address, line("Rent received", r.rent_received), line(`Management fee (${r.fee_percent}%)`, -r.fee),
     ...r.repairs.map(x => line(`Repair: ${x.title}`, -x.cost)),
-    ...(r.other_received ? [line("Other money received, not in the net (for example a deposit)", r.other_received)] : []),
-    ...(r.written_off ? [line("Rent written off, not in the net", r.written_off)] : [])].join("\n"));
+    ...(r.other_received > 0 ? [line("Other money received, not in the net (for example a deposit)", r.other_received)] : []),
+    ...(r.written_off > 0 ? [line("Rent written off, not in the net", r.written_off)] : [])].join("\n"));
   return [`Dear ${s.landlord.name},`,
     `Here is your statement for ${monthName(s.month)} (revision ${revision}). All amounts are in pounds sterling.`,
     ...props,
@@ -41,7 +42,7 @@ async function view(env, id) {
       ${LATEST.replaceAll("statement_runs.", "s.")} AS latest FROM statement_runs s JOIN landlords l ON l.id = s.landlord_id WHERE s.id = ?`)
     .bind(Number(id)).first() ?? fail(404, "Statement not found");
   const to = emailAddress(r.landlord_email), text = statementText(JSON.parse(r.snapshot), r.revision);
-  const mail = await env.DB.prepare(`SELECT ref, status, approved_by, approved_at FROM outbound WHERE template = ? AND entity_id = ?
+  const mail = await env.DB.prepare(`SELECT ref, status, approved_by, approved_at, error_code, claimed_at FROM outbound WHERE template = ? AND entity_id = ?
     ORDER BY id DESC LIMIT 1`).bind(TEMPLATE, String(r.id)).first();
   const blocked = !r.latest ? "A newer revision of this statement exists. Reload to see it."
     : r.sent_on ? `This statement is already marked sent (${r.sent_on}).`
@@ -55,7 +56,7 @@ async function context({ env, params: [id] }) {
   const { r, to, mail, text, blocked } = await view(env, id);
   return json({ id: r.id, month: r.month, revision: r.revision, digest: r.source_digest, blocked, text, subject: subjectOf(r),
     recipient: to && { name: r.landlord_name, email: to },
-    email: mail && { status: mail.status, approved_by: mail.approved_by, approved_at: mail.approved_at },
+    email: mail && { ref: mail.ref, status: mail.status, approved_by: mail.approved_by, approved_at: mail.approved_at },
     email_stop: await emailStop(env) });
 }
 
@@ -72,14 +73,14 @@ async function approve({ request, env, admin, params: [id] }) {
   const hash = await sha256(to), ts = now(), ref = crypto.randomUUID().replaceAll("-", ""), key = String(r.id);
   if (await env.DB.prepare("SELECT 1 FROM email_suppressions WHERE address_hash = ?").bind(hash).first())
     fail(409, "This address is on the email suppression list, so the app does not write to it: send it yourself.");
-  // A new approval after a refused or taken-back email is a new try (dedupe_key), never while another is in the queue or sent.
-  const tries = (await env.DB.prepare("SELECT COUNT(*) n FROM outbound WHERE template = ? AND entity_id = ?").bind(TEMPLATE, key).first()).n;
+  // A new approval after a refused or taken-back email is a new try (its own dedupe_key), never while another is in the queue
+  // or sent: the NOT EXISTS below, in the same statement, keeps two clicks to one.
   const { meta } = await env.DB.prepare(`INSERT INTO outbound (ref, dedupe_key, template, entity_id, version, recipient, recipient_hash, subject, text,
       status, approved_by, approved_at, created_at, updated_at)
     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM statement_runs WHERE id = ? AND sent_on IS NULL
       AND ${LATEST}) AND NOT EXISTS (SELECT 1 FROM outbound WHERE template = ? AND entity_id = ? AND status IN ('queued', 'sending', 'accepted', 'unknown'))
     ON CONFLICT (dedupe_key) DO NOTHING`)
-    .bind(ref, await sha256(`${TEMPLATE}\0${r.id}\0${tries}`), TEMPLATE, key, r.revision, to, hash, subjectOf(r), text, admin, ts, ts, ts,
+    .bind(ref, await sha256(`${TEMPLATE}\0${r.id}\0${ref}`), TEMPLATE, key, r.revision, to, hash, subjectOf(r), text, admin, ts, ts, ts,
       r.id, TEMPLATE, key).run();
   if (!meta.changes) fail(409, CHANGED);
   return json({ email: { status: "queued", approved_by: admin, approved_at: ts } });
@@ -89,9 +90,12 @@ async function approve({ request, env, admin, params: [id] }) {
 // folder and says which. Sent: marked sent today, as the hand mark does. Not sent: taken out, so a new approval is possible.
 async function outcome({ request, env, admin, params: [id] }) {
   const b = await readJson(request);
-  if (typeof b?.sent !== "boolean") fail(400, "Invalid format");
+  if (typeof b?.sent !== "boolean" || typeof b.ref !== "string") fail(400, "Invalid format");
   const { r, mail } = await view(env, id);
-  if (mail?.status !== "unknown") fail(409, "This email is not waiting to be checked. Reload to see it.");
+  if (mail?.status !== "unknown" || mail.ref !== b.ref) fail(409, "This email is not waiting to be checked. Reload to see it.");
+  // A claim that only ran out of time may still be reported taken by Gmail: not before an hour, or a new approval sends twice.
+  if (!b.sent && mail.error_code === "CLAIM_EXPIRED" && Date.parse(mail.claimed_at) > Date.now() - LATE_MS)
+    fail(409, "The email service may still report this email. Check Gmail's Sent folder again in an hour.");
   const { meta } = await (b.sent
     ? env.DB.prepare(`UPDATE statement_runs SET sent_on = ?, sent_by = ? WHERE id = ? AND sent_on IS NULL AND ${LATEST}`).bind(jerseyToday(), admin, r.id)
     : env.DB.prepare("UPDATE outbound SET status = 'cancelled', updated_at = ? WHERE ref = ? AND status = 'unknown'").bind(now(), mail.ref)).run();

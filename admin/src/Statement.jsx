@@ -134,8 +134,8 @@ function StatementEmail({ run, onDone }) {
       {e && <p role="status"><strong>{waiting ? "Approved and queued to send" : e.status === "unknown" ? "Not known whether it was sent" : "The last email did not leave"}</strong>
         {" "}(approved by {e.approved_by})</p>}
       {e?.status === "unknown" && <div className="inline"><p>The email service did not confirm it. Look in Hampton's Gmail, Sent folder, then say which.</p>
-        <button type="button" className="btn sm" disabled={busy} onClick={() => act("outcome", { sent: true }, "Marked sent.")}>It was sent</button>
-        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => act("outcome", { sent: false }, "Not sent.")}>It was not sent</button></div>}
+        <button type="button" className="btn sm" disabled={busy} onClick={() => act("outcome", { sent: true, ref: e.ref }, "Marked sent.")}>It was sent</button>
+        <button type="button" className="btn ghost sm" disabled={busy} onClick={() => act("outcome", { sent: false, ref: e.ref }, "Not sent.")}>It was not sent</button></div>}
       {d.blocked ? <p className="err">{d.blocked}</p> : !e || !["queued", "sending", "accepted", "unknown"].includes(e.status) ? <>
         <pre className="statement-email-text">{d.text}</pre>
         {d.email_stop && <p className="muted">{d.email_stop}</p>}

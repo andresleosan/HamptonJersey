@@ -262,7 +262,7 @@ export async function settleForHermes(env, ref, token, outcome, messageId, threa
   // Fase D: an enquiry, OFE-02's offer to a seller or a VIS-13 reminder Gmail took keeps its thread (once), so the
   // carrier reads the reply there (server/hermes-mail.js).
   if (threadId && outcome === "sent" && (r === "ok" || r === "same"))
-    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller', 'viewing_reminder_24h', 'viewing_reminder_2h', 'viewing_feedback', 'viewing_cancelled_closed', 'tenant_licence_copy', 'tenant_eicr_copy', 'tenant_deposit_info', 'tenant_rent_notice', 'landlord_arrears_notice', 'rent_arrears', 'renewal_landlord', 'renewal_tenant', 'applicant_welcome') AND status = 'accepted'
+    await env.DB.prepare(`UPDATE outbound SET gmail_thread_id = ? WHERE ref = ? AND template IN ('enquiry', 'offer_to_seller', 'viewing_reminder_24h', 'viewing_reminder_2h', 'viewing_feedback', 'viewing_cancelled_closed', 'tenant_licence_copy', 'tenant_eicr_copy', 'tenant_deposit_info', 'tenant_rent_notice', 'landlord_arrears_notice', 'rent_arrears', 'renewal_landlord', 'renewal_tenant', 'applicant_welcome', 'owner_statement') AND status = 'accepted'
       AND message_id = ? AND gmail_thread_id IS NULL`).bind(threadId, ref, messageId).run();
   return r;
 }
