@@ -2618,7 +2618,7 @@
       "preferredSlot": "hermes",
       "priority": 170,
       "kind": "development",
-      "enabled": true,
+      "enabled": false,
       "reviewRequired": true,
       "dependencies": [
         {
@@ -12580,11 +12580,11 @@
       "titulo": "Barandillas de envío y botón Pause all outbound",
       "origen": "plan",
       "fase": "—",
-      "estado": "parcial",
-      "responsable": "Luis",
-      "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica.",
-      "falta": "Solo la pausa con un correo real: con «Pause all outbound» puesto, aprobar y encolar una consulta de prueba, comprobar que Hermes no la recoge en su ronda, quitar la pausa y comprobar que sale. Doble envío y reclamo único ya comprobados con el envío real del 25-nov (AGE-05). Traído de AUT-17 (25-nov, fase E del plan): primer correo real de «Coordinar visitas» (a la agencia o al cliente), en borrador o enviado; «Confirmar disponibilidad» ya dejó un borrador real (mail_tasks: 1 availability drafted).",
-      "bloqueo": "Canal de correo de Hermes (AUT-17)",
+      "estado": "hecho",
+      "responsable": "—",
+      "hecho": "La pausa general está en producción desde el 1-nov-2026 (AUT-01/AUT-13). Añadido en local el 6-nov-2026, sin publicar, para AUT-17: idempotencia por snapshot, cuota compartida de 100 intentos por día de Jersey con reserva atómica, interruptor de correo y del resumen, supresiones y comprobación de pausa antes de cada llamada. Resultados inciertos sin reenvío automático. La pausa también detiene el resumen interno y el panel lo explica. 27-nov-2026: pausa probada con un correo real en cola: con «Pause all outbound» puesto el cartero preguntó y no recogió nada; al reanudar salió y Gmail lo aceptó. Antes, con la pausa puesta, aprobar quedó bloqueado sin encolar nada.",
+      "falta": "",
+      "bloqueo": "",
       "evidencia": [
         "admin/src/ApplicantDetail.jsx:279-281",
         "docs/roadmap/2026-10-23-arquitectura-hampton-app.md:444",
@@ -12596,7 +12596,8 @@
         "docs/roadmap/2026-11-07-reconciliacion-automatizacion.md",
         "Adaptada al plan maestro vigente el 14-nov-2026 (docs/roadmap/2026-11-10-plan-maestro-vigente.md): Meta retirado; queda solo el correo.",
         "Evaluada el 14-nov-2026 (skill §2, quién mueve la tarea): no queda código propio; solo la activación de AUT-17, que es de Luis. La parte del flujo de consultas se trasladó a AGE-03 y AGE-05.",
-        "25-nov-2026: envío real hecho (AGE-05): una sola fila outbound, un solo intento en email_attempts, un único evento de envío. Queda solo la pausa general con un correo real en cola: Pause all outbound con uno encolado → no sale; Resume → sale."
+        "25-nov-2026: envío real hecho (AGE-05): una sola fila outbound, un solo intento en email_attempts, un único evento de envío. Queda solo la pausa general con un correo real en cola: Pause all outbound con uno encolado → no sale; Resume → sale.",
+        "27-nov-2026 (Jersey): outbound 14 offer_to_seller (oferta de prueba 2) queued 05:41:13; pausa 05:44:13 (app_settings.outbound paused 1); ronda manual del cartero 05:45:55 (hermes_mail_seen) → outbound 14 sigue queued, attempts 0, claimed_at null; reanudado 05:47:03; ronda 05:48 → claimed 05:48:03, accepted 05:48:04 con message_id; Luis lo confirma en Recibidos del buzón de prueba. Antes (04:03-04:11): con la pausa, Approve and send deshabilitado con «Sending is paused (Pause all outbound), so nothing is queued…» y 0 filas nuevas en outbound. El primer correo real de «Coordinar visitas» (traído de AUT-17) no es criterio de AUT-11: pasa a MEJORAS."
       ],
       "modulo": "M06",
       "deps": [
@@ -12631,14 +12632,14 @@
           "scope": "partial"
         }
       ],
-      "externalBlocker": "Luis: conectar el Gmail de Hampton en Hermes (AUT-17) y hacer una prueba real de envío.",
+      "externalBlocker": "",
       "resources": [
         "outbound-policy",
         "email-pipeline",
         "consultations-contract"
       ],
-      "nextStep": "Cuando el canal Hermes-Gmail opere, comprobar con un envío real que dos acciones concurrentes no envían dos veces, que la pausa frena lo encolado y cerrar.",
-      "actualizado": "2026-11-25"
+      "nextStep": "Nada pendiente.",
+      "actualizado": "2026-11-27"
     },
     {
       "id": "AUT-12",

@@ -2,6 +2,8 @@
 
 **Cómo se avanza:** [skill](../../.agents/skills/avanzar/SKILL.md) · [autorizaciones de Luis](CONTINUIDAD-AVANZAR.md) · [cola de Luis](COLA-LUIS.md) · ruta: `node scripts/avanzar-ruta.mjs`. Este archivo es el registro de cierres: una línea por cierre, la más reciente arriba.
 
+27-nov-2026 · **AUT-11 hecha:** «Pause all outbound» probado con un correo real: en pausa no se aprueba ni sale nada de la cola; al reanudar, el correo salió. 165 → 166 de 216.
+
 27-nov-2026 · **PUB-10 hecha:** el formulario público «Sell or let» deja una tarea en el Inbox con la solicitud del propietario; probado por Luis en producción y borrado después. 164 → 165 de 216.
 
 27-nov-2026 · **VIS-13 hecha:** los clientes con visita confirmada reciben un recordatorio por correo 2 h antes (y 24 h antes); probado con el buzón de prueba de Luis y encendido por su decisión. 163 → 164 de 216.
