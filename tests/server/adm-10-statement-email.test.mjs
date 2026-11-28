@@ -70,9 +70,9 @@ test("switched off, without the statements switch or before the carrier: no rout
   assert.equal(sentOn(e, r.id).sent_on, null);
 });
 
-test("both wrangler files carry the switch, off", () => {
+test("both wrangler files carry the switch, on (Luis 28-nov)", () => {
   for (const f of ["wrangler.toml", "jobs/wrangler.toml"])
-    assert.match(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8"), /^ADM10_STATEMENT_EMAIL_READY = "0"$/m, f);
+    assert.match(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8"), /^ADM10_STATEMENT_EMAIL_READY = "1"$/m, f);
 });
 
 test("the proposed text carries the statement's figures and nothing else", async () => {

@@ -73,7 +73,7 @@ AUT24_TENANT_DOCS_READY = "1"
 # ADM-10: the closed statement (latest revision) emailed to its landlord, prepared and approved by a person (R01) for each send,
 # through the approved queue Hermes's carrier sends; Gmail's acceptance marks it sent. Needs ADM10_STATEMENTS_READY. Sends
 # messages: only Luis switches it on, here and in ../wrangler.toml at once. Off, no route and the clock takes back what is queued.
-ADM10_STATEMENT_EMAIL_READY = "0"
+ADM10_STATEMENT_EMAIL_READY = "1"
 # AUT-23: the arrears reminders +1/+5 and formal letter +14 (ADM-09) and the renewal messages to the landlord and the
 # tenant (ADM-14), each prepared, edited and approved by a person, then queued once (migration 0127) and sent verbatim
 # by Hermes's carrier from Hampton's Gmail. Sending never marks a step done nor pays anything. Sends messages: only Luis
