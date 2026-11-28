@@ -216,9 +216,9 @@ test("a Drive failure while Hermes claims is kept as the reason when the row fai
 // while the imports already here can still be reviewed.
 test("paused without its switch: nothing is sent to or read by Hermes, the review side stays", async t => {
   const { env } = await setup(t);
-  const id = await ready(env);
-  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status) VALUES ('F_X', 'Queued house', '', 'a@example.test', '2026-11-14T00:00:00.000Z', 'queued')").run();
-  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status, error) VALUES ('F_Y', 'Failed house', '', 'a@example.test', '2026-11-14T00:00:00.000Z', 'failed', 'x')").run();
+  const id = await ready(env), at = new Date().toISOString(); // within the queue's 14 days, whatever the day
+  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status) VALUES ('F_X', 'Queued house', '', 'a@example.test', ?, 'queued')").run(at);
+  env.DB.raw.prepare("INSERT INTO drive_imports (folder_id, folder_name, note, requested_by, created_at, status, error) VALUES ('F_Y', 'Failed house', '', 'a@example.test', ?, 'failed', 'x')").run(at);
   delete env.PUB21_DRIVE_READY;
   const list = await admin(env, "GET", "/admin/queue");
   assert.equal(list.status, 200);
